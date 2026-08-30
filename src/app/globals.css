@@ -1,0 +1,51 @@
+:root {
+  /* Brand Colors */
+  --color-purple-vibrant-1: #9306CF;
+  --color-purple-vibrant-2: #881BAA;
+  
+  --color-purple-deep-1: #401E3F;
+  --color-purple-deep-2: #512B54;
+  --color-purple-deep-3: #4C264F;
+  
+  --color-magenta-accent: #940068;
+  --color-green-accent: #35A340;
+
+  /* Typography */
+  --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  
+  /* System */
+  --color-background: #1a0f1d; /* Very dark purple for main background */
+  --color-surface: var(--color-purple-deep-1);
+  --color-text-main: #ffffff;
+  --color-text-muted: #e0d8e1;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  font-family: var(--font-family-base);
+  background-color: var(--color-background);
+  color: var(--color-text-main);
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Base modern utilities (optional) */
+.glass-panel {
+  background: rgba(81, 43, 84, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}

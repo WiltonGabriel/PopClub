@@ -1,0 +1,109 @@
+.container {
+  min-height: 100vh;
+  padding: 40px;
+  background: var(--color-background);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(to right, var(--color-magenta-accent), var(--color-purple-vibrant-1));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.addButton {
+  background: var(--color-green-accent);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 10px rgba(53, 163, 64, 0.3);
+}
+
+.addButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(53, 163, 64, 0.4);
+}
+
+.tableContainer {
+  background: rgba(40, 20, 40, 0.6);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th, .table td {
+  padding: 16px 24px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.table th {
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.productImage {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+}
+
+.editBtn, .deleteBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.editBtn {
+  color: var(--color-magenta-accent);
+}
+
+.editBtn:hover {
+  color: #ff33a3;
+}
+
+.deleteBtn {
+  color: var(--color-text-muted);
+}
+
+.deleteBtn:hover {
+  color: #ff4b4b;
+}
+
+.loading {
+  padding: 40px;
+  text-align: center;
+  color: var(--color-text-muted);
+}

@@ -1,0 +1,65 @@
+.floatingPanel {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  width: 380px;
+  max-width: calc(100vw - 48px);
+  z-index: 5;
+  background: rgba(40, 20, 40, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panelTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  background: linear-gradient(to right, #fff, var(--color-text-muted));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.routeInfo {
+  margin-top: 16px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.infoBlock span {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.infoBlock strong {
+  font-size: 1.1rem;
+  color: var(--color-green-accent);
+}
+
+.errorText {
+  color: #ff4b4b;
+  font-size: 0.9rem;
+  margin-top: 8px;
+}
+
+@media (max-width: 768px) {
+  .floatingPanel {
+    top: auto;
+    bottom: 24px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
+}
