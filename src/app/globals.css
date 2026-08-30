@@ -1,18 +1,24 @@
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   /* Brand Colors */
   --color-purple-vibrant-1: #9306CF;
   --color-purple-vibrant-2: #881BAA;
-  
+
   --color-purple-deep-1: #401E3F;
   --color-purple-deep-2: #512B54;
   --color-purple-deep-3: #4C264F;
-  
+
   --color-magenta-accent: #940068;
   --color-green-accent: #35A340;
 
   /* Typography */
   --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  
+
   /* System */
   --color-background: #1a0f1d; /* Very dark purple for main background */
   --color-surface: var(--color-purple-deep-1);
@@ -48,4 +54,75 @@ a {
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
+}
+
+@layer base {
+  .theme {
+    --font-heading: var(--font-sans);
+    --font-sans: var(--font-sans);
+  }
+  :root {
+    --background: 288 32% 10%; /* #1a0f1d */
+    --foreground: 0 0% 100%;
+    
+    --card: 292 28% 18%; /* #401E3F */
+    --card-foreground: 0 0% 100%;
+    
+    --popover: 292 28% 18%;
+    --popover-foreground: 0 0% 100%;
+    
+    --primary: 318 100% 29%; /* #940068 Magenta */
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 292 32% 25%; /* #512B54 */
+    --secondary-foreground: 0 0% 100%;
+    
+    --muted: 292 32% 25%;
+    --muted-foreground: 294 13% 87%; /* #e0d8e1 */
+    
+    --accent: 282 94% 42%; /* #9306CF Vibrant Purple */
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 0 0% 100% / 10%;
+    --input: 0 0% 100% / 15%;
+    --ring: 318 100% 29%;
+    
+    --radius: 0.625rem;
+  }
+
+  .dark {
+    /* Same as root since default is dark */
+    --background: 288 32% 10%;
+    --foreground: 0 0% 100%;
+    --card: 292 28% 18%;
+    --card-foreground: 0 0% 100%;
+    --popover: 292 28% 18%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 318 100% 29%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 292 32% 25%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 292 32% 25%;
+    --muted-foreground: 294 13% 87%;
+    --accent: 282 94% 42%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 100% / 10%;
+    --input: 0 0% 100% / 15%;
+    --ring: 318 100% 29%;
+  }
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+  html {
+    @apply font-sans;
+  }
 }

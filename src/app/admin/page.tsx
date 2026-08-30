@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { productService } from "../../services/productService";
-import { Product } from "../../data/mockProducts";
+import { productService, Product } from "../../services/productService";
+import ProductForm from "../../components/admin/ProductForm";
 import styles from "./page.module.css";
 
 export default function AdminDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -21,7 +22,7 @@ export default function AdminDashboard() {
       setProducts(data);
     } catch (err: any) {
       console.error(err);
-      setError("Erro ao carregar produtos. Verifique se configurou o banco de dados corretamente.");
+      setError("Erro ao carregar produtos. Verifique as credenciais ou as RLS Policies.");
     } finally {
       setLoading(false);
     }
@@ -38,12 +39,26 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleProductCreated = (newProduct: Product) => {
+    setProducts([newProduct, ...products]);
+    setIsFormOpen(false);
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
         <h1 className={styles.title}>Admin: Catálogo</h1>
-        <button className={styles.addButton}>+ Novo Produto</button>
+        <button className={styles.addButton} onClick={() => setIsFormOpen(true)}>
+          + Novo Produto
+        </button>
       </header>
+
+      {isFormOpen && (
+        <ProductForm 
+          onClose={() => setIsFormOpen(false)} 
+          onProductCreated={handleProductCreated} 
+        />
+      )}
 
       {error ? (
         <div style={{ color: "#ff4b4b", padding: "20px" }}>{error}</div>
