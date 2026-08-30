@@ -1,0 +1,39 @@
+# Dependências
+/node_modules
+/.pnp
+.pnp.js
+
+# Produção e build
+/.next/
+/out/
+/build
+/dist
+
+# Ambientes e credenciais
+.env
+.env*.local
+*.pem
+
+# Logs
+/logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+Lerna-debug.log*
+
+# Banco de dados e ORM locais
+/prisma/*.db
+/prisma/*.db-journal
+
+# Sistema operacional e IDEs
+.DS_Store
+Thumbs.db
+/.vscode/
+/.idea/
+*.swp
+*.swo
+
+# Docker
+docker-data/
