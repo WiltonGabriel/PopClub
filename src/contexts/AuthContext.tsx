@@ -22,9 +22,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // Consider an admin if the email matches admin pattern or explicit check
-  const isAdmin = user?.email === "admin@popclub.com";
+  const fetchProfileAndSetAdmin = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+        
+      if (!error && data) {
+        setIsAdmin(data.role === 'admin');
+      } else {
+        setIsAdmin(false);
+      }
+    } catch (err) {
+      console.error("Error fetching profile role", err);
+      setIsAdmin(false);
+    }
+  };
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -32,6 +49,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
         setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchProfileAndSetAdmin(session.user.id);
+        }
       } catch (error) {
         console.error("Failed to initialize auth session", error);
       } finally {
@@ -43,9 +63,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Listener for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, currentSession) => {
+      async (_event, currentSession) => {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
+        
+        if (currentSession?.user) {
+          await fetchProfileAndSetAdmin(currentSession.user.id);
+        } else {
+          setIsAdmin(false);
+        }
+        
         setLoading(false);
       }
     );

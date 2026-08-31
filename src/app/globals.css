@@ -62,58 +62,58 @@ a {
     --font-sans: var(--font-sans);
   }
   :root {
-    --background: 288 32% 10%; /* #1a0f1d */
-    --foreground: 0 0% 100%;
+    --background: 240 12% 7%; /* Obsidian #0F0F13 */
+    --foreground: 0 0% 95%; /* Ozone White #F2F2F2 */
     
-    --card: 292 28% 18%; /* #401E3F */
-    --card-foreground: 0 0% 100%;
+    --card: 240 12% 7%;
+    --card-foreground: 0 0% 95%;
     
-    --popover: 292 28% 18%;
-    --popover-foreground: 0 0% 100%;
+    --popover: 240 12% 7%;
+    --popover-foreground: 0 0% 95%;
     
-    --primary: 318 100% 29%; /* #940068 Magenta */
+    --primary: 341 100% 58%; /* Neon Bubblegum #FF2A6D */
     --primary-foreground: 0 0% 100%;
     
-    --secondary: 292 32% 25%; /* #512B54 */
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 184 96% 46%; /* Cyan Glare #05D9E8 */
+    --secondary-foreground: 240 12% 7%;
     
-    --muted: 292 32% 25%;
-    --muted-foreground: 294 13% 87%; /* #e0d8e1 */
+    --muted: 240 8% 25%; /* Cardboard #3A3A45 */
+    --muted-foreground: 0 0% 70%;
     
-    --accent: 282 94% 42%; /* #9306CF Vibrant Purple */
-    --accent-foreground: 0 0% 100%;
+    --accent: 184 96% 46%;
+    --accent-foreground: 240 12% 7%;
     
     --destructive: 0 100% 50%;
     --destructive-foreground: 0 0% 100%;
     
-    --border: 0 0% 100% / 10%;
-    --input: 0 0% 100% / 15%;
-    --ring: 318 100% 29%;
+    --border: 240 8% 25%;
+    --input: 240 8% 25%;
+    --ring: 341 100% 58%;
     
-    --radius: 0.625rem;
+    --radius: 0;
   }
 
   .dark {
     /* Same as root since default is dark */
-    --background: 288 32% 10%;
-    --foreground: 0 0% 100%;
-    --card: 292 28% 18%;
-    --card-foreground: 0 0% 100%;
-    --popover: 292 28% 18%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 318 100% 29%;
+    --background: 240 12% 7%;
+    --foreground: 0 0% 95%;
+    --card: 240 12% 7%;
+    --card-foreground: 0 0% 95%;
+    --popover: 240 12% 7%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 341 100% 58%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 292 32% 25%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 292 32% 25%;
-    --muted-foreground: 294 13% 87%;
-    --accent: 282 94% 42%;
-    --accent-foreground: 0 0% 100%;
+    --secondary: 184 96% 46%;
+    --secondary-foreground: 240 12% 7%;
+    --muted: 240 8% 25%;
+    --muted-foreground: 0 0% 70%;
+    --accent: 184 96% 46%;
+    --accent-foreground: 240 12% 7%;
     --destructive: 0 100% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 100% / 10%;
-    --input: 0 0% 100% / 15%;
-    --ring: 318 100% 29%;
+    --border: 240 8% 25%;
+    --input: 240 8% 25%;
+    --ring: 341 100% 58%;
   }
   * {
     border-color: hsl(var(--border));
@@ -124,5 +124,35 @@ a {
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer utilities {
+  .holo-foil {
+    background: linear-gradient(
+      125deg,
+      rgba(255, 42, 109, 0.1) 0%,
+      rgba(5, 217, 232, 0.3) 40%,
+      rgba(255, 255, 255, 0.8) 50%,
+      rgba(5, 217, 232, 0.3) 60%,
+      rgba(255, 42, 109, 0.1) 100%
+    );
+    background-size: 200% 200%;
+    animation: holo 3s ease infinite;
+    mix-blend-mode: color-dodge;
+  }
+
+  @keyframes holo {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
