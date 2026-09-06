@@ -9,8 +9,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const jetBrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono" });
 
 export const metadata: Metadata = {
-  title: "PopClub Logistics",
-  description: "Advanced delivery and logistics tracking for PopClub.",
+  title: "PopClub - Pop Shake Açaí Expresso",
+  description: "Peça seu açaí, sorvete e shake favorito com entrega rápida. PopClub — Pop Shake Açaí Expresso.",
 };
 
 export default function RootLayout({
@@ -19,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn(spaceGrotesk.variable, inter.variable, jetBrainsMono.variable)}>
+    <html lang="pt-BR" className={cn(spaceGrotesk.variable, inter.variable, jetBrainsMono.variable)}>
       <body className={cn("font-sans bg-background text-foreground antialiased", inter.className)} suppressHydrationWarning>
         <AuthProvider>
           {children}

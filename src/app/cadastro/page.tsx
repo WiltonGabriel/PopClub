@@ -68,10 +68,10 @@ export default function CadastroPage() {
         <span className="font-mono text-sm uppercase tracking-widest">Voltar ao Login</span>
       </Link>
 
-      <div className="w-full max-w-md bg-card border-2 border-border p-8 shadow-[8px_8px_0px_0px_rgba(5,217,232,0.2)]">
+      <div className="w-full max-w-md bg-card border-2 border-border p-8 shadow-[8px_8px_0px_0px_rgba(147,6,207,0.2)]">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-heading font-black tracking-tighter uppercase text-foreground mb-2">
-            Pop<span className="text-secondary">Club</span>
+            Pop<span className="text-primary">Club</span>
           </h1>
           <p className="text-muted-foreground font-mono text-xs uppercase tracking-wider">
             Crie sua conta
@@ -163,7 +163,7 @@ export default function CadastroPage() {
               />
             </div>
             {confirmPassword.length > 0 && (
-               <ValidationItem isValid={passwordsMatch} label={passwordsMatch ? "Senhas coincidem" : "Senhas não coincidem"} />
+               <ValidationItem isValid={Boolean(passwordsMatch)} label={passwordsMatch ? "Senhas coincidem" : "Senhas não coincidem"} />
             )}
           </div>
 

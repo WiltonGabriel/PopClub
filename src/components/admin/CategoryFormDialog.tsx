@@ -43,7 +43,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, categoryToEdit
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-card text-white border-white/10">
+      <DialogContent className="sm:max-w-md bg-card text-white border-2 border-border">
         <DialogHeader>
           <DialogTitle>{categoryToEdit ? "Editar Categoria" : "Nova Categoria"}</DialogTitle>
         </DialogHeader>

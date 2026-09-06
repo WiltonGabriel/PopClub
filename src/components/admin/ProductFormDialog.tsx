@@ -58,10 +58,10 @@ export function ProductFormDialog({ open, onOpenChange, onSaved, productToEdit, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[900px] w-full p-0 overflow-hidden bg-background border-border border-2 grid grid-cols-1 md:grid-cols-2 gap-0 rounded-none shadow-[12px_12px_0px_0px_rgba(5,217,232,0.3)]">
+      <DialogContent className="max-w-[900px] w-full p-0 overflow-hidden bg-background border-border border-2 grid grid-cols-1 md:grid-cols-2 gap-0 rounded-none shadow-[12px_12px_0px_0px_rgba(147,6,207,0.3)]">
         {/* Left Side: Live Preview */}
         <div className="relative p-8 bg-card flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-border">
-          <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,42,109,0.05)_50%,transparent_75%)] bg-[length:20px_20px] pointer-events-none" />
+          <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(147,6,207,0.05)_50%,transparent_75%)] bg-[length:20px_20px] pointer-events-none" />
           <h2 className="absolute top-4 left-4 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">Live Preview</h2>
           <div className="relative w-full max-w-[280px] aspect-[3/4] bg-background border-2 border-border flex flex-col group overflow-hidden shadow-2xl transition-transform duration-300 hover:scale-[1.02]">
             {/* Holographic foil overlay */}

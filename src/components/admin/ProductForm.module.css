@@ -14,7 +14,7 @@
 }
 
 .modal {
-  background: var(--color-purple-deep-2);
+  background: var(--color-circulo-claro);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   width: 100%;
@@ -102,7 +102,7 @@
 }
 
 .field input:focus, .field textarea:focus, .field select:focus {
-  border-color: var(--color-magenta-accent);
+  border-color: var(--color-circulo-maior);
   background: rgba(255, 255, 255, 0.1);
 }
 
@@ -128,18 +128,18 @@
 }
 
 .submitBtn {
-  background: var(--color-magenta-accent);
+  background: var(--color-circulo-maior);
   border: none;
   color: white;
   padding: 10px 20px;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  box-shadow: 0 4px 10px rgba(148, 0, 104, 0.3);
+  box-shadow: 0 4px 10px rgba(147, 6, 207, 0.3);
 }
 
 .submitBtn:hover:not(:disabled) {
-  background: #b50080;
+  background: var(--color-pop-shake);
 }
 
 .submitBtn:disabled {

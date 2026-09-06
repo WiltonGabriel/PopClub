@@ -142,7 +142,7 @@ export default function AdminDashboard() {
 
         {/* Métricas Principais */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-card border-2 border-border p-6 shadow-[4px_4px_0px_0px_rgba(5,217,232,0.15)] flex flex-col justify-between">
+          <div className="bg-card border-2 border-border p-6 shadow-[4px_4px_0px_0px_rgba(136,27,170,0.15)] flex flex-col justify-between">
             <div className="flex justify-between items-start mb-4">
               <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Faturamento Hoje</span>
               <DollarSign className="w-5 h-5 text-secondary" />
@@ -152,7 +152,7 @@ export default function AdminDashboard() {
             </span>
           </div>
 
-          <div className="bg-card border-2 border-border p-6 shadow-[4px_4px_0px_0px_rgba(255,42,109,0.15)] flex flex-col justify-between">
+          <div className="bg-card border-2 border-border p-6 shadow-[4px_4px_0px_0px_rgba(147,6,207,0.15)] flex flex-col justify-between">
             <div className="flex justify-between items-start mb-4">
               <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Pedidos Hoje</span>
               <PackageSearch className="w-5 h-5 text-primary" />
@@ -162,7 +162,7 @@ export default function AdminDashboard() {
             </span>
           </div>
 
-          <div className="bg-card border-2 border-border p-6 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)] flex flex-col justify-between">
+          <div className="bg-card border-2 border-border p-6 shadow-[4px_4px_0px_0px_rgba(148,0,104,0.15)] flex flex-col justify-between">
             <div className="flex justify-between items-start mb-4">
               <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Pedidos Ativos</span>
               <Activity className="w-5 h-5 text-blue-400" />
@@ -185,10 +185,10 @@ export default function AdminDashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 overflow-x-auto pb-4">
-            {renderKanbanColumn("Novos", ['pending', 'accepted'], "#ff2a6d")}
+            {renderKanbanColumn("Novos", ['pending', 'accepted'], "#9306CF")}
             {renderKanbanColumn("Em Preparo", ['preparing'], "#facc15")}
-            {renderKanbanColumn("A Caminho", ['ready', 'delivering'], "#05d9e8")}
-            {renderKanbanColumn("Concluídos", ['completed'], "#4ade80")}
+            {renderKanbanColumn("A Caminho", ['ready', 'delivering'], "#881BAA")}
+            {renderKanbanColumn("Concluídos", ['completed'], "#35A340")}
           </div>
         </section>
 

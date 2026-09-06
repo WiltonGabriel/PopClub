@@ -106,7 +106,7 @@ export default function Storefront() {
         {/* Banners Carousel */}
         <section className="mb-8">
           <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 no-scrollbar">
-            <div className="snap-center shrink-0 w-[85%] md:w-[60%] h-40 bg-gradient-to-r from-primary/80 to-purple-800 rounded-none border-2 border-border flex items-center p-6 relative overflow-hidden">
+            <div className="snap-center shrink-0 w-[85%] md:w-[60%] h-40 bg-gradient-to-r from-brand-pop-shake/80 to-brand-acai-vibrante rounded-none border-2 border-border flex items-center p-6 relative overflow-hidden">
               <div className="z-10">
                 <span className="bg-background text-foreground text-[10px] font-mono uppercase px-2 py-1 tracking-widest mb-2 inline-block">Promo</span>
                 <h3 className="font-heading text-2xl font-bold uppercase tracking-tight text-white leading-none mb-2">Combo Galáctico</h3>
@@ -117,9 +117,9 @@ export default function Storefront() {
               </div>
             </div>
             
-            <div className="snap-center shrink-0 w-[85%] md:w-[60%] h-40 bg-gradient-to-r from-secondary/80 to-teal-800 rounded-none border-2 border-border flex items-center p-6 relative overflow-hidden">
+            <div className="snap-center shrink-0 w-[85%] md:w-[60%] h-40 bg-gradient-to-r from-brand-circulo-maior to-brand-acai-vibrante rounded-none border-2 border-border flex items-center p-6 relative overflow-hidden">
               <div className="z-10">
-                <span className="bg-background text-foreground text-[10px] font-mono uppercase px-2 py-1 tracking-widest mb-2 inline-block">Frete Grátis</span>
+                <span className="bg-success text-white text-[10px] font-mono uppercase px-2 py-1 tracking-widest mb-2 inline-block">Frete Grátis</span>
                 <h3 className="font-heading text-2xl font-bold uppercase tracking-tight text-white leading-none mb-2">Pop Shakes</h3>
                 <p className="text-sm text-white/80 font-sans max-w-[200px]">Peça agora e não pague a entrega.</p>
               </div>
@@ -180,7 +180,7 @@ export default function Storefront() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {catProducts.map((product) => (
-                    <div key={product.id} className="group relative bg-card border-2 border-border hover:border-secondary transition-colors flex overflow-hidden h-32">
+                    <div key={product.id} className="group relative bg-card border-2 border-border hover:border-accent transition-colors flex overflow-hidden h-32">
                       
                       {isAdmin && (
                         <div className="absolute top-2 right-2 flex gap-1 z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-background border-2 border-border">
@@ -209,7 +209,7 @@ export default function Storefront() {
                         </div>
                       </div>
                       
-                      <button className="w-12 border-l-2 border-border bg-background hover:bg-secondary hover:text-background flex flex-col items-center justify-center text-secondary transition-colors group/btn shrink-0">
+                      <button className="w-12 border-l-2 border-border bg-background hover:bg-success hover:text-white flex flex-col items-center justify-center text-success transition-colors group/btn shrink-0">
                         <Plus className="w-6 h-6 group-hover/btn:scale-125 transition-transform" />
                       </button>
                     </div>

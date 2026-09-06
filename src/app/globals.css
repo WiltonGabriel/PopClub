@@ -5,23 +5,37 @@
 @tailwind utilities;
 
 :root {
-  /* Brand Colors */
-  --color-purple-vibrant-1: #9306CF;
-  --color-purple-vibrant-2: #881BAA;
+  /* ═══════════════════════════════════════════════
+     Pop Shake Açaí Expresso — Brand Tokens
+     ═══════════════════════════════════════════════ */
 
-  --color-purple-deep-1: #401E3F;
-  --color-purple-deep-2: #512B54;
-  --color-purple-deep-3: #4C264F;
+  /* Primary action / Header / Destaques primários */
+  --color-pop-shake: #9306CF;
 
-  --color-magenta-accent: #940068;
-  --color-green-accent: #35A340;
+  /* Secundária / Gradientes / Categorias */
+  --color-acai-vibrante: #881BAA;
+
+  /* Fundo principal / Superfícies dark */
+  --color-circulo-escuro: #401E3F;
+
+  /* Cards, modais e containers elevados */
+  --color-circulo-claro: #512B54;
+
+  /* Bordas ativas, botões de ação e hover states */
+  --color-circulo-maior: #940068;
+
+  /* Bases de contraste e prateleiras */
+  --color-acai-base: #4C264F;
+
+  /* Sucesso, crachás de frete grátis, confirmações, botão "+" */
+  --color-folha-acai: #35A340;
 
   /* Typography */
   --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
   /* System */
-  --color-background: #1a0f1d; /* Very dark purple for main background */
-  --color-surface: var(--color-purple-deep-1);
+  --color-background: var(--color-circulo-escuro);
+  --color-surface: var(--color-circulo-escuro);
   --color-text-main: #ffffff;
   --color-text-muted: #e0d8e1;
 }
@@ -47,7 +61,7 @@ a {
   text-decoration: none;
 }
 
-/* Base modern utilities (optional) */
+/* Base modern utilities */
 .glass-panel {
   background: rgba(81, 43, 84, 0.4);
   backdrop-filter: blur(12px);
@@ -61,60 +75,78 @@ a {
     --font-heading: var(--font-sans);
     --font-sans: var(--font-sans);
   }
+
   :root {
-    --background: 240 12% 7%; /* Obsidian #0F0F13 */
-    --foreground: 0 0% 95%; /* Ozone White #F2F2F2 */
-    
-    --card: 240 12% 7%;
-    --card-foreground: 0 0% 95%;
-    
-    --popover: 240 12% 7%;
-    --popover-foreground: 0 0% 95%;
-    
-    --primary: 341 100% 58%; /* Neon Bubblegum #FF2A6D */
+    /* ═══════════════════════════════════════════════
+       Shadcn Token Mapping → Pop Shake Brand
+       ═══════════════════════════════════════════════
+       HSL values computed from official brand hex:
+         #401E3F → 302 36% 18%   (circulo-escuro)
+         #512B54 → 296 32% 25%   (circulo-claro)
+         #9306CF → 277 96% 42%   (pop-shake)
+         #881BAA → 284 73% 39%   (acai-vibrante)
+         #940068 → 318 100% 29%  (circulo-maior)
+         #4C264F → 296 33% 23%   (acai-base)
+         #35A340 → 127 50% 42%   (folha-acai)
+    */
+
+    --background: 302 36% 18%;        /* #401E3F circulo-escuro */
+    --foreground: 0 0% 100%;          /* #FFFFFF branco puro   */
+
+    --card: 296 32% 25%;              /* #512B54 circulo-claro */
+    --card-foreground: 0 0% 100%;
+
+    --popover: 296 32% 25%;           /* #512B54 circulo-claro */
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 277 96% 42%;           /* #9306CF pop-shake     */
     --primary-foreground: 0 0% 100%;
-    
-    --secondary: 184 96% 46%; /* Cyan Glare #05D9E8 */
-    --secondary-foreground: 240 12% 7%;
-    
-    --muted: 240 8% 25%; /* Cardboard #3A3A45 */
-    --muted-foreground: 0 0% 70%;
-    
-    --accent: 184 96% 46%;
-    --accent-foreground: 240 12% 7%;
-    
+
+    --secondary: 284 73% 39%;         /* #881BAA acai-vibrante */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 296 33% 23%;             /* #4C264F acai-base     */
+    --muted-foreground: 300 10% 75%;  /* tom lilás claro       */
+
+    --accent: 318 100% 29%;           /* #940068 circulo-maior */
+    --accent-foreground: 0 0% 100%;
+
     --destructive: 0 100% 50%;
     --destructive-foreground: 0 0% 100%;
-    
-    --border: 240 8% 25%;
-    --input: 240 8% 25%;
-    --ring: 341 100% 58%;
-    
+
+    --success: 127 50% 42%;           /* #35A340 folha-acai    */
+
+    --border: 296 32% 25%;            /* #512B54 circulo-claro */
+    --input: 296 33% 23%;             /* #4C264F acai-base     */
+    --ring: 277 96% 42%;              /* #9306CF pop-shake     */
+
     --radius: 0;
   }
 
   .dark {
     /* Same as root since default is dark */
-    --background: 240 12% 7%;
-    --foreground: 0 0% 95%;
-    --card: 240 12% 7%;
-    --card-foreground: 0 0% 95%;
-    --popover: 240 12% 7%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 341 100% 58%;
+    --background: 302 36% 18%;
+    --foreground: 0 0% 100%;
+    --card: 296 32% 25%;
+    --card-foreground: 0 0% 100%;
+    --popover: 296 32% 25%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 277 96% 42%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 184 96% 46%;
-    --secondary-foreground: 240 12% 7%;
-    --muted: 240 8% 25%;
-    --muted-foreground: 0 0% 70%;
-    --accent: 184 96% 46%;
-    --accent-foreground: 240 12% 7%;
+    --secondary: 284 73% 39%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 296 33% 23%;
+    --muted-foreground: 300 10% 75%;
+    --accent: 318 100% 29%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 100% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 8% 25%;
-    --input: 240 8% 25%;
-    --ring: 341 100% 58%;
+    --success: 127 50% 42%;
+    --border: 296 32% 25%;
+    --input: 296 33% 23%;
+    --ring: 277 96% 42%;
   }
+
   * {
     border-color: hsl(var(--border));
   }
@@ -131,11 +163,11 @@ a {
   .holo-foil {
     background: linear-gradient(
       125deg,
-      rgba(255, 42, 109, 0.1) 0%,
-      rgba(5, 217, 232, 0.3) 40%,
+      rgba(147, 6, 207, 0.1) 0%,
+      rgba(136, 27, 170, 0.3) 40%,
       rgba(255, 255, 255, 0.8) 50%,
-      rgba(5, 217, 232, 0.3) 60%,
-      rgba(255, 42, 109, 0.1) 100%
+      rgba(136, 27, 170, 0.3) 60%,
+      rgba(148, 0, 104, 0.1) 100%
     );
     background-size: 200% 200%;
     animation: holo 3s ease infinite;

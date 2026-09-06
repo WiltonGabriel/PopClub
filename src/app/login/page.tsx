@@ -47,7 +47,7 @@ export default function LoginPage() {
         <span className="font-mono text-sm uppercase tracking-widest">Voltar à loja</span>
       </Link>
 
-      <div className="w-full max-w-md bg-card border-2 border-border p-8 shadow-[8px_8px_0px_0px_rgba(255,42,109,0.2)]">
+      <div className="w-full max-w-md bg-card border-2 border-border p-8 shadow-[8px_8px_0px_0px_rgba(147,6,207,0.2)]">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-heading font-black tracking-tighter uppercase text-foreground mb-2">
             Pop<span className="text-primary">Club</span>

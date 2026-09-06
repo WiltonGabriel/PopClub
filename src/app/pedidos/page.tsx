@@ -104,7 +104,7 @@ export default function PedidosPage() {
           {activeTab === "ativos" && (
             activeOrders.length > 0 ? (
               activeOrders.map(order => (
-                <div key={order.id} className="bg-card border-2 border-border p-4 shadow-[4px_4px_0px_0px_rgba(5,217,232,0.2)]">
+                <div key={order.id} className="bg-card border-2 border-border p-4 shadow-[4px_4px_0px_0px_rgba(147,6,207,0.2)]">
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <h3 className="font-heading font-bold text-lg text-primary">Pedido {order.id.split('-')[0]}</h3>

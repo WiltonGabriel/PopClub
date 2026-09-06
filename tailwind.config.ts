@@ -15,6 +15,9 @@ const config: Config = {
         mono: ["var(--font-jetbrains-mono)", "monospace"],
       },
       colors: {
+        /* ═══════════════════════════════════
+           Shadcn semantic tokens (HSL vars)
+           ═══════════════════════════════════ */
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -49,6 +52,21 @@ const config: Config = {
           foreground: "hsl(var(--card-foreground))",
         },
         surface: "var(--color-surface)",
+        success: "hsl(var(--success))",
+
+        /* ═══════════════════════════════════
+           Pop Shake Açaí Expresso — Brand tokens
+           Para uso direto: bg-brand-pop-shake, text-brand-folha-acai, etc.
+           ═══════════════════════════════════ */
+        brand: {
+          "pop-shake":       "#9306CF",
+          "acai-vibrante":   "#881BAA",
+          "circulo-escuro":  "#401E3F",
+          "circulo-claro":   "#512B54",
+          "circulo-maior":   "#940068",
+          "acai-base":       "#4C264F",
+          "folha-acai":      "#35A340",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

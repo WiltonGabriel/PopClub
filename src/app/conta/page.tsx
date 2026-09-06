@@ -86,9 +86,11 @@ export default function AccountPage() {
     try {
       await userService.addLocation({
         user_id: user.id,
+        name: null,
         address_line: locAddress,
         latitude: -23.5505, // simulated
         longitude: -46.6333, // simulated
+        accuracy: null,
         is_default: locations.length === 0
       });
       setIsAddingLocation(false);
@@ -163,7 +165,7 @@ export default function AccountPage() {
         {/* Main Content Area */}
         <div className="flex-1">
           {activeSection === "perfil" && (
-            <div className="bg-card border-2 border-border p-6 shadow-[4px_4px_0px_0px_rgba(5,217,232,0.2)]">
+            <div className="bg-card border-2 border-border p-6 shadow-[4px_4px_0px_0px_rgba(147,6,207,0.2)]">
               <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-white mb-6 flex items-center gap-2">
                 <User className="w-6 h-6 text-primary" /> Editar Perfil
               </h2>
@@ -194,7 +196,7 @@ export default function AccountPage() {
           )}
 
           {activeSection === "enderecos" && (
-            <div className="bg-card border-2 border-border p-6 shadow-[4px_4px_0px_0px_rgba(5,217,232,0.2)]">
+            <div className="bg-card border-2 border-border p-6 shadow-[4px_4px_0px_0px_rgba(147,6,207,0.2)]">
               <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-white mb-6 flex items-center gap-2">
                 <MapPin className="w-6 h-6 text-secondary" /> Meus Endereços
               </h2>
@@ -261,7 +263,7 @@ export default function AccountPage() {
 
           {/* Placeholders for other sections */}
           {(activeSection === "pagamentos" || activeSection === "avaliacoes" || activeSection === "preferencias") && (
-            <div className="bg-card border-2 border-border p-6 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)] flex flex-col items-center justify-center py-20 text-center">
+            <div className="bg-card border-2 border-border p-6 shadow-[4px_4px_0px_0px_rgba(147,6,207,0.1)] flex flex-col items-center justify-center py-20 text-center">
               <Settings className="w-12 h-12 text-muted-foreground/30 mb-4" />
               <h3 className="font-heading font-bold text-xl uppercase tracking-wider mb-2">Em Construção</h3>
               <p className="text-muted-foreground font-mono text-sm max-w-sm">Esta funcionalidade está sendo implementada e será conectada aos serviços em breve.</p>
