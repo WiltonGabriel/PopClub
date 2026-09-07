@@ -1,22 +1,21 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-// We create a fresh client for the server route to perform backend operations
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-);
+import { prisma } from "@/lib/prisma";
+import { hashPassword, signToken } from "@/lib/auth";
+import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { username, email, password } = body;
+    const { username, email, password, fullName } = body;
 
     if (!username || !email || !password) {
       return NextResponse.json({ error: "Todos os campos são obrigatórios." }, { status: 400 });
     }
 
-    // 1. Password Validation
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanUsername = username.trim();
+
+    // Validação de senha
     const hasLetter = /[A-Za-z]/.test(password);
     const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
     const hasNumber = /[0-9]/.test(password);
@@ -31,44 +30,58 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "A senha deve conter pelo menos uma letra ou caractere especial." }, { status: 400 });
     }
 
-    // 2. Username uniqueness check
-    const { data: existingUser, error: checkError } = await supabase
-      .from("user_profiles")
-      .select("username")
-      .eq("username", username)
-      .single();
-      
-    if (existingUser) {
-      return NextResponse.json({ error: "Este nome de usuário já está em uso." }, { status: 400 });
-    }
-    
-    // Ignore PGRST116 (0 rows returned) error
-    if (checkError && checkError.code !== 'PGRST116') {
-      return NextResponse.json({ error: "Erro ao verificar disponibilidade do usuário." }, { status: 500 });
-    }
-
-    // 3. Create user in Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          username: username, // this goes to raw_user_meta_data and is caught by the SQL trigger
-        }
-      }
+    // Unicidade de e-mail e username no PostgreSQL
+    const existing = await prisma.user.findFirst({
+      where: {
+        OR: [{ email: cleanEmail }, { username: cleanUsername }],
+      },
     });
 
-    if (authError) {
-      // Return a user friendly error if email already exists
-      if (authError.message.includes("User already registered")) {
-         return NextResponse.json({ error: "Este e-mail já está em uso." }, { status: 400 });
+    if (existing) {
+      if (existing.email === cleanEmail) {
+        return NextResponse.json({ error: "Este e-mail já está em uso." }, { status: 400 });
       }
-      return NextResponse.json({ error: authError.message }, { status: 400 });
+      return NextResponse.json({ error: "Este nome de usuário já está em uso." }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true, user: authData.user });
+    const passwordHash = await hashPassword(password);
 
+    const user = await prisma.user.create({
+      data: {
+        username: cleanUsername,
+        email: cleanEmail,
+        passwordHash,
+        fullName: fullName || cleanUsername,
+        role: cleanEmail === "admin@popclub.com" ? "admin" : "client",
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        fullName: true,
+        role: true,
+      },
+    });
+
+    const token = signToken({
+      userId: user.id,
+      email: user.email,
+      username: user.username,
+      role: user.role,
+    });
+
+    const cookieStore = await cookies();
+    cookieStore.set("auth_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7,
+      path: "/",
+    });
+
+    return NextResponse.json({ success: true, user, token });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Erro interno do servidor" }, { status: 500 });
+    console.error("Erro no cadastro:", error);
+    return NextResponse.json({ error: "Erro interno no servidor ao realizar cadastro." }, { status: 500 });
   }
 }

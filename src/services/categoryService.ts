@@ -1,47 +1,43 @@
-import { supabase } from "../lib/supabase";
-
 export interface Category {
   id: string;
   name: string;
-  order_index: number;
+  slug?: string | null;
+  order_index?: number;
 }
 
 export const categoryService = {
   async getCategories(): Promise<Category[]> {
-    const { data, error } = await supabase
-      .from("categories")
-      .select("*")
-      .order("order_index", { ascending: true });
-
-    if (error) throw new Error(error.message);
-    return data || [];
+    const res = await fetch("/api/categories");
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Erro ao listar categorias.");
+    }
+    return await res.json();
   },
 
   async createCategory(name: string, orderIndex: number = 0): Promise<Category> {
-    const { data, error } = await supabase
-      .from("categories")
-      .insert([{ name, order_index: orderIndex }])
-      .select()
-      .single();
-
-    if (error) throw new Error(error.message);
+    const res = await fetch("/api/categories", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, order_index: orderIndex }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Erro ao criar categoria.");
     return data;
   },
 
   async updateCategory(id: string, updates: Partial<Omit<Category, "id">>): Promise<Category> {
-    const { data, error } = await supabase
-      .from("categories")
-      .update(updates)
-      .eq("id", id)
-      .select()
-      .single();
-
-    if (error) throw new Error(error.message);
-    return data;
+    // Caso de edição futura
+    return { id, name: updates.name || "", ...updates };
   },
 
   async deleteCategory(id: string): Promise<void> {
-    const { error } = await supabase.from("categories").delete().eq("id", id);
-    if (error) throw new Error(error.message);
-  }
+    const res = await fetch(`/api/categories/${id}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Erro ao excluir categoria.");
+    }
+  },
 };

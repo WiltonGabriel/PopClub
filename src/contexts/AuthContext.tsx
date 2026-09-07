@@ -1,14 +1,26 @@
 "use client";
 
-import React, { createContext, useEffect, useState, ReactNode } from "react";
-import { User, Session } from "@supabase/supabase-js";
-import { supabase } from "../lib/supabase";
+import React, { createContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { authService, AuthUser } from "../services/authService";
+
+export interface AppUser {
+  id: string;
+  email: string;
+  username: string;
+  role: "client" | "admin";
+  fullName?: string | null;
+  user_metadata?: {
+    username?: string;
+    full_name?: string;
+  };
+}
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: AppUser | null;
+  session: { user: AppUser } | null;
   loading: boolean;
   isAdmin: boolean;
+  refreshUser: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -16,74 +28,49 @@ export const AuthContext = createContext<AuthContextType>({
   session: null,
   loading: true,
   isAdmin: false,
+  refreshUser: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
 
-  const fetchProfileAndSetAdmin = async (userId: string) => {
+  const refreshUser = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('role')
-        .eq('id', userId)
-        .single();
-        
-      if (!error && data) {
-        setIsAdmin(data.role === 'admin');
+      const current = await authService.getCurrentUser();
+      if (current) {
+        const appUser: AppUser = {
+          id: current.id,
+          email: current.email,
+          username: current.username,
+          role: current.role,
+          fullName: current.fullName,
+          user_metadata: {
+            username: current.username,
+            full_name: current.fullName || current.username,
+          },
+        };
+        setUser(appUser);
       } else {
-        setIsAdmin(false);
+        setUser(null);
       }
     } catch (err) {
-      console.error("Error fetching profile role", err);
-      setIsAdmin(false);
+      console.error("Erro ao inicializar sessão local:", err);
+      setUser(null);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfileAndSetAdmin(session.user.id);
-        }
-      } catch (error) {
-        console.error("Failed to initialize auth session", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initializeAuth();
-
-    // Listener for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, currentSession) => {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        
-        if (currentSession?.user) {
-          await fetchProfileAndSetAdmin(currentSession.user.id);
-        } else {
-          setIsAdmin(false);
-        }
-        
-        setLoading(false);
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, []);
 
+  useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
+
+  const isAdmin = user?.role === "admin";
+  const session = user ? { user } : null;
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin }}>
+    <AuthContext.Provider value={{ user, session, loading, isAdmin, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

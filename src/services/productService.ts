@@ -1,56 +1,51 @@
-import { supabase } from "../lib/supabase";
-
 export interface Product {
   id: string;
   name: string;
   description: string;
   price: number;
   category_id?: string;
-  category?: string; // fallback for legacy
+  category?: string;
   imageUrl: string;
 }
 
 export const productService = {
   /**
-   * Upload an image to Supabase Storage
-   * Returns the public URL of the uploaded image
+   * Envia uma imagem para a rota de upload local (/api/upload)
+   * e retorna a URL pública local relativa (/uploads/...)
    */
-  async uploadImage(file: File): Promise<string> {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-    const filePath = `${fileName}`;
+  async uploadImage(file: File, type: "product" | "banner" = "product"): Promise<string> {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("type", type);
 
-    const { error: uploadError } = await supabase.storage
-      .from('products')
-      .upload(filePath, file);
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
 
-    if (uploadError) {
-      throw new Error("Erro no upload da imagem: " + uploadError.message);
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Erro no upload da imagem.");
     }
 
-    const { data } = supabase.storage.from('products').getPublicUrl(filePath);
-    return data.publicUrl;
+    return data.url;
   },
 
   async getProducts(): Promise<Product[]> {
-    const { data, error } = await supabase
-      .from("products")
-      .select("*, categories(name)")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Error fetching products:", error.message);
-      throw new Error(error.message);
+    const res = await fetch("/api/products");
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Erro ao carregar produtos.");
     }
-
-    return data.map((item) => ({
+    const data = await res.json();
+    return data.map((item: any) => ({
       id: item.id,
       name: item.name,
-      description: item.description,
+      description: item.description || "",
       price: Number(item.price),
-      category_id: item.category_id,
-      category: item.categories?.name || item.category, // fallback to raw string if joined category fails
-      imageUrl: item.image_url,
+      category_id: item.categoryId,
+      category: item.category,
+      imageUrl: item.imageUrl || "",
     }));
   },
 
@@ -61,70 +56,75 @@ export const productService = {
       finalImageUrl = await this.uploadImage(imageFile);
     }
 
-    const { data, error } = await supabase
-      .from("products")
-      .insert([
-        {
-          name: product.name,
-          description: product.description,
-          price: product.price,
-          category_id: product.category_id || null,
-          category: product.category || null,
-          image_url: finalImageUrl,
-        },
-      ])
-      .select()
-      .single();
+    const res = await fetch("/api/products", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        categoryId: product.category_id,
+        category: product.category,
+        imageUrl: finalImageUrl,
+      }),
+    });
 
-    if (error) throw new Error(error.message);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Erro ao cadastrar produto.");
 
     return {
       id: data.id,
       name: data.name,
       description: data.description,
       price: Number(data.price),
-      category_id: data.category_id,
+      category_id: data.categoryId,
       category: data.category,
-      imageUrl: data.image_url,
+      imageUrl: data.imageUrl,
     };
   },
 
   async updateProduct(id: string, updates: Partial<Omit<Product, "id">>, imageFile?: File): Promise<Product> {
-    const dbUpdates: any = {};
-    if (updates.name !== undefined) dbUpdates.name = updates.name;
-    if (updates.description !== undefined) dbUpdates.description = updates.description;
-    if (updates.price !== undefined) dbUpdates.price = updates.price;
-    if (updates.category_id !== undefined) dbUpdates.category_id = updates.category_id;
-    if (updates.category !== undefined) dbUpdates.category = updates.category;
-    
+    let finalImageUrl = updates.imageUrl;
+
     if (imageFile) {
-      dbUpdates.image_url = await this.uploadImage(imageFile);
-    } else if (updates.imageUrl !== undefined) {
-      dbUpdates.image_url = updates.imageUrl;
+      finalImageUrl = await this.uploadImage(imageFile);
     }
 
-    const { data, error } = await supabase
-      .from("products")
-      .update(dbUpdates)
-      .eq("id", id)
-      .select()
-      .single();
+    const res = await fetch(`/api/products/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: updates.name,
+        description: updates.description,
+        price: updates.price,
+        categoryId: updates.category_id,
+        category: updates.category,
+        imageUrl: finalImageUrl,
+      }),
+    });
 
-    if (error) throw new Error(error.message);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Erro ao atualizar produto.");
 
     return {
       id: data.id,
       name: data.name,
       description: data.description,
       price: Number(data.price),
-      category_id: data.category_id,
+      category_id: data.categoryId,
       category: data.category,
-      imageUrl: data.image_url,
+      imageUrl: data.imageUrl,
     };
   },
 
   async deleteProduct(id: string): Promise<void> {
-    const { error } = await supabase.from("products").delete().eq("id", id);
-    if (error) throw new Error(error.message);
-  }
+    const res = await fetch(`/api/products/${id}`, {
+      method: "DELETE",
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Erro ao deletar produto.");
+    }
+  },
 };

@@ -1,7 +1,3 @@
-import { supabase } from "../lib/supabase";
-import { Product } from "./productService";
-import { UserLocation } from "./userService";
-
 export type OrderStatus = 'pending' | 'accepted' | 'preparing' | 'ready' | 'delivering' | 'completed' | 'cancelled';
 
 export interface OrderItem {
@@ -10,142 +6,113 @@ export interface OrderItem {
   product_id: string;
   quantity: number;
   price_at_time: number;
-  product?: Product;
+  product?: {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    imageUrl: string;
+  };
 }
 
-export interface Coupon {
-  id: string;
-  code: string;
-  discount_type: 'percentage' | 'fixed';
-  discount_value: number;
-}
-
-export interface PaymentMethod {
-  id: string;
-  type: string;
-  provider: string | null;
-  last_four: string | null;
-  brand: string | null;
+export interface DeliveryAddress {
+  street: string;
+  number: string;
+  neighborhood: string;
+  city?: string;
+  complement?: string | null;
+  reference?: string | null;
+  zip?: string | null;
 }
 
 export interface Order {
   id: string;
-  user_id: string;
+  user_id: string | null;
   status: OrderStatus;
+  subtotal?: number;
+  discount_amount?: number;
   total_amount: number;
-  delivery_location_id: string | null;
-  payment_method_id: string | null;
-  coupon_id: string | null;
+  payment_method_type?: string;
+  payment_change_for?: number | null;
+  delivery_address?: DeliveryAddress;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   items?: OrderItem[];
-  location?: UserLocation;
-  coupon?: Coupon;
-  payment_method?: PaymentMethod;
+  user?: {
+    fullName: string | null;
+    username: string;
+    email: string;
+  } | null;
+}
+
+export interface CheckoutPayload {
+  items: {
+    productId: string;
+    quantity: number;
+    promotionId?: string | null;
+  }[];
+  deliveryAddress: {
+    street: string;
+    number: string;
+    neighborhood: string;
+    city?: string;
+    complement?: string | null;
+    reference?: string | null;
+    zip?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+  };
+  paymentMethod: {
+    type: "dinheiro" | "cartao_maquininha" | "pix_entrega";
+    changeFor?: number | null;
+  };
+  couponCode?: string | null;
 }
 
 export const orderService = {
-  async getOrdersByUser(userId: string): Promise<Order[]> {
-    const { data, error } = await supabase
-      .from("orders")
-      .select(`
-        *,
-        items:order_items(*, product:products(*)),
-        location:user_locations(*),
-        coupon:coupons(*),
-        payment_method:payment_methods(*)
-      `)
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
-
-    if (error) throw new Error(error.message);
-    return data;
+  async getOrdersByUser(_userId?: string): Promise<Order[]> {
+    const res = await fetch("/api/orders");
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Erro ao listar pedidos.");
+    }
+    return await res.json();
   },
 
   async getAllOrders(): Promise<Order[]> {
-    const { data, error } = await supabase
-      .from("orders")
-      .select(`
-        *,
-        items:order_items(*, product:products(*)),
-        location:user_locations(*),
-        coupon:coupons(*),
-        payment_method:payment_methods(*)
-      `)
-      .order("created_at", { ascending: false });
-
-    if (error) throw new Error(error.message);
-    return data;
-  },
-
-  async getOrderById(orderId: string): Promise<Order | null> {
-    const { data, error } = await supabase
-      .from("orders")
-      .select(`
-        *,
-        items:order_items(*, product:products(*)),
-        location:user_locations(*),
-        coupon:coupons(*),
-        payment_method:payment_methods(*)
-      `)
-      .eq("id", orderId)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      throw new Error(error.message);
+    const res = await fetch("/api/orders?all=true");
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Erro ao listar todos os pedidos.");
     }
-    return data;
+    return await res.json();
   },
 
-  async createOrder(
-    userId: string, 
-    items: { product_id: string; quantity: number; price: number }[], 
-    locationId: string | null,
-    paymentMethodId: string | null = null,
-    couponId: string | null = null,
-    discountedTotal?: number
-  ): Promise<Order> {
-    const raw_total_amount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const total_amount = discountedTotal !== undefined ? discountedTotal : raw_total_amount;
+  async createCheckoutOrder(payload: CheckoutPayload): Promise<{ success: boolean; order: any }> {
+    const res = await fetch("/api/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-    const { data: order, error: orderError } = await supabase
-      .from("orders")
-      .insert([{
-        user_id: userId,
-        total_amount,
-        delivery_location_id: locationId,
-        payment_method_id: paymentMethodId,
-        coupon_id: couponId,
-        status: 'pending'
-      }])
-      .select()
-      .single();
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Erro ao finalizar pedido.");
+    }
 
-    if (orderError) throw new Error(orderError.message);
-
-    const orderItems = items.map(item => ({
-      order_id: order.id,
-      product_id: item.product_id,
-      quantity: item.quantity,
-      price_at_time: item.price
-    }));
-
-    const { error: itemsError } = await supabase
-      .from("order_items")
-      .insert(orderItems);
-
-    if (itemsError) throw new Error(itemsError.message);
-
-    return await this.getOrderById(order.id) as Order;
+    return data;
   },
 
   async updateOrderStatus(orderId: string, status: OrderStatus): Promise<void> {
-    const { error } = await supabase
-      .from("orders")
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq("id", orderId);
+    const res = await fetch("/api/orders", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId, status }),
+    });
 
-    if (error) throw new Error(error.message);
-  }
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Erro ao atualizar status do pedido.");
+    }
+  },
 };

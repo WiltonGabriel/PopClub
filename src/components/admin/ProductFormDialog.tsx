@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { productService, Product } from "../../services/productService";
 import { Category } from "../../services/categoryService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
@@ -8,6 +8,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { ImageCropperDialog } from "./ImageCropperDialog";
 
 interface ProductFormDialogProps {
   open: boolean;
@@ -26,10 +27,81 @@ export function ProductFormDialog({ open, onOpenChange, onSaved, productToEdit, 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Estados para o Modal de Recorte
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setName(productToEdit?.name || "");
+      setDescription(productToEdit?.description || "");
+      setPrice(productToEdit?.price?.toString() || "");
+      setCategoryId(productToEdit?.category_id || "");
+      setFile(null);
+      setError("");
+      setRawImageSrc(null);
+      setCropModalOpen(false);
+    }
+  }, [open, productToEdit]);
+
+  const previewUrl = useMemo(() => {
+    if (file) {
+      return URL.createObjectURL(file);
+    }
+    return productToEdit?.imageUrl || "";
+  }, [file, productToEdit?.imageUrl]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    // Reseta o input para permitir selecionar o mesmo arquivo se desejar
+    e.target.value = "";
+
+    // 1. Validação de formato (apenas JPEG, PNG, WebP - rejeitar vídeos como WebM/MP4)
+    const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+    if (!allowedMimeTypes.includes(selectedFile.type.toLowerCase())) {
+      setError("Formato inválido. Apenas imagens nos formatos JPEG, PNG ou WebP são aceitas. Arquivos de vídeo são bloqueados.");
+      return;
+    }
+
+    // 2. Validação de tamanho (máximo 10MB)
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (selectedFile.size > MAX_SIZE) {
+      setError(`O arquivo selecionado excede o limite de 10MB (${(selectedFile.size / (1024 * 1024)).toFixed(1)}MB).`);
+      return;
+    }
+
+    setError("");
+    const reader = new FileReader();
+    reader.onload = () => {
+      setRawImageSrc(reader.result as string);
+      setCropModalOpen(true);
+    };
+    reader.readAsDataURL(selectedFile);
+  };
+
+  const handleCropComplete = (croppedFile: File) => {
+    setFile(croppedFile);
+    setCropModalOpen(false);
+    setRawImageSrc(null);
+  };
+
+  const handleCropCancel = () => {
+    setCropModalOpen(false);
+    setRawImageSrc(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    if (!productToEdit && !file) {
+      setError("Por favor, selecione e recorte uma imagem para o produto.");
+      setLoading(false);
+      return;
+    }
 
     try {
       let result;
@@ -57,108 +129,137 @@ export function ProductFormDialog({ open, onOpenChange, onSaved, productToEdit, 
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[900px] w-full p-0 overflow-hidden bg-background border-border border-2 grid grid-cols-1 md:grid-cols-2 gap-0 rounded-none shadow-[12px_12px_0px_0px_rgba(147,6,207,0.3)]">
-        {/* Left Side: Live Preview */}
-        <div className="relative p-8 bg-card flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-border">
-          <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(147,6,207,0.05)_50%,transparent_75%)] bg-[length:20px_20px] pointer-events-none" />
-          <h2 className="absolute top-4 left-4 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">Live Preview</h2>
-          <div className="relative w-full max-w-[280px] aspect-[3/4] bg-background border-2 border-border flex flex-col group overflow-hidden shadow-2xl transition-transform duration-300 hover:scale-[1.02]">
-            {/* Holographic foil overlay */}
-            <div className="absolute inset-0 holo-foil opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none z-10" />
-            
-            <div className="flex-1 bg-muted flex items-center justify-center relative overflow-hidden">
-              {file ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={URL.createObjectURL(file)} alt="Preview" className="object-cover w-full h-full absolute inset-0 z-0" />
-              ) : (
-                <span className="text-muted-foreground font-mono text-sm tracking-widest z-0">NO_IMAGE</span>
-              )}
-            </div>
-            
-            <div className="p-4 border-t-2 border-border bg-background z-20 relative">
-              <h3 className="font-heading text-xl text-foreground font-bold leading-tight truncate">{name || "ITEM_NAME"}</h3>
-              <p className="font-sans text-xs text-muted-foreground mt-1 line-clamp-2 min-h-[32px]">{description || "Enter item description..."}</p>
-              <div className="mt-4 flex justify-between items-end border-t border-border/50 pt-2">
-                <div className="flex flex-col">
-                  <span className="font-mono text-[10px] text-muted-foreground uppercase">Value</span>
-                  <span className="font-mono text-primary font-bold">${price || "0.00"}</span>
-                </div>
-                <div className="flex flex-col items-end">
-                  <span className="font-mono text-[10px] text-muted-foreground uppercase">Class</span>
-                  <span className="font-mono text-xs text-secondary">{categories.find(c => c.id === categoryId)?.name || "N/A"}</span>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-[900px] w-full p-0 overflow-hidden bg-background border-border border-2 grid grid-cols-1 md:grid-cols-2 gap-0 rounded-none shadow-[12px_12px_0px_0px_rgba(147,6,207,0.3)]">
+          {/* Left Side: Live Preview */}
+          <div className="relative p-8 bg-card flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-border">
+            <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(147,6,207,0.05)_50%,transparent_75%)] bg-[length:20px_20px] pointer-events-none" />
+            <h2 className="absolute top-4 left-4 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">Live Preview</h2>
+            <div className="relative w-full max-w-[280px] aspect-[3/4] bg-background border-2 border-border flex flex-col group overflow-hidden shadow-2xl transition-transform duration-300 hover:scale-[1.02]">
+              {/* Holographic foil overlay */}
+              <div className="absolute inset-0 holo-foil opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none z-10" />
+              
+              <div className="flex-1 bg-muted flex items-center justify-center relative overflow-hidden">
+                {previewUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={previewUrl} alt="Preview" className="object-cover w-full h-full absolute inset-0 z-0" />
+                ) : (
+                  <span className="text-muted-foreground font-mono text-sm tracking-widest z-0">NO_IMAGE</span>
+                )}
+              </div>
+              
+              <div className="p-4 border-t-2 border-border bg-background z-20 relative">
+                <h3 className="font-heading text-xl text-foreground font-bold leading-tight truncate">{name || "ITEM_NAME"}</h3>
+                <p className="font-sans text-xs text-muted-foreground mt-1 line-clamp-2 min-h-[32px]">{description || "Enter item description..."}</p>
+                <div className="mt-4 flex justify-between items-end border-t border-border/50 pt-2">
+                  <div className="flex flex-col">
+                    <span className="font-mono text-[10px] text-muted-foreground uppercase">Value</span>
+                    <span className="font-mono text-primary font-bold">${price || "0.00"}</span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="font-mono text-[10px] text-muted-foreground uppercase">Class</span>
+                    <span className="font-mono text-xs text-secondary">{categories.find(c => c.id === categoryId)?.name || "N/A"}</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Right Side: Form */}
-        <div className="p-8 flex flex-col justify-center bg-background">
-          <DialogHeader className="mb-6">
-            <DialogTitle className="font-heading text-3xl text-foreground tracking-tighter uppercase">
-              {productToEdit ? "Edit Profile" : "New Entry"}
-              <span className="block text-primary text-sm font-mono tracking-widest mt-1">Sys.Catalog_Update</span>
-            </DialogTitle>
-          </DialogHeader>
-          
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-1.5">
-              <Label htmlFor="name" className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Designation</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required className="font-sans bg-background border-2 border-border focus-visible:border-secondary focus-visible:ring-0 rounded-none h-11 transition-colors" placeholder="e.g. Neon Samurai Figurine" />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="description" className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Description</Label>
-              <Input id="description" value={description} onChange={(e) => setDescription(e.target.value)} required className="font-sans bg-background border-2 border-border focus-visible:border-secondary focus-visible:ring-0 rounded-none h-11 transition-colors" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+          {/* Right Side: Form */}
+          <div className="p-8 flex flex-col justify-center bg-background">
+            <DialogHeader className="mb-6">
+              <DialogTitle className="font-heading text-3xl text-foreground tracking-tighter uppercase">
+                {productToEdit ? "Edit Profile" : "New Entry"}
+                <span className="block text-primary text-sm font-mono tracking-widest mt-1">Sys.Catalog_Update</span>
+              </DialogTitle>
+            </DialogHeader>
+            
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-1.5">
-                <Label htmlFor="price" className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Value (USD)</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-primary font-bold">$</span>
-                  <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required className="font-mono bg-background border-2 border-border focus-visible:border-secondary focus-visible:ring-0 rounded-none h-11 pl-7" placeholder="0.00" />
-                </div>
+                <Label htmlFor="name" className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Designation</Label>
+                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required className="font-sans bg-background border-2 border-border focus-visible:border-secondary focus-visible:ring-0 rounded-none h-11 transition-colors" placeholder="e.g. Neon Samurai Figurine" />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="category" className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Classification</Label>
-                <Select value={categoryId} onValueChange={(val) => setCategoryId(val || "")} required>
-                  <SelectTrigger className="font-sans bg-background border-2 border-border focus:border-secondary focus:ring-0 rounded-none h-11 shadow-none">
-                    <SelectValue placeholder="Select class..." />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-none border-2 border-border bg-background">
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id} className="font-sans">{cat.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="description" className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Description</Label>
+                <Input id="description" value={description} onChange={(e) => setDescription(e.target.value)} required className="font-sans bg-background border-2 border-border focus-visible:border-secondary focus-visible:ring-0 rounded-none h-11 transition-colors" />
               </div>
-            </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="image" className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Visual Asset</Label>
-              <div className="flex border-2 border-border bg-background focus-within:border-secondary transition-colors h-11 relative overflow-hidden group">
-                <div className="bg-muted px-4 flex items-center justify-center font-mono text-xs uppercase tracking-wider text-muted-foreground border-r-2 border-border group-hover:bg-muted/80 transition-colors">
-                  Browse
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="price" className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Value (USD)</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-primary font-bold">$</span>
+                    <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required className="font-mono bg-background border-2 border-border focus-visible:border-secondary focus-visible:ring-0 rounded-none h-11 pl-7" placeholder="0.00" />
+                  </div>
                 </div>
-                <Input id="image" type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" required={!productToEdit} />
-                <div className="flex-1 px-3 flex items-center font-mono text-xs text-foreground truncate">
-                  {file ? file.name : "No file selected"}
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="category" className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Classification</Label>
+                  <Select value={categoryId} onValueChange={(val) => setCategoryId(val || "")} required>
+                    <SelectTrigger className="font-sans bg-background border-2 border-border focus:border-secondary focus:ring-0 rounded-none h-11 shadow-none">
+                      <SelectValue placeholder="Select class..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-none border-2 border-border bg-background">
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id} className="font-sans">{cat.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-            </div>
 
-            {error && <p className="text-primary font-mono text-[11px] uppercase bg-primary/10 p-2 border border-primary/20">{error}</p>}
+              {/* Upload de Imagem com Alerta de Proporção e Recorte */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="image" className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Visual Asset
+                  </Label>
+                  <span className="font-mono text-[10px] text-primary bg-primary/10 px-2 py-0.5 border border-primary/30">
+                    1:1 (Quadrado) • até 10MB
+                  </span>
+                </div>
+                <div className="flex border-2 border-border bg-background focus-within:border-secondary transition-colors h-11 relative overflow-hidden group">
+                  <div className="bg-muted px-4 flex items-center justify-center font-mono text-xs uppercase tracking-wider text-muted-foreground border-r-2 border-border group-hover:bg-muted/80 transition-colors">
+                    {file ? "Substituir" : "Browse"}
+                  </div>
+                  <Input
+                    id="image"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleFileChange}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  />
+                  <div className="flex-1 px-3 flex items-center font-mono text-xs text-foreground truncate">
+                    {file ? file.name : (productToEdit?.imageUrl ? "Imagem atual mantida" : "Nenhum arquivo selecionado")}
+                  </div>
+                </div>
+                <p className="font-mono text-[10px] text-muted-foreground">
+                  Formatos aceitos: JPEG, PNG, WebP. Enquadre no formato 1:1 quadrado (máx. 800x800px).
+                </p>
+              </div>
 
-            <Button type="submit" className="w-full h-12 rounded-none bg-primary hover:bg-primary/90 text-primary-foreground font-heading text-lg tracking-widest uppercase transition-colors border-2 border-transparent focus-visible:border-foreground mt-4 relative overflow-hidden group" disabled={loading}>
-              <span className="relative z-10">{loading ? "Processing..." : "Commit Entry"}</span>
-              <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
-            </Button>
-          </form>
-        </div>
-      </DialogContent>
-    </Dialog>
+              {error && <p className="text-primary font-mono text-[11px] uppercase bg-primary/10 p-2 border border-primary/20">{error}</p>}
+
+              <Button type="submit" className="w-full h-12 rounded-none bg-primary hover:bg-primary/90 text-primary-foreground font-heading text-lg tracking-widest uppercase transition-colors border-2 border-transparent focus-visible:border-foreground mt-4 relative overflow-hidden group" disabled={loading}>
+                <span className="relative z-10">{loading ? "Processing..." : "Commit Entry"}</span>
+                <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
+              </Button>
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Recorte 1:1 para Produtos */}
+      <ImageCropperDialog
+        open={cropModalOpen}
+        imageSrc={rawImageSrc}
+        aspectRatio={1}
+        aspectLabel="1:1 (Quadrado)"
+        onCropComplete={handleCropComplete}
+        onCancel={handleCropCancel}
+      />
+    </>
   );
 }

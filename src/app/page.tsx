@@ -5,16 +5,20 @@ import Link from "next/link";
 import { productService, Product } from "../services/productService";
 import { categoryService, Category } from "../services/categoryService";
 import { useAuth } from "../hooks/useAuth";
+import { useCart } from "../hooks/useCart";
 import { CategoryFormDialog } from "../components/admin/CategoryFormDialog";
 import { ProductFormDialog } from "../components/admin/ProductFormDialog";
+import { PromoBanner } from "../components/storefront/PromoBanner";
 import { Button } from "../components/ui/button";
-import { Edit2, Trash2, Plus, IceCream, Coffee, Utensils, Star, Tag, ShoppingBag, Zap, User as UserIcon } from "lucide-react";
+import { Edit2, Trash2, Plus, IceCream, Coffee, Utensils, ShoppingBag, Zap, User as UserIcon } from "lucide-react";
 
 export default function Storefront() {
   const { isAdmin, user } = useAuth();
+  const { addItem, totalItems, itemsTotal } = useCart();
   
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [search, setSearch] = useState("");
   
   // Modals state
   const [catDialogOpen, setCatDialogOpen] = useState(false);
@@ -63,6 +67,14 @@ export default function Storefront() {
     return <Utensils className="w-5 h-5 mb-1 text-muted-foreground" />;
   };
 
+  const filteredProducts = search.trim()
+    ? products.filter(
+        (p) =>
+          p.name.toLowerCase().includes(search.toLowerCase()) ||
+          p.description.toLowerCase().includes(search.toLowerCase())
+      )
+    : products;
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans pb-24">
       {/* Header */}
@@ -76,21 +88,30 @@ export default function Storefront() {
         <div className="hidden md:flex flex-1 max-w-xl mx-8">
           <input 
             type="text" 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por açaí, sorvetes..." 
             className="w-full bg-muted border-2 border-border rounded-none px-6 py-2.5 outline-none focus:border-secondary transition-colors font-mono text-sm placeholder:text-muted-foreground"
           />
         </div>
 
-        <div className="flex items-center gap-4">
-          <Link href="/pedidos" className="text-xs font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors hidden md:flex items-center gap-2 border-2 border-border px-3 py-2 hover:bg-white/5">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/carrinho"
+            className="flex items-center gap-2 border-2 border-primary bg-primary/10 text-primary px-3 py-2 hover:bg-primary hover:text-primary-foreground transition-colors font-mono text-xs uppercase tracking-widest font-bold"
+          >
             <ShoppingBag className="w-4 h-4" />
+            <span className="hidden sm:inline">Carrinho</span> ({totalItems})
+          </Link>
+
+          <Link href="/pedidos" className="text-xs font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors hidden md:flex items-center gap-2 border-2 border-border px-3 py-2 hover:bg-white/5">
             Meus Pedidos
           </Link>
           
           {user ? (
-            <Link href="/conta" className="flex items-center gap-2 border-2 border-primary bg-primary/10 text-primary px-3 py-2 hover:bg-primary hover:text-primary-foreground transition-colors font-mono text-xs uppercase tracking-widest">
+            <Link href="/conta" className="flex items-center gap-2 border-2 border-border px-3 py-2 hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors font-mono text-xs uppercase tracking-widest">
               <UserIcon className="w-4 h-4" />
-              Minha Conta
+              <span className="hidden sm:inline">Conta</span>
             </Link>
           ) : (
             <Link href="/login" className="flex items-center gap-2 border-2 border-border px-3 py-2 hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors font-mono text-xs uppercase tracking-widest">
@@ -102,35 +123,10 @@ export default function Storefront() {
       </header>
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-6">
-        
-        {/* Banners Carousel */}
-        <section className="mb-8">
-          <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 no-scrollbar">
-            <div className="snap-center shrink-0 w-[85%] md:w-[60%] h-40 bg-gradient-to-r from-brand-pop-shake/80 to-brand-acai-vibrante rounded-none border-2 border-border flex items-center p-6 relative overflow-hidden">
-              <div className="z-10">
-                <span className="bg-background text-foreground text-[10px] font-mono uppercase px-2 py-1 tracking-widest mb-2 inline-block">Promo</span>
-                <h3 className="font-heading text-2xl font-bold uppercase tracking-tight text-white leading-none mb-2">Combo Galáctico</h3>
-                <p className="text-sm text-white/80 font-sans max-w-[200px]">Açaí 700ml + Cupuaçu com 20% OFF!</p>
-              </div>
-              <div className="absolute -right-10 -bottom-10 opacity-30 pointer-events-none">
-                <Star className="w-48 h-48 text-white" />
-              </div>
-            </div>
-            
-            <div className="snap-center shrink-0 w-[85%] md:w-[60%] h-40 bg-gradient-to-r from-brand-circulo-maior to-brand-acai-vibrante rounded-none border-2 border-border flex items-center p-6 relative overflow-hidden">
-              <div className="z-10">
-                <span className="bg-success text-white text-[10px] font-mono uppercase px-2 py-1 tracking-widest mb-2 inline-block">Frete Grátis</span>
-                <h3 className="font-heading text-2xl font-bold uppercase tracking-tight text-white leading-none mb-2">Pop Shakes</h3>
-                <p className="text-sm text-white/80 font-sans max-w-[200px]">Peça agora e não pague a entrega.</p>
-              </div>
-              <div className="absolute -right-10 -bottom-10 opacity-30 pointer-events-none">
-                <Tag className="w-48 h-48 text-white" />
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* Carrossel Dinâmico de Promoções (PostgreSQL) */}
+        <PromoBanner />
 
-        {/* Categories Bar */}
+        {/* Barra de Categorias */}
         <section className="mb-10 sticky top-[72px] z-30 bg-background/95 backdrop-blur py-2 border-b-2 border-border">
           <div className="flex overflow-x-auto gap-4 no-scrollbar items-center pb-2">
             {categories.map((cat) => (
@@ -159,42 +155,46 @@ export default function Storefront() {
                 onClick={() => { setEditingCategory(null); setCatDialogOpen(true); }}
               >
                 <Plus className="w-5 h-5 mb-1" />
-                <span className="text-[10px] font-mono uppercase">Add Cat</span>
+                <span className="text-[10px] font-mono uppercase">Nova</span>
               </Button>
             )}
           </div>
         </section>
 
-        {/* Product Shelves */}
+        {/* Lista de Produtos Agrupados por Categoria */}
         <div className="space-y-12">
           {categories.map((cat) => {
-            const catProducts = products.filter(p => p.category_id === cat.id || p.category === cat.name);
-            if (catProducts.length === 0 && !isAdmin) return null;
+            const catProducts = filteredProducts.filter(p => p.category_id === cat.id || p.category === cat.name);
             
+            if (catProducts.length === 0 && !isAdmin) return null;
+
             return (
-              <section key={cat.id} id={`category-${cat.id}`} className="scroll-mt-32">
-                <h2 className="font-heading text-2xl font-bold uppercase tracking-tight text-foreground mb-6 flex items-center gap-2">
-                  {cat.name}
-                  <span className="h-0.5 flex-1 bg-border ml-4"></span>
-                </h2>
-                
+              <section key={cat.id} id={`category-${cat.id}`} className="scroll-mt-36">
+                <div className="flex items-center justify-between mb-4 border-b-2 border-border pb-2">
+                  <h2 className="font-heading text-xl font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
+                    {cat.name}
+                  </h2>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {catProducts.map((product) => (
-                    <div key={product.id} className="group relative bg-card border-2 border-border hover:border-accent transition-colors flex overflow-hidden h-32">
-                      
+                    <div 
+                      key={product.id} 
+                      className="bg-card border-2 border-border hover:border-accent transition-colors flex h-32 relative overflow-hidden group shadow-[2px_2px_0px_0px_rgba(255,255,255,0.02)]"
+                    >
                       {isAdmin && (
-                        <div className="absolute top-2 right-2 flex gap-1 z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-background border-2 border-border">
-                          <button onClick={() => { setEditingProduct(product); setProdDialogOpen(true); }} className="p-1.5 hover:bg-muted text-primary transition-colors"><Edit2 className="w-3 h-3" /></button>
-                          <button onClick={() => handleDeleteProduct(product.id)} className="p-1.5 hover:bg-muted text-destructive transition-colors"><Trash2 className="w-3 h-3" /></button>
+                        <div className="absolute top-2 right-14 flex gap-1 z-20 bg-background/90 p-1 border border-border">
+                          <button onClick={() => { setEditingProduct(product); setProdDialogOpen(true); }} className="text-primary hover:bg-muted p-1"><Edit2 className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => handleDeleteProduct(product.id)} className="text-destructive hover:bg-muted p-1"><Trash2 className="w-3.5 h-3.5" /></button>
                         </div>
                       )}
 
-                      <div className="w-32 shrink-0 bg-muted border-r-2 border-border relative overflow-hidden">
+                      <div className="w-32 bg-muted relative shrink-0 border-r-2 border-border overflow-hidden flex items-center justify-center">
                         {product.imageUrl ? (
-                           /* eslint-disable-next-line @next/next/no-img-element */
-                          <img src={product.imageUrl} alt={product.name} className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500" />
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={product.imageUrl} alt={product.name} className="object-cover w-full h-full group-hover:scale-105 transition-transform" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xs font-mono text-muted-foreground">NO IMG</div>
+                          <span className="font-mono text-xs text-muted-foreground tracking-widest uppercase">POPSHAKE</span>
                         )}
                       </div>
                       
@@ -209,7 +209,21 @@ export default function Storefront() {
                         </div>
                       </div>
                       
-                      <button className="w-12 border-l-2 border-border bg-background hover:bg-success hover:text-white flex flex-col items-center justify-center text-success transition-colors group/btn shrink-0">
+                      {/* Botão de Adicionar ao Carrinho */}
+                      <button
+                        onClick={() => {
+                          addItem({
+                            productId: product.id,
+                            name: product.name,
+                            price: product.price,
+                            originalPrice: product.price,
+                            quantity: 1,
+                            imageUrl: product.imageUrl,
+                          });
+                        }}
+                        className="w-12 border-l-2 border-border bg-background hover:bg-success hover:text-white flex flex-col items-center justify-center text-success transition-colors group/btn shrink-0"
+                        title="Adicionar ao carrinho"
+                      >
                         <Plus className="w-6 h-6 group-hover/btn:scale-125 transition-transform" />
                       </button>
                     </div>
@@ -232,12 +246,21 @@ export default function Storefront() {
       </main>
 
       {/* Floating Cart Mobile */}
-      <div className="fixed bottom-0 left-0 w-full md:hidden bg-background border-t-2 border-border p-4 z-40">
-        <Button className="w-full h-12 bg-primary hover:bg-primary/90 rounded-none font-heading text-lg uppercase tracking-wider text-background">
-          <ShoppingBag className="w-5 h-5 mr-2" />
-          Ver Carrinho
-        </Button>
-      </div>
+      {totalItems > 0 && (
+        <div className="fixed bottom-0 left-0 w-full md:hidden bg-background border-t-2 border-border p-3 z-40 shadow-2xl">
+          <Link href="/carrinho">
+            <Button className="w-full h-12 bg-primary hover:bg-primary/90 rounded-none font-heading text-base uppercase tracking-wider text-background flex justify-between px-4">
+              <span className="flex items-center gap-2">
+                <ShoppingBag className="w-5 h-5" />
+                Ver Carrinho ({totalItems})
+              </span>
+              <span className="font-mono font-bold">
+                R$ {itemsTotal.toFixed(2).replace(".", ",")}
+              </span>
+            </Button>
+          </Link>
+        </div>
+      )}
 
       {/* Admin Modals */}
       <CategoryFormDialog 
