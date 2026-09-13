@@ -19,6 +19,8 @@ import { CartDrawer } from "../components/storefront/CartDrawer";
 // Admin components (unchanged)
 import { CategoryFormDialog } from "../components/admin/CategoryFormDialog";
 import { ProductFormDialog } from "../components/admin/ProductFormDialog";
+import { EditBannerModal } from "../components/admin/EditBannerModal";
+import { bannerService, HighlightBannerData } from "../services/bannerService";
 
 // UI + Icons
 import { Button } from "../components/ui/button";
@@ -62,6 +64,15 @@ export default function Storefront() {
   const [prodDialogOpen, setProdDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
+  // Faixa de Destaque Promocional
+  const [highlightBanner, setHighlightBanner] = useState<HighlightBannerData>({
+    icon: "🥣",
+    title: "Monte do seu jeito: escolha o tamanho e adicione seus acompanhamentos favoritos",
+    subtitle: "Açaí puro batido na hora, cremoso e com acompanhamentos à sua escolha.",
+    badge: "Refrescância Artesanal",
+  });
+  const [editBannerModalOpen, setEditBannerModalOpen] = useState(false);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -96,12 +107,16 @@ export default function Storefront() {
 
   const fetchData = async () => {
     try {
-      const [cats, prods] = await Promise.all([
+      const [cats, prods, banner] = await Promise.all([
         categoryService.getCategories(),
         productService.getProducts(),
+        bannerService.getHighlightBanner().catch(() => null),
       ]);
       setCategories(cats);
       setProducts(prods);
+      if (banner) {
+        setHighlightBanner(banner);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -568,22 +583,40 @@ export default function Storefront() {
         <PromoBanner />
 
         {/* Banner Comercial de Destaque e Apelo de Sabor */}
-        <div className="mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#9306CF]/10 via-[#940068]/10 to-[#10B981]/10 border border-[#9306CF]/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-sm">
+        <div
+          className={`mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#9306CF]/10 via-[#940068]/10 to-[#10B981]/10 border border-[#9306CF]/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-sm ${
+            isAdmin ? "group relative" : ""
+          }`}
+        >
           <div className="flex items-center gap-3.5">
-            <span className="text-3xl shrink-0">🥣</span>
+            <span className="text-3xl shrink-0">{highlightBanner.icon || "🥣"}</span>
             <div>
               <p className="font-heading font-bold text-sm sm:text-base text-[#4C264F] dark:text-[#F9F5F9]">
-                Monte do seu jeito: escolha o tamanho e adicione seus acompanhamentos favoritos
+                {highlightBanner.title || "Monte do seu jeito: escolha o tamanho e adicione seus acompanhamentos favoritos"}
               </p>
               <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                Açaí puro batido na hora, cremoso e com acompanhamentos à sua escolha.
+                {highlightBanner.subtitle || "Açaí puro batido na hora, cremoso e com acompanhamentos à sua escolha."}
               </p>
             </div>
           </div>
+
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-white dark:bg-[#1A0B1C] text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/25 shadow-sm">
-              Refrescância Artesanal
+              {highlightBanner.badge || "Refrescância Artesanal"}
             </span>
+
+            {/* Botão flutuante para administradores editarem a faixa */}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setEditBannerModalOpen(true)}
+                className="bg-white dark:bg-[#2B132D] shadow-md border border-purple-300 dark:border-purple-700 p-2 rounded-full hover:scale-105 transition-all text-[#9306CF] dark:text-[#C7A9C9] hover:text-[#940068] dark:hover:text-white cursor-pointer ml-1"
+                title="Editar Faixa Promocional"
+                aria-label="Editar Faixa Promocional"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -780,6 +813,12 @@ export default function Storefront() {
         productToEdit={editingProduct}
         categories={categories}
         onSaved={fetchData}
+      />
+      <EditBannerModal
+        open={editBannerModalOpen}
+        onOpenChange={setEditBannerModalOpen}
+        currentBanner={highlightBanner}
+        onSaved={(updated) => setHighlightBanner(updated)}
       />
     </div>
   );

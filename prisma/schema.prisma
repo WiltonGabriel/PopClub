@@ -183,3 +183,14 @@ model OrderItem {
 
   @@map("order_items")
 }
+
+model HighlightBanner {
+  id        String   @id @default("home_highlight")
+  icon      String   @default("🥣")
+  title     String   @default("Monte do seu jeito: escolha o tamanho e adicione seus acompanhamentos favoritos")
+  subtitle  String   @default("Açaí puro batido na hora, cremoso e com acompanhamentos à sua escolha.")
+  badge     String   @default("Refrescância Artesanal")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("highlight_banners")
+}
