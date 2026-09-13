@@ -62,4 +62,30 @@ export const authService = {
   async signInWithGoogle() {
     throw new Error("O login via Google não está disponível. Por favor, use seu usuário e senha.");
   },
+
+  async requestPasswordReset(email: string) {
+    const res = await fetch("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Erro ao solicitar recuperação.");
+    }
+    return data;
+  },
+
+  async resetPassword(email: string, code: string, newPassword: string) {
+    const res = await fetch("/api/auth/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code, newPassword }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Erro ao redefinir a senha.");
+    }
+    return data;
+  },
 };

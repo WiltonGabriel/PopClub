@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Star, Tag, Plus, Edit2, Trash2, ArrowRight, Loader2 } from "lucide-react";
+import { Tag, Plus, Edit2, Trash2, ArrowRight } from "lucide-react";
 import { promotionService, Promotion } from "../../services/promotionService";
 import { useAuth } from "../../hooks/useAuth";
 import { PromotionFormDialog } from "../admin/PromotionFormDialog";
@@ -39,7 +39,7 @@ export function PromoBanner() {
       try {
         await promotionService.deletePromotion(id);
         fetchPromos();
-      } catch (err) {
+      } catch {
         alert("Erro ao excluir promoção.");
       }
     }
@@ -52,39 +52,59 @@ export function PromoBanner() {
     setDialogOpen(true);
   };
 
+  /* ── Loading skeleton ── */
   if (loading && promotions.length === 0) {
     return (
-      <section className="mb-8">
-        <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
-          <div className="shrink-0 w-[85%] md:w-[60%] h-40 bg-card border-2 border-border animate-pulse flex items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-primary" />
-          </div>
+      <section className="mb-6" aria-label="Carregando promoções">
+        <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+          {[1, 2].map((n) => (
+            <div
+              key={n}
+              className="shrink-0 w-[85%] md:w-[55%] h-40 rounded-2xl skeleton-light"
+            />
+          ))}
         </div>
       </section>
     );
   }
 
   if (!loading && promotions.length === 0 && !isAdmin) {
-    return null; // Não exibe carrossel vazio se não houver admin
+    return null;
   }
 
   return (
     <>
-      <section className="mb-8">
-        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 no-scrollbar">
+      <section className="mb-6" aria-label="Promoções em destaque">
+        <div className="flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 no-scrollbar">
           {promotions.map((promo) => {
-            const bgGradient = `linear-gradient(to right, ${promo.gradientStart || "#9306CF"}, ${promo.gradientEnd || "#881BAA"})`;
+            const gradStart = promo.gradientStart || "#9306CF";
+            const gradEnd   = promo.gradientEnd   || "#940068";
             const hasBanner = Boolean(promo.bannerImageUrl);
+
+            const discountLabel =
+              promo.discountType === "percentage"
+                ? `${promo.discountValue}% OFF`
+                : `R$ ${promo.discountValue.toFixed(2)} OFF`;
 
             return (
               <div
                 key={promo.id}
-                className="group relative snap-center shrink-0 w-[85%] md:w-[60%] h-40 rounded-none border-2 border-border flex items-center p-6 overflow-hidden transition-all duration-300 hover:border-primary cursor-pointer shadow-sm hover:shadow-md"
-                style={{ background: bgGradient }}
+                className="
+                  group relative snap-center shrink-0
+                  w-[85%] md:w-[55%] h-40
+                  rounded-2xl overflow-hidden
+                  border border-white/10
+                  shadow-md hover:shadow-xl
+                  transition-all duration-300
+                  cursor-pointer
+                "
+                style={{
+                  background: `linear-gradient(135deg, ${gradStart} 0%, ${gradEnd} 100%)`,
+                }}
               >
-                {/* Banner de Imagem se houver */}
+                {/* Banner image overlay */}
                 {hasBanner && (
-                  <div className="absolute inset-0 z-0 opacity-20 group-hover:opacity-30 transition-opacity">
+                  <div className="absolute inset-0 z-0 opacity-20 group-hover:opacity-25 transition-opacity">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={promo.bannerImageUrl}
@@ -94,53 +114,76 @@ export function PromoBanner() {
                   </div>
                 )}
 
-                {/* Link clicável que envolve o conteúdo para navegar para /promo/[id] */}
-                <Link href={`/promo/${promo.id}`} className="absolute inset-0 z-10 flex items-center p-6">
-                  <div className="z-10 max-w-[70%]">
-                    <span className="bg-background text-foreground text-[10px] font-mono uppercase px-2 py-1 tracking-widest mb-2 inline-block font-bold">
-                      {promo.badge}
-                    </span>
-                    <h3 className="font-heading text-2xl font-bold uppercase tracking-tight text-white leading-none mb-1 truncate">
-                      {promo.title}
-                    </h3>
-                    <p className="text-xs text-white/80 font-sans line-clamp-2 max-w-[280px]">
-                      {promo.description}
-                    </p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="text-xs font-mono font-bold text-white bg-black/40 px-2 py-0.5 inline-block">
-                        {promo.discountType === "percentage"
-                          ? `${promo.discountValue}% OFF`
-                          : `R$ ${promo.discountValue.toFixed(2)} OFF`}
-                      </span>
-                      <span className="text-[11px] font-mono text-white/90 underline flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        Ver combo <ArrowRight className="w-3 h-3" />
-                      </span>
-                    </div>
-                  </div>
+                {/* Decorative blob */}
+                <div className="
+                  absolute -right-8 -bottom-8
+                  w-36 h-36 rounded-full
+                  bg-white/10
+                  group-hover:scale-110 transition-transform duration-500
+                  pointer-events-none
+                " />
+                <div className="
+                  absolute -right-2 top-4
+                  w-20 h-20 rounded-full
+                  bg-white/5
+                  pointer-events-none
+                " />
 
-                  <div className="absolute -right-10 -bottom-10 opacity-25 pointer-events-none group-hover:scale-110 transition-transform duration-500">
-                    {promo.title.toLowerCase().includes("shake") ? (
-                      <Tag className="w-48 h-48 text-white" />
-                    ) : (
-                      <Star className="w-48 h-48 text-white" />
-                    )}
+                {/* Clickable content */}
+                <Link href={`/promo/${promo.id}`} className="absolute inset-0 z-10 flex flex-col justify-end p-4">
+                  {/* Badge */}
+                  <span className="
+                    badge-clay
+                    self-start
+                    bg-white text-brand-acai-base
+                    text-[10px] font-bold uppercase px-2.5 py-1
+                    rounded-full tracking-widest mb-2
+                  ">
+                    {promo.badge}
+                  </span>
+
+                  <h3 className="font-heading text-xl font-black uppercase tracking-tight text-white leading-tight truncate">
+                    {promo.title}
+                  </h3>
+
+                  <p className="text-xs text-white/80 font-sans line-clamp-1 max-w-[70%] mt-0.5">
+                    {promo.description}
+                  </p>
+
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="
+                      badge-clay
+                      bg-white/20 text-white
+                      text-xs font-bold px-2.5 py-1 rounded-full
+                      backdrop-blur-sm
+                    ">
+                      {discountLabel}
+                    </span>
+                    <span className="
+                      text-[11px] font-semibold text-white/90
+                      flex items-center gap-1
+                      opacity-0 group-hover:opacity-100
+                      transition-opacity duration-200
+                    ">
+                      Ver combo <ArrowRight className="w-3 h-3" />
+                    </span>
                   </div>
                 </Link>
 
-                {/* Botões administrativos contextuais no card */}
+                {/* Admin controls */}
                 {isAdmin && (
-                  <div className="absolute top-2 right-2 z-20 flex gap-1 bg-background/90 p-1 border-2 border-border shadow-md">
+                  <div className="absolute top-2 right-2 z-20 flex gap-1 bg-white/95 backdrop-blur-sm p-1 rounded-xl shadow-sm border border-border/20">
                     <button
                       onClick={(e) => handleEdit(e, promo)}
                       title="Editar Promoção"
-                      className="p-1 text-primary hover:bg-muted transition-colors"
+                      className="p-1.5 text-brand-pop-shake hover:bg-brand-surface-2 rounded-lg transition-colors"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={(e) => handleDelete(e, promo.id)}
                       title="Excluir Promoção"
-                      className="p-1 text-destructive hover:bg-muted transition-colors"
+                      className="p-1.5 text-destructive hover:bg-red-50 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -150,25 +193,33 @@ export function PromoBanner() {
             );
           })}
 
-          {/* Botão administrativo para criar nova promoção diretamente no carrossel */}
+          {/* Admin: add new promo */}
           {isAdmin && (
             <button
               onClick={() => {
                 setPromoToEdit(null);
                 setDialogOpen(true);
               }}
-              className="snap-center shrink-0 w-[60%] md:w-[30%] h-40 border-2 border-dashed border-primary/50 bg-primary/5 hover:bg-primary/10 hover:border-primary flex flex-col items-center justify-center p-6 transition-all text-primary"
+              className="
+                snap-center shrink-0 w-[55%] md:w-[28%] h-40
+                rounded-2xl border-2 border-dashed border-brand-pop-shake/30
+                bg-brand-pop-shake/5 hover:bg-brand-pop-shake/10
+                hover:border-brand-pop-shake
+                flex flex-col items-center justify-center p-6
+                transition-all duration-200 text-brand-pop-shake
+              "
             >
-              <Plus className="w-8 h-8 mb-2" />
-              <span className="font-mono text-xs uppercase tracking-widest font-bold text-center">
-                + Nova Promoção
+              <div className="w-10 h-10 rounded-full bg-brand-pop-shake/10 flex items-center justify-center mb-2">
+                <Plus className="w-5 h-5" />
+              </div>
+              <span className="font-semibold text-xs uppercase tracking-widest text-center">
+                Nova Promoção
               </span>
             </button>
           )}
         </div>
       </section>
 
-      {/* Modal de Gestão de Promoções */}
       <PromotionFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}

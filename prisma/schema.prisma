@@ -34,18 +34,20 @@ enum PaymentMethodType {
 }
 
 model User {
-  id           String         @id @default(uuid())
-  username     String         @unique
-  email        String         @unique
-  passwordHash String         @map("password_hash")
-  role         Role           @default(client)
-  fullName     String?        @map("full_name")
-  avatarUrl    String?        @map("avatar_url")
-  phone        String?
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
-  locations    UserLocation[]
-  orders       Order[]
+  id               String         @id @default(uuid())
+  username         String         @unique
+  email            String         @unique
+  passwordHash     String         @map("password_hash")
+  role             Role           @default(client)
+  fullName         String?        @map("full_name")
+  avatarUrl        String?        @map("avatar_url")
+  phone            String?
+  resetCode        String?        @map("reset_code")
+  resetCodeExpires DateTime?      @map("reset_code_expires")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  locations        UserLocation[]
+  orders           Order[]
 
   @@map("users")
 }
