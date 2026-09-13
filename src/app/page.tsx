@@ -20,7 +20,9 @@ import { CartDrawer } from "../components/storefront/CartDrawer";
 import { CategoryFormDialog } from "../components/admin/CategoryFormDialog";
 import { ProductFormDialog } from "../components/admin/ProductFormDialog";
 import { EditBannerModal } from "../components/admin/EditBannerModal";
+import { AdminEditModeToggle } from "../components/admin/AdminEditModeToggle";
 import { bannerService, HighlightBannerData } from "../services/bannerService";
+import { useEditMode } from "../contexts/EditModeContext";
 
 // UI + Icons
 import { Button } from "../components/ui/button";
@@ -47,6 +49,8 @@ import {
 
 export default function Storefront() {
   const { isAdmin, user, refreshUser } = useAuth();
+  const { isEditMode } = useEditMode();
+  const canEdit = isAdmin && isEditMode;
   const { addItem, totalItems, itemsTotal } = useCart();
   const { theme, toggleTheme } = useTheme();
 
@@ -256,6 +260,9 @@ export default function Storefront() {
               <ReceiptText className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9] group-hover:scale-110 transition-transform" />
               <span className="hidden sm:inline">Meus Pedidos</span>
             </Link>
+
+            {/* Switch de Modo Edição — exclusivo para Administrador */}
+            {isAdmin && <AdminEditModeToggle />}
 
             {/* Account / User Menu */}
             {!user ? (
@@ -529,7 +536,7 @@ export default function Storefront() {
                   onClick={() => scrollToCategory(cat.id)}
                 />
                 {/* Admin controls on chip */}
-                {isAdmin && (
+                {canEdit && (
                   <div className="absolute -top-2 -right-2 hidden group-hover:flex items-center gap-1 bg-white dark:bg-[#2B132D] shadow-md border border-purple-200 dark:border-purple-800 rounded-full p-1 z-20 transition-all">
                     <button
                       onClick={(e) => {
@@ -560,7 +567,7 @@ export default function Storefront() {
             ))}
 
             {/* Admin: add category */}
-            {isAdmin && (
+            {canEdit && (
               <Button
                 variant="outline"
                 onClick={() => { setEditingCategory(null); setCatDialogOpen(true); }}
@@ -585,7 +592,7 @@ export default function Storefront() {
         {/* Banner Comercial de Destaque e Apelo de Sabor */}
         <div
           className={`mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#9306CF]/10 via-[#940068]/10 to-[#10B981]/10 border border-[#9306CF]/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-sm ${
-            isAdmin ? "group relative" : ""
+            canEdit ? "group relative" : ""
           }`}
         >
           <div className="flex items-center gap-3.5">
@@ -606,7 +613,7 @@ export default function Storefront() {
             </span>
 
             {/* Botão flutuante para administradores editarem a faixa */}
-            {isAdmin && (
+            {canEdit && (
               <button
                 type="button"
                 onClick={() => setEditBannerModalOpen(true)}
@@ -630,7 +637,7 @@ export default function Storefront() {
               (p) => p.category_id === cat.id || p.category === cat.name
             );
 
-            if (catProducts.length === 0 && !isAdmin) return null;
+            if (catProducts.length === 0 && !canEdit) return null;
 
             // Modo Prévia (na Home) vs Modo Completo
             const isPreview = !activeCategory && !search;
@@ -638,7 +645,7 @@ export default function Storefront() {
             const hasMore = catProducts.length > 4;
 
             // First category gets a featured (wide) card for the first product
-            const hasFeatured = catIndex === 0 && catProducts.length >= 1;
+            const hasFeatured = catIndex === 0 && !activeCategory && !search;
 
             return (
               <section
@@ -660,11 +667,9 @@ export default function Storefront() {
                   {isPreview && catProducts.length > 0 && (
                     <button
                       onClick={() => scrollToCategory(cat.id)}
-                      className="text-sm font-semibold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1 min-h-[44px] hover:translate-x-0.5 transition-transform group"
-                      aria-label={`Ver mais produtos de ${cat.name}`}
+                      className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1 cursor-pointer"
                     >
-                      Ver mais
-                      <ChevronRight className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9] group-hover:translate-x-0.5 transition-transform" />
+                      Ver todos ({catProducts.length}) <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   )}
 
@@ -685,15 +690,15 @@ export default function Storefront() {
                 {/* ── Bento Grid / Slider Mobile ── */}
                 <div className={
                   isPreview
-                    ? "flex overflow-x-auto snap-x snap-mandatory gap-3 pb-4 no-scrollbar sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:overflow-visible sm:pb-0 sm:gap-4"
-                    : "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4"
+                    ? "flex gap-3 overflow-x-auto pb-4 pt-1 snap-x snap-mandatory scrollbar-none sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-4 sm:overflow-visible sm:snap-none"
+                    : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
                 }>
                   {displayProducts.map((product, prodIndex) => (
                     <div key={product.id} className={isPreview ? "min-w-[80%] sm:min-w-0 snap-start shrink-0" : ""}>
                       <ProductCard
                         product={product}
                         onAddToCart={handleAddToCart}
-                        isAdmin={isAdmin}
+                        isAdmin={canEdit}
                         onEdit={(p) => { setEditingProduct(p); setProdDialogOpen(true); }}
                         onDelete={handleDeleteProduct}
                         featured={hasFeatured && prodIndex === 0}
@@ -702,7 +707,7 @@ export default function Storefront() {
                   ))}
 
                   {/* Admin: add product */}
-                  {isAdmin && (
+                  {canEdit && (
                     <button
                       onClick={() => { setEditingProduct(null); setProdDialogOpen(true); }}
                       className={`

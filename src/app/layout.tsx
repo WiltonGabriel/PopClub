@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { EditModeProvider } from "@/contexts/EditModeContext";
 import { ToastProvider } from "@/components/ui/ToastNotification";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" });
@@ -44,11 +45,13 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <AuthProvider>
-            <CartProvider>
-              <ToastProvider>
-                {children}
-              </ToastProvider>
-            </CartProvider>
+            <EditModeProvider>
+              <CartProvider>
+                <ToastProvider>
+                  {children}
+                </ToastProvider>
+              </CartProvider>
+            </EditModeProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

@@ -5,10 +5,14 @@ import Link from "next/link";
 import { Tag, Plus, Edit2, Trash2, ArrowRight } from "lucide-react";
 import { promotionService, Promotion } from "../../services/promotionService";
 import { useAuth } from "../../hooks/useAuth";
+import { useEditMode } from "../../contexts/EditModeContext";
 import { PromotionFormDialog } from "../admin/PromotionFormDialog";
 
 export function PromoBanner() {
   const { isAdmin } = useAuth();
+  const { isEditMode } = useEditMode();
+  const canEdit = isAdmin && isEditMode;
+
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -17,7 +21,7 @@ export function PromoBanner() {
   const fetchPromos = useCallback(async () => {
     try {
       setLoading(true);
-      const data = isAdmin
+      const data = canEdit
         ? await promotionService.getAllPromotions()
         : await promotionService.getActivePromotions();
       setPromotions(data);
@@ -26,7 +30,7 @@ export function PromoBanner() {
     } finally {
       setLoading(false);
     }
-  }, [isAdmin]);
+  }, [canEdit]);
 
   useEffect(() => {
     fetchPromos();
@@ -68,7 +72,7 @@ export function PromoBanner() {
     );
   }
 
-  if (!loading && promotions.length === 0 && !isAdmin) {
+  if (!loading && promotions.length === 0 && !canEdit) {
     return null;
   }
 
@@ -171,7 +175,7 @@ export function PromoBanner() {
                 </Link>
 
                 {/* Admin controls */}
-                {isAdmin && (
+                {canEdit && (
                   <div className="absolute top-2 right-2 z-20 flex gap-1 bg-white/95 backdrop-blur-sm p-1 rounded-xl shadow-sm border border-border/20">
                     <button
                       onClick={(e) => handleEdit(e, promo)}
@@ -194,7 +198,7 @@ export function PromoBanner() {
           })}
 
           {/* Admin: add new promo */}
-          {isAdmin && (
+          {canEdit && (
             <button
               onClick={() => {
                 setPromoToEdit(null);
