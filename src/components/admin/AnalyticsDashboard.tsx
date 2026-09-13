@@ -37,7 +37,7 @@ interface AnalyticsDashboardProps {
   loading?: boolean;
 }
 
-type PeriodFilter = "hoje" | "7dias" | "mes";
+type PeriodFilter = "hoje" | "7dias" | "mes" | "ano" | "tudo";
 
 const BRAND_COLORS = {
   purple: "#9306CF",
@@ -54,6 +54,21 @@ const PIE_COLORS = [
   BRAND_COLORS.amber,
   BRAND_COLORS.blue,
   BRAND_COLORS.magenta,
+];
+
+const MONTH_NAMES = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
 ];
 
 export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboardProps) {
@@ -82,6 +97,14 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
           orderDate.getMonth() === now.getMonth() &&
           orderDate.getFullYear() === now.getFullYear()
         );
+      }
+
+      if (period === "ano") {
+        return orderDate.getFullYear() === now.getFullYear();
+      }
+
+      if (period === "tudo") {
+        return true;
       }
 
       return true;
@@ -122,10 +145,12 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
     };
   }, [filteredOrders]);
 
-  // Gráfico 1: Vendas por Horário (se Hoje) ou por Dia (se 7 dias / Mês)
+  // Gráfico 1: Vendas por Horário (Hoje), por Dia (7 dias / Mês), por Mês (Este Ano), ou Histórico (Todo o Período)
   const salesTimelineData = useMemo(() => {
+    const now = new Date();
+
     if (period === "hoje") {
-      // Agrupamento por blocos de 2 horas (10h às 23h)
+      // Agrupamento por blocos de 2 horas (10h às 22h)
       const hoursMap: Record<string, { faturamento: number; pedidos: number }> = {};
       const hourSlots = ["10h", "12h", "14h", "16h", "18h", "20h", "22h"];
       hourSlots.forEach((slot) => {
@@ -153,34 +178,151 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
         faturamento: Number(hoursMap[slot].faturamento.toFixed(2)),
         pedidos: hoursMap[slot].pedidos,
       }));
-    } else {
-      // Agrupamento por dia
-      const daysMap: Record<string, { faturamento: number; pedidos: number }> = {};
-      const daysArray: string[] = [];
+    }
+
+    if (period === "7dias") {
+      // 7 dias contínuos em ordem cronológica
+      const daysList: { sortKey: string; label: string; faturamento: number; pedidos: number }[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(now.getDate() - i);
+        const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        const label = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+        daysList.push({ sortKey, label, faturamento: 0, pedidos: 0 });
+      }
 
       filteredOrders.forEach((o) => {
         const d = new Date(o.created_at);
-        const dayLabel = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
-        if (!daysMap[dayLabel]) {
-          daysMap[dayLabel] = { faturamento: 0, pedidos: 0 };
-          daysArray.push(dayLabel);
+        const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        const item = daysList.find((entry) => entry.sortKey === sortKey);
+        if (item) {
+          if (o.status !== "cancelled") {
+            item.faturamento += Number(o.total_amount);
+          }
+          item.pedidos += 1;
         }
-        if (o.status !== "cancelled") {
-          daysMap[dayLabel].faturamento += Number(o.total_amount);
-        }
-        daysMap[dayLabel].pedidos += 1;
       });
 
-      if (daysArray.length === 0) {
+      return daysList.map((entry) => ({
+        label: entry.label,
+        faturamento: Number(entry.faturamento.toFixed(2)),
+        pedidos: entry.pedidos,
+      }));
+    }
+
+    if (period === "mes") {
+      // Agrupamento diário para o mês corrente ordenado cronologicamente
+      const daysMap: Record<string, { sortKey: string; label: string; faturamento: number; pedidos: number }> = {};
+
+      filteredOrders.forEach((o) => {
+        const d = new Date(o.created_at);
+        const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        const label = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+        if (!daysMap[sortKey]) {
+          daysMap[sortKey] = { sortKey, label, faturamento: 0, pedidos: 0 };
+        }
+        if (o.status !== "cancelled") {
+          daysMap[sortKey].faturamento += Number(o.total_amount);
+        }
+        daysMap[sortKey].pedidos += 1;
+      });
+
+      const sortedKeys = Object.keys(daysMap).sort();
+      if (sortedKeys.length === 0) {
         return [{ label: "Sem dados", faturamento: 0, pedidos: 0 }];
       }
 
-      return daysArray.sort().map((dayLabel) => ({
-        label: dayLabel,
-        faturamento: Number(daysMap[dayLabel].faturamento.toFixed(2)),
-        pedidos: daysMap[dayLabel].pedidos,
+      return sortedKeys.map((k) => ({
+        label: daysMap[k].label,
+        faturamento: Number(daysMap[k].faturamento.toFixed(2)),
+        pedidos: daysMap[k].pedidos,
       }));
     }
+
+    if (period === "ano") {
+      // Agrupamento mensal dos 12 meses do ano vigente (Jan a Dez)
+      const monthsList = MONTH_NAMES.map((name) => ({
+        label: name,
+        faturamento: 0,
+        pedidos: 0,
+      }));
+
+      filteredOrders.forEach((o) => {
+        const d = new Date(o.created_at);
+        const monthIndex = d.getMonth();
+        if (monthsList[monthIndex]) {
+          if (o.status !== "cancelled") {
+            monthsList[monthIndex].faturamento += Number(o.total_amount);
+          }
+          monthsList[monthIndex].pedidos += 1;
+        }
+      });
+
+      return monthsList.map((entry) => ({
+        label: entry.label,
+        faturamento: Number(entry.faturamento.toFixed(2)),
+        pedidos: entry.pedidos,
+      }));
+    }
+
+    if (period === "tudo") {
+      // Todo o período: se mais de 2 anos, agrupa por ano; senão, agrupa por mês/ano
+      const yearsSet = new Set(filteredOrders.map((o) => new Date(o.created_at).getFullYear()));
+
+      if (yearsSet.size > 2) {
+        const yearsMap: Record<string, { label: string; faturamento: number; pedidos: number }> = {};
+
+        filteredOrders.forEach((o) => {
+          const yr = new Date(o.created_at).getFullYear().toString();
+          if (!yearsMap[yr]) {
+            yearsMap[yr] = { label: yr, faturamento: 0, pedidos: 0 };
+          }
+          if (o.status !== "cancelled") {
+            yearsMap[yr].faturamento += Number(o.total_amount);
+          }
+          yearsMap[yr].pedidos += 1;
+        });
+
+        const sortedYears = Object.keys(yearsMap).sort();
+        if (sortedYears.length === 0) {
+          return [{ label: "Sem dados", faturamento: 0, pedidos: 0 }];
+        }
+
+        return sortedYears.map((yr) => ({
+          label: yearsMap[yr].label,
+          faturamento: Number(yearsMap[yr].faturamento.toFixed(2)),
+          pedidos: yearsMap[yr].pedidos,
+        }));
+      } else {
+        const monthsMap: Record<string, { sortKey: string; label: string; faturamento: number; pedidos: number }> = {};
+
+        filteredOrders.forEach((o) => {
+          const d = new Date(o.created_at);
+          const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+          const label = `${MONTH_NAMES[d.getMonth()]}/${String(d.getFullYear()).slice(-2)}`;
+          if (!monthsMap[sortKey]) {
+            monthsMap[sortKey] = { sortKey, label, faturamento: 0, pedidos: 0 };
+          }
+          if (o.status !== "cancelled") {
+            monthsMap[sortKey].faturamento += Number(o.total_amount);
+          }
+          monthsMap[sortKey].pedidos += 1;
+        });
+
+        const sortedKeys = Object.keys(monthsMap).sort();
+        if (sortedKeys.length === 0) {
+          return [{ label: "Sem dados", faturamento: 0, pedidos: 0 }];
+        }
+
+        return sortedKeys.map((k) => ({
+          label: monthsMap[k].label,
+          faturamento: Number(monthsMap[k].faturamento.toFixed(2)),
+          pedidos: monthsMap[k].pedidos,
+        }));
+      }
+    }
+
+    return [{ label: "Sem dados", faturamento: 0, pedidos: 0 }];
   }, [filteredOrders, period]);
 
   // Gráfico 2: Top 5 Produtos Mais Vendidos
@@ -299,6 +441,8 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
               <span className="font-bold font-mono">
                 {entry.name.toLowerCase().includes("faturamento") || entry.name.toLowerCase().includes("receita")
                   ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(entry.value)
+                  : entry.name.toLowerCase().includes("pedidos")
+                  ? `${entry.value} pedido(s)`
                   : entry.value}
               </span>
             </p>
@@ -337,10 +481,10 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
           </span>
         </div>
 
-        <div className="flex items-center bg-gray-100 dark:bg-[#1A0B1C] p-1 rounded-xl border border-gray-200 dark:border-[#512B54]/40">
+        <div className="flex items-center flex-wrap gap-1 bg-gray-100 dark:bg-[#1A0B1C] p-1 rounded-xl border border-gray-200 dark:border-[#512B54]/40">
           <button
             onClick={() => setPeriod("hoje")}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
               period === "hoje"
                 ? "bg-white dark:bg-[#2B102E] text-[#9306CF] dark:text-[#C7A9C9] shadow-sm font-black"
                 : "text-gray-600 dark:text-gray-400 hover:text-[#4C264F] dark:hover:text-white"
@@ -350,23 +494,43 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
           </button>
           <button
             onClick={() => setPeriod("7dias")}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
               period === "7dias"
                 ? "bg-white dark:bg-[#2B102E] text-[#9306CF] dark:text-[#C7A9C9] shadow-sm font-black"
                 : "text-gray-600 dark:text-gray-400 hover:text-[#4C264F] dark:hover:text-white"
             }`}
           >
-            Últimos 7 dias
+            7 Dias
           </button>
           <button
             onClick={() => setPeriod("mes")}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
               period === "mes"
                 ? "bg-white dark:bg-[#2B102E] text-[#9306CF] dark:text-[#C7A9C9] shadow-sm font-black"
                 : "text-gray-600 dark:text-gray-400 hover:text-[#4C264F] dark:hover:text-white"
             }`}
           >
             Este Mês
+          </button>
+          <button
+            onClick={() => setPeriod("ano")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
+              period === "ano"
+                ? "bg-white dark:bg-[#2B102E] text-[#9306CF] dark:text-[#C7A9C9] shadow-sm font-black"
+                : "text-gray-600 dark:text-gray-400 hover:text-[#4C264F] dark:hover:text-white"
+            }`}
+          >
+            Este Ano
+          </button>
+          <button
+            onClick={() => setPeriod("tudo")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
+              period === "tudo"
+                ? "bg-white dark:bg-[#2B102E] text-[#9306CF] dark:text-[#C7A9C9] shadow-sm font-black"
+                : "text-gray-600 dark:text-gray-400 hover:text-[#4C264F] dark:hover:text-white"
+            }`}
+          >
+            Todo o Período
           </button>
         </div>
       </div>
@@ -462,39 +626,86 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
 
       {/* 2. GRÁFICOS VISUAIS */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Gráfico 1: Vendas por Horário / Dias */}
+        {/* Gráfico 1: Vendas por Horário / Dias / Meses */}
         <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
             <div>
               <h3 className="font-heading font-bold text-sm sm:text-base text-[#4C264F] dark:text-[#F9F5F9] uppercase tracking-wide flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-[#9306CF]" />
-                {period === "hoje" ? "Picos de Venda por Horário" : "Evolução de Vendas no Período"}
+                {period === "hoje"
+                  ? "Picos de Venda por Horário"
+                  : period === "ano"
+                  ? "Evolução Mensal no Ano"
+                  : period === "tudo"
+                  ? "Histórico Completo de Vendas"
+                  : "Evolução de Vendas no Período"}
               </h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 {period === "hoje"
                   ? "Volume de receita e pedidos ao longo do dia"
-                  : "Desempenho diário de faturamento na loja"}
+                  : period === "ano"
+                  ? "Faturamento e pedidos mês a mês de Janeiro a Dezembro"
+                  : period === "tudo"
+                  ? "Histórico acumulado de faturamento e pedidos da loja"
+                  : "Desempenho de faturamento e volume de pedidos na loja"}
               </p>
             </div>
-            <span className="text-[11px] font-mono font-bold text-[#9306CF] dark:text-[#C7A9C9] bg-[#9306CF]/10 px-2.5 py-1 rounded-full">
-              {period === "hoje" ? "Hoje (Hora a Hora)" : "Evolução Diária"}
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-mono font-bold text-[#9306CF] dark:text-[#C7A9C9] bg-[#9306CF]/10 px-2.5 py-1 rounded-full whitespace-nowrap">
+                {period === "hoje"
+                  ? "Hoje (Hora a Hora)"
+                  : period === "7dias"
+                  ? "Últimos 7 Dias"
+                  : period === "mes"
+                  ? "Este Mês (Dia a Dia)"
+                  : period === "ano"
+                  ? "Este Ano (Mês a Mês)"
+                  : "Todo o Período"}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 text-xs font-semibold mb-2 px-1">
+            <span className="flex items-center gap-1.5 text-[#9306CF] dark:text-[#C7A9C9]">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#9306CF]" /> Faturamento (R$)
+            </span>
+            <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Pedidos (Qtd)
             </span>
           </div>
 
           <div className="w-full h-64 sm:h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={salesTimelineData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={salesTimelineData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={BRAND_COLORS.purple} stopOpacity={0.4} />
                     <stop offset="95%" stopColor={BRAND_COLORS.purple} stopOpacity={0.0} />
                   </linearGradient>
+                  <linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={BRAND_COLORS.emerald} stopOpacity={0.3} />
+                    <stop offset="95%" stopColor={BRAND_COLORS.emerald} stopOpacity={0.0} />
+                  </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
                 <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
+                <YAxis
+                  yAxisId="left"
+                  tick={{ fontSize: 10 }}
+                  tickFormatter={(val) => `R$ ${val}`}
+                  stroke="#9306CF"
+                  opacity={0.6}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  tick={{ fontSize: 10 }}
+                  stroke="#10B981"
+                  opacity={0.6}
+                />
                 <Tooltip content={<CustomTooltip />} />
                 <Area
+                  yAxisId="left"
                   type="monotone"
                   dataKey="faturamento"
                   name="Faturamento"
@@ -502,6 +713,16 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
                   strokeWidth={2.5}
                   fillOpacity={1}
                   fill="url(#colorRevenue)"
+                />
+                <Area
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="pedidos"
+                  name="Pedidos"
+                  stroke={BRAND_COLORS.emerald}
+                  strokeWidth={2}
+                  fillOpacity={0.8}
+                  fill="url(#colorOrders)"
                 />
               </AreaChart>
             </ResponsiveContainer>

@@ -38,6 +38,8 @@ import {
   Pencil,
   Trash2,
   ReceiptText,
+  BookOpen,
+  LayoutDashboard,
 } from "lucide-react";
 
 export default function Storefront() {
@@ -300,8 +302,8 @@ export default function Storefront() {
                             onClick={() => setUserMenuOpen(false)}
                             className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors"
                           >
-                            <ShieldCheck className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
-                            Central Operacional da Cozinha
+                            <LayoutDashboard className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                            Painel Operacional
                           </Link>
 
                           <Link
@@ -318,8 +320,8 @@ export default function Storefront() {
                             onClick={() => setUserMenuOpen(false)}
                             className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors"
                           >
-                            <span className="w-4 h-4 flex items-center justify-center text-xs">🏷️</span>
-                            Gestão de Cardápio & Vitrine
+                            <BookOpen className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                            Gerenciar Cardápio
                           </Link>
 
                           <Link
@@ -366,7 +368,7 @@ export default function Storefront() {
                       className="w-full flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors text-left"
                     >
                       <LogOut className="w-4 h-4" />
-                      Sair da Conta
+                      Encerrar Sessão
                     </button>
                   </div>
                 )}

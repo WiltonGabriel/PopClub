@@ -171,7 +171,7 @@ export default function AccountPage() {
               className="flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-colors border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 mt-6"
             >
               <LogOut className="w-4 h-4" />
-              Sair da Conta
+              Encerrar Sessão
             </button>
           </nav>
         </aside>

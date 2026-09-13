@@ -406,7 +406,15 @@ export default function AdminDashboard() {
           </Link>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <Link
+            href="/admin/pedidos"
+            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+          >
+            <LayoutDashboard className="w-4 h-4 text-[#9306CF]" />
+            <span className="hidden sm:inline">Painel Operacional</span>
+          </Link>
+
           <Link
             href="/"
             className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
@@ -420,7 +428,7 @@ export default function AdminDashboard() {
             className="flex items-center gap-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors border border-transparent hover:border-red-200 dark:hover:border-red-900/40"
           >
             <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Sair</span>
+            <span className="hidden sm:inline">Encerrar Sessão</span>
           </button>
         </div>
       </header>

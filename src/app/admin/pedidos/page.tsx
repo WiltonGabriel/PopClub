@@ -26,6 +26,7 @@ import {
   Archive,
   BarChart3,
   ReceiptText,
+  BookOpen,
 } from "lucide-react";
 import { orderService, Order, OrderStatus } from "../../../services/orderService";
 import { authService } from "../../../services/authService";
@@ -454,13 +455,13 @@ export default function AdminPedidosPage() {
             <span className="hidden sm:inline">Meus Pedidos</span>
           </Link>
 
-          {/* Link para Painel Geral / Promoções */}
+          {/* Link para Gerenciar Cardápio / Promoções */}
           <Link
             href="/admin"
             className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
           >
-            <Tag className="w-4 h-4 text-[#9306CF]" />
-            <span className="hidden sm:inline">Promoções & Loja</span>
+            <BookOpen className="w-4 h-4 text-[#9306CF]" />
+            <span className="hidden sm:inline">Gerenciar Cardápio</span>
           </Link>
 
           {/* Link para Vitrine */}
@@ -478,7 +479,7 @@ export default function AdminPedidosPage() {
             className="flex items-center gap-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors border border-transparent hover:border-red-200 dark:hover:border-red-900/40"
           >
             <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Sair</span>
+            <span className="hidden sm:inline">Encerrar Sessão</span>
           </button>
         </div>
       </header>
