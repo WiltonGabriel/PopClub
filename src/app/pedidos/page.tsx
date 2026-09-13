@@ -1,32 +1,142 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Clock, CheckCircle, ChevronLeft, RotateCcw, Loader2, ShoppingBag } from "lucide-react";
+import {
+  Clock,
+  CheckCircle,
+  ChevronLeft,
+  RotateCcw,
+  Loader2,
+  ShoppingBag,
+  AlertTriangle,
+  MessageCircle,
+  Bike,
+  Store,
+  RefreshCw,
+} from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { useAuth } from "../../hooks/useAuth";
-import { orderService, Order } from "../../services/orderService";
+import { orderService, Order, OrderStatus } from "../../services/orderService";
+import { subscribeToOrderEvents } from "../../lib/orderEvents";
+import { useToast } from "../../components/ui/ToastNotification";
+
+const STORE_WHATSAPP = process.env.NEXT_PUBLIC_STORE_WHATSAPP || "5584999999999";
+
+const STATUS_CONFIG: Record<
+  OrderStatus,
+  { label: string; badgeClass: string; toastMsg: string; description: string }
+> = {
+  pending: {
+    label: "Recebido",
+    badgeClass: "bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200 dark:border-purple-900/40",
+    toastMsg: "recebido pela loja",
+    description: "Recebemos seu pedido! A cozinha já vai iniciar o preparo.",
+  },
+  accepted: {
+    label: "Confirmado",
+    badgeClass: "bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200 dark:border-purple-900/40",
+    toastMsg: "confirmado pela cozinha",
+    description: "Pedido confirmado! A equipe está separando seus acompanhamentos.",
+  },
+  preparing: {
+    label: "Em Preparo",
+    badgeClass: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-900/40",
+    toastMsg: "está em preparo! 🥣",
+    description: "Seu copo está sendo montado com todo o capricho.",
+  },
+  ready: {
+    label: "Pronto p/ Saída",
+    badgeClass: "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200 dark:border-blue-900/40",
+    toastMsg: "está pronto para envio/retirada! 📦",
+    description: "Seu pedido está embalado e pronto para viagem ou retirada no balcão.",
+  },
+  delivering: {
+    label: "Saiu para Entrega",
+    badgeClass: "bg-[#9306CF]/15 text-[#9306CF] dark:text-[#C7A9C9] border-[#9306CF]/30 animate-pulse",
+    toastMsg: "saiu para entrega! 🛵",
+    description: "Saiu para entrega! O motoboy está a caminho do seu endereço.",
+  },
+  completed: {
+    label: "Entregue",
+    badgeClass: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/40",
+    toastMsg: "foi entregue! Bom apetite! 🎉",
+    description: "Pedido entregue. Bom apetite!",
+  },
+  cancelled: {
+    label: "Pedido Cancelado",
+    badgeClass: "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300 border-red-200 dark:border-red-900/40",
+    toastMsg: "foi cancelado pela loja.",
+    description: "Este pedido precisou ser cancelado pela loja.",
+  },
+};
 
 export default function PedidosPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<"ativos" | "historico">("ativos");
   const [orders, setOrders] = useState<Order[]>([]);
   const [fetching, setFetching] = useState(true);
+  const previousStatusMap = useRef<Record<string, OrderStatus>>({});
 
-  const fetchOrders = useCallback(async () => {
-    setFetching(true);
+  const fetchOrders = useCallback(async (isSilent = false) => {
+    if (!isSilent) setFetching(true);
     try {
       const data = await orderService.getOrdersByUser();
+      
+      // Notifica o cliente se houve transição de status em algum pedido ativo
+      data.forEach((updated) => {
+        const oldStatus = previousStatusMap.current[updated.id];
+        const newStatus = updated.status;
+
+        if (oldStatus && oldStatus !== newStatus) {
+          const shortId = updated.id.substring(0, 6);
+          const config = STATUS_CONFIG[newStatus];
+
+          if (newStatus === "delivering") {
+            showToast({
+              title: `Seu pedido #${shortId} saiu para entrega! 🛵`,
+              message: "O motoboy está a caminho do seu endereço.",
+              type: "info",
+              duration: 9000,
+            });
+          } else if (newStatus === "completed") {
+            showToast({
+              title: `Pedido #${shortId} Entregue! 🎉`,
+              message: "Pedido entregue. Bom apetite!",
+              type: "success",
+              duration: 8000,
+            });
+          } else if (newStatus === "cancelled") {
+            showToast({
+              title: `Pedido #${shortId} Cancelado`,
+              message: `Motivo: ${updated.cancellation_reason || "Informado pela loja"}`,
+              type: "error",
+              duration: 10000,
+            });
+          } else if (config) {
+            showToast({
+              title: `Atualização no Pedido #${shortId}`,
+              message: config.description,
+              type: "info",
+              duration: 6000,
+            });
+          }
+        }
+
+        previousStatusMap.current[updated.id] = newStatus;
+      });
+
       setOrders(data);
     } catch (err) {
-      console.error(err);
+      console.error("Erro ao buscar pedidos:", err);
     } finally {
-      setFetching(false);
+      if (!isSilent) setFetching(false);
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -36,112 +146,227 @@ export default function PedidosPage() {
     }
   }, [user, loading, router, fetchOrders]);
 
+  // Sincronização por polling inteligente e eventos locais entre abas
+  useEffect(() => {
+    if (!user) return;
+
+    // Polling regular a cada 12 segundos
+    const pollTimer = setInterval(() => {
+      fetchOrders(true);
+    }, 12000);
+
+    // Eventos locais em tempo real entre abas do mesmo navegador
+    const unsubscribe = subscribeToOrderEvents(() => {
+      fetchOrders(true);
+    });
+
+    return () => {
+      clearInterval(pollTimer);
+      unsubscribe();
+    };
+  }, [user, fetchOrders]);
+
   if (loading || fetching) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#9306CF]" />
       </div>
     );
   }
 
-  const isOrderActive = (status: string) => !['completed', 'cancelled'].includes(status);
-  
-  const activeOrders = orders.filter(o => isOrderActive(o.status));
-  const historyOrders = orders.filter(o => !isOrderActive(o.status));
+  const isOrderActive = (status: string) => !["completed", "cancelled"].includes(status);
+
+  const activeOrders = orders.filter((o) => isOrderActive(o.status));
+  const historyOrders = orders.filter((o) => !isOrderActive(o.status));
+
+  const getStoreWhatsAppUrl = (orderId: string, reason?: string | null) => {
+    const cleanNumber = STORE_WHATSAPP.replace(/\D/g, "");
+    const shortId = orderId.substring(0, 6);
+    const msg = encodeURIComponent(
+      `Olá! Meu pedido #${shortId} foi cancelado na loja (Motivo informado: "${reason || "não informado"}"). Gostaria de suporte.`
+    );
+    return `https://wa.me/${cleanNumber}?text=${msg}`;
+  };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-      <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-background/90 border-b-2 border-border px-4 py-4 flex items-center justify-between">
+    <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#190B1A] text-foreground flex flex-col font-sans transition-colors duration-200">
+      {/* Header */}
+      <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-white/85 dark:bg-[#1F0B22]/90 border-b border-gray-200 dark:border-[#512B54]/40 px-4 py-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
-          <Link href="/" className="p-1.5 hover:bg-muted border-2 border-transparent hover:border-border transition-colors">
-            <ChevronLeft className="w-6 h-6 text-primary" />
+          <Link
+            href="/"
+            className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 border border-gray-200 dark:border-[#512B54]/40 transition-colors"
+            title="Voltar para a Loja"
+          >
+            <ChevronLeft className="w-5 h-5 text-[#9306CF]" />
           </Link>
-          <h1 className="text-xl font-heading font-bold uppercase tracking-wide text-foreground">Meus Pedidos</h1>
+          <div>
+            <h1 className="text-lg sm:text-xl font-heading font-black tracking-tight text-[#4C264F] dark:text-[#F9F5F9]">
+              Meus Pedidos
+            </h1>
+            <span className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Acompanhamento ao vivo
+            </span>
+          </div>
         </div>
 
-        <Link href="/carrinho" className="flex items-center gap-2 border-2 border-border px-3 py-1.5 hover:bg-muted text-xs font-mono uppercase">
-          <ShoppingBag className="w-4 h-4 text-primary" />
-          Ver Carrinho
-        </Link>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchOrders(false)}
+            className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold gap-1.5 h-9"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-[#9306CF]" />
+            <span className="hidden sm:inline">Atualizar</span>
+          </Button>
+
+          <Link
+            href="/carrinho"
+            className="flex items-center gap-1.5 border border-gray-200 dark:border-[#512B54]/40 px-3 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-xs font-bold text-gray-700 dark:text-gray-200 transition-colors"
+          >
+            <ShoppingBag className="w-4 h-4 text-[#9306CF]" />
+            <span className="hidden sm:inline">Carrinho</span>
+          </Link>
+        </div>
       </header>
 
-      <main className="flex-1 w-full max-w-3xl mx-auto px-4 py-6">
-        <div className="flex bg-muted/50 p-1 rounded-none mb-6 border-2 border-border">
-          <button 
-            className={`flex-1 py-2 font-mono text-sm uppercase tracking-widest transition-colors ${activeTab === "ativos" ? "bg-primary text-primary-foreground font-bold shadow border-2 border-primary" : "text-muted-foreground hover:text-foreground"}`}
+      <main className="flex-1 w-full max-w-3xl mx-auto px-4 py-6 space-y-6">
+        {/* Seletor de Abas */}
+        <div className="flex bg-gray-200/70 dark:bg-[#2A102E]/60 p-1 rounded-2xl border border-gray-200 dark:border-[#512B54]/40">
+          <button
+            className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold tracking-wide transition-all ${
+              activeTab === "ativos"
+                ? "bg-white dark:bg-[#1F0B22] text-[#4C264F] dark:text-[#F9F5F9] shadow-sm"
+                : "text-gray-500 dark:text-gray-400 hover:text-foreground"
+            }`}
             onClick={() => setActiveTab("ativos")}
           >
-            Ativos ({activeOrders.length})
+            Em Andamento ({activeOrders.length})
           </button>
-          <button 
-            className={`flex-1 py-2 font-mono text-sm uppercase tracking-widest transition-colors ${activeTab === "historico" ? "bg-primary text-primary-foreground font-bold shadow border-2 border-primary" : "text-muted-foreground hover:text-foreground"}`}
+          <button
+            className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold tracking-wide transition-all ${
+              activeTab === "historico"
+                ? "bg-white dark:bg-[#1F0B22] text-[#4C264F] dark:text-[#F9F5F9] shadow-sm"
+                : "text-gray-500 dark:text-gray-400 hover:text-foreground"
+            }`}
             onClick={() => setActiveTab("historico")}
           >
-            Histórico ({historyOrders.length})
+            Histórico & Concluídos ({historyOrders.length})
           </button>
         </div>
 
+        {/* Lista de Pedidos */}
         <div className="space-y-4">
           {activeTab === "ativos" && (
             activeOrders.length > 0 ? (
-              activeOrders.map(order => (
-                <div key={order.id} className="bg-card border-2 border-border p-4 shadow-[4px_4px_0px_0px_rgba(147,6,207,0.2)]">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="font-heading font-bold text-lg text-primary">Pedido #{order.id.substring(0, 8)}</h3>
-                      <p className="text-sm font-sans text-muted-foreground flex items-center gap-1 mt-1">
-                        <Clock className="w-4 h-4" /> {new Date(order.created_at).toLocaleString('pt-BR')}
-                      </p>
+              activeOrders.map((order) => {
+                const statusInfo = STATUS_CONFIG[order.status] || {
+                  label: order.status,
+                  badgeClass: "bg-gray-100 text-gray-700 border-gray-200",
+                };
+
+                return (
+                  <div
+                    key={order.id}
+                    className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 shadow-sm space-y-4"
+                  >
+                    {/* Topo do Card */}
+                    <div className="flex justify-between items-start gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-xs text-[#9306CF] dark:text-[#C7A9C9] bg-[#9306CF]/10 px-2.5 py-0.5 rounded-md border border-[#9306CF]/20">
+                            #{order.id.substring(0, 6)}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 font-mono">
+                            <Clock className="w-3.5 h-3.5 text-gray-400" />
+                            {new Date(order.created_at).toLocaleTimeString("pt-BR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Criado em {new Date(order.created_at).toLocaleDateString("pt-BR")}
+                        </p>
+                      </div>
+
+                      {/* Badge de Status */}
+                      <span
+                        className={`text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${statusInfo.badgeClass} inline-flex items-center gap-1.5`}
+                      >
+                        <span className="w-2 h-2 rounded-full bg-current" />
+                        {statusInfo.label}
+                      </span>
                     </div>
-                    <div className="bg-secondary/20 text-secondary border border-secondary px-3 py-1 text-xs font-mono uppercase tracking-wider rounded-none flex items-center gap-2 font-bold">
-                      <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
-                      {order.status}
+
+                    {/* Itens */}
+                    <div className="border-t border-b border-gray-100 dark:border-[#512B54]/30 py-3 space-y-2">
+                      {order.items?.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-xs">
+                          <span className="text-[#4C264F] dark:text-[#F9F5F9] font-medium flex items-center gap-2">
+                            <span className="text-[#9306CF] font-black">{item.quantity}x</span>
+                            <span>{item.product?.name || "Item"}</span>
+                          </span>
+                          <span className="font-mono text-gray-600 dark:text-gray-300">
+                            {new Intl.NumberFormat("pt-BR", {
+                              style: "currency",
+                              currency: "BRL",
+                            }).format(item.price_at_time * item.quantity)}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                  
-                  <div className="border-t border-border/50 pt-3 mb-3">
-                    {order.items?.map((item, idx) => (
-                      <div key={idx} className="flex justify-between text-sm font-sans mb-1.5">
-                        <span className="text-foreground">
-                          <span className="text-primary font-bold mr-2">{item.quantity}x</span>
-                          {item.product?.name || 'Item'}
-                        </span>
-                        <span className="text-foreground font-mono">
-                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.price_at_time * item.quantity)}
+
+                    {/* Endereço */}
+                    {order.delivery_address && (
+                      <div className="bg-gray-50 dark:bg-white/5 p-3 rounded-xl text-xs text-gray-600 dark:text-gray-300 flex items-start gap-2 border border-gray-100 dark:border-[#512B54]/20">
+                        <Bike className="w-4 h-4 text-[#9306CF] shrink-0 mt-0.5" />
+                        <span>
+                          Entrega: {order.delivery_address.street}, {order.delivery_address.number}
+                          {order.delivery_address.neighborhood ? ` - ${order.delivery_address.neighborhood}` : ""}
                         </span>
                       </div>
-                    ))}
-                  </div>
+                    )}
 
-                  {order.delivery_address && (
-                    <div className="bg-background/50 p-2.5 border border-border/60 text-xs font-mono text-muted-foreground mb-3">
-                      Entrega: {order.delivery_address.street}, {order.delivery_address.number} - {order.delivery_address.neighborhood}
+                    {/* Total e Acompanhamento */}
+                    <div className="flex justify-between items-center pt-1">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 block">
+                          Total do Pedido
+                        </span>
+                        <span className="font-heading font-black text-xl text-emerald-600 dark:text-emerald-400">
+                          {new Intl.NumberFormat("pt-BR", {
+                            style: "currency",
+                            currency: "BRL",
+                          }).format(order.total_amount)}
+                        </span>
+                      </div>
+
+                      <Link href={`/rastreamento?id=${order.id}`}>
+                        <Button className="h-10 px-4 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs font-bold uppercase tracking-wider shadow-md shadow-[#9306CF]/20">
+                          Rastrear Entrega 🛵
+                        </Button>
+                      </Link>
                     </div>
-                  )}
-
-                  <div className="flex justify-between items-center font-bold text-lg border-t border-border pt-3 mb-4">
-                    <span className="font-heading uppercase text-muted-foreground text-sm">Total (Pago na entrega)</span>
-                    <span className="font-mono text-primary text-xl">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total_amount)}
-                    </span>
                   </div>
-
-                  <Link href={`/rastreamento?id=${order.id}`} className="block">
-                    <Button className="w-full h-11 bg-secondary hover:bg-secondary/90 text-white font-heading text-sm uppercase tracking-wider rounded-none font-bold">
-                      Acompanhar Entrega em Tempo Real
-                    </Button>
-                  </Link>
-                </div>
-              ))
+                );
+              })
             ) : (
-              <div className="text-center py-12 text-muted-foreground font-sans bg-card border-2 border-border p-6">
-                <ShoppingBag className="w-12 h-12 mx-auto text-muted-foreground/40 mb-3" />
-                <p className="font-medium">Você não tem pedidos em andamento no momento.</p>
-                <Link 
+              <div className="text-center py-16 text-gray-500 dark:text-gray-400 bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-8 space-y-3">
+                <ShoppingBag className="w-12 h-12 mx-auto text-[#9306CF]/40" />
+                <h3 className="font-heading font-bold text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                  Nenhum pedido em andamento
+                </h3>
+                <p className="text-xs max-w-sm mx-auto">
+                  Quando você fizer um pedido, poderá acompanhar cada etapa da esteira aqui em tempo real.
+                </p>
+                <Link
                   href="/"
-                  className="inline-block mt-4 bg-primary text-primary-foreground px-6 py-2.5 font-mono text-xs uppercase tracking-widest font-bold hover:bg-primary/90"
+                  className="inline-block mt-2 bg-gradient-to-r from-[#9306CF] to-[#940068] text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider shadow-md shadow-[#9306CF]/20 hover:opacity-95 transition-opacity"
                 >
-                  Fazer meu primeiro pedido
+                  Explorar Vitrine da Loja
                 </Link>
               </div>
             )
@@ -149,42 +374,126 @@ export default function PedidosPage() {
 
           {activeTab === "historico" && (
             historyOrders.length > 0 ? (
-              historyOrders.map(order => (
-                <div key={order.id} className="bg-card border-2 border-border p-4 hover:border-border/80 transition-colors">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="font-heading font-bold text-lg text-foreground">Pedido #{order.id.substring(0, 8)}</h3>
-                      <p className="text-sm font-sans text-muted-foreground flex items-center gap-1 mt-1">
-                        <CheckCircle className="w-4 h-4 text-success" /> {new Date(order.created_at).toLocaleDateString('pt-BR')}
-                      </p>
-                    </div>
-                    <div className="text-muted-foreground text-xs font-mono uppercase tracking-wider font-bold">
-                      {order.status}
-                    </div>
-                  </div>
-                  
-                  <div className="border-t border-border/50 pt-3 mb-3">
-                    <p className="text-sm font-sans text-foreground line-clamp-1">
-                      {order.items?.map(i => `${i.quantity}x ${i.product?.name}`).join(", ")}
-                    </p>
-                  </div>
+              historyOrders.map((order) => {
+                const isCancelled = order.status === "cancelled";
 
-                  <div className="flex justify-between items-center border-t border-border pt-3">
-                    <span className="font-mono text-primary font-bold">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total_amount)}
-                    </span>
-                    <Link href="/">
-                      <Button variant="outline" className="h-9 font-mono text-xs uppercase tracking-wider rounded-none border-2 bg-transparent text-foreground hover:bg-white/5">
-                        <RotateCcw className="w-3.5 h-3.5 mr-2" />
-                        Pedir Novamente
-                      </Button>
-                    </Link>
+                return (
+                  <div
+                    key={order.id}
+                    className={`bg-white dark:bg-[#230E26] border rounded-2xl p-5 shadow-sm space-y-3.5 transition-colors ${
+                      isCancelled
+                        ? "border-red-200 dark:border-red-900/50"
+                        : "border-gray-200 dark:border-[#512B54]/40"
+                    }`}
+                  >
+                    {/* Topo do Histórico */}
+                    <div className="flex justify-between items-start gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`font-mono font-bold text-xs px-2.5 py-0.5 rounded-md border ${
+                              isCancelled
+                                ? "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 border-red-200 dark:border-red-900/40"
+                                : "bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border-[#9306CF]/20"
+                            }`}
+                          >
+                            #{order.id.substring(0, 6)}
+                          </span>
+                          <span className="text-xs text-gray-500 font-mono">
+                            {new Date(order.created_at).toLocaleDateString("pt-BR")} às{" "}
+                            {new Date(order.created_at).toLocaleTimeString("pt-BR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Badge */}
+                      {isCancelled ? (
+                        <span className="bg-red-500 text-white text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          Pedido Cancelado
+                        </span>
+                      ) : (
+                        <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-900/40 flex items-center gap-1">
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                          Entregue
+                        </span>
+                      )}
+                    </div>
+
+                    {/* ALERTA EM DESTAQUE SE O PEDIDO FOI CANCELADO */}
+                    {isCancelled && (
+                      <div className="bg-red-50/90 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl p-3.5 space-y-2.5">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-red-700 dark:text-red-300 block">
+                              Motivo informado pela loja:
+                            </span>
+                            <p className="text-xs text-red-900 dark:text-red-200 font-semibold mt-0.5 leading-relaxed">
+                              {order.cancellation_reason || "Item indisponível no momento"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="pt-1 border-t border-red-200/60 dark:border-red-900/40 flex justify-end">
+                          <a
+                            href={getStoreWhatsAppUrl(order.id, order.cancellation_reason)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-sm"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span>Falar com a loja no WhatsApp</span>
+                          </a>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Itens do Pedido */}
+                    <div className="text-xs text-gray-600 dark:text-gray-300 py-1">
+                      {order.items && order.items.length > 0 ? (
+                        <p className="line-clamp-2">
+                          {order.items
+                            .map((i) => `${i.quantity}x ${i.product?.name || "Item"}`)
+                            .join(", ")}
+                        </p>
+                      ) : (
+                        <p className="italic text-gray-400">Itens não detalhados</p>
+                      )}
+                    </div>
+
+                    {/* Rodapé com Total e Pedir Novamente */}
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-gray-400 block">Total</span>
+                        <span className="font-mono font-bold text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                          {new Intl.NumberFormat("pt-BR", {
+                            style: "currency",
+                            currency: "BRL",
+                          }).format(order.total_amount)}
+                        </span>
+                      </div>
+
+                      <Link href="/">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold text-[#9306CF] hover:bg-[#9306CF]/10 gap-1.5 h-9"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Pedir Novamente</span>
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : (
-              <div className="text-center py-12 text-muted-foreground font-sans bg-card border-2 border-border p-6">
-                <p>Nenhum pedido no histórico.</p>
+              <div className="text-center py-12 text-gray-400 font-medium bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-6">
+                Nenhum pedido no histórico até o momento.
               </div>
             )
           )}

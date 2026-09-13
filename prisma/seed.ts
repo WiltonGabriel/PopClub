@@ -136,12 +136,16 @@ async function main() {
   // 5. Promoções Dinâmicas Iniciais
   const promoGalactico = await prisma.promotion.upsert({
     where: { id: "11111111-1111-1111-1111-111111111111" },
-    update: {},
+    update: {
+      title: "Duo Perfeito: Açaí + Milk-Shake com desconto",
+      badge: "Destaque da Vitrine",
+      description: "Açaí puro batido na hora, cremoso e com acompanhamentos à sua escolha + Pop Shake artesanal.",
+    },
     create: {
       id: "11111111-1111-1111-1111-111111111111",
-      title: "Combo Galáctico",
-      badge: "Promo",
-      description: "Açaí 700ml + Cupuaçu 500ml com 20% OFF imperdível!",
+      title: "Duo Perfeito: Açaí + Milk-Shake com desconto",
+      badge: "Destaque da Vitrine",
+      description: "Açaí puro batido na hora, cremoso e com acompanhamentos à sua escolha + Pop Shake artesanal.",
       gradientStart: "#9306CF",
       gradientEnd: "#881BAA",
       discountType: "percentage",
@@ -161,12 +165,16 @@ async function main() {
 
   const promoShakes = await prisma.promotion.upsert({
     where: { id: "22222222-2222-2222-2222-222222222222" },
-    update: {},
+    update: {
+      title: "Festival Pop Shakes",
+      badge: "Refrescância Pura",
+      description: "Festival Pop Shakes: refrescância artesanal com caldas especiais e pedaços crocantes.",
+    },
     create: {
       id: "22222222-2222-2222-2222-222222222222",
       title: "Festival Pop Shakes",
-      badge: "Dupla Especial",
-      description: "Leve o Morango Crocante + Açaí Power com desconto exclusivo de R$ 8,00!",
+      badge: "Refrescância Pura",
+      description: "Festival Pop Shakes: refrescância artesanal com caldas especiais e pedaços crocantes.",
       gradientStart: "#940068",
       gradientEnd: "#881BAA",
       discountType: "fixed",

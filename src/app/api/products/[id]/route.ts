@@ -13,8 +13,13 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const body = await request.json();
-    const { name, description, price, categoryId, category, imageUrl } = body;
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
+    }
+    const { name, description, price, categoryId, category, imageUrl } = body || {};
 
     const dataToUpdate: any = {};
     if (name !== undefined) dataToUpdate.name = name;
@@ -41,6 +46,9 @@ export async function PUT(
     });
   } catch (error: any) {
     console.error("Erro ao atualizar produto:", error);
+    if (error.code === "P2025") {
+      return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
+    }
     return NextResponse.json({ error: "Erro ao atualizar produto." }, { status: 500 });
   }
 }
@@ -61,6 +69,9 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Erro ao deletar produto:", error);
+    if (error.code === "P2025") {
+      return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
+    }
     return NextResponse.json({ error: "Erro ao excluir produto." }, { status: 500 });
   }
 }

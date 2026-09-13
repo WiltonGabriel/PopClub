@@ -34,7 +34,13 @@ const checkoutSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const json = await request.json();
+    let json: any;
+    try {
+      json = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
+    }
+
     const parsed = checkoutSchema.safeParse(json);
 
     if (!parsed.success) {
@@ -47,7 +53,7 @@ export async function POST(request: Request) {
     // Obtém usuário autenticado se houver
     const authUser = await getAuthUser(request);
 
-    // 1. Validação e Recálculo Seguro de Itens diretamente do PostgreSQL
+    // 1. Validação e Recálculo Seguro de Itens no Cardápio
     const productIds = items.map((i) => i.productId);
     const dbProducts = await prisma.product.findMany({
       where: { id: { in: productIds } },
@@ -118,7 +124,7 @@ export async function POST(request: Request) {
       });
     }
 
-    // 2. Validação e Recálculo de Cupom no PostgreSQL
+    // 2. Validação e Recálculo de Cupom Promocional
     let couponDiscount = 0;
     let validCouponId: string | null = null;
     let validCouponCode: string | null = null;
@@ -150,7 +156,7 @@ export async function POST(request: Request) {
     const totalDiscount = Number((promoDiscountTotal + couponDiscount).toFixed(2));
     const finalTotal = Math.max(0, Number((calculatedSubtotal - totalDiscount).toFixed(2)));
 
-    // 3. Persistência Transacional no PostgreSQL
+    // 3. Persistência Transacional do Pedido
     const order = await prisma.$transaction(async (tx) => {
       // Criação do pedido
       const newOrder = await tx.order.create({

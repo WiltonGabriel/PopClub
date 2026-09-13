@@ -4,8 +4,13 @@ import { hashPassword } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { email, code, newPassword } = body;
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
+    }
+    const { email, code, newPassword } = body || {};
 
     if (!email || !code || !newPassword) {
       return NextResponse.json({ error: "Todos os campos são obrigatórios." }, { status: 400 });

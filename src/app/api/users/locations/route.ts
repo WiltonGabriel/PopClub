@@ -39,8 +39,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { name, address_line, latitude, longitude, accuracy, is_default } = body;
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
+    }
+
+    const { name, address_line, latitude, longitude, accuracy, is_default } = body || {};
 
     if (!address_line) {
       return NextResponse.json({ error: "Endereço é obrigatório." }, { status: 400 });

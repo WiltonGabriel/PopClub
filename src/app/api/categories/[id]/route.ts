@@ -18,6 +18,9 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Erro ao deletar categoria:", error);
+    if (error.code === "P2025") {
+      return NextResponse.json({ error: "Categoria não encontrada." }, { status: 404 });
+    }
     return NextResponse.json({ error: "Erro ao excluir categoria." }, { status: 500 });
   }
 }

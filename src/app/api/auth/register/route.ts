@@ -5,8 +5,13 @@ import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { username, email, password, fullName } = body;
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
+    }
+    const { username, email, password, fullName } = body || {};
 
     if (!username || !email || !password) {
       return NextResponse.json({ error: "Todos os campos são obrigatórios." }, { status: 400 });
@@ -30,7 +35,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "A senha deve conter pelo menos uma letra ou caractere especial." }, { status: 400 });
     }
 
-    // Unicidade de e-mail e username no PostgreSQL
+    // Unicidade de e-mail e username no cadastro
     const existing = await prisma.user.findFirst({
       where: {
         OR: [{ email: cleanEmail }, { username: cleanUsername }],

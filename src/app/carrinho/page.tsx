@@ -187,8 +187,8 @@ export default function CarrinhoPage() {
         <div className="w-20 h-20 bg-success/20 text-success rounded-full flex items-center justify-center mb-6">
           <CheckCircle2 className="w-12 h-12" />
         </div>
-        <span className="font-mono text-xs uppercase tracking-widest text-success font-bold mb-2">
-          Pedido Confirmado no PostgreSQL
+        <span className="font-mono text-xs uppercase tracking-widest text-emerald-600 dark:text-emerald-400 font-bold mb-2">
+          Pedido Confirmado com Sucesso
         </span>
         <h1 className="font-heading text-3xl md:text-4xl font-black uppercase tracking-tight mb-2">
           Seu pedido foi recebido!

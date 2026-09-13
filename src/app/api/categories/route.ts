@@ -21,7 +21,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
     }
 
-    const { name, slug } = await request.json();
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
+    }
+
+    const { name, slug } = body || {};
     if (!name) {
       return NextResponse.json({ error: "O nome da categoria é obrigatório." }, { status: 400 });
     }

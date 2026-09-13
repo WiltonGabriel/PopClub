@@ -83,7 +83,13 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const body = await request.json();
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
+    }
+
     const {
       title,
       badge,
@@ -95,7 +101,7 @@ export async function PUT(
       discountValue,
       isActive,
       items,
-    } = body;
+    } = body || {};
 
     const dataToUpdate: any = {};
     if (title !== undefined) dataToUpdate.title = title;
@@ -136,6 +142,9 @@ export async function PUT(
     return NextResponse.json(updated);
   } catch (error: any) {
     console.error("Erro ao atualizar promoção:", error);
+    if (error.code === "P2025") {
+      return NextResponse.json({ error: "Promoção não encontrada." }, { status: 404 });
+    }
     return NextResponse.json({ error: "Erro ao atualizar promoção." }, { status: 500 });
   }
 }
@@ -156,6 +165,9 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Erro ao deletar promoção:", error);
+    if (error.code === "P2025") {
+      return NextResponse.json({ error: "Promoção não encontrada." }, { status: 404 });
+    }
     return NextResponse.json({ error: "Erro ao excluir promoção." }, { status: 500 });
   }
 }

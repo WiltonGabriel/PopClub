@@ -5,9 +5,17 @@ import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const identifier = (body.identifier || body.email || body.username || "").trim();
-    const password = body.password;
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Formato de requisição inválido ou corpo vazio." },
+        { status: 400 }
+      );
+    }
+    const identifier = (body?.identifier || body?.email || body?.username || "").trim();
+    const password = body?.password;
 
     if (!identifier || !password) {
       return NextResponse.json(

@@ -26,7 +26,7 @@ export async function GET(request: Request) {
           include: { product: true },
         },
         user: {
-          select: { fullName: true, username: true, email: true },
+          select: { fullName: true, username: true, email: true, phone: true },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -50,6 +50,8 @@ export async function GET(request: Request) {
         reference: o.deliveryReference,
         zip: o.deliveryZip,
       },
+      cancellation_reason: o.cancellationReason || null,
+      cancelled_at: o.cancelledAt ? o.cancelledAt.toISOString() : null,
       created_at: o.createdAt.toISOString(),
       updated_at: o.updatedAt.toISOString(),
       items: o.items.map((it) => ({
@@ -83,20 +85,79 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
     }
 
-    const { orderId, status } = await request.json();
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
+    }
+
+    const { orderId, status, cancellationReason } = body || {};
 
     if (!orderId || !status) {
       return NextResponse.json({ error: "orderId e status são obrigatórios." }, { status: 400 });
     }
 
+    const dataToUpdate: any = { status };
+    if (status === "cancelled") {
+      dataToUpdate.cancellationReason = cancellationReason || "Cancelado pela administração";
+      dataToUpdate.cancelledAt = new Date();
+    }
+
     const updated = await prisma.order.update({
       where: { id: orderId },
-      data: { status },
+      data: dataToUpdate,
+      include: {
+        items: { include: { product: true } },
+        user: { select: { fullName: true, username: true, email: true, phone: true } },
+      },
     });
 
-    return NextResponse.json(updated);
+    const formattedUpdated = {
+      id: updated.id,
+      user_id: updated.userId,
+      status: updated.status,
+      subtotal: Number(updated.subtotal),
+      discount_amount: Number(updated.discountAmount),
+      total_amount: Number(updated.totalAmount),
+      payment_method_type: updated.paymentMethodType,
+      payment_change_for: updated.paymentChangeFor ? Number(updated.paymentChangeFor) : null,
+      delivery_address: {
+        street: updated.deliveryStreet,
+        number: updated.deliveryNumber,
+        neighborhood: updated.deliveryNeighborhood,
+        city: updated.deliveryCity,
+        complement: updated.deliveryComplement,
+        reference: updated.deliveryReference,
+        zip: updated.deliveryZip,
+      },
+      cancellation_reason: updated.cancellationReason || null,
+      cancelled_at: updated.cancelledAt ? updated.cancelledAt.toISOString() : null,
+      created_at: updated.createdAt.toISOString(),
+      updated_at: updated.updatedAt.toISOString(),
+      items: updated.items.map((it) => ({
+        id: it.id,
+        order_id: it.orderId,
+        product_id: it.productId,
+        quantity: it.quantity,
+        price_at_time: Number(it.priceAtTime),
+        product: {
+          id: it.product.id,
+          name: it.product.name,
+          description: it.product.description || "",
+          price: Number(it.product.price),
+          imageUrl: it.product.imageUrl || "",
+        },
+      })),
+      user: updated.user,
+    };
+
+    return NextResponse.json(formattedUpdated);
   } catch (error: any) {
     console.error("Erro ao atualizar status do pedido:", error);
+    if (error.code === "P2025") {
+      return NextResponse.json({ error: "Pedido não encontrado." }, { status: 404 });
+    }
     return NextResponse.json({ error: "Erro ao atualizar pedido." }, { status: 500 });
   }
 }

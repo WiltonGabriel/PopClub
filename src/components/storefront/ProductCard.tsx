@@ -64,18 +64,20 @@ export function ProductCard({
     >
       {/* Admin Controls */}
       {isAdmin && (
-        <div className="absolute top-2 left-2 z-20 flex gap-1 bg-white/90 backdrop-blur-sm p-1 rounded-lg shadow-sm border border-border/30 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-2 left-2 z-20 flex gap-1 bg-white/90 dark:bg-[#2B132D]/90 backdrop-blur-sm p-1 rounded-lg shadow-sm border border-purple-200 dark:border-purple-800/60 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={() => onEdit?.(product)}
             title="Editar produto"
-            className="p-1.5 text-brand-pop-shake hover:bg-brand-surface-2 rounded-md transition-colors"
+            aria-label="Editar produto"
+            className="p-1.5 text-brand-pop-shake hover:bg-brand-surface-2 dark:hover:bg-purple-900/30 rounded-md transition-colors"
           >
             <Edit2 className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => onDelete?.(product.id)}
             title="Deletar produto"
-            className="p-1.5 text-destructive hover:bg-red-50 rounded-md transition-colors"
+            aria-label="Deletar produto"
+            className="p-1.5 text-destructive hover:bg-red-50 dark:hover:bg-red-950/30 rounded-md transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>

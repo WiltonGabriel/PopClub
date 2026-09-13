@@ -84,7 +84,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
     }
 
-    const body = await request.json();
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
+    }
+
     const {
       title,
       badge,
@@ -96,7 +102,7 @@ export async function POST(request: Request) {
       discountValue,
       isActive,
       items, // array of { productId: string, quantity?: number }
-    } = body;
+    } = body || {};
 
     if (!title || !badge) {
       return NextResponse.json({ error: "Título e Badge são obrigatórios." }, { status: 400 });

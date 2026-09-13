@@ -159,6 +159,8 @@ model Order {
   deliveryZip          String?           @map("delivery_zip")
   deliveryLatitude     Float?            @map("delivery_latitude")
   deliveryLongitude    Float?            @map("delivery_longitude")
+  cancellationReason   String?           @map("cancellation_reason")
+  cancelledAt          DateTime?         @map("cancelled_at")
   createdAt            DateTime          @default(now()) @map("created_at")
   updatedAt            DateTime          @updatedAt @map("updated_at")
   user                 User?             @relation(fields: [userId], references: [id], onDelete: SetNull)

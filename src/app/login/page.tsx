@@ -109,10 +109,10 @@ function AuthPageInner() {
   const initialTab = searchParams?.get("tab") === "register" ? "register" : "login";
   const [activeTab, setActiveTab] = useState<"login" | "register">(initialTab as "login" | "register");
 
-  // Redirect authenticated users
+  // Redirect authenticated users to home (/)
   useEffect(() => {
     if (!authLoading && user) {
-      router.push("/conta");
+      router.push("/");
     }
   }, [user, authLoading, router]);
 
@@ -147,7 +147,7 @@ function AuthPageInner() {
     setLoginLoading(true);
     try {
       await authService.signIn(loginId.trim(), loginPassword);
-      window.location.href = "/conta";
+      window.location.href = "/";
     } catch (err: any) {
       setLoginError(err.message || "Credenciais inválidas.");
     } finally {

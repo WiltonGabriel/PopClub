@@ -2,12 +2,25 @@ import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { origin, destination } = body;
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
+    }
+
+    const { origin, destination } = body || {};
+
+    if (!origin?.lat || !origin?.lng || !destination?.lat || !destination?.lng) {
+      return NextResponse.json(
+        { error: "Origem e destino com coordenadas latitude/longitude são obrigatórios." },
+        { status: 400 }
+      );
+    }
 
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: "API Key missing" }, { status: 500 });
+      return NextResponse.json({ error: "Chave de serviço de rotas não configurada." }, { status: 500 });
     }
 
     const payload = {

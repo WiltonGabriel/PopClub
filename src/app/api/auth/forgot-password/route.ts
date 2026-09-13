@@ -3,8 +3,13 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { email } = body;
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
+    }
+    const { email } = body || {};
 
     if (!email) {
       return NextResponse.json({ error: "E-mail é obrigatório." }, { status: 400 });

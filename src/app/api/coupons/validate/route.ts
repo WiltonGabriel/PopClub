@@ -3,7 +3,14 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
-    const { code, subtotal } = await request.json();
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ valid: false, message: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
+    }
+
+    const { code, subtotal } = body || {};
 
     if (!code) {
       return NextResponse.json({ valid: false, message: "Código do cupom é obrigatório." }, { status: 400 });

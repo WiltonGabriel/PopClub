@@ -60,7 +60,7 @@ export default function AccountPage() {
     try {
       const updated = await userService.updateProfile(user.id, { full_name: fullName });
       setProfile(updated);
-      alert("Perfil atualizado!");
+      alert("Perfil atualizado com sucesso!");
     } catch (err) {
       alert("Erro ao atualizar perfil");
     }
@@ -72,8 +72,6 @@ export default function AccountPage() {
   };
 
   const simulateGetLocation = () => {
-    // Na implementação real, usaríamos a API do Google Maps + Geolocation API do browser
-    // navigator.geolocation.getCurrentPosition(...) e Google Maps Geocoding API para pegar o endereço exato.
     alert("Iniciando captura de localização via GPS...");
     setTimeout(() => {
       setLocAddress("Rua Fictícia, 123 - Bairro Mock, Cidade");
@@ -88,8 +86,8 @@ export default function AccountPage() {
         user_id: user.id,
         name: null,
         address_line: locAddress,
-        latitude: -23.5505, // simulated
-        longitude: -46.6333, // simulated
+        latitude: -23.5505,
+        longitude: -46.6333,
         accuracy: null,
         is_default: locations.length === 0
       });
@@ -103,8 +101,8 @@ export default function AccountPage() {
 
   if (loading || (fetching && !profile)) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#190B1A] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#9306CF]" />
       </div>
     );
   }
@@ -118,21 +116,30 @@ export default function AccountPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-      <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-surface/80 border-b border-border px-4 py-4 flex items-center gap-4">
-        <Link href="/" className="p-2 hover:bg-white/5 rounded-none border-2 border-transparent hover:border-border transition-colors">
-          <ChevronLeft className="w-6 h-6 text-primary" />
+    <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#190B1A] text-foreground flex flex-col font-sans transition-colors duration-200">
+      {/* Header com contraste dinâmico */}
+      <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-white/80 dark:bg-[#190B1A]/80 border-b border-gray-200 dark:border-[#512B54]/40 px-4 py-4 flex items-center gap-3">
+        <Link 
+          href="/" 
+          className="flex items-center gap-1.5 p-2 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-[#4C264F] dark:text-[#F9F5F9] font-medium text-sm transition-colors group"
+          aria-label="Voltar para a loja"
+        >
+          <ChevronLeft className="w-5 h-5 text-[#9306CF] dark:text-[#C7A9C9] group-hover:-translate-x-0.5 transition-transform" />
+          <span className="font-heading font-bold uppercase tracking-wider text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9]">
+            Minha Conta
+          </span>
         </Link>
-        <h1 className="text-xl font-heading font-bold uppercase tracking-wide text-white">Minha Conta</h1>
       </header>
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-8 flex flex-col md:flex-row gap-8">
         
         {/* Sidebar Menu */}
         <aside className="w-full md:w-64 shrink-0">
-          <div className="bg-card border-2 border-border p-4 mb-6">
-            <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-1">Olá,</p>
-            <p className="font-heading font-bold text-lg text-white truncate">{profile?.full_name || user?.email}</p>
+          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-4 mb-6 rounded-2xl shadow-sm">
+            <p className="text-xs uppercase font-bold tracking-widest text-gray-600 dark:text-gray-300 mb-1">Olá,</p>
+            <p className="font-heading font-bold text-lg text-[#4C264F] dark:text-[#F9F5F9] truncate">
+              {profile?.full_name || user?.username || user?.email}
+            </p>
           </div>
 
           <nav className="flex flex-col gap-2">
@@ -140,21 +147,28 @@ export default function AccountPage() {
               <button 
                 key={sec.id}
                 onClick={() => setActiveSection(sec.id)}
-                className={`flex items-center gap-3 px-4 py-3 font-mono text-sm uppercase tracking-wider text-left transition-colors border-2 ${activeSection === sec.id ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:border-secondary hover:text-secondary text-muted-foreground"}`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-colors border ${
+                  activeSection === sec.id 
+                    ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white border-transparent shadow-md shadow-[#9306CF]/20" 
+                    : "bg-white dark:bg-[#230E26] border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/50 text-gray-600 dark:text-gray-300 hover:text-[#4C264F] dark:hover:text-[#F9F5F9]"
+                }`}
               >
                 {sec.icon}
                 {sec.label}
               </button>
             ))}
 
-            <Link href="/pedidos" className="flex items-center gap-3 px-4 py-3 font-mono text-sm uppercase tracking-wider text-left transition-colors border-2 bg-card border-border hover:border-secondary hover:text-secondary text-muted-foreground mt-4">
-              <Package className="w-4 h-4" />
+            <Link 
+              href="/pedidos" 
+              className="flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-colors border bg-white dark:bg-[#230E26] border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/50 text-gray-600 dark:text-gray-300 hover:text-[#4C264F] dark:hover:text-[#F9F5F9] mt-2 shadow-sm"
+            >
+              <Package className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
               Ver Meus Pedidos
             </Link>
 
             <button 
               onClick={handleSignOut}
-              className="flex items-center gap-3 px-4 py-3 font-mono text-sm uppercase tracking-wider text-left transition-colors border-2 border-transparent text-destructive hover:bg-destructive/10 mt-8"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-colors border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 mt-6"
             >
               <LogOut className="w-4 h-4" />
               Sair da Conta
@@ -165,30 +179,38 @@ export default function AccountPage() {
         {/* Main Content Area */}
         <div className="flex-1">
           {activeSection === "perfil" && (
-            <div className="bg-card border-2 border-border p-6 shadow-[4px_4px_0px_0px_rgba(147,6,207,0.2)]">
-              <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-white mb-6 flex items-center gap-2">
-                <User className="w-6 h-6 text-primary" /> Editar Perfil
+            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm">
+              <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] mb-6 flex items-center gap-2">
+                <User className="w-6 h-6 text-[#9306CF] dark:text-[#C7A9C9]" /> Editar Perfil
               </h2>
               
               <form onSubmit={handleUpdateProfile} className="space-y-5">
                 <div className="space-y-2">
-                  <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Nome Completo</Label>
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                    Nome Completo
+                  </Label>
                   <Input 
                     value={fullName}
                     onChange={e => setFullName(e.target.value)}
-                    className="h-12 rounded-none border-2 border-border focus-visible:ring-0 focus-visible:border-primary bg-background font-mono"
+                    placeholder="Seu nome completo"
+                    className="h-12 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#1F0B22] dark:border-[#512B54]/50 dark:text-white focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Email</Label>
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                    Email
+                  </Label>
                   <Input 
                     value={user?.email || ""}
                     disabled
-                    className="h-12 rounded-none border-2 border-border bg-muted/50 font-mono text-muted-foreground"
+                    className="h-12 rounded-xl bg-gray-50 border-gray-200 text-gray-500 dark:bg-[#190B1A]/80 dark:border-[#512B54]/30 dark:text-gray-400 cursor-not-allowed"
                   />
                 </div>
 
-                <Button type="submit" className="h-12 rounded-none font-heading uppercase tracking-widest text-base bg-primary hover:bg-primary/90">
+                <Button 
+                  type="submit" 
+                  className="h-12 rounded-xl font-heading font-bold uppercase tracking-widest text-sm bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white shadow-lg shadow-[#9306CF]/20 transition-opacity"
+                >
                   Salvar Alterações
                 </Button>
               </form>
@@ -196,63 +218,69 @@ export default function AccountPage() {
           )}
 
           {activeSection === "enderecos" && (
-            <div className="bg-card border-2 border-border p-6 shadow-[4px_4px_0px_0px_rgba(147,6,207,0.2)]">
-              <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-white mb-6 flex items-center gap-2">
-                <MapPin className="w-6 h-6 text-secondary" /> Meus Endereços
+            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm">
+              <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] mb-6 flex items-center gap-2">
+                <MapPin className="w-6 h-6 text-[#9306CF] dark:text-[#C7A9C9]" /> Meus Endereços
               </h2>
 
               {!isAddingLocation ? (
                 <>
                   <div className="space-y-4 mb-6">
                     {locations.length > 0 ? locations.map(loc => (
-                      <div key={loc.id} className="border-2 border-border p-4 flex justify-between items-center bg-background">
+                      <div key={loc.id} className="border border-gray-200 dark:border-[#512B54]/40 rounded-xl p-4 flex justify-between items-center bg-gray-50/70 dark:bg-[#190B1A]/80">
                         <div>
-                          <p className="font-sans text-sm text-white mb-1">{loc.address_line}</p>
-                          {loc.is_default && <span className="bg-secondary/20 text-secondary text-[10px] font-mono uppercase px-2 py-1">Padrão</span>}
+                          <p className="font-sans text-sm font-medium text-[#4C264F] dark:text-[#F9F5F9] mb-1">{loc.address_line}</p>
+                          {loc.is_default && (
+                            <span className="bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full border border-[#9306CF]/20">
+                              Padrão
+                            </span>
+                          )}
                         </div>
                         <button 
                           onClick={() => userService.deleteLocation(loc.id).then(loadUserData)}
-                          className="text-xs text-destructive hover:underline font-mono uppercase"
+                          className="text-xs text-red-600 dark:text-red-400 hover:underline font-semibold uppercase"
                         >
                           Remover
                         </button>
                       </div>
                     )) : (
-                      <p className="text-muted-foreground font-mono text-sm">Nenhum endereço salvo.</p>
+                      <p className="text-gray-600 dark:text-gray-300 text-sm">Nenhum endereço salvo.</p>
                     )}
                   </div>
                   <Button 
                     onClick={() => setIsAddingLocation(true)}
-                    className="w-full h-12 rounded-none border-2 border-dashed border-muted-foreground bg-transparent text-foreground hover:bg-white/5 hover:border-border font-mono uppercase text-sm tracking-wider"
+                    className="w-full h-12 rounded-xl border border-dashed border-gray-300 dark:border-[#512B54]/60 bg-transparent text-[#4C264F] dark:text-[#F9F5F9] hover:bg-gray-100 dark:hover:bg-white/5 uppercase text-sm tracking-wider font-semibold"
                   >
                     + Novo Endereço
                   </Button>
                 </>
               ) : (
-                <form onSubmit={handleSaveLocation} className="space-y-5 border-2 border-border p-4 bg-background">
+                <form onSubmit={handleSaveLocation} className="space-y-5 border border-gray-200 dark:border-[#512B54]/40 p-5 rounded-xl bg-gray-50/70 dark:bg-[#190B1A]/80">
                   <div className="space-y-2">
-                    <Label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Buscar no Mapa</Label>
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                      Buscar no Mapa
+                    </Label>
                     <div className="flex gap-2">
                       <Input 
                         value={locAddress}
                         onChange={e => setLocAddress(e.target.value)}
                         placeholder="Ex: Av. Paulista, 1000"
-                        className="h-12 rounded-none border-2 border-border focus-visible:ring-0 focus-visible:border-secondary bg-background font-mono"
+                        className="h-12 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#1F0B22] dark:border-[#512B54]/50 dark:text-white focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
                         required
                       />
-                      <Button type="button" onClick={simulateGetLocation} className="h-12 w-12 shrink-0 rounded-none bg-secondary hover:bg-secondary/90 text-background p-0">
+                      <Button type="button" onClick={simulateGetLocation} className="h-12 w-12 shrink-0 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white p-0 shadow-sm">
                         <Map className="w-5 h-5" />
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground font-mono mt-2">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                       * Em produção, isso abrirá um modal do Google Maps para precisão &lt; 4m.
                     </p>
                   </div>
                   <div className="flex gap-4">
-                    <Button type="button" onClick={() => setIsAddingLocation(false)} variant="outline" className="flex-1 h-12 rounded-none border-2 font-mono uppercase tracking-widest text-xs">
+                    <Button type="button" onClick={() => setIsAddingLocation(false)} variant="outline" className="flex-1 h-12 rounded-xl border border-gray-200 dark:border-[#512B54]/40 text-gray-700 dark:text-gray-300 uppercase tracking-widest text-xs font-semibold">
                       Cancelar
                     </Button>
-                    <Button type="submit" className="flex-1 h-12 rounded-none bg-secondary hover:bg-secondary/90 text-background font-heading uppercase tracking-widest text-sm">
+                    <Button type="submit" className="flex-1 h-12 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white font-heading uppercase tracking-widest text-sm shadow-md">
                       Salvar Endereço
                     </Button>
                   </div>
@@ -263,10 +291,14 @@ export default function AccountPage() {
 
           {/* Placeholders for other sections */}
           {(activeSection === "pagamentos" || activeSection === "avaliacoes" || activeSection === "preferencias") && (
-            <div className="bg-card border-2 border-border p-6 shadow-[4px_4px_0px_0px_rgba(147,6,207,0.1)] flex flex-col items-center justify-center py-20 text-center">
-              <Settings className="w-12 h-12 text-muted-foreground/30 mb-4" />
-              <h3 className="font-heading font-bold text-xl uppercase tracking-wider mb-2">Em Construção</h3>
-              <p className="text-muted-foreground font-mono text-sm max-w-sm">Esta funcionalidade está sendo implementada e será conectada aos serviços em breve.</p>
+            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm flex flex-col items-center justify-center py-20 text-center">
+              <Settings className="w-12 h-12 text-gray-400 dark:text-gray-600 mb-4" />
+              <h3 className="font-heading font-bold text-xl uppercase tracking-wider mb-2 text-[#4C264F] dark:text-[#F9F5F9]">
+                Em Construção
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300 text-sm max-w-sm">
+                Esta funcionalidade está sendo implementada e será conectada aos serviços em breve.
+              </p>
             </div>
           )}
         </div>

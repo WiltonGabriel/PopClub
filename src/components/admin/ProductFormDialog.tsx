@@ -9,6 +9,14 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { ImageCropperDialog } from "./ImageCropperDialog";
+import {
+  Sparkles,
+  Image as ImageIcon,
+  Upload,
+  AlertCircle,
+  Loader2,
+  CheckCircle2,
+} from "lucide-react";
 
 interface ProductFormDialogProps {
   open: boolean;
@@ -18,7 +26,13 @@ interface ProductFormDialogProps {
   categories: Category[];
 }
 
-export function ProductFormDialog({ open, onOpenChange, onSaved, productToEdit, categories }: ProductFormDialogProps) {
+export function ProductFormDialog({
+  open,
+  onOpenChange,
+  onSaved,
+  productToEdit,
+  categories,
+}: ProductFormDialogProps) {
   const [name, setName] = useState(productToEdit?.name || "");
   const [description, setDescription] = useState(productToEdit?.description || "");
   const [price, setPrice] = useState(productToEdit?.price?.toString() || "");
@@ -35,14 +49,14 @@ export function ProductFormDialog({ open, onOpenChange, onSaved, productToEdit, 
     if (open) {
       setName(productToEdit?.name || "");
       setDescription(productToEdit?.description || "");
-      setPrice(productToEdit?.price?.toString() || "");
-      setCategoryId(productToEdit?.category_id || "");
+      setPrice(productToEdit?.price !== undefined ? productToEdit.price.toString() : "");
+      setCategoryId(productToEdit?.category_id || (categories.length > 0 ? categories[0].id : ""));
       setFile(null);
       setError("");
       setRawImageSrc(null);
       setCropModalOpen(false);
     }
-  }, [open, productToEdit]);
+  }, [open, productToEdit, categories]);
 
   const previewUrl = useMemo(() => {
     if (file) {
@@ -51,6 +65,16 @@ export function ProductFormDialog({ open, onOpenChange, onSaved, productToEdit, 
     return productToEdit?.imageUrl || "";
   }, [file, productToEdit?.imageUrl]);
 
+  const selectedCategory = useMemo(() => {
+    return categories.find((c) => c.id === categoryId);
+  }, [categories, categoryId]);
+
+  const formattedPrice = useMemo(() => {
+    const num = parseFloat(price);
+    if (isNaN(num)) return "0,00";
+    return num.toFixed(2).replace(".", ",");
+  }, [price]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
@@ -58,10 +82,10 @@ export function ProductFormDialog({ open, onOpenChange, onSaved, productToEdit, 
     // Reseta o input para permitir selecionar o mesmo arquivo se desejar
     e.target.value = "";
 
-    // 1. Validação de formato (apenas JPEG, PNG, WebP - rejeitar vídeos como WebM/MP4)
+    // 1. Validação de formato (JPEG, PNG, WebP)
     const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
     if (!allowedMimeTypes.includes(selectedFile.type.toLowerCase())) {
-      setError("Formato inválido. Apenas imagens nos formatos JPEG, PNG ou WebP são aceitas. Arquivos de vídeo são bloqueados.");
+      setError("Formato inválido. Apenas imagens JPEG, PNG ou WebP são aceitas.");
       return;
     }
 
@@ -98,31 +122,58 @@ export function ProductFormDialog({ open, onOpenChange, onSaved, productToEdit, 
     setError("");
 
     if (!productToEdit && !file) {
-      setError("Por favor, selecione e recorte uma imagem para o produto.");
+      setError("Por favor, selecione e recorte uma foto para o produto.");
+      setLoading(false);
+      return;
+    }
+
+    const numPrice = parseFloat(price);
+    if (isNaN(numPrice) || numPrice <= 0) {
+      setError("Por favor, informe um preço de venda válido maior que zero.");
+      setLoading(false);
+      return;
+    }
+
+    if (!categoryId) {
+      setError("Por favor, selecione a categoria do produto.");
       setLoading(false);
       return;
     }
 
     try {
-      let result;
-      const numPrice = parseFloat(price);
+      let result: Product;
+      const catName = selectedCategory?.name;
 
       if (productToEdit) {
         result = await productService.updateProduct(
           productToEdit.id,
-          { name, description, price: numPrice, category_id: categoryId },
+          {
+            name: name.trim(),
+            description: description.trim(),
+            price: numPrice,
+            category_id: categoryId,
+            category: catName,
+          },
           file || undefined
         );
       } else {
         result = await productService.createProduct(
-          { name, description, price: numPrice, category_id: categoryId, imageUrl: "" },
+          {
+            name: name.trim(),
+            description: description.trim(),
+            price: numPrice,
+            category_id: categoryId,
+            category: catName,
+            imageUrl: "",
+          },
           file || undefined
         );
       }
+
       onSaved(result);
       onOpenChange(false);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || "Erro ao salvar o produto.");
     } finally {
       setLoading(false);
     }
@@ -131,122 +182,223 @@ export function ProductFormDialog({ open, onOpenChange, onSaved, productToEdit, 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[900px] w-full p-0 overflow-hidden bg-background border-border border-2 grid grid-cols-1 md:grid-cols-2 gap-0 rounded-none shadow-[12px_12px_0px_0px_rgba(147,6,207,0.3)]">
-          {/* Left Side: Live Preview */}
-          <div className="relative p-8 bg-card flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-border">
-            <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(147,6,207,0.05)_50%,transparent_75%)] bg-[length:20px_20px] pointer-events-none" />
-            <h2 className="absolute top-4 left-4 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">Live Preview</h2>
-            <div className="relative w-full max-w-[280px] aspect-[3/4] bg-background border-2 border-border flex flex-col group overflow-hidden shadow-2xl transition-transform duration-300 hover:scale-[1.02]">
-              {/* Holographic foil overlay */}
-              <div className="absolute inset-0 holo-foil opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none z-10" />
-              
-              <div className="flex-1 bg-muted flex items-center justify-center relative overflow-hidden">
-                {previewUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={previewUrl} alt="Preview" className="object-cover w-full h-full absolute inset-0 z-0" />
-                ) : (
-                  <span className="text-muted-foreground font-mono text-sm tracking-widest z-0">NO_IMAGE</span>
-                )}
-              </div>
-              
-              <div className="p-4 border-t-2 border-border bg-background z-20 relative">
-                <h3 className="font-heading text-xl text-foreground font-bold leading-tight truncate">{name || "ITEM_NAME"}</h3>
-                <p className="font-sans text-xs text-muted-foreground mt-1 line-clamp-2 min-h-[32px]">{description || "Enter item description..."}</p>
-                <div className="mt-4 flex justify-between items-end border-t border-border/50 pt-2">
-                  <div className="flex flex-col">
-                    <span className="font-mono text-[10px] text-muted-foreground uppercase">Value</span>
-                    <span className="font-mono text-primary font-bold">${price || "0.00"}</span>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <span className="font-mono text-[10px] text-muted-foreground uppercase">Class</span>
-                    <span className="font-mono text-xs text-secondary">{categories.find(c => c.id === categoryId)?.name || "N/A"}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Side: Form */}
-          <div className="p-8 flex flex-col justify-center bg-background">
-            <DialogHeader className="mb-6">
-              <DialogTitle className="font-heading text-3xl text-foreground tracking-tighter uppercase">
-                {productToEdit ? "Edit Profile" : "New Entry"}
-                <span className="block text-primary text-sm font-mono tracking-widest mt-1">Sys.Catalog_Update</span>
-              </DialogTitle>
-            </DialogHeader>
-            
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-1.5">
-                <Label htmlFor="name" className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Designation</Label>
-                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required className="font-sans bg-background border-2 border-border focus-visible:border-secondary focus-visible:ring-0 rounded-none h-11 transition-colors" placeholder="e.g. Neon Samurai Figurine" />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="description" className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Description</Label>
-                <Input id="description" value={description} onChange={(e) => setDescription(e.target.value)} required className="font-sans bg-background border-2 border-border focus-visible:border-secondary focus-visible:ring-0 rounded-none h-11 transition-colors" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="price" className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Value (USD)</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-primary font-bold">$</span>
-                    <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required className="font-mono bg-background border-2 border-border focus-visible:border-secondary focus-visible:ring-0 rounded-none h-11 pl-7" placeholder="0.00" />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="category" className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Classification</Label>
-                  <Select value={categoryId} onValueChange={(val) => setCategoryId(val || "")} required>
-                    <SelectTrigger className="font-sans bg-background border-2 border-border focus:border-secondary focus:ring-0 rounded-none h-11 shadow-none">
-                      <SelectValue placeholder="Select class..." />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-none border-2 border-border bg-background">
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id} className="font-sans">{cat.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Upload de Imagem com Alerta de Proporção e Recorte */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <Label htmlFor="image" className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Visual Asset
-                  </Label>
-                  <span className="font-mono text-[10px] text-primary bg-primary/10 px-2 py-0.5 border border-primary/30">
-                    1:1 (Quadrado) • até 10MB
+        <DialogContent className="w-full max-w-3xl sm:max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl p-0 bg-white dark:bg-[#1F0B22] border border-gray-200 dark:border-[#512B54]/40 shadow-2xl text-foreground">
+          <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100 dark:divide-[#512B54]/30">
+            {/* Lado Esquerdo: Prévia em Tempo Real (Live Preview) */}
+            <div className="p-6 sm:p-8 bg-gray-50/70 dark:bg-[#190B1A]/80 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-[#9306CF]" />
+                    Prévia no Cardápio
                   </span>
+                  {selectedCategory && (
+                    <span className="text-[10px] font-semibold bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] px-2 py-0.5 rounded-full border border-[#9306CF]/20 truncate max-w-[130px]">
+                      {selectedCategory.name}
+                    </span>
+                  )}
                 </div>
-                <div className="flex border-2 border-border bg-background focus-within:border-secondary transition-colors h-11 relative overflow-hidden group">
-                  <div className="bg-muted px-4 flex items-center justify-center font-mono text-xs uppercase tracking-wider text-muted-foreground border-r-2 border-border group-hover:bg-muted/80 transition-colors">
-                    {file ? "Substituir" : "Browse"}
+
+                {/* Card do Produto (Design idêntico ao da Vitrine) */}
+                <div className="w-full max-w-[270px] mx-auto bg-white dark:bg-[#230E26] rounded-2xl border border-gray-200 dark:border-[#512B54]/40 overflow-hidden shadow-lg transition-transform duration-200 hover:scale-[1.02]">
+                  {/* Foto do Produto */}
+                  <div className="aspect-square w-full bg-gray-100 dark:bg-[#190B1A] relative flex items-center justify-center overflow-hidden">
+                    {previewUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={previewUrl}
+                        alt="Prévia do produto"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 gap-2 p-4 text-center">
+                        <div className="w-12 h-12 rounded-full bg-gray-200/70 dark:bg-white/5 flex items-center justify-center">
+                          <ImageIcon className="w-6 h-6 text-gray-400" />
+                        </div>
+                        <span className="text-xs font-medium">Nenhuma foto selecionada</span>
+                      </div>
+                    )}
+                    {selectedCategory && (
+                      <span className="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
+                        {selectedCategory.name}
+                      </span>
+                    )}
                   </div>
-                  <Input
-                    id="image"
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={handleFileChange}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                  />
-                  <div className="flex-1 px-3 flex items-center font-mono text-xs text-foreground truncate">
-                    {file ? file.name : (productToEdit?.imageUrl ? "Imagem atual mantida" : "Nenhum arquivo selecionado")}
+
+                  {/* Detalhes do Produto */}
+                  <div className="p-4 flex flex-col gap-1.5">
+                    <h4 className="font-heading font-bold text-base text-[#4C264F] dark:text-[#F9F5F9] line-clamp-1">
+                      {name.trim() || "Nome do Produto"}
+                    </h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 min-h-[32px] leading-relaxed">
+                      {description.trim() || "A descrição apetitosa do produto aparecerá aqui para seus clientes..."}
+                    </p>
+                    <div className="flex items-center justify-between pt-3 mt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Preço</span>
+                        <span className="font-heading font-black text-lg text-emerald-600 dark:text-emerald-400">
+                          R$ {formattedPrice}
+                        </span>
+                      </div>
+                      <span className="text-xs font-semibold bg-gradient-to-r from-[#9306CF] to-[#940068] text-white px-3 py-1.5 rounded-xl shadow-sm">
+                        + Adicionar
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <p className="font-mono text-[10px] text-muted-foreground">
-                  Formatos aceitos: JPEG, PNG, WebP. Enquadre no formato 1:1 quadrado (máx. 800x800px).
-                </p>
               </div>
 
-              {error && <p className="text-primary font-mono text-[11px] uppercase bg-primary/10 p-2 border border-primary/20">{error}</p>}
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center mt-6">
+                * Visualização em tempo real das alterações na vitrine da loja.
+              </p>
+            </div>
 
-              <Button type="submit" className="w-full h-12 rounded-none bg-primary hover:bg-primary/90 text-primary-foreground font-heading text-lg tracking-widest uppercase transition-colors border-2 border-transparent focus-visible:border-foreground mt-4 relative overflow-hidden group" disabled={loading}>
-                <span className="relative z-10">{loading ? "Processing..." : "Commit Entry"}</span>
-                <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
-              </Button>
-            </form>
+            {/* Lado Direito: Formulário com Linguagem Limpa */}
+            <div className="p-6 sm:p-8 flex flex-col justify-center bg-white dark:bg-[#1F0B22]">
+              <DialogHeader className="mb-6">
+                <DialogTitle className="font-heading text-2xl sm:text-3xl font-bold text-[#4C264F] dark:text-[#F9F5F9]">
+                  {productToEdit ? "Editar Produto" : "Novo Produto"}
+                </DialogTitle>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-1">
+                  Atualize as informações que aparecem no cardápio
+                </p>
+              </DialogHeader>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Nome do Produto */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="name" className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                    Nome do Produto
+                  </Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#2B132D] dark:border-[#512B54]/50 dark:text-white focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
+                    placeholder="Ex: Copo 700ml Especial"
+                  />
+                </div>
+
+                {/* Descrição */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="description" className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                    Descrição
+                  </Label>
+                  <textarea
+                    id="description"
+                    rows={3}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    required
+                    className="w-full rounded-xl p-3 text-sm bg-white border border-gray-200 text-gray-900 dark:bg-[#2B132D] dark:border-[#512B54]/50 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#9306CF]/20 focus:border-[#9306CF] resize-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500 leading-relaxed"
+                    placeholder="Ex: Açaí puro batido na hora com banana, morango e granola crocante..."
+                  />
+                </div>
+
+                {/* Preço e Categoria */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Preço de Venda */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="price" className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                      Preço de Venda (R$)
+                    </Label>
+                    <div className="relative flex items-center">
+                      <span className="absolute left-3.5 font-bold text-sm text-[#9306CF] dark:text-[#C7A9C9] pointer-events-none">
+                        R$
+                      </span>
+                      <Input
+                        id="price"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        required
+                        className="h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#2B132D] dark:border-[#512B54]/50 dark:text-white pl-10 focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF] font-semibold"
+                        placeholder="0,00"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Categoria */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="category" className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                      Categoria
+                    </Label>
+                    <Select value={categoryId} onValueChange={(val) => setCategoryId(val || "")} required>
+                      <SelectTrigger className="w-full h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#2B132D] dark:border-[#512B54]/50 dark:text-white focus:border-[#9306CF] focus:ring-2 focus:ring-[#9306CF]/20">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border border-gray-200 dark:border-[#512B54]/50 bg-white dark:bg-[#1F0B22] shadow-xl max-h-60 z-[60]">
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id} className="cursor-pointer text-sm py-2 hover:bg-[#9306CF]/10">
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Foto do Produto com Recorte 1:1 */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="image" className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                      Foto do Produto
+                    </Label>
+                    <span className="text-[10px] font-semibold text-[#9306CF] dark:text-[#C7A9C9] bg-[#9306CF]/10 px-2 py-0.5 rounded-full border border-[#9306CF]/20">
+                      1:1 Quadrado • até 10MB
+                    </span>
+                  </div>
+
+                  <div className="relative border-2 border-dashed border-gray-200 dark:border-[#512B54]/50 hover:border-[#9306CF] dark:hover:border-[#9306CF] bg-gray-50/60 dark:bg-[#2B132D]/40 rounded-xl p-3 transition-colors flex items-center gap-3 cursor-pointer group">
+                    <div className="w-10 h-10 rounded-lg bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      {file ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <Upload className="w-5 h-5" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                        {file ? file.name : (productToEdit?.imageUrl ? "Foto atual mantida (clique para alterar)" : "Clique para escolher a foto")}
+                      </p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                        JPEG, PNG ou WebP. Você poderá recortar em seguida.
+                      </p>
+                    </div>
+                    <Input
+                      id="image"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleFileChange}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                  </div>
+                </div>
+
+                {/* Feedback de Erro */}
+                {error && (
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 text-xs">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                {/* Botão de Ação Largo e Visível */}
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-12 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading font-bold text-base uppercase tracking-wider shadow-lg shadow-[#9306CF]/25 transition-all mt-2"
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Salvando...
+                    </span>
+                  ) : (
+                    productToEdit ? "Salvar Alterações" : "Cadastrar Produto"
+                  )}
+                </Button>
+              </form>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

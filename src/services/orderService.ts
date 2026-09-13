@@ -1,3 +1,5 @@
+import { dispatchOrderEvent } from "../lib/orderEvents";
+
 export type OrderStatus = 'pending' | 'accepted' | 'preparing' | 'ready' | 'delivering' | 'completed' | 'cancelled';
 
 export interface OrderItem {
@@ -35,6 +37,8 @@ export interface Order {
   payment_method_type?: string;
   payment_change_for?: number | null;
   delivery_address?: DeliveryAddress;
+  cancellation_reason?: string | null;
+  cancelled_at?: string | null;
   created_at: string;
   updated_at?: string;
   items?: OrderItem[];
@@ -42,6 +46,7 @@ export interface Order {
     fullName: string | null;
     username: string;
     email: string;
+    phone?: string | null;
   } | null;
 }
 
@@ -70,13 +75,17 @@ export interface CheckoutPayload {
 }
 
 export const orderService = {
-  async getOrdersByUser(_userId?: string): Promise<Order[]> {
+  async getMyOrders(): Promise<Order[]> {
     const res = await fetch("/api/orders");
     if (!res.ok) {
       const data = await res.json();
-      throw new Error(data.error || "Erro ao listar pedidos.");
+      throw new Error(data.error || "Erro ao buscar seus pedidos.");
     }
     return await res.json();
+  },
+
+  async getOrdersByUser(): Promise<Order[]> {
+    return this.getMyOrders();
   },
 
   async getAllOrders(): Promise<Order[]> {
@@ -100,19 +109,30 @@ export const orderService = {
       throw new Error(data.error || "Erro ao finalizar pedido.");
     }
 
+    if (data.order) {
+      dispatchOrderEvent("order_created", data.order);
+    }
+
     return data;
   },
 
-  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<void> {
+  async updateOrderStatus(orderId: string, status: OrderStatus, cancellationReason?: string): Promise<Order> {
     const res = await fetch("/api/orders", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderId, status }),
+      body: JSON.stringify({ orderId, status, cancellationReason }),
     });
 
+    const data = await res.json();
     if (!res.ok) {
-      const data = await res.json();
       throw new Error(data.error || "Erro ao atualizar status do pedido.");
     }
+
+    dispatchOrderEvent("order_updated", data);
+    return data;
+  },
+
+  async cancelOrder(orderId: string, cancellationReason: string): Promise<Order> {
+    return this.updateOrderStatus(orderId, "cancelled", cancellationReason);
   },
 };

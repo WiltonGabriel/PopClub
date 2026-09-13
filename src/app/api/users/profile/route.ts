@@ -47,11 +47,17 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     }
 
-    const body = await request.json();
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
+    }
+
     const dataToUpdate: any = {};
-    if (body.full_name !== undefined) dataToUpdate.fullName = body.full_name;
-    if (body.avatar_url !== undefined) dataToUpdate.avatarUrl = body.avatar_url;
-    if (body.phone !== undefined) dataToUpdate.phone = body.phone;
+    if (body?.full_name !== undefined) dataToUpdate.fullName = body.full_name;
+    if (body?.avatar_url !== undefined) dataToUpdate.avatarUrl = body.avatar_url;
+    if (body?.phone !== undefined) dataToUpdate.phone = body.phone;
 
     const updated = await prisma.user.update({
       where: { id: authUser.id },

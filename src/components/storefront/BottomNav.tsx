@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Grid3X3, Search, ShoppingBag } from "lucide-react";
+import { Home, Grid3X3, Search, ShoppingBag, ReceiptText } from "lucide-react";
 import { useCart } from "../../hooks/useCart";
 
 interface BottomNavProps {
@@ -35,6 +35,13 @@ export function BottomNav({ onSearchClick, onCategoriesClick }: BottomNavProps) 
       icon: Search,
       href: undefined,
       action: onSearchClick,
+    },
+    {
+      id: "orders",
+      label: "Pedidos",
+      icon: ReceiptText,
+      href: "/pedidos",
+      action: undefined as (() => void) | undefined,
     },
     {
       id: "cart",
