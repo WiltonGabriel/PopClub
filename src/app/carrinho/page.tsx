@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -18,12 +18,17 @@ import {
   CheckCircle2,
   Loader2,
   ArrowRight,
+  Crosshair,
+  Sparkles,
+  RefreshCw,
+  Navigation,
 } from "lucide-react";
 import { useCart } from "../../hooks/useCart";
 import { useAuth } from "../../hooks/useAuth";
 import { couponService, ValidatedCoupon } from "../../services/couponService";
 import { orderService } from "../../services/orderService";
 import { userService, UserLocation } from "../../services/userService";
+import { storeSettingsService, StoreSettings } from "../../services/storeSettingsService";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -48,7 +53,10 @@ export default function CarrinhoPage() {
   const [couponError, setCouponError] = useState("");
   const [validatingCoupon, setValidatingCoupon] = useState(false);
 
-  // Endereço estruturado (pronto para Google Maps)
+  // Configuração de entrega da loja
+  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
+
+  // Endereço estruturado (pronto para Google Maps / Entrega)
   const [street, setStreet] = useState("");
   const [number, setNumber] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
@@ -56,6 +64,17 @@ export default function CarrinhoPage() {
   const [complement, setComplement] = useState("");
   const [reference, setReference] = useState("");
   const [zip, setZip] = useState("");
+
+  // Geolocalização
+  const [isLocating, setIsLocating] = useState(false);
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
+  const [accuracyWarning, setAccuracyWarning] = useState<string | null>(null);
+  const [pendingCoords, setPendingCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [geoToast, setGeoToast] = useState<string | null>(null);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+
+  const numberInputRef = useRef<HTMLInputElement>(null);
 
   // Endereços salvos do usuário autenticado
   const [savedLocations, setSavedLocations] = useState<UserLocation[]>([]);
@@ -70,17 +89,25 @@ export default function CarrinhoPage() {
   const [checkoutError, setCheckoutError] = useState("");
   const [orderSuccessId, setOrderSuccessId] = useState<string | null>(null);
 
+  // Carrega configurações da loja
+  useEffect(() => {
+    storeSettingsService.getSettings().then(setStoreSettings).catch(console.error);
+  }, []);
+
   // Carrega endereços salvos se estiver logado
   useEffect(() => {
     if (user?.id) {
-      userService.getLocations(user.id).then((locs) => {
-        setSavedLocations(locs);
-        const def = locs.find((l) => l.is_default) || locs[0];
-        if (def) {
-          setSelectedLocationId(def.id);
-          setStreet(def.address_line);
-        }
-      }).catch(console.error);
+      userService
+        .getLocations(user.id)
+        .then((locs) => {
+          setSavedLocations(locs);
+          const def = locs.find((l) => l.is_default) || locs[0];
+          if (def) {
+            setSelectedLocationId(def.id);
+            setStreet(def.address_line);
+          }
+        })
+        .catch(console.error);
     }
   }, [user]);
 
@@ -112,10 +139,118 @@ export default function CarrinhoPage() {
     setCouponError("");
   };
 
-  // Cálculos finais
+  // Cálculos de Entrega & Totais
+  const isFreeDelivery = useMemo(() => {
+    if (!storeSettings) return false;
+    if (storeSettings.freeDeliveryThreshold !== null && storeSettings.freeDeliveryThreshold !== undefined) {
+      return itemsTotal >= storeSettings.freeDeliveryThreshold;
+    }
+    return storeSettings.deliveryFee === 0;
+  }, [storeSettings, itemsTotal]);
+
+  const deliveryFee = useMemo(() => {
+    if (!storeSettings) return 5.0;
+    if (isFreeDelivery) return 0;
+    return storeSettings.deliveryFee;
+  }, [storeSettings, isFreeDelivery]);
+
+  const amountToFreeShipping = useMemo(() => {
+    if (!storeSettings || storeSettings.freeDeliveryThreshold === null || isFreeDelivery) return 0;
+    return Math.max(0, Number((storeSettings.freeDeliveryThreshold - itemsTotal).toFixed(2)));
+  }, [storeSettings, itemsTotal, isFreeDelivery]);
+
   const couponDiscount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const totalDiscount = Number((promoDiscount + couponDiscount).toFixed(2));
-  const finalTotal = Math.max(0, Number((itemsTotal - couponDiscount).toFixed(2)));
+  const finalTotal = Math.max(0, Number((itemsTotal - couponDiscount + deliveryFee).toFixed(2)));
+
+  // Funções de Geolocalização Reversa e GPS
+  const fetchAddressFromCoords = async (lat: number, lon: number) => {
+    try {
+      setIsLocating(true);
+      setLatitude(lat);
+      setLongitude(lon);
+      const res = await fetch(`/api/geocode/reverse?lat=${lat}&lon=${lon}`);
+      if (!res.ok) throw new Error("Não foi possível obter o endereço das coordenadas.");
+      const data = await res.json();
+      if (data.road) setStreet(data.road);
+      if (data.neighborhood) setNeighborhood(data.neighborhood);
+      if (data.city) setCity(data.city);
+      if (data.postcode) setZip(data.postcode);
+
+      // Auto-focus no campo de Número para agilizar o checkout
+      setTimeout(() => {
+        numberInputRef.current?.focus();
+      }, 250);
+    } catch (err: any) {
+      setGeoToast(err.message || "Erro ao consultar endereço. Digite manualmente.");
+      setTimeout(() => setGeoToast(null), 5000);
+    } finally {
+      setIsLocating(false);
+      setPendingCoords(null);
+    }
+  };
+
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      setGeoToast("Seu navegador não suporta geolocalização. Digite o endereço manualmente.");
+      setTimeout(() => setGeoToast(null), 5000);
+      return;
+    }
+
+    setIsLocating(true);
+    setAccuracyWarning(null);
+    setPendingCoords(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude: lat, longitude: lon, accuracy } = position.coords;
+        setGpsAccuracy(Math.round(accuracy));
+
+        if (accuracy <= 30) {
+          // Precisão excelente: prossegue automaticamente
+          fetchAddressFromCoords(lat, lon);
+        } else if (accuracy > 50) {
+          // Sinal fraco / impreciso: alerta o usuário e dá opções
+          setIsLocating(false);
+          setPendingCoords({ lat, lon });
+          setAccuracyWarning(
+            `Sinal de GPS fraco (~${Math.round(accuracy)} metros). Aguarde alguns segundos em local aberto para melhorar o sinal ou confira o nome da rua manualmente.`
+          );
+        } else {
+          // Entre 30 e 50 metros: razoável, preenche e avisa
+          fetchAddressFromCoords(lat, lon);
+        }
+      },
+      (error) => {
+        setIsLocating(false);
+        if (error.code === error.PERMISSION_DENIED) {
+          setGeoToast("Acesso à localização negado. Digite o endereço manualmente nos campos abaixo.");
+        } else if (error.code === error.TIMEOUT) {
+          setGeoToast("Tempo esgotado ao buscar GPS. Tente novamente ou digite manualmente.");
+        } else {
+          setGeoToast("Não foi possível obter sua localização. Digite o endereço manualmente.");
+        }
+        setTimeout(() => setGeoToast(null), 6000);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
+
+  const handleUsePendingLocation = () => {
+    if (pendingCoords) {
+      fetchAddressFromCoords(pendingCoords.lat, pendingCoords.lon);
+      setAccuracyWarning(null);
+    }
+  };
+
+  const handleRetryLocation = () => {
+    setAccuracyWarning(null);
+    handleGetLocation();
+  };
 
   const handleFinishOrder = async () => {
     setCheckoutError("");
@@ -133,7 +268,7 @@ export default function CarrinhoPage() {
     if (paymentType === "dinheiro" && changeFor) {
       const changeNum = parseFloat(changeFor);
       if (isNaN(changeNum) || changeNum < finalTotal) {
-        setCheckoutError(`O valor para troco deve ser maior ou igual ao total do pedido (R$ ${finalTotal.toFixed(2)}).`);
+        setCheckoutError(`O valor para troco deve ser maior ou igual ao total do pedido (R$ ${finalTotal.toFixed(2).replace(".", ",")}).`);
         return;
       }
     }
@@ -155,6 +290,8 @@ export default function CarrinhoPage() {
           complement: complement.trim() || null,
           reference: reference.trim() || null,
           zip: zip.trim() || null,
+          latitude: latitude || null,
+          longitude: longitude || null,
         },
         paymentMethod: {
           type: paymentType,
@@ -399,18 +536,92 @@ export default function CarrinhoPage() {
               )}
             </section>
 
-            {/* 3. Endereço de Entrega Estruturado (Compatível com Google Maps) */}
+            {/* 3. Endereço de Entrega Estruturado (Compatível com Google Maps & Geocodificação) */}
             <section className="bg-card border-2 border-border p-6 shadow-sm space-y-4">
-              <h3 className="font-heading text-lg font-bold uppercase tracking-wide flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-primary" />
-                Endereço de Entrega
-              </h3>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/60">
+                <h3 className="font-heading text-lg font-bold uppercase tracking-wide flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-primary" />
+                  Endereço de Entrega
+                </h3>
+
+                {/* Botão de Ação Rápida: Usar Minha Localização Atual */}
+                <button
+                  type="button"
+                  onClick={handleGetLocation}
+                  disabled={isLocating}
+                  className="inline-flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 px-4 py-2.5 rounded-xl shadow-sm shadow-[#9306CF]/20 transition-all cursor-pointer disabled:opacity-60 shrink-0"
+                >
+                  {isLocating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      <span>Buscando sinal de GPS do aparelho...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Navigation className="w-4 h-4 text-white" />
+                      <span>📍 Preencher com minha localização atual</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Feedback Visual e Inteligente de Precisão (UX) */}
+              {isLocating && (
+                <div className="flex items-center gap-2.5 p-3 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/40 rounded-xl text-xs font-medium text-[#9306CF] dark:text-[#C7A9C9] animate-pulse">
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                  <span>Obtendo coordenadas do dispositivo e consultando dados da rua via satélite...</span>
+                </div>
+              )}
+
+              {/* Se a precisão for boa (<= 30 metros) */}
+              {gpsAccuracy !== null && !accuracyWarning && !isLocating && (
+                <div className="flex items-center gap-2 p-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 rounded-xl text-xs font-medium text-emerald-800 dark:text-emerald-300 animate-in fade-in duration-150">
+                  <Crosshair className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>🎯 Localização precisa (~{gpsAccuracy} metros). Endereço preenchido com sucesso!</span>
+                </div>
+              )}
+
+              {/* Se a precisão for baixa/ruim (> 50 metros) */}
+              {accuracyWarning && !isLocating && (
+                <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700/50 rounded-xl space-y-3 animate-in fade-in duration-150">
+                  <div className="flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-200 font-medium">
+                    <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                    <span>⚠️ {accuracyWarning}</span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleRetryLocation}
+                      className="px-3.5 py-1.5 bg-amber-100 dark:bg-amber-900/60 hover:bg-amber-200 text-amber-900 dark:text-amber-200 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      Aguardar sinal melhor
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleUsePendingLocation}
+                      className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                    >
+                      Usar mesmo assim
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Toast / Notificação de Erro amigável */}
+              {geoToast && (
+                <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-xl text-red-600 dark:text-red-300 text-xs font-medium flex items-center gap-2 animate-in fade-in duration-150">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-red-500" />
+                  <span>{geoToast}</span>
+                </div>
+              )}
 
               {/* Se o usuário tiver endereços salvos */}
               {savedLocations.length > 0 && (
                 <div className="space-y-1">
                   <Label className="font-mono text-xs uppercase text-muted-foreground">
-                    Usar endereço salvo:
+                    Ou selecione um endereço salvo:
                   </Label>
                   <select
                     value={selectedLocationId}
@@ -449,10 +660,11 @@ export default function CarrinhoPage() {
                     Número *
                   </Label>
                   <Input
+                    ref={numberInputRef}
                     value={number}
                     onChange={(e) => setNumber(e.target.value)}
                     placeholder="Ex: 1420"
-                    className="rounded-none border-2 border-border text-xs"
+                    className="rounded-none border-2 border-border text-xs focus-visible:ring-2 focus-visible:ring-[#9306CF]/30"
                     required
                   />
                 </div>
@@ -610,38 +822,55 @@ export default function CarrinhoPage() {
             </section>
 
             {/* 5. Resumo de Valores e Envio */}
-            <section className="bg-card border-2 border-border p-6 shadow-sm space-y-3">
+            <section className="bg-card border-2 border-border p-6 shadow-sm space-y-4">
               <h3 className="font-heading text-lg font-bold uppercase tracking-wide mb-3">
                 Resumo do Pedido
               </h3>
 
-              <div className="space-y-2 font-mono text-xs border-b border-border pb-3">
+              <div className="space-y-2.5 font-mono text-xs border-b border-border pb-3">
                 <div className="flex justify-between text-muted-foreground">
-                  <span>Subtotal:</span>
-                  <span>R$ {subtotal.toFixed(2).replace(".", ",")}</span>
+                  <span>Subtotal dos Itens:</span>
+                  <span className="font-bold text-foreground">R$ {subtotal.toFixed(2).replace(".", ",")}</span>
                 </div>
 
                 {promoDiscount > 0 && (
-                  <div className="flex justify-between text-success">
+                  <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
                     <span>Desconto das Promoções:</span>
                     <span>- R$ {promoDiscount.toFixed(2).replace(".", ",")}</span>
                   </div>
                 )}
 
                 {couponDiscount > 0 && (
-                  <div className="flex justify-between text-success">
+                  <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
                     <span>Desconto do Cupom ({appliedCoupon?.code}):</span>
                     <span>- R$ {couponDiscount.toFixed(2).replace(".", ",")}</span>
                   </div>
                 )}
 
-                <div className="flex justify-between text-muted-foreground">
+                <div className="flex justify-between items-center text-muted-foreground pt-1">
                   <span>Taxa de Entrega:</span>
-                  <span className="text-success font-bold uppercase">Grátis</span>
+                  {isFreeDelivery ? (
+                    <span className="px-2.5 py-0.5 rounded-full font-bold text-[11px] bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300/50 uppercase tracking-wider">
+                      Grátis
+                    </span>
+                  ) : (
+                    <span className="font-mono font-bold text-foreground">
+                      R$ {deliveryFee.toFixed(2).replace(".", ",")}
+                    </span>
+                  )}
                 </div>
+
+                {amountToFreeShipping > 0 && (
+                  <div className="mt-2 p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200/60 dark:border-purple-900/40 text-[11px] text-[#9306CF] dark:text-[#C7A9C9] flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      Adicione mais <strong>R$ {amountToFreeShipping.toFixed(2).replace(".", ",")}</strong> para ganhar <strong>Entrega Grátis</strong>!
+                    </span>
+                  </div>
+                )}
               </div>
 
-              <div className="flex justify-between items-baseline pt-2">
+              <div className="flex justify-between items-baseline pt-1">
                 <span className="font-mono text-sm uppercase tracking-wider font-bold">
                   Total a Pagar na Entrega:
                 </span>

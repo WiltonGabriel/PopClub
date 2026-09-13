@@ -8,7 +8,9 @@ export interface HighlightBannerData {
 
 export const bannerService = {
   async getHighlightBanner(): Promise<HighlightBannerData> {
-    const res = await fetch("/api/banner");
+    const res = await fetch("/api/banner", {
+      signal: AbortSignal.timeout(8000),
+    });
     if (!res.ok) {
       throw new Error("Erro ao buscar banner de destaque.");
     }

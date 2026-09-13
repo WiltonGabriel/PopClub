@@ -107,12 +107,17 @@ export const couponService = {
     subtotal: number,
     productIds?: string[]
   ): Promise<{ valid: boolean; coupon?: ValidatedCoupon; message?: string }> {
-    const res = await fetch("/api/coupons/validate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, subtotal, productIds }),
-    });
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, subtotal, productIds }),
+        signal: AbortSignal.timeout(10000),
+      });
 
-    return await res.json();
+      return await res.json();
+    } catch {
+      return { valid: false, message: "Erro de conexão ao validar cupom." };
+    }
   },
 };

@@ -7,9 +7,11 @@ export interface Category {
 
 export const categoryService = {
   async getCategories(): Promise<Category[]> {
-    const res = await fetch("/api/categories");
+    const res = await fetch("/api/categories", {
+      signal: AbortSignal.timeout(10000),
+    });
     if (!res.ok) {
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       throw new Error(data.error || "Erro ao listar categorias.");
     }
     return await res.json();

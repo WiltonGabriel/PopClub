@@ -18,10 +18,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
-    // Read persisted preference, fall back to OS preference
+    // Read persisted preference, default to light mode
     const stored = localStorage.getItem("popshake-theme") as Theme | null;
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const initial: Theme = stored ?? (prefersDark ? "dark" : "light");
+    const initial: Theme = stored === "dark" ? "dark" : "light";
 
     setTheme(initial);
     document.documentElement.classList.toggle("dark", initial === "dark");

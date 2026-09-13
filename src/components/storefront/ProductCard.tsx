@@ -48,6 +48,10 @@ export function ProductCard({
   onDelete,
   featured = false,
 }: ProductCardProps) {
+  const isOutOfStock =
+    product.isAvailable === false ||
+    (product.stock !== undefined && product.stock !== null && product.stock <= 0);
+
   const badge = getCategoryBadge(product.category ?? "");
   const formattedPrice = new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -58,8 +62,9 @@ export function ProductCard({
     <article
       className={`
         product-card relative bg-card rounded-2xl overflow-hidden group
-        flex flex-col border border-border/40
+        flex flex-col border border-border/40 transition-opacity
         ${featured ? "sm:col-span-2" : ""}
+        ${isOutOfStock ? "opacity-80" : ""}
       `}
     >
       {/* Admin Controls */}
@@ -91,14 +96,25 @@ export function ProductCard({
           <img
             src={product.imageUrl}
             alt={product.name}
-            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+            className={`object-cover w-full h-full group-hover:scale-105 transition-transform duration-500 ${
+              isOutOfStock ? "grayscale-[50%]" : ""
+            }`}
           />
         ) : (
           <ProductPlaceholder name={product.name} />
         )}
 
+        {/* Esgotado / Pausado Overlay */}
+        {isOutOfStock && (
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center z-10 pointer-events-none">
+            <span className="bg-red-600/90 text-white font-bold text-xs uppercase px-3 py-1 rounded-full shadow-md tracking-wider border border-red-400/30">
+              Esgotado
+            </span>
+          </div>
+        )}
+
         {/* Category badge overlay */}
-        {badge && (
+        {badge && !isOutOfStock && (
           <span className={`badge-clay absolute top-2 right-2 flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full ${badge.color}`}>
             {badge.icon}
             {badge.label}
@@ -119,25 +135,41 @@ export function ProductCard({
 
         {/* Price + Add button row */}
         <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
-          <span className="font-heading font-black text-base text-brand-pop-shake">
+          <span className={`font-heading font-black text-base ${isOutOfStock ? "text-muted-foreground line-through" : "text-brand-pop-shake"}`}>
             {formattedPrice}
           </span>
 
-          <button
-            onClick={() => onAddToCart(product)}
-            aria-label={`Adicionar ${product.name} ao carrinho`}
-            className="
-              btn-clay
-              flex items-center justify-center gap-1
-              bg-brand-folha-acai text-white
-              w-9 h-9 rounded-full
-              font-bold text-lg leading-none
-              min-w-[44px] min-h-[44px] w-11 h-11
-              active:scale-95
-            "
-          >
-            <Plus className="w-5 h-5 stroke-[2.5]" />
-          </button>
+          {isOutOfStock ? (
+            <button
+              disabled
+              aria-label="Produto esgotado"
+              className="
+                flex items-center justify-center
+                bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500
+                rounded-full cursor-not-allowed
+                min-w-[44px] min-h-[44px] w-11 h-11
+                border border-dashed border-gray-300 dark:border-zinc-700
+              "
+            >
+              <span className="text-[10px] font-bold uppercase">Off</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => onAddToCart(product)}
+              aria-label={`Adicionar ${product.name} ao carrinho`}
+              className="
+                btn-clay
+                flex items-center justify-center gap-1
+                bg-brand-folha-acai text-white
+                w-9 h-9 rounded-full
+                font-bold text-lg leading-none
+                min-w-[44px] min-h-[44px] w-11 h-11
+                active:scale-95
+              "
+            >
+              <Plus className="w-5 h-5 stroke-[2.5]" />
+            </button>
+          )}
         </div>
       </div>
     </article>

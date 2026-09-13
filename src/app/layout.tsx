@@ -7,14 +7,23 @@ import { CartProvider } from "@/contexts/CartContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { EditModeProvider } from "@/contexts/EditModeContext";
 import { ToastProvider } from "@/components/ui/ToastNotification";
+import { WhatsAppFloatingButton } from "@/components/storefront/WhatsAppFloatingButton";
 
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" });
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const jetBrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono" });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk", display: "swap" });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const jetBrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "PopClub - Pop Shake Açaí Expresso",
-  description: "Peça seu açaí, sorvete e shake favorito com entrega rápida. PopClub — Pop Shake Açaí Expresso.",
+  title: "Pop Shake Sorveteria - Açaí, Sorvetes e Shakes Artesanais",
+  description: "Peça seu açaí, sorvetes artesanais e marmitas com entrega rápida na Pop Shake Sorveteria.",
+  icons: {
+    icon: [
+      { url: "/icon.png", type: "image/png" },
+      { url: "/favicon.ico" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -30,12 +39,12 @@ export default function RootLayout({
     >
       {/*
         Inline script — runs synchronously before first paint.
-        Prevents flash of wrong theme on SSR hydration.
+        Default is strictly Light Mode unless 'dark' is explicitly stored in localStorage.
       */}
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var s=localStorage.getItem('popshake-theme');var p=window.matchMedia('(prefers-color-scheme:dark)').matches;if(s==='dark'||(s===null&&p)){document.documentElement.classList.add('dark');}}catch(e){}})();`,
+            __html: `(function(){try{var s=localStorage.getItem('popshake-theme');if(s==='dark'){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}}catch(e){}})();`,
           }}
         />
       </head>
@@ -49,6 +58,7 @@ export default function RootLayout({
               <CartProvider>
                 <ToastProvider>
                   {children}
+                  <WhatsAppFloatingButton />
                 </ToastProvider>
               </CartProvider>
             </EditModeProvider>

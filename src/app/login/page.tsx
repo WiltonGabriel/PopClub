@@ -239,8 +239,8 @@ function AuthPageInner() {
                 Shake
               </span>
             </span>
-            <span className="text-[#7A587D] dark:text-[#957498] text-xs font-medium mt-0.5 tracking-wide">
-              Açaí • Sorvetes • Shakes
+            <span className="text-[#7A587D] dark:text-[#957498] text-xs font-semibold mt-0.5 tracking-wide">
+              Pop Shake Sorveteria • Açaí & Sorvetes
             </span>
           </Link>
 

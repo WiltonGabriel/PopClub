@@ -21,6 +21,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { orderService, Order, OrderStatus } from "../../services/orderService";
 import { subscribeToOrderEvents } from "../../lib/orderEvents";
 import { useToast } from "../../components/ui/ToastNotification";
+import { Footer } from "../../components/storefront/Footer";
 
 const STORE_WHATSAPP = process.env.NEXT_PUBLIC_STORE_WHATSAPP || "5584999999999";
 
@@ -330,6 +331,29 @@ export default function PedidosPage() {
                       </div>
                     )}
 
+                    {/* Taxa de Entrega e Desconto */}
+                    {(order.delivery_fee !== undefined || (order.discount_amount && Number(order.discount_amount) > 0)) && (
+                      <div className="flex flex-wrap items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-1">
+                        {order.delivery_fee !== undefined && (
+                          <span>
+                            Frete:{" "}
+                            {Number(order.delivery_fee) > 0 ? (
+                              <strong className="text-gray-700 dark:text-gray-300 font-mono">
+                                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(order.delivery_fee))}
+                              </strong>
+                            ) : (
+                              <span className="text-emerald-600 dark:text-emerald-400 font-bold uppercase">Grátis</span>
+                            )}
+                          </span>
+                        )}
+                        {order.discount_amount && Number(order.discount_amount) > 0 && (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                            Desconto: - {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(order.discount_amount))}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     {/* Total e Acompanhamento */}
                     <div className="flex justify-between items-center pt-1">
                       <div>
@@ -499,6 +523,8 @@ export default function PedidosPage() {
           )}
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }

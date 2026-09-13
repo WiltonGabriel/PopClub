@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'PopClub - Pop Shake Açaí Expresso',
-    short_name: 'PopClub',
-    description: 'Peça seu açaí, sorvete e shake favorito com entrega rápida. PopClub — Pop Shake Açaí Expresso.',
+    name: 'Pop Shake Sorveteria - Açaí & Sorvetes',
+    short_name: 'Pop Shake',
+    description: 'Peça seu açaí, sorvetes artesanais e marmitas com entrega rápida na Pop Shake Sorveteria.',
     start_url: '/',
     display: 'standalone',
     background_color: '#401E3F',

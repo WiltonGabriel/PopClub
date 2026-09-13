@@ -45,14 +45,18 @@ export async function POST(request: Request) {
     // Validação de Escopo de Produtos Específicos
     const cartProductIds: string[] = Array.isArray(body.productIds) ? body.productIds : [];
     if (coupon.productIds && coupon.productIds.length > 0) {
-      if (cartProductIds.length > 0) {
-        const hasMatchingProduct = cartProductIds.some((pId: string) => coupon.productIds.includes(pId));
-        if (!hasMatchingProduct) {
-          return NextResponse.json({
-            valid: false,
-            message: "Este cupom é exclusivo para produtos específicos que não estão no seu carrinho.",
-          }, { status: 400 });
-        }
+      if (cartProductIds.length === 0) {
+        return NextResponse.json({
+          valid: false,
+          message: "Este cupom é exclusivo para produtos específicos. Adicione itens ao carrinho.",
+        }, { status: 400 });
+      }
+      const hasMatchingProduct = cartProductIds.some((pId: string) => coupon.productIds.includes(pId));
+      if (!hasMatchingProduct) {
+        return NextResponse.json({
+          valid: false,
+          message: "Este cupom é exclusivo para produtos específicos que não estão no seu carrinho.",
+        }, { status: 400 });
       }
     }
 

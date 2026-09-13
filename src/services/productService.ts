@@ -6,6 +6,8 @@ export interface Product {
   category_id?: string;
   category?: string;
   imageUrl: string;
+  stock?: number | null;
+  isAvailable?: boolean;
 }
 
 export const productService = {
@@ -32,9 +34,11 @@ export const productService = {
   },
 
   async getProducts(): Promise<Product[]> {
-    const res = await fetch("/api/products");
+    const res = await fetch("/api/products", {
+      signal: AbortSignal.timeout(10000),
+    });
     if (!res.ok) {
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       throw new Error(data.error || "Erro ao carregar produtos.");
     }
     const data = await res.json();
@@ -46,6 +50,8 @@ export const productService = {
       category_id: item.categoryId,
       category: item.category,
       imageUrl: item.imageUrl || "",
+      stock: item.stock !== undefined ? item.stock : null,
+      isAvailable: item.isAvailable !== undefined ? Boolean(item.isAvailable) : true,
     }));
   },
 
@@ -126,5 +132,31 @@ export const productService = {
       const data = await res.json();
       throw new Error(data.error || "Erro ao deletar produto.");
     }
+  },
+
+  async updateProductStock(
+    id: string,
+    updates: { stock?: number | null; isAvailable?: boolean }
+  ): Promise<Product> {
+    const res = await fetch(`/api/products/${id}/stock`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Erro ao atualizar estoque do produto.");
+
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      price: Number(data.price),
+      category_id: data.categoryId,
+      category: data.category,
+      imageUrl: data.imageUrl,
+      stock: data.stock,
+      isAvailable: data.isAvailable,
+    };
   },
 };

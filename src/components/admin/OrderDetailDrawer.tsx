@@ -341,16 +341,40 @@ export function OrderDetailDrawer({
                   </div>
                 )}
 
-                {order.discount_amount && Number(order.discount_amount) > 0 ? (
-                  <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400">
-                    <span>Desconto Aplicado:</span>
-                    <span>- {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(order.discount_amount))}</span>
+                {order.subtotal && Number(order.subtotal) > 0 ? (
+                  <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
+                    <span>Subtotal dos Itens:</span>
+                    <span className="font-mono">
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(order.subtotal))}
+                    </span>
                   </div>
                 ) : null}
 
+                {order.discount_amount && Number(order.discount_amount) > 0 ? (
+                  <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400">
+                    <span>Desconto Aplicado:</span>
+                    <span className="font-mono">
+                      - {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(order.discount_amount))}
+                    </span>
+                  </div>
+                ) : null}
+
+                <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
+                  <span>Taxa de Entrega:</span>
+                  {order.delivery_fee && Number(order.delivery_fee) > 0 ? (
+                    <span className="font-mono font-bold text-[#4C264F] dark:text-[#F9F5F9]">
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(order.delivery_fee))}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/40">
+                      Grátis
+                    </span>
+                  )}
+                </div>
+
                 <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-[#512B54]/40 font-heading text-sm font-black text-[#4C264F] dark:text-[#F9F5F9]">
                   <span>Total do Pedido:</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 text-base">
+                  <span className="text-emerald-600 dark:text-emerald-400 text-base font-mono">
                     {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(order.total_amount))}
                   </span>
                 </div>

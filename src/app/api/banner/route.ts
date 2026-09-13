@@ -12,6 +12,10 @@ const DEFAULT_BANNER = {
 
 export async function GET() {
   try {
+    if (!prisma.highlightBanner) {
+      return NextResponse.json(DEFAULT_BANNER);
+    }
+
     const banner = await prisma.highlightBanner.findUnique({
       where: { id: "home_highlight" },
     });

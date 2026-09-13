@@ -16,6 +16,7 @@ import { CategoryChip } from "../components/storefront/CategoryChip";
 import { BottomNav } from "../components/storefront/BottomNav";
 import { CartDrawer } from "../components/storefront/CartDrawer";
 import { SearchAutocomplete } from "../components/storefront/SearchAutocomplete";
+import { Footer } from "../components/storefront/Footer";
 
 // Admin components (unchanged)
 import { CategoryFormDialog } from "../components/admin/CategoryFormDialog";
@@ -46,6 +47,8 @@ import {
   BookOpen,
   LayoutDashboard,
   ClipboardList,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 
 export default function Storefront() {
@@ -57,6 +60,8 @@ export default function Storefront() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
@@ -112,18 +117,43 @@ export default function Storefront() {
 
   const fetchData = async () => {
     try {
-      const [cats, prods, banner] = await Promise.all([
+      setLoading(true);
+      setFetchError(null);
+
+      const [catsRes, prodsRes, bannerRes] = await Promise.allSettled([
         categoryService.getCategories(),
         productService.getProducts(),
-        bannerService.getHighlightBanner().catch(() => null),
+        bannerService.getHighlightBanner(),
       ]);
-      setCategories(cats);
-      setProducts(prods);
-      if (banner) {
-        setHighlightBanner(banner);
+
+      let hasData = false;
+
+      if (catsRes.status === "fulfilled") {
+        setCategories(catsRes.value);
+        if (catsRes.value.length > 0) hasData = true;
+      } else {
+        console.error("Erro ao carregar categorias:", catsRes.reason);
       }
-    } catch (err) {
-      console.error(err);
+
+      if (prodsRes.status === "fulfilled") {
+        setProducts(prodsRes.value);
+        if (prodsRes.value.length > 0) hasData = true;
+      } else {
+        console.error("Erro ao carregar produtos:", prodsRes.reason);
+      }
+
+      if (bannerRes.status === "fulfilled" && bannerRes.value) {
+        setHighlightBanner(bannerRes.value);
+      }
+
+      if (!hasData && (catsRes.status === "rejected" || prodsRes.status === "rejected")) {
+        setFetchError("Não foi possível carregar os itens do cardápio. Verifique a conexão com a rede.");
+      }
+    } catch (err: any) {
+      console.error("Erro geral no fetchData:", err);
+      setFetchError("Erro ao carregar dados do cardápio.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -144,6 +174,12 @@ export default function Storefront() {
 
   const handleAddToCart = useCallback(
     (product: Product) => {
+      if (
+        product.isAvailable === false ||
+        (product.stock !== undefined && product.stock !== null && product.stock <= 0)
+      ) {
+        return;
+      }
       addItem({
         productId: product.id,
         name: product.name,
@@ -198,8 +234,11 @@ export default function Storefront() {
               className="flex items-center select-none cursor-pointer hover:opacity-85 transition-opacity duration-200"
               aria-label="Pop Shake — Início"
             >
-              <span className="font-heading font-black text-2xl tracking-tight text-foreground">
+              <span className="font-heading font-black text-2xl tracking-tight text-foreground flex items-center gap-1.5">
                 Pop<span className="gradient-text-brand">Shake</span>
+                <span className="text-[11px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20 hidden sm:inline-block">
+                  Sorveteria
+                </span>
               </span>
             </Link>
 
@@ -217,7 +256,7 @@ export default function Storefront() {
               <SearchAutocomplete
                 products={products}
                 initialValue={search}
-                placeholder="Buscar açaí puro batido na hora, pop shakes, coberturas..."
+                placeholder="Buscar..."
               />
             </div>
           </div>
@@ -421,7 +460,7 @@ export default function Storefront() {
               <SearchAutocomplete
                 products={products}
                 initialValue={search}
-                placeholder="Buscar açaí puro batido na hora, pop shakes..."
+                placeholder="Buscar..."
                 autoFocus
                 onNavigateToResults={() => setMobileSearchOpen(false)}
                 onSelectProduct={(p) => {
@@ -458,75 +497,86 @@ export default function Storefront() {
             on any ancestor — only overflow-x-auto here.
           */}
           <div className="flex overflow-x-auto gap-2 no-scrollbar items-center pt-3 pb-4">
+            {loading && categories.length === 0 ? (
+              <>
+                <div className="shrink-0 w-20 h-10 rounded-full skeleton-light" />
+                <div className="shrink-0 w-28 h-10 rounded-full skeleton-light" />
+                <div className="shrink-0 w-24 h-10 rounded-full skeleton-light" />
+                <div className="shrink-0 w-32 h-10 rounded-full skeleton-light" />
+                <div className="shrink-0 w-24 h-10 rounded-full skeleton-light" />
+              </>
+            ) : (
+              <>
+                {/* “Todos” chip */}
+                <button
+                  onClick={() => setActiveCategory(null)}
+                  aria-pressed={activeCategory === null}
+                  className={`
+                    chip-clay shrink-0
+                    flex items-center gap-1.5
+                    px-4 py-2 rounded-full
+                    text-xs font-semibold
+                    border transition-all duration-200 min-h-[40px]
+                    ${
+                      activeCategory === null
+                        ? "category-active border-transparent"
+                        : "bg-card border-border/40 text-foreground hover:text-brand-pop-shake hover:border-brand-pop-shake/40 hover:bg-muted"
+                    }
+                  `}
+                >
+                  🏠 Todos
+                </button>
 
-            {/* “Todos” chip */}
-            <button
-              onClick={() => setActiveCategory(null)}
-              aria-pressed={activeCategory === null}
-              className={`
-                chip-clay shrink-0
-                flex items-center gap-1.5
-                px-4 py-2 rounded-full
-                text-xs font-semibold
-                border transition-all duration-200 min-h-[40px]
-                ${
-                  activeCategory === null
-                    ? "category-active border-transparent"
-                    : "bg-card border-border/40 text-foreground hover:text-brand-pop-shake hover:border-brand-pop-shake/40 hover:bg-muted"
-                }
-              `}
-            >
-              🏠 Todos
-            </button>
-
-            {categories.map((cat) => (
-              <div key={cat.id} className="relative group shrink-0">
-                <CategoryChip
-                  category={cat}
-                  isActive={activeCategory === cat.id}
-                  onClick={() => scrollToCategory(cat.id)}
-                />
-                {/* Admin controls on chip */}
-                {canEdit && (
-                  <div className="absolute -top-2 -right-2 hidden group-hover:flex items-center gap-1 bg-white dark:bg-[#2B132D] shadow-md border border-purple-200 dark:border-purple-800 rounded-full p-1 z-20 transition-all">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingCategory(cat);
-                        setCatDialogOpen(true);
-                      }}
-                      className="text-[#9306CF] hover:text-[#940068] hover:bg-purple-100 dark:hover:bg-purple-900/40 p-1 rounded-full transition-colors"
-                      title="Editar categoria"
-                      aria-label={`Editar categoria ${cat.name}`}
-                    >
-                      <Pencil className="w-3 h-3" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteCategory(cat.id);
-                      }}
-                      className="text-red-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-950/40 p-1 rounded-full transition-colors"
-                      title="Deletar categoria"
-                      aria-label={`Deletar categoria ${cat.name}`}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
+                {categories.map((cat) => (
+                  <div key={cat.id} className="relative group shrink-0">
+                    <CategoryChip
+                      category={cat}
+                      isActive={activeCategory === cat.id}
+                      onClick={() => scrollToCategory(cat.id)}
+                    />
+                    {/* Admin controls on chip */}
+                    {canEdit && (
+                      <div className="absolute -top-2 -right-2 hidden group-hover:flex items-center gap-1 bg-white dark:bg-[#2B132D] shadow-md border border-purple-200 dark:border-purple-800 rounded-full p-1 z-20 transition-all">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingCategory(cat);
+                            setCatDialogOpen(true);
+                          }}
+                          className="text-[#9306CF] hover:text-[#940068] hover:bg-purple-100 dark:hover:bg-purple-900/40 p-1 rounded-full transition-colors"
+                          title="Editar categoria"
+                          aria-label={`Editar categoria ${cat.name}`}
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCategory(cat.id);
+                          }}
+                          className="text-red-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-950/40 p-1 rounded-full transition-colors"
+                          title="Deletar categoria"
+                          aria-label={`Deletar categoria ${cat.name}`}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
+                ))}
 
-            {/* Admin: add category */}
-            {canEdit && (
-              <Button
-                variant="outline"
-                onClick={() => { setEditingCategory(null); setCatDialogOpen(true); }}
-                className="shrink-0 rounded-full border-dashed border-brand-pop-shake/40 text-brand-pop-shake/60 hover:text-brand-pop-shake hover:border-brand-pop-shake hover:bg-brand-pop-shake/5 h-10 px-3 text-xs gap-1"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Nova
-              </Button>
+                {/* Admin: add category */}
+                {canEdit && (
+                  <Button
+                    variant="outline"
+                    onClick={() => { setEditingCategory(null); setCatDialogOpen(true); }}
+                    className="shrink-0 rounded-full border-dashed border-brand-pop-shake/40 text-brand-pop-shake/60 hover:text-brand-pop-shake hover:border-brand-pop-shake hover:bg-brand-pop-shake/5 h-10 px-3 text-xs gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Nova
+                  </Button>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -580,7 +630,42 @@ export default function Storefront() {
 
         {/* Product sections by category */}
         <div className="space-y-10">
-          {categories.map((cat, catIndex) => {
+          {loading && products.length === 0 ? (
+            /* Skeleton Loading Grid */
+            <div className="space-y-8" aria-label="Carregando cardápio">
+              {[1, 2].map((sec) => (
+                <div key={sec} className="space-y-4">
+                  <div className="h-6 w-48 rounded-md skeleton-light" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="h-64 rounded-2xl skeleton-light" />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : fetchError && products.length === 0 ? (
+            /* Error Fallback with Retry Button */
+            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+              <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center mb-4">
+                <AlertCircle className="w-7 h-7" />
+              </div>
+              <h3 className="font-heading font-bold text-lg text-foreground mb-1">
+                Não foi possível carregar o cardápio
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-md mb-6">
+                {fetchError}
+              </p>
+              <Button
+                onClick={fetchData}
+                className="bg-brand-folha-acai hover:bg-brand-folha-acai-dk text-white rounded-full px-6 py-2 gap-2 text-sm font-semibold"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Tentar novamente
+              </Button>
+            </div>
+          ) : (
+            categories.map((cat, catIndex) => {
             // Se tiver uma categoria ativa e não for essa, esconde
             if (activeCategory && activeCategory !== cat.id) return null;
 
@@ -684,7 +769,7 @@ export default function Storefront() {
                 </div>
               </section>
             );
-          })}
+          }))}
 
           {/* Empty state when searching */}
           {search && filteredProducts.length === 0 && (
@@ -737,6 +822,11 @@ export default function Storefront() {
           </Link>
         </div>
       )}
+
+      {/* ─────────────────────────────────────────
+          RODAPÉ INSTITUCIONAL
+      ───────────────────────────────────────── */}
+      <Footer />
 
       {/* ─────────────────────────────────────────
           BOTTOM NAV (mobile only)

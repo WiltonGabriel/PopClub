@@ -33,6 +33,7 @@ export interface Order {
   status: OrderStatus;
   subtotal?: number;
   discount_amount?: number;
+  delivery_fee?: number;
   total_amount: number;
   payment_method_type?: string;
   payment_change_for?: number | null;
@@ -76,9 +77,11 @@ export interface CheckoutPayload {
 
 export const orderService = {
   async getMyOrders(): Promise<Order[]> {
-    const res = await fetch("/api/orders");
+    const res = await fetch("/api/orders", {
+      signal: AbortSignal.timeout(10000),
+    });
     if (!res.ok) {
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       throw new Error(data.error || "Erro ao buscar seus pedidos.");
     }
     return await res.json();
@@ -89,9 +92,11 @@ export const orderService = {
   },
 
   async getAllOrders(): Promise<Order[]> {
-    const res = await fetch("/api/orders?all=true");
+    const res = await fetch("/api/orders?all=true", {
+      signal: AbortSignal.timeout(10000),
+    });
     if (!res.ok) {
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       throw new Error(data.error || "Erro ao listar todos os pedidos.");
     }
     return await res.json();
@@ -102,9 +107,10 @@ export const orderService = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15000),
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       throw new Error(data.error || "Erro ao finalizar pedido.");
     }

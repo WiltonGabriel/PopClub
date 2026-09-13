@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
     if (user) {
       await prisma.user.update({
-        where: { email: cleanEmail },
+        where: { id: user.id },
         data: {
           resetCode,
           resetCodeExpires,

@@ -35,18 +35,22 @@ export interface Promotion {
 
 export const promotionService = {
   async getActivePromotions(): Promise<Promotion[]> {
-    const res = await fetch("/api/promotions");
+    const res = await fetch("/api/promotions", {
+      signal: AbortSignal.timeout(10000),
+    });
     if (!res.ok) {
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       throw new Error(data.error || "Erro ao carregar promoções.");
     }
     return await res.json();
   },
 
   async getAllPromotions(): Promise<Promotion[]> {
-    const res = await fetch("/api/promotions?all=true");
+    const res = await fetch("/api/promotions?all=true", {
+      signal: AbortSignal.timeout(10000),
+    });
     if (!res.ok) {
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       throw new Error(data.error || "Erro ao carregar todas as promoções.");
     }
     return await res.json();

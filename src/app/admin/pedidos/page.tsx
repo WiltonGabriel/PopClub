@@ -21,11 +21,8 @@ import {
   DollarSign,
   Maximize2,
   Minimize2,
-  ReceiptText,
   RotateCcw,
   Sparkles,
-  ArrowRight,
-  ArrowLeft,
   FileText,
   BarChart3,
 } from "lucide-react";
@@ -36,6 +33,7 @@ import { subscribeToOrderEvents } from "../../../lib/orderEvents";
 import { Button } from "../../../components/ui/button";
 import { OrderCancelDialog } from "../../../components/admin/OrderCancelDialog";
 import { OrderDetailDrawer } from "../../../components/admin/OrderDetailDrawer";
+import { StockControlSection } from "../../../components/admin/StockControlSection";
 import { useToast } from "../../../components/ui/ToastNotification";
 
 export default function AdminPedidosPage() {
@@ -287,7 +285,7 @@ export default function AdminPedidosPage() {
     if (!clean || clean.length < 10) return null;
     const full = clean.startsWith("55") ? clean : `55${clean}`;
     const shortCode = orderId ? `#${orderId.substring(0, 6)}` : "";
-    const msg = encodeURIComponent(`Olá ${clientName || ""}! Aqui é da PopClub referente ao seu pedido ${shortCode}.`);
+    const msg = encodeURIComponent(`Olá ${clientName || ""}! Aqui é da Pop Shake Sorveteria referente ao seu pedido ${shortCode}.`);
     return `https://wa.me/${full}?text=${msg}`;
   };
 
@@ -298,6 +296,20 @@ export default function AdminPedidosPage() {
     .filter((o) => o.status !== "cancelled")
     .reduce((acc, o) => acc + Number(o.total_amount), 0);
   const activeOrders = orders.filter((o) => !["completed", "cancelled"].includes(o.status));
+
+  // Contagem de saídas recentes / itens em preparo ativo no quadro
+  const activeDemandMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    activeOrders.forEach((order) => {
+      order.items?.forEach((item) => {
+        const pid = item.product_id || item.product?.id;
+        if (pid) {
+          map[pid] = (map[pid] || 0) + (item.quantity || 1);
+        }
+      });
+    });
+    return map;
+  }, [activeOrders]);
   const cancelledOrders = orders.filter((o) => o.status === "cancelled");
 
   // Badge inteligente de tempo decorrido
@@ -816,10 +828,10 @@ export default function AdminPedidosPage() {
                 backgroundClip: "text",
               }}
             >
-              Club
+              Shake
             </span>
             <span className="ml-1 text-xs font-bold px-2 py-0.5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20">
-              Cozinha & Delivery
+              Sorveteria • Cozinha & Delivery
             </span>
           </Link>
         </div>
@@ -832,15 +844,6 @@ export default function AdminPedidosPage() {
           >
             <BarChart3 className="w-4 h-4 text-[#9306CF]" />
             <span className="hidden sm:inline">Painel Operacional</span>
-          </Link>
-
-          {/* Link para Meus Pedidos (Cliente) */}
-          <Link
-            href="/pedidos"
-            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-          >
-            <ReceiptText className="w-4 h-4 text-[#9306CF]" />
-            <span className="hidden sm:inline">Meus Pedidos</span>
           </Link>
 
           {/* Link para Página Inicial */}
@@ -980,6 +983,9 @@ export default function AdminPedidosPage() {
           {renderKanbanColumn("Concluídos", ["completed"], "#10B981")}
           {renderKanbanColumn("Cancelados", ["cancelled"], "#EF4444", true)}
         </section>
+
+        {/* Seção Dedicada: Controle Rápido de Estoque & Itens à Venda */}
+        <StockControlSection activeDemandMap={activeDemandMap} />
       </main>
 
       {/* Gaveta / Drawer Lateral com a Ficha Completa do Pedido */}

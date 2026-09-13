@@ -24,6 +24,7 @@ import { categoryService, Category } from "../../services/categoryService";
 import { ProductCard } from "../../components/storefront/ProductCard";
 import { CartDrawer } from "../../components/storefront/CartDrawer";
 import { SearchAutocomplete } from "../../components/storefront/SearchAutocomplete";
+import { Footer } from "../../components/storefront/Footer";
 import { useCart } from "../../hooks/useCart";
 import { useTheme } from "../../contexts/ThemeContext";
 import { Button } from "../../components/ui/button";
@@ -164,6 +165,12 @@ function SearchContent() {
   }, [products, searchTerm, selectedCategories, minPrice, maxPrice, sortBy]);
 
   const handleAddToCart = (product: Product) => {
+    if (
+      product.isAvailable === false ||
+      (product.stock !== undefined && product.stock !== null && product.stock <= 0)
+    ) {
+      return;
+    }
     addItem({
       productId: product.id,
       name: product.name,
@@ -202,6 +209,9 @@ function SearchContent() {
               >
                 Shake
               </span>
+              <span className="ml-1 text-xs font-bold px-2 py-0.5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20">
+                Sorveteria
+              </span>
             </Link>
           </div>
 
@@ -211,7 +221,7 @@ function SearchContent() {
               products={products}
               initialValue={searchTerm}
               onNavigateToResults={(q) => handleUpdateSearchTerm(q)}
-              placeholder="Buscar açaí puro batido na hora, pop shakes..."
+              placeholder="Buscar..."
             />
           </div>
 
@@ -446,6 +456,9 @@ function SearchContent() {
           </div>
         </div>
       </main>
+
+      {/* Rodapé Institucional */}
+      <Footer />
 
       {/* Cart Drawer */}
       <CartDrawer open={cartDrawerOpen} onClose={() => setCartDrawerOpen(false)} />

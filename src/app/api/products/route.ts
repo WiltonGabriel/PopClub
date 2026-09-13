@@ -21,6 +21,8 @@ export async function GET() {
       categoryId: p.categoryId,
       category: p.categoryRel?.name || p.category || "Outros",
       imageUrl: p.imageUrl || "",
+      stock: p.stock,
+      isAvailable: p.isAvailable,
     }));
 
     return NextResponse.json(formatted);
@@ -43,11 +45,13 @@ export async function POST(request: Request) {
     } catch {
       return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
     }
-    const { name, description, price, categoryId, category, imageUrl } = body || {};
+    const { name, description, price, categoryId, category, imageUrl, stock, isAvailable } = body || {};
 
     if (!name || price === undefined) {
       return NextResponse.json({ error: "Nome e preço são obrigatórios." }, { status: 400 });
     }
+
+    const parsedStock = stock !== undefined && stock !== null && stock !== "" ? Number(stock) : null;
 
     const product = await prisma.product.create({
       data: {
@@ -57,6 +61,8 @@ export async function POST(request: Request) {
         categoryId: categoryId || null,
         category: category || null,
         imageUrl: imageUrl || null,
+        stock: parsedStock !== null && !isNaN(parsedStock) ? Math.max(0, parsedStock) : null,
+        isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : true,
       },
       include: {
         categoryRel: { select: { name: true } },
@@ -71,6 +77,8 @@ export async function POST(request: Request) {
       categoryId: product.categoryId,
       category: product.categoryRel?.name || product.category || "Outros",
       imageUrl: product.imageUrl || "",
+      stock: product.stock,
+      isAvailable: product.isAvailable,
     });
   } catch (error: any) {
     console.error("Erro ao criar produto:", error);

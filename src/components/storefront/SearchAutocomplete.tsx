@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+
 import { Search, X, ArrowRight, ShoppingBag, Check, IceCream } from "lucide-react";
 import { Product } from "../../services/productService";
 import { useCart } from "../../hooks/useCart";
@@ -22,7 +22,7 @@ interface SearchAutocompleteProps {
 export function SearchAutocomplete({
   products,
   initialValue = "",
-  placeholder = "Buscar açaí puro batido na hora, pop shakes, coberturas...",
+  placeholder = "Buscar...",
   className = "",
   inputClassName = "",
   onSelectProduct,

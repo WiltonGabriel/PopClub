@@ -18,9 +18,15 @@ import {
   UtensilsCrossed,
   Ticket,
   Percent,
+  BarChart3,
+  Image as ImageIcon,
+  Zap,
+  Pencil,
+  Truck,
 } from "lucide-react";
 import { orderService, Order } from "../../services/orderService";
 import { promotionService, Promotion } from "../../services/promotionService";
+import { bannerService, HighlightBannerData } from "../../services/bannerService";
 import { authService } from "../../services/authService";
 import { playNewOrderChime } from "../../lib/sound";
 import { subscribeToOrderEvents } from "../../lib/orderEvents";
@@ -28,18 +34,27 @@ import { useRouter } from "next/navigation";
 import { Button } from "../../components/ui/button";
 import { PromotionFormDialog } from "../../components/admin/PromotionFormDialog";
 import { ComboFormDialog } from "../../components/admin/ComboFormDialog";
+import { EditBannerModal } from "../../components/admin/EditBannerModal";
 import { CouponManagement } from "../../components/admin/CouponManagement";
 import { AnalyticsDashboard } from "../../components/admin/AnalyticsDashboard";
+import { DeliveryFeeSettings } from "../../components/admin/DeliveryFeeSettings";
 
 export default function AdminDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [highlightBanner, setHighlightBanner] = useState<HighlightBannerData>({
+    icon: "🥣",
+    title: "Monte do seu jeito: escolha o tamanho e adicione seus acompanhamentos favoritos",
+    subtitle: "Açaí puro batido na hora, cremoso e com acompanhamentos à sua escolha.",
+    badge: "Refrescância Artesanal",
+  });
   const [fetching, setFetching] = useState(true);
-  const [activeTab, setActiveTab] = useState<"combos" | "promotions" | "coupons">("combos");
+  const [activeTab, setActiveTab] = useState<"metrics" | "combos" | "promotions" | "banners" | "coupons" | "delivery">("metrics");
   const [promoDialogOpen, setPromoDialogOpen] = useState(false);
   const [promoToEdit, setPromoToEdit] = useState<Promotion | null>(null);
   const [comboDialogOpen, setComboDialogOpen] = useState(false);
   const [comboToEdit, setComboToEdit] = useState<Promotion | null>(null);
+  const [editBannerModalOpen, setEditBannerModalOpen] = useState(false);
   const previousOrderCountRef = useRef(0);
 
   const router = useRouter();
@@ -68,11 +83,22 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  const fetchBanner = useCallback(async () => {
+    try {
+      const banner = await bannerService.getHighlightBanner();
+      if (banner) {
+        setHighlightBanner(banner);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar banner de destaque:", error);
+    }
+  }, []);
+
   const loadAll = useCallback(async () => {
     setFetching(true);
-    await Promise.all([fetchOrders(), fetchPromos()]);
+    await Promise.all([fetchOrders(), fetchPromos(), fetchBanner()]);
     setFetching(false);
-  }, [fetchOrders, fetchPromos]);
+  }, [fetchOrders, fetchPromos, fetchBanner]);
 
   useEffect(() => {
     loadAll();
@@ -135,10 +161,10 @@ export default function AdminDashboard() {
                 backgroundClip: "text",
               }}
             >
-              Club
+              Shake
             </span>
             <span className="ml-1 text-xs font-bold px-2 py-0.5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20">
-              Gestão
+              Sorveteria • Gestão
             </span>
           </Link>
         </div>
@@ -241,7 +267,12 @@ export default function AdminDashboard() {
                       order.delivery_address?.street.toLowerCase().includes("retirada");
 
                     const diffMins = Math.max(0, Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000));
-                    const timeStr = diffMins < 1 ? "Agora" : `${diffMins} min`;
+                    const timeStr =
+                      diffMins < 1
+                        ? "Agora"
+                        : diffMins >= 60
+                        ? `${Math.floor(diffMins / 60)}h ${diffMins % 60}m`
+                        : `${diffMins} min`;
 
                     let statusBadge = { label: "Novo", color: "bg-[#9306CF]/10 text-[#9306CF] border-[#9306CF]/20" };
                     if (order.status === "preparing") {
@@ -299,35 +330,45 @@ export default function AdminDashboard() {
           );
         })()}
 
-        {/* Dashboard Analítico com Métricas e Gráficos */}
-        <AnalyticsDashboard orders={orders} loading={fetching} />
-
-        {/* Gestão Modular: Combos vs. Promoções & Banners vs. Cupons de Desconto */}
+        {/* Navegação por Abas Principais (Posicionada Logo Abaixo da Mini Esteira) */}
         {(() => {
           const combos = promotions.filter((p) => p.items && p.items.length >= 2);
-          const promoBanners = promotions.filter((p) => !p.items || p.items.length < 2);
+          const bannerPromos = promotions.filter((p) => Boolean(p.bannerImageUrl));
+          const directPromos = promotions.filter((p) => !p.bannerImageUrl && (!p.items || p.items.length < 2));
 
           return (
-            <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 sm:p-6 shadow-sm space-y-6">
-              {/* Barra de Navegação por Abas */}
-              <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 dark:border-[#512B54]/30 pb-3">
+            <div className="space-y-6">
+              {/* Barra de Abas */}
+              <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl shadow-xs">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("metrics")}
+                  className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
+                    activeTab === "metrics"
+                      ? "bg-[#9306CF] text-white shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  <span>📊 Métricas & Desempenho</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => setActiveTab("combos")}
-                  className={`
-                    flex items-center gap-2 px-4 py-2.5 rounded-xl font-heading text-xs uppercase tracking-wider font-bold transition-all cursor-pointer
-                    ${
-                      activeTab === "combos"
-                        ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white shadow-sm shadow-[#9306CF]/20"
-                        : "bg-gray-50 dark:bg-[#190B1A] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"
-                    }
-                  `}
+                  className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
+                    activeTab === "combos"
+                      ? "bg-[#9306CF] text-white shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                  }`}
                 >
-                  <UtensilsCrossed className="w-4 h-4" />
-                  <span>Combos de Produtos</span>
+                  <Zap className="w-4 h-4" />
+                  <span>⚡ Combos</span>
                   <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
-                      activeTab === "combos" ? "bg-white/20 text-white" : "bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-gray-400"
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                      activeTab === "combos"
+                        ? "bg-white/20 text-white"
+                        : "bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-gray-300"
                     }`}
                   >
                     {combos.length}
@@ -337,51 +378,89 @@ export default function AdminDashboard() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("promotions")}
-                  className={`
-                    flex items-center gap-2 px-4 py-2.5 rounded-xl font-heading text-xs uppercase tracking-wider font-bold transition-all cursor-pointer
-                    ${
-                      activeTab === "promotions"
-                        ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white shadow-sm shadow-[#9306CF]/20"
-                        : "bg-gray-50 dark:bg-[#190B1A] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"
-                    }
-                  `}
+                  className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
+                    activeTab === "promotions"
+                      ? "bg-[#9306CF] text-white shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                  }`}
                 >
                   <Tag className="w-4 h-4" />
-                  <span>Promoções & Banners</span>
+                  <span>🏷️ Promoções</span>
                   <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
-                      activeTab === "promotions" ? "bg-white/20 text-white" : "bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-gray-400"
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                      activeTab === "promotions"
+                        ? "bg-white/20 text-white"
+                        : "bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-gray-300"
                     }`}
                   >
-                    {promoBanners.length}
+                    {directPromos.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("banners")}
+                  className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
+                    activeTab === "banners"
+                      ? "bg-[#9306CF] text-white shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                  }`}
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  <span>🖼️ Banners</span>
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                      activeTab === "banners"
+                        ? "bg-white/20 text-white"
+                        : "bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-gray-300"
+                    }`}
+                  >
+                    {bannerPromos.length + 1}
                   </span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setActiveTab("coupons")}
-                  className={`
-                    flex items-center gap-2 px-4 py-2.5 rounded-xl font-heading text-xs uppercase tracking-wider font-bold transition-all cursor-pointer
-                    ${
-                      activeTab === "coupons"
-                        ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white shadow-sm shadow-[#9306CF]/20"
-                        : "bg-gray-50 dark:bg-[#190B1A] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"
-                    }
-                  `}
+                  className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
+                    activeTab === "coupons"
+                      ? "bg-[#9306CF] text-white shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                  }`}
                 >
                   <Ticket className="w-4 h-4" />
-                  <span>Cupons de Desconto</span>
+                  <span>🎟️ Cupons</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("delivery")}
+                  className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
+                    activeTab === "delivery"
+                      ? "bg-[#9306CF] text-white shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                  }`}
+                >
+                  <Truck className="w-4 h-4" />
+                  <span>🛵 Entrega & WhatsApp</span>
                 </button>
               </div>
 
-              {/* ABA 1: COMBOS DE PRODUTOS */}
+              {/* CONTEÚDO DA ABA 1: MÉTRICAS & DESEMPENHO */}
+              {activeTab === "metrics" && (
+                <div className="animate-in fade-in duration-150">
+                  <AnalyticsDashboard orders={orders} loading={fetching} />
+                </div>
+              )}
+
+              {/* CONTEÚDO DA ABA 2: COMBOS */}
               {activeTab === "combos" && (
-                <div className="space-y-6 animate-in fade-in duration-150">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 sm:p-7 shadow-sm space-y-6 animate-in fade-in duration-150">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-[#512B54]/30">
                     <div>
                       <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-[#4C264F] dark:text-[#F9F5F9]">
-                        <UtensilsCrossed className="w-5 h-5 text-[#9306CF]" />
-                        Combos & Ofertas Casadas
+                        <Zap className="w-5 h-5 text-[#9306CF]" />
+                        Combos & Kits Especiais
                       </h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         Gerencie a montagem e precificação de combos que agrupam dois ou mais produtos com desconto automático.
@@ -393,23 +472,26 @@ export default function AdminDashboard() {
                         setComboToEdit(null);
                         setComboDialogOpen(true);
                       }}
-                      className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-4 shadow-md shadow-[#9306CF]/20"
+                      className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-5 shadow-md shadow-[#9306CF]/20 cursor-pointer"
                     >
                       <Plus className="w-4 h-4" /> Novo Combo
                     </Button>
                   </div>
 
                   {combos.length === 0 ? (
-                    <div className="p-8 text-center border border-dashed border-gray-200 dark:border-[#512B54]/40 rounded-2xl space-y-3">
-                      <div className="w-12 h-12 rounded-full bg-purple-50 dark:bg-purple-950/40 text-[#9306CF] flex items-center justify-center mx-auto text-xl">
-                        🍔
+                    <div className="p-10 text-center border border-dashed border-gray-200 dark:border-[#512B54]/40 rounded-2xl space-y-3 bg-gray-50/50 dark:bg-[#190B1A]/40">
+                      <div className="w-14 h-14 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-[#9306CF] flex items-center justify-center mx-auto text-2xl">
+                        ⚡
                       </div>
+                      <h4 className="font-heading font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9]">
+                        Nenhum combo cadastrado ainda
+                      </h4>
                       <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-                        Nenhum combo cadastrado ainda. Clique em &ldquo;Novo Combo&rdquo; para agrupar produtos (ex: Açaí + Milk-Shake) com preço promocional.
+                        Clique em &ldquo;Novo Combo&rdquo; para criar kits promocionais (ex: Açaí + Pop Shake) com precificação especial para seus clientes.
                       </p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                       {combos.map((combo) => {
                         const originalTotal = combo.originalTotal || combo.items?.reduce((s, it) => s + Number(it.product.price) * it.quantity, 0) || 0;
                         const finalPrice = combo.finalPrice || originalTotal;
@@ -418,7 +500,7 @@ export default function AdminDashboard() {
                         return (
                           <div
                             key={combo.id}
-                            className="bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-[#9306CF]/50 transition-colors"
+                            className="bg-gray-50/80 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-[#9306CF]/50 transition-all"
                           >
                             <div
                               className="h-1.5 w-full absolute top-0 left-0"
@@ -427,12 +509,12 @@ export default function AdminDashboard() {
                               }}
                             />
 
-                            <div className="space-y-3 pt-1">
-                              <div className="flex justify-between items-start">
-                                <span className="bg-purple-100 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border border-purple-200/50">
+                            <div className="space-y-3.5 pt-1">
+                              <div className="flex justify-between items-start gap-2">
+                                <span className="bg-purple-100 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg border border-purple-200/60 shadow-xs">
                                   {combo.badge}
                                 </span>
-                                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded-md border border-emerald-200/50">
                                   {combo.discountType === "percentage"
                                     ? `${combo.discountValue}% OFF`
                                     : `Economize R$ ${savings.toFixed(2).replace(".", ",")}`}
@@ -451,15 +533,15 @@ export default function AdminDashboard() {
                               </div>
 
                               {/* Itens do Combo */}
-                              <div className="space-y-1.5 bg-white dark:bg-[#200B22] rounded-xl p-2.5 border border-gray-200 dark:border-[#512B54]/30">
+                              <div className="space-y-2 bg-white dark:bg-[#200B22] rounded-xl p-3 border border-gray-200 dark:border-[#512B54]/30">
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
                                   Itens Inclusos ({combo.items?.length || 0}):
                                 </span>
-                                <div className="flex flex-wrap gap-1">
+                                <div className="flex flex-wrap gap-1.5">
                                   {combo.items?.map((it) => (
                                     <span
                                       key={it.id}
-                                      className="text-[11px] font-semibold bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded-md"
+                                      className="text-[11px] font-semibold bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-lg"
                                     >
                                       {it.quantity}x {it.product.name}
                                     </span>
@@ -478,7 +560,7 @@ export default function AdminDashboard() {
                                   R$ {finalPrice.toFixed(2).replace(".", ",")}
                                 </span>
                                 {savings > 0 && (
-                                  <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400">
+                                  <span className="text-[11px] font-bold text-purple-600 dark:text-purple-400">
                                     (-R$ {savings.toFixed(2).replace(".", ",")})
                                   </span>
                                 )}
@@ -486,10 +568,10 @@ export default function AdminDashboard() {
                             </div>
 
                             {/* Ações */}
-                            <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-200 dark:border-[#512B54]/30">
+                            <div className="flex justify-between items-center mt-5 pt-3.5 border-t border-gray-200 dark:border-[#512B54]/30">
                               <Link
                                 href={`/promo/${combo.id}`}
-                                className="text-xs font-semibold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1"
+                                className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1"
                               >
                                 Ver Página <ChevronRight className="w-3.5 h-3.5" />
                               </Link>
@@ -501,7 +583,7 @@ export default function AdminDashboard() {
                                     setComboToEdit(combo);
                                     setComboDialogOpen(true);
                                   }}
-                                  className="p-1.5 text-[#9306CF] hover:bg-[#9306CF]/10 rounded-lg transition-colors"
+                                  className="p-2 text-[#9306CF] hover:bg-[#9306CF]/10 rounded-xl transition-colors cursor-pointer"
                                   title="Editar Combo"
                                 >
                                   <Edit2 className="w-4 h-4" />
@@ -509,7 +591,7 @@ export default function AdminDashboard() {
                                 <button
                                   type="button"
                                   onClick={() => handleDeletePromo(combo.id)}
-                                  className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
+                                  className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors cursor-pointer"
                                   title="Excluir Combo"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -521,20 +603,20 @@ export default function AdminDashboard() {
                       })}
                     </div>
                   )}
-                </div>
+                </section>
               )}
 
-              {/* ABA 2: PROMOÇÕES & BANNERS */}
+              {/* CONTEÚDO DA ABA 3: PROMOÇÕES (Descontos diretos e ofertas relâmpago) */}
               {activeTab === "promotions" && (
-                <div className="space-y-6 animate-in fade-in duration-150">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 sm:p-7 shadow-sm space-y-6 animate-in fade-in duration-150">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-[#512B54]/30">
                     <div>
                       <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-[#4C264F] dark:text-[#F9F5F9]">
                         <Tag className="w-5 h-5 text-[#9306CF]" />
-                        Promoções, Destaques & Banners
+                        Promoções do Cardápio & Ofertas Relâmpago
                       </h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Crie e gerencie banners visuais, gradientes, destaques de campanha e faixas promocionais para a vitrine.
+                        Gerencie descontos diretos em produtos específicos do catálogo e campanhas relâmpago de vendas.
                       </p>
                     </div>
 
@@ -543,72 +625,86 @@ export default function AdminDashboard() {
                         setPromoToEdit(null);
                         setPromoDialogOpen(true);
                       }}
-                      className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-4 shadow-md shadow-[#9306CF]/20"
+                      className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-5 shadow-md shadow-[#9306CF]/20 cursor-pointer"
                     >
-                      <Plus className="w-4 h-4" /> Nova Promoção / Banner
+                      <Plus className="w-4 h-4" /> Nova Promoção
                     </Button>
                   </div>
 
-                  {promoBanners.length === 0 ? (
-                    <div className="p-8 text-center border border-dashed border-gray-200 dark:border-[#512B54]/40 rounded-2xl space-y-3">
-                      <div className="w-12 h-12 rounded-full bg-purple-50 dark:bg-purple-950/40 text-[#9306CF] flex items-center justify-center mx-auto text-xl">
+                  {directPromos.length === 0 ? (
+                    <div className="p-10 text-center border border-dashed border-gray-200 dark:border-[#512B54]/40 rounded-2xl space-y-3 bg-gray-50/50 dark:bg-[#190B1A]/40">
+                      <div className="w-14 h-14 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-[#9306CF] flex items-center justify-center mx-auto text-2xl">
                         🏷️
                       </div>
+                      <h4 className="font-heading font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9]">
+                        Nenhuma promoção de item ativa
+                      </h4>
                       <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-                        Nenhum banner ou destaque cadastrado. Clique em &ldquo;Nova Promoção / Banner&rdquo; para criar um visual para a vitrine.
+                        Crie descontos direcionados para itens do cardápio e ofertas relâmpago para estimular as vendas na vitrine.
                       </p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {promoBanners.map((promo) => (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                      {directPromos.map((promo) => (
                         <div
                           key={promo.id}
-                          className="bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-[#9306CF]/50 transition-colors"
+                          className="bg-gray-50/80 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-[#9306CF]/50 transition-all"
                         >
                           <div
-                            className="h-2 w-full absolute top-0 left-0"
+                            className="h-1.5 w-full absolute top-0 left-0"
                             style={{
-                              background: `linear-gradient(to right, ${promo.gradientStart}, ${promo.gradientEnd})`,
+                              background: `linear-gradient(to right, ${promo.gradientStart || "#9306CF"}, ${promo.gradientEnd || "#940068"})`,
                             }}
                           />
 
-                          <div>
-                            <div className="flex justify-between items-start mt-2 mb-2">
-                              <span className="bg-white dark:bg-white/10 text-[#4C264F] dark:text-[#F9F5F9] text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border border-gray-200 dark:border-white/10">
-                                {promo.badge}
+                          <div className="space-y-3 pt-1">
+                            <div className="flex justify-between items-start gap-2">
+                              <span className="bg-purple-100 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg border border-purple-200/60 shadow-xs">
+                                {promo.badge || "OFERTA"}
                               </span>
-                              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-lg border border-emerald-200/50">
                                 {promo.discountType === "percentage"
                                   ? `${promo.discountValue}% OFF`
                                   : `R$ ${promo.discountValue.toFixed(2)} OFF`}
                               </span>
                             </div>
 
-                            <h4 className="font-heading font-bold text-lg leading-snug text-[#4C264F] dark:text-[#F9F5F9]">
-                              {promo.title}
-                            </h4>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1 font-sans">
-                              {promo.description}
-                            </p>
+                            <div>
+                              <h4 className="font-heading font-bold text-base leading-snug text-[#4C264F] dark:text-[#F9F5F9]">
+                                {promo.title}
+                              </h4>
+                              {promo.description && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1">
+                                  {promo.description}
+                                </p>
+                              )}
+                            </div>
 
-                            {promo.bannerImageUrl && (
-                              <div className="mt-3 h-24 rounded-xl overflow-hidden bg-gray-200 dark:bg-white/10 border border-gray-200 dark:border-[#512B54]/30">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={promo.bannerImageUrl}
-                                  alt={promo.title}
-                                  className="w-full h-full object-cover"
-                                />
+                            {promo.items && promo.items.length > 0 && (
+                              <div className="space-y-1.5 bg-white dark:bg-[#200B22] rounded-xl p-3 border border-gray-200 dark:border-[#512B54]/30">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
+                                  Produtos com Desconto ({promo.items.length}):
+                                </span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {promo.items.map((it) => (
+                                    <span
+                                      key={it.id}
+                                      className="text-[11px] font-semibold bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-lg"
+                                    >
+                                      {it.product.name}
+                                    </span>
+                                  ))}
+                                </div>
                               </div>
                             )}
                           </div>
 
-                          <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-200 dark:border-[#512B54]/30">
+                          <div className="flex justify-between items-center mt-5 pt-3.5 border-t border-gray-200 dark:border-[#512B54]/30">
                             <Link
                               href={`/promo/${promo.id}`}
-                              className="text-xs font-semibold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1"
+                              className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1"
                             >
-                              Ver Página <ChevronRight className="w-3.5 h-3.5" />
+                              Ver Detalhes <ChevronRight className="w-3.5 h-3.5" />
                             </Link>
 
                             <div className="flex gap-1.5">
@@ -618,7 +714,7 @@ export default function AdminDashboard() {
                                   setPromoToEdit(promo);
                                   setPromoDialogOpen(true);
                                 }}
-                                className="p-1.5 text-[#9306CF] hover:bg-[#9306CF]/10 rounded-lg transition-colors"
+                                className="p-2 text-[#9306CF] hover:bg-[#9306CF]/10 rounded-xl transition-colors cursor-pointer"
                                 title="Editar Promoção"
                               >
                                 <Edit2 className="w-4 h-4" />
@@ -626,7 +722,7 @@ export default function AdminDashboard() {
                               <button
                                 type="button"
                                 onClick={() => handleDeletePromo(promo.id)}
-                                className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
+                                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors cursor-pointer"
                                 title="Excluir Promoção"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -637,16 +733,185 @@ export default function AdminDashboard() {
                       ))}
                     </div>
                   )}
-                </div>
+                </section>
               )}
 
-              {/* ABA 3: CUPONS DE DESCONTO */}
+              {/* CONTEÚDO DA ABA 4: BANNERS (Faixas e Carrossel da Vitrine) */}
+              {activeTab === "banners" && (
+                <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 sm:p-7 shadow-sm space-y-8 animate-in fade-in duration-150">
+                  {/* SEÇÃO 1: Faixa de Destaque da Vitrine (Home Banner) */}
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+                      <div>
+                        <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-[#4C264F] dark:text-[#F9F5F9]">
+                          <Sparkles className="w-5 h-5 text-[#9306CF]" />
+                          Faixa de Destaque da Vitrine (Home)
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          Mensagem de apelo comercial fixada entre o carrossel de ofertas e o catálogo principal na página inicial.
+                        </p>
+                      </div>
+
+                      <Button
+                        onClick={() => setEditBannerModalOpen(true)}
+                        className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-10 px-4 shadow-md shadow-[#9306CF]/20 cursor-pointer"
+                      >
+                        <Pencil className="w-3.5 h-3.5" /> Editar Faixa
+                      </Button>
+                    </div>
+
+                    {/* Preview da Faixa */}
+                    <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#9306CF]/10 via-[#940068]/10 to-[#10B981]/10 border border-[#9306CF]/20 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left shadow-xs">
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <span className="text-3xl sm:text-4xl shrink-0">{highlightBanner.icon || "🥣"}</span>
+                        <div className="min-w-0">
+                          <p className="font-heading font-bold text-sm sm:text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                            {highlightBanner.title || "Monte do seu jeito: escolha o tamanho e adicione seus acompanhamentos favoritos"}
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                            {highlightBanner.subtitle || "Açaí puro batido na hora, cremoso e com acompanhamentos à sua escolha."}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[11px] font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-full bg-white dark:bg-[#1A0B1C] text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/25 shadow-xs">
+                          {highlightBanner.badge || "Refrescância Artesanal"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SEÇÃO 2: Carrossel do Topo (Banners Rotativos) */}
+                  <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-[#512B54]/30">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-[#4C264F] dark:text-[#F9F5F9]">
+                          <ImageIcon className="w-5 h-5 text-[#9306CF]" />
+                          Carrossel do Topo (Banners Rotativos)
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          Cards visuais com imagens de capa, gradientes e artes promocionais exibidos no topo da loja.
+                        </p>
+                      </div>
+
+                      <Button
+                        onClick={() => {
+                          setPromoToEdit(null);
+                          setPromoDialogOpen(true);
+                        }}
+                        className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-10 px-4 shadow-md shadow-[#9306CF]/20 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Novo Banner
+                      </Button>
+                    </div>
+
+                    {bannerPromos.length === 0 ? (
+                      <div className="p-8 text-center border border-dashed border-gray-200 dark:border-[#512B54]/40 rounded-2xl space-y-2 bg-gray-50/50 dark:bg-[#190B1A]/40">
+                        <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Nenhum banner visual adicionado ao carrossel do topo.
+                        </p>
+                        <p className="text-[11px] text-gray-400">
+                          Clique em &ldquo;Novo Banner&rdquo; para fazer upload de artes com proporção ideal para a vitrine.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {bannerPromos.map((promo) => (
+                          <div
+                            key={promo.id}
+                            className="bg-gray-50/80 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-[#9306CF]/50 transition-all"
+                          >
+                            <div
+                              className="h-2 w-full absolute top-0 left-0"
+                              style={{
+                                background: `linear-gradient(to right, ${promo.gradientStart || "#9306CF"}, ${promo.gradientEnd || "#940068"})`,
+                              }}
+                            />
+
+                            <div>
+                              <div className="flex justify-between items-start mb-3 pt-1">
+                                <span className="bg-white dark:bg-white/10 text-[#4C264F] dark:text-[#F9F5F9] text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg border border-gray-200 dark:border-white/10">
+                                  {promo.badge || "DESTAQUE"}
+                                </span>
+                                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded-md">
+                                  {promo.discountType === "percentage"
+                                    ? `${promo.discountValue}% OFF`
+                                    : `R$ ${promo.discountValue.toFixed(2)} OFF`}
+                                </span>
+                              </div>
+
+                              <h4 className="font-heading font-bold text-base leading-snug text-[#4C264F] dark:text-[#F9F5F9]">
+                                {promo.title}
+                              </h4>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1">
+                                {promo.description}
+                              </p>
+
+                              {promo.bannerImageUrl && (
+                                <div className="mt-3.5 h-28 rounded-xl overflow-hidden bg-gray-200 dark:bg-white/10 border border-gray-200 dark:border-[#512B54]/30 shadow-xs">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={promo.bannerImageUrl}
+                                    alt={promo.title}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex justify-between items-center mt-5 pt-3.5 border-t border-gray-200 dark:border-[#512B54]/30">
+                              <Link
+                                href={`/promo/${promo.id}`}
+                                className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1"
+                              >
+                                Ver Página <ChevronRight className="w-3.5 h-3.5" />
+                              </Link>
+
+                              <div className="flex gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setPromoToEdit(promo);
+                                    setPromoDialogOpen(true);
+                                  }}
+                                  className="p-2 text-[#9306CF] hover:bg-[#9306CF]/10 rounded-xl transition-colors cursor-pointer"
+                                  title="Editar Banner"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeletePromo(promo.id)}
+                                  className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors cursor-pointer"
+                                  title="Excluir Banner"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {/* CONTEÚDO DA ABA 5: CUPONS */}
               {activeTab === "coupons" && (
                 <div className="animate-in fade-in duration-150">
                   <CouponManagement />
                 </div>
               )}
-            </section>
+
+              {/* CONTEÚDO DA ABA 6: TAXA DE ENTREGA */}
+              {activeTab === "delivery" && (
+                <div className="animate-in fade-in duration-150">
+                  <DeliveryFeeSettings />
+                </div>
+              )}
+            </div>
           );
         })()}
       </main>
@@ -665,6 +930,14 @@ export default function AdminDashboard() {
         onOpenChange={setComboDialogOpen}
         onSaved={fetchPromos}
         comboToEdit={comboToEdit}
+      />
+
+      {/* Modal Administrativo da Faixa de Destaque da Vitrine */}
+      <EditBannerModal
+        open={editBannerModalOpen}
+        onOpenChange={setEditBannerModalOpen}
+        currentBanner={highlightBanner}
+        onSaved={(updated) => setHighlightBanner(updated)}
       />
     </div>
   );

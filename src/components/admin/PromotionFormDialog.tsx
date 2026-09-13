@@ -196,307 +196,293 @@ export function PromotionFormDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[920px] w-full p-0 overflow-hidden bg-background border-border border-2 grid grid-cols-1 md:grid-cols-2 gap-0 rounded-none shadow-[12px_12px_0px_0px_rgba(147,6,207,0.3)]">
-          <div className="p-6 bg-card flex flex-col justify-between border-b md:border-b-0 md:border-r border-border">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Sparkles className="w-4 h-4 text-primary" />
-                <h4 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-                  Live Preview do Banner
-                </h4>
+        <DialogContent className="w-full max-w-3xl sm:max-w-3xl max-h-[88vh] overflow-y-auto overflow-x-hidden p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-white dark:bg-[#200B22] border border-gray-200 dark:border-[#512B54]/40 text-foreground shadow-2xl space-y-6">
+          <DialogHeader className="border-b border-gray-100 dark:border-[#512B54]/30 pb-4">
+            <DialogTitle className="text-xl sm:text-2xl font-heading font-black text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#9306CF]/10 dark:bg-[#9306CF]/20 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center shrink-0">
+                <Tag className="w-5 h-5" />
               </div>
+              <span>{promoToEdit ? "Editar Promoção / Oferta" : "Nova Promoção / Oferta Especial"}</span>
+            </DialogTitle>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Configure descontos diretos, ofertas relâmpago ou banners promocionais com destaque visual na vitrine.
+            </p>
+          </DialogHeader>
 
-              <div
-                className="w-full h-44 rounded-none border-2 border-border flex items-center p-6 relative overflow-hidden shadow-lg transition-all"
-                style={{
-                  background: `linear-gradient(to right, ${gradientStart}, ${gradientEnd})`,
-                }}
-              >
-                {bannerPreviewSrc && (
-                  <div className="absolute inset-0 z-0 opacity-25">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={bannerPreviewSrc}
-                      alt="Banner preview"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
+          {error && (
+            <div className="p-3.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-xl text-red-600 dark:text-red-300 text-xs sm:text-sm flex items-center gap-2.5 font-medium">
+              <span>{error}</span>
+            </div>
+          )}
 
-                <div className="z-10 max-w-[280px]">
-                  <span className="bg-background text-foreground text-[10px] font-mono uppercase px-2 py-1 tracking-widest mb-2 inline-block font-bold">
-                    {badge || "PROMO"}
-                  </span>
-                  <h3 className="font-heading text-2xl font-bold uppercase tracking-tight text-white leading-tight mb-1 truncate">
-                    {title || "Título da Promoção"}
-                  </h3>
-                  <p className="text-xs text-white/90 font-sans line-clamp-2">
-                    {description || "Descrição atrativa da promoção com o desconto..."}
-                  </p>
-                  <div className="mt-2 text-xs font-mono font-bold text-white bg-black/30 px-2 py-0.5 inline-block">
-                    {discountType === "percentage" ? `${discountValue || 0}% OFF` : `R$ ${discountValue || 0} OFF`}
-                  </div>
-                </div>
-
-                <div className="absolute -right-8 -bottom-8 opacity-20 pointer-events-none">
-                  <Tag className="w-40 h-40 text-white" />
-                </div>
-              </div>
+          {/* Live Preview do Banner da Promoção */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#9306CF]" />
+              <h4 className="font-mono text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold">
+                Pré-visualização do Destaque
+              </h4>
             </div>
 
-            <div className="mt-6 border-t border-border pt-4">
-              <h5 className="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-2">
-                Produtos Inclusos ({Object.keys(selectedProductIds).length})
-              </h5>
-              <div className="max-h-36 overflow-y-auto space-y-1.5 no-scrollbar text-xs font-mono">
-                {Object.keys(selectedProductIds).length === 0 ? (
-                  <p className="text-muted-foreground italic">Nenhum produto selecionado ainda.</p>
-                ) : (
-                  Object.entries(selectedProductIds).map(([pId, qty]) => {
-                    const p = availableProducts.find((item) => item.id === pId);
-                    return (
-                      <div key={pId} className="flex justify-between items-center bg-background p-2 border border-border">
-                        <span className="truncate flex-1">{p?.name || pId}</span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleQuantityChange(pId, qty - 1)}
-                            className="w-5 h-5 bg-muted flex items-center justify-center font-bold border border-border"
-                          >
-                            -
-                          </button>
-                          <span>{qty}x</span>
-                          <button
-                            type="button"
-                            onClick={() => handleQuantityChange(pId, qty + 1)}
-                            className="w-5 h-5 bg-muted flex items-center justify-center font-bold border border-border"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
+            <div
+              className="w-full h-40 sm:h-44 rounded-2xl flex items-center p-6 relative overflow-hidden shadow-md transition-all border border-white/10"
+              style={{
+                background: `linear-gradient(to right, ${gradientStart}, ${gradientEnd})`,
+              }}
+            >
+              {bannerPreviewSrc && (
+                <div className="absolute inset-0 z-0 opacity-30">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={bannerPreviewSrc}
+                    alt="Banner preview"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+
+              <div className="z-10 max-w-sm">
+                <span className="bg-white/90 dark:bg-[#190B1A]/90 text-gray-900 dark:text-gray-100 text-[10px] font-bold uppercase px-2.5 py-1 rounded-md tracking-wider mb-2 inline-block shadow-xs">
+                  {badge || "PROMO"}
+                </span>
+                <h3 className="font-heading text-xl sm:text-2xl font-black uppercase tracking-tight text-white leading-tight mb-1 truncate">
+                  {title || "Título da Promoção"}
+                </h3>
+                <p className="text-xs text-white/90 font-sans line-clamp-2">
+                  {description || "Descreva aqui as vantagens imperdíveis desta oferta especial..."}
+                </p>
+                <div className="mt-2 text-xs font-mono font-bold text-white bg-black/40 px-2.5 py-1 rounded-md inline-block backdrop-blur-xs">
+                  {discountType === "percentage" ? `${discountValue || 0}% OFF` : `R$ ${discountValue || 0} OFF`}
+                </div>
+              </div>
+
+              <div className="absolute -right-6 -bottom-6 opacity-20 pointer-events-none">
+                <Tag className="w-36 h-36 text-white" />
               </div>
             </div>
           </div>
 
-          <div className="p-6 overflow-y-auto max-h-[85vh]">
-            <DialogHeader className="mb-4">
-              <DialogTitle className="font-heading text-2xl uppercase tracking-tight">
-                {promoToEdit ? "Editar Promoção" : "Nova Promoção"}
-              </DialogTitle>
-            </DialogHeader>
-
-            {error && (
-              <div className="bg-destructive/10 border border-destructive text-destructive text-xs p-3 mb-4 font-mono">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2 space-y-1">
-                  <Label className="font-mono text-xs uppercase text-muted-foreground">Título</Label>
-                  <Input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Ex: Combo Galáctico"
-                    className="rounded-none border-2 border-border"
-                    required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="font-mono text-xs uppercase text-muted-foreground">Badge</Label>
-                  <Input
-                    value={badge}
-                    onChange={(e) => setBadge(e.target.value)}
-                    placeholder="Ex: 20% OFF"
-                    className="rounded-none border-2 border-border"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="font-mono text-xs uppercase text-muted-foreground">Descrição</Label>
-                <Input
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Ex: Açaí 700ml + Cupuaçu com 20% OFF!"
-                  className="rounded-none border-2 border-border"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="font-mono text-xs uppercase text-muted-foreground">Tipo de Desconto</Label>
-                  <Select
-                    value={discountType}
-                    onValueChange={(val: any) => {
-                      if (val === "percentage" || val === "fixed") setDiscountType(val);
-                    }}
-                  >
-                    <SelectTrigger className="rounded-none border-2 border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-none border-2 border-border bg-card">
-                      <SelectItem value="percentage">Porcentagem (%)</SelectItem>
-                      <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="font-mono text-xs uppercase text-muted-foreground">Valor do Desconto</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={discountValue}
-                    onChange={(e) => setDiscountValue(e.target.value)}
-                    placeholder={discountType === "percentage" ? "Ex: 20" : "Ex: 10.00"}
-                    className="rounded-none border-2 border-border"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="font-mono text-xs uppercase text-muted-foreground flex justify-between">
-                  <span>Cores do Gradiente</span>
-                  <span className="text-[10px] text-muted-foreground">Paleta da Marca</span>
+          <form onSubmit={handleSubmit} className="space-y-5 pt-1">
+            {/* 1. Nome e Badge da Promoção */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2 space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                  Título da Promoção *
                 </Label>
-                <div className="flex gap-2 items-center">
-                  <input
-                    type="color"
-                    value={gradientStart}
-                    onChange={(e) => setGradientStart(e.target.value)}
-                    className="w-10 h-8 p-0 border-2 border-border rounded-none cursor-pointer bg-transparent"
-                  />
-                  <input
-                    type="color"
-                    value={gradientEnd}
-                    onChange={(e) => setGradientEnd(e.target.value)}
-                    className="w-10 h-8 p-0 border-2 border-border rounded-none cursor-pointer bg-transparent"
-                  />
-                  <div className="flex gap-1 flex-wrap flex-1">
-                    {BRAND_COLORS.map((c) => (
-                      <button
-                        key={c.value}
-                        type="button"
-                        onClick={() => { setGradientStart(c.value); }}
-                        className="w-5 h-5 rounded-none border border-border"
-                        style={{ backgroundColor: c.value }}
-                        title={c.label}
-                      />
-                    ))}
-                  </div>
-                </div>
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Ex: Quinta do Açaí 20% OFF"
+                  className="font-medium bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-11 text-xs sm:text-sm rounded-xl focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
+                  required
+                />
               </div>
 
               <div className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <Label className="font-mono text-xs uppercase text-muted-foreground">
-                    Mini-Banner (Upload Local ou URL)
-                  </Label>
-                  <span className="font-mono text-[10px] text-primary bg-primary/10 px-2 py-0.5 border border-primary/30">
-                    16:9 (Banner Widescreen) • até 10MB
-                  </span>
-                </div>
-                <div className="flex border-2 border-border bg-background focus-within:border-secondary transition-colors h-10 relative overflow-hidden group">
-                  <div className="bg-muted px-3 flex items-center justify-center font-mono text-xs uppercase tracking-wider text-muted-foreground border-r-2 border-border group-hover:bg-muted/80 transition-colors">
-                    {bannerFile ? "Substituir" : "Escolher Arquivo"}
-                  </div>
-                  <Input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={handleBannerFileChange}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                  />
-                  <div className="flex-1 px-3 flex items-center font-mono text-xs text-foreground truncate">
-                    {bannerFile ? bannerFile.name : (bannerUrl ? "Imagem configurada" : "Nenhum arquivo selecionado")}
-                  </div>
-                </div>
-                <p className="font-mono text-[10px] text-muted-foreground">
-                  Formatos aceitos: JPEG, PNG, WebP. Enquadre no formato 16:9 widescreen.
-                </p>
+                <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                  Badge *
+                </Label>
                 <Input
-                  type="text"
-                  placeholder="Ou cole a URL direta da imagem..."
-                  value={bannerUrl}
-                  onChange={(e) => {
-                    setBannerUrl(e.target.value);
-                    if (e.target.value) setBannerFile(null);
-                  }}
-                  className="rounded-none border-2 border-border text-xs mt-1"
+                  value={badge}
+                  onChange={(e) => setBadge(e.target.value)}
+                  placeholder="Ex: 20% OFF"
+                  className="font-bold text-xs sm:text-sm bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
+                  required
                 />
               </div>
+            </div>
 
-              <div className="space-y-2 pt-2 border-t border-border">
-                <Label className="font-mono text-xs uppercase text-muted-foreground">
-                  Vincular Produtos ao Combo
+            {/* 2. Descrição */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                Descrição da Oferta
+              </Label>
+              <Input
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Ex: Todos os copos de 500ml e 700ml com desconto especial hoje!"
+                className="bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-11 text-xs sm:text-sm rounded-xl focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
+              />
+            </div>
+
+            {/* 3. Regras de Desconto */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                  Tipo de Desconto
                 </Label>
-                <div className="max-h-40 overflow-y-auto space-y-1 border border-border p-2 bg-muted/20">
-                  {availableProducts.map((prod) => {
-                    const isChecked = Boolean(selectedProductIds[prod.id]);
-                    const qty = selectedProductIds[prod.id] || 1;
-                    return (
-                      <div
-                        key={prod.id}
-                        className={`flex items-center justify-between p-2 border transition-colors ${
-                          isChecked ? "border-primary bg-primary/10" : "border-border/50 bg-background"
-                        }`}
-                      >
-                        <label className="flex items-center gap-2 text-xs cursor-pointer flex-1 truncate">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => handleToggleProduct(prod.id)}
-                            className="accent-primary"
-                          />
-                          <span className="font-bold truncate">{prod.name}</span>
-                          <span className="text-muted-foreground font-mono">R$ {prod.price.toFixed(2)}</span>
-                        </label>
+                <Select
+                  value={discountType}
+                  onValueChange={(val: any) => {
+                    if (val === "percentage" || val === "fixed") setDiscountType(val);
+                  }}
+                >
+                  <SelectTrigger className="bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-11 rounded-xl text-xs sm:text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-gray-200 dark:border-[#512B54]/40 bg-white dark:bg-[#200B22]">
+                    <SelectItem value="percentage">Porcentagem (%)</SelectItem>
+                    <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                        {isChecked && (
-                          <div className="flex items-center gap-1 font-mono text-xs">
-                            <span className="text-[10px] text-muted-foreground">Qtd:</span>
-                            <input
-                              type="number"
-                              min={1}
-                              value={qty}
-                              onChange={(e) => handleQuantityChange(prod.id, parseInt(e.target.value) || 1)}
-                              className="w-12 h-6 px-1 border border-border text-center bg-background"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                  Valor do Desconto *
+                </Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={discountValue}
+                  onChange={(e) => setDiscountValue(e.target.value)}
+                  placeholder={discountType === "percentage" ? "Ex: 20" : "Ex: 10.00"}
+                  className="bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-11 rounded-xl font-mono text-xs sm:text-sm focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* 4. Cores do Gradiente */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex justify-between">
+                <span>Cores do Gradiente</span>
+                <span className="text-[11px] text-gray-400 font-normal">Paleta Pop Shake</span>
+              </Label>
+              <div className="flex gap-2.5 items-center">
+                <input
+                  type="color"
+                  value={gradientStart}
+                  onChange={(e) => setGradientStart(e.target.value)}
+                  className="w-11 h-10 p-0 border border-gray-300 dark:border-[#512B54]/40 rounded-xl cursor-pointer bg-transparent"
+                />
+                <input
+                  type="color"
+                  value={gradientEnd}
+                  onChange={(e) => setGradientEnd(e.target.value)}
+                  className="w-11 h-10 p-0 border border-gray-300 dark:border-[#512B54]/40 rounded-xl cursor-pointer bg-transparent"
+                />
+                <div className="flex gap-1.5 flex-wrap flex-1 pl-2">
+                  {BRAND_COLORS.map((c) => (
+                    <button
+                      key={c.value}
+                      type="button"
+                      onClick={() => { setGradientStart(c.value); }}
+                      className="w-7 h-7 rounded-lg border border-white/20 shadow-xs cursor-pointer hover:scale-110 transition-transform"
+                      style={{ backgroundColor: c.value }}
+                      title={c.label}
+                    />
+                  ))}
                 </div>
               </div>
+            </div>
 
-              <div className="flex justify-end gap-2 pt-4 border-t border-border">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
-                  className="rounded-none font-mono text-xs uppercase"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="rounded-none bg-primary hover:bg-primary/90 text-primary-foreground font-mono text-xs uppercase font-bold px-6"
-                >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                  {promoToEdit ? "Salvar Alterações" : "Criar Promoção"}
-                </Button>
+            {/* 5. Mini-Banner */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                  Banner da Oferta (Imagem)
+                </Label>
+                <span className="text-[10px] text-[#9306CF] dark:text-[#C7A9C9] bg-[#9306CF]/10 px-2 py-0.5 rounded-full font-mono">
+                  16:9 widescreen
+                </span>
               </div>
-            </form>
-          </div>
+              <div className="flex border border-gray-200 dark:border-[#512B54]/40 bg-gray-50 dark:bg-[#190B1A] rounded-xl h-11 relative overflow-hidden group">
+                <div className="bg-gray-200 dark:bg-white/10 px-3.5 flex items-center justify-center text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 border-r border-gray-200 dark:border-[#512B54]/40 group-hover:bg-gray-300 transition-colors">
+                  {bannerFile ? "Substituir" : "Escolher Imagem"}
+                </div>
+                <Input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleBannerFileChange}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                />
+                <div className="flex-1 px-3.5 flex items-center text-xs text-gray-600 dark:text-gray-300 truncate">
+                  {bannerFile ? bannerFile.name : (bannerUrl ? "Imagem configurada por URL" : "Nenhum arquivo selecionado")}
+                </div>
+              </div>
+              <Input
+                type="text"
+                placeholder="Ou cole o link direto da imagem..."
+                value={bannerUrl}
+                onChange={(e) => {
+                  setBannerUrl(e.target.value);
+                  if (e.target.value) setBannerFile(null);
+                }}
+                className="bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-10 text-xs rounded-xl"
+              />
+            </div>
+
+            {/* 6. Produtos Vinculados (Opcional) */}
+            <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+              <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center justify-between">
+                <span>Vincular Produtos Específicos (Opcional)</span>
+                <span className="text-[11px] font-mono text-gray-400">
+                  {Object.keys(selectedProductIds).length} selecionado(s)
+                </span>
+              </Label>
+              <div className="max-h-48 overflow-y-auto space-y-1.5 border border-gray-200 dark:border-[#512B54]/40 p-2.5 rounded-xl bg-gray-50/50 dark:bg-[#190B1A]/50">
+                {availableProducts.map((prod) => {
+                  const isChecked = Boolean(selectedProductIds[prod.id]);
+                  const qty = selectedProductIds[prod.id] || 1;
+                  return (
+                    <div
+                      key={prod.id}
+                      className={`flex items-center justify-between p-2.5 rounded-lg border transition-colors ${
+                        isChecked
+                          ? "border-[#9306CF]/40 bg-purple-50/60 dark:bg-purple-950/20"
+                          : "border-gray-200/60 dark:border-[#512B54]/30 bg-white dark:bg-[#200B22]"
+                      }`}
+                    >
+                      <label className="flex items-center gap-2.5 text-xs cursor-pointer flex-1 truncate">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleToggleProduct(prod.id)}
+                          className="accent-[#9306CF] w-4 h-4 rounded"
+                        />
+                        <span className="font-bold text-gray-800 dark:text-gray-200 truncate">{prod.name}</span>
+                        <span className="text-gray-400 font-mono text-[11px]">R$ {Number(prod.price).toFixed(2).replace(".", ",")}</span>
+                      </label>
+
+                      {isChecked && (
+                        <div className="flex items-center gap-1.5 font-mono text-xs">
+                          <span className="text-[10px] text-gray-400">Qtd:</span>
+                          <input
+                            type="number"
+                            min={1}
+                            value={qty}
+                            onChange={(e) => handleQuantityChange(prod.id, parseInt(e.target.value) || 1)}
+                            className="w-12 h-7 px-1.5 border border-gray-300 dark:border-[#512B54]/60 rounded-md text-center bg-white dark:bg-[#190B1A] text-xs font-bold"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Ações */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-[#512B54]/30">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="rounded-xl font-heading text-xs uppercase tracking-wider px-5 h-11"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white rounded-xl font-heading text-xs uppercase tracking-wider font-bold px-7 h-11 shadow-md shadow-[#9306CF]/20"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                {promoToEdit ? "Salvar Alterações" : "Criar Promoção"}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
 

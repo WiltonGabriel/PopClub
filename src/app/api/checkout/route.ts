@@ -124,37 +124,81 @@ export async function POST(request: Request) {
       });
     }
 
-    // 2. Validação e Recálculo de Cupom Promocional
+    // 2. Validação e Recálculo Seguro de Cupom Promocional
     let couponDiscount = 0;
     let validCouponId: string | null = null;
     let validCouponCode: string | null = null;
 
-    if (couponCode) {
+    if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
       const cleanCode = couponCode.trim().toUpperCase();
       const coupon = await prisma.coupon.findUnique({
         where: { code: cleanCode },
       });
 
-      if (coupon && coupon.isActive) {
-        const isNotExpired = !coupon.expiresAt || new Date() <= new Date(coupon.expiresAt);
-        const hasUsesLeft = !coupon.maxUses || coupon.uses < coupon.maxUses;
-        const meetsMin = calculatedSubtotal >= Number(coupon.minOrderValue);
+      if (!coupon || !coupon.isActive) {
+        return NextResponse.json({ error: "Cupom de desconto inválido ou inativo." }, { status: 400 });
+      }
 
-        if (isNotExpired && hasUsesLeft && meetsMin) {
-          validCouponId = coupon.id;
-          validCouponCode = coupon.code;
-          const val = Number(coupon.discountValue);
-          if (coupon.discountType === "percentage") {
-            couponDiscount = Number(((calculatedSubtotal * val) / 100).toFixed(2));
-          } else {
-            couponDiscount = Math.min(val, calculatedSubtotal);
-          }
+      if (coupon.expiresAt && new Date() > new Date(coupon.expiresAt)) {
+        return NextResponse.json({ error: "Este cupom de desconto já expirou." }, { status: 400 });
+      }
+
+      if (coupon.maxUses && coupon.uses >= coupon.maxUses) {
+        return NextResponse.json({ error: "O limite de utilizações deste cupom foi atingido." }, { status: 400 });
+      }
+
+      const minVal = Number(coupon.minOrderValue);
+      if (calculatedSubtotal < minVal) {
+        return NextResponse.json({
+          error: `Este cupom exige um pedido mínimo de R$ ${minVal.toFixed(2).replace(".", ",")}.`,
+        }, { status: 400 });
+      }
+
+      // Validação de restrição de escopo de produtos do cupom
+      if (coupon.productIds && coupon.productIds.length > 0) {
+        const hasMatchingProduct = items.some((it) => coupon.productIds.includes(it.productId));
+        if (!hasMatchingProduct) {
+          return NextResponse.json({
+            error: "Este cupom é exclusivo para produtos específicos que não estão no seu pedido.",
+          }, { status: 400 });
         }
+      }
+
+      validCouponId = coupon.id;
+      validCouponCode = coupon.code;
+      const val = Number(coupon.discountValue);
+      if (coupon.discountType === "percentage") {
+        couponDiscount = Number(((calculatedSubtotal * val) / 100).toFixed(2));
+      } else {
+        couponDiscount = Math.min(val, calculatedSubtotal);
       }
     }
 
+    // 2.1. Cálculo da Taxa de Entrega com Regra de Frete Grátis
+    let calculatedDeliveryFee = 5.0;
+    try {
+      const storeSettings = await prisma.storeSettings.findUnique({
+        where: { id: "store_config" },
+      });
+      if (storeSettings) {
+        const fee = Number(storeSettings.deliveryFee);
+        const threshold =
+          storeSettings.freeDeliveryThreshold !== null
+            ? Number(storeSettings.freeDeliveryThreshold)
+            : null;
+        if (threshold !== null && calculatedSubtotal >= threshold) {
+          calculatedDeliveryFee = 0;
+        } else {
+          calculatedDeliveryFee = fee;
+        }
+      }
+    } catch (err) {
+      console.warn("Aviso: Falha ao consultar storeSettings, aplicando taxa padrão:", err);
+    }
+
     const totalDiscount = Number((promoDiscountTotal + couponDiscount).toFixed(2));
-    const finalTotal = Math.max(0, Number((calculatedSubtotal - totalDiscount).toFixed(2)));
+    const itemsTotalAfterDiscount = Math.max(0, Number((calculatedSubtotal - totalDiscount).toFixed(2)));
+    const finalTotal = Number((itemsTotalAfterDiscount + calculatedDeliveryFee).toFixed(2));
 
     // 3. Persistência Transacional do Pedido
     const order = await prisma.$transaction(async (tx) => {
@@ -165,6 +209,7 @@ export async function POST(request: Request) {
           status: "pending",
           subtotal: calculatedSubtotal,
           discountAmount: totalDiscount,
+          deliveryFee: calculatedDeliveryFee,
           totalAmount: finalTotal,
           couponId: validCouponId,
           couponCode: validCouponCode,
@@ -213,6 +258,7 @@ export async function POST(request: Request) {
         status: order.status,
         subtotal: Number(order.subtotal),
         discountAmount: Number(order.discountAmount),
+        deliveryFee: Number(order.deliveryFee),
         totalAmount: Number(order.totalAmount),
         createdAt: order.createdAt.toISOString(),
       },
