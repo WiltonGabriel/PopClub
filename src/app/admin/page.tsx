@@ -15,6 +15,9 @@ import {
   ChevronRight,
   Clock,
   Sparkles,
+  UtensilsCrossed,
+  Ticket,
+  Percent,
 } from "lucide-react";
 import { orderService, Order } from "../../services/orderService";
 import { promotionService, Promotion } from "../../services/promotionService";
@@ -24,14 +27,19 @@ import { subscribeToOrderEvents } from "../../lib/orderEvents";
 import { useRouter } from "next/navigation";
 import { Button } from "../../components/ui/button";
 import { PromotionFormDialog } from "../../components/admin/PromotionFormDialog";
+import { ComboFormDialog } from "../../components/admin/ComboFormDialog";
+import { CouponManagement } from "../../components/admin/CouponManagement";
 import { AnalyticsDashboard } from "../../components/admin/AnalyticsDashboard";
 
 export default function AdminDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [fetching, setFetching] = useState(true);
+  const [activeTab, setActiveTab] = useState<"combos" | "promotions" | "coupons">("combos");
   const [promoDialogOpen, setPromoDialogOpen] = useState(false);
   const [promoToEdit, setPromoToEdit] = useState<Promotion | null>(null);
+  const [comboDialogOpen, setComboDialogOpen] = useState(false);
+  const [comboToEdit, setComboToEdit] = useState<Promotion | null>(null);
   const previousOrderCountRef = useRef(0);
 
   const router = useRouter();
@@ -294,104 +302,369 @@ export default function AdminDashboard() {
         {/* Dashboard Analítico com Métricas e Gráficos */}
         <AnalyticsDashboard orders={orders} loading={fetching} />
 
-        {/* Gestão de Cardápio & Destaques da Loja */}
-        <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-gray-100 dark:border-[#512B54]/30 pb-4">
-            <div>
-              <h2 className="font-heading text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-[#4C264F] dark:text-[#F9F5F9]">
-                <Tag className="w-5 h-5 text-[#9306CF]" /> Gestão de Cardápio & Promoções
-              </h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Cadastre e edite combos, banners e descontos exibidos na página inicial e na página dedicada de promoção.
-              </p>
-            </div>
+        {/* Gestão Modular: Combos vs. Promoções & Banners vs. Cupons de Desconto */}
+        {(() => {
+          const combos = promotions.filter((p) => p.items && p.items.length >= 2);
+          const promoBanners = promotions.filter((p) => !p.items || p.items.length < 2);
 
-            <Button
-              onClick={() => {
-                setPromoToEdit(null);
-                setPromoDialogOpen(true);
-              }}
-              className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-4 shadow-md shadow-[#9306CF]/20"
-            >
-              <Plus className="w-4 h-4" /> Nova Promoção
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {promotions.map((promo) => (
-              <div
-                key={promo.id}
-                className="bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-[#9306CF]/50 transition-colors"
-              >
-                <div
-                  className="h-2 w-full absolute top-0 left-0"
-                  style={{
-                    background: `linear-gradient(to right, ${promo.gradientStart}, ${promo.gradientEnd})`,
-                  }}
-                />
-
-                <div>
-                  <div className="flex justify-between items-start mt-2 mb-2">
-                    <span className="bg-white dark:bg-white/10 text-[#4C264F] dark:text-[#F9F5F9] text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border border-gray-200 dark:border-white/10">
-                      {promo.badge}
-                    </span>
-                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                      {promo.discountType === "percentage" ? `${promo.discountValue}% OFF` : `R$ ${promo.discountValue.toFixed(2)} OFF`}
-                    </span>
-                  </div>
-
-                  <h3 className="font-heading font-bold text-lg leading-snug text-[#4C264F] dark:text-[#F9F5F9]">
-                    {promo.title}
-                  </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1 font-sans">
-                    {promo.description}
-                  </p>
-
-                  <div className="mt-3 text-[11px] text-gray-500 dark:text-gray-400">
-                    Itens vinculados: <strong className="text-[#4C264F] dark:text-[#F9F5F9]">{promo.items?.length || 0} produto(s)</strong>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-200 dark:border-[#512B54]/30">
-                  <Link
-                    href={`/promo/${promo.id}`}
-                    className="text-xs font-semibold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1"
+          return (
+            <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 sm:p-6 shadow-sm space-y-6">
+              {/* Barra de Navegação por Abas */}
+              <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 dark:border-[#512B54]/30 pb-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("combos")}
+                  className={`
+                    flex items-center gap-2 px-4 py-2.5 rounded-xl font-heading text-xs uppercase tracking-wider font-bold transition-all cursor-pointer
+                    ${
+                      activeTab === "combos"
+                        ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white shadow-sm shadow-[#9306CF]/20"
+                        : "bg-gray-50 dark:bg-[#190B1A] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"
+                    }
+                  `}
+                >
+                  <UtensilsCrossed className="w-4 h-4" />
+                  <span>Combos de Produtos</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                      activeTab === "combos" ? "bg-white/20 text-white" : "bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-gray-400"
+                    }`}
                   >
-                    Ver Página <ChevronRight className="w-3.5 h-3.5" />
-                  </Link>
+                    {combos.length}
+                  </span>
+                </button>
 
-                  <div className="flex gap-1.5">
-                    <button
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("promotions")}
+                  className={`
+                    flex items-center gap-2 px-4 py-2.5 rounded-xl font-heading text-xs uppercase tracking-wider font-bold transition-all cursor-pointer
+                    ${
+                      activeTab === "promotions"
+                        ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white shadow-sm shadow-[#9306CF]/20"
+                        : "bg-gray-50 dark:bg-[#190B1A] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"
+                    }
+                  `}
+                >
+                  <Tag className="w-4 h-4" />
+                  <span>Promoções & Banners</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                      activeTab === "promotions" ? "bg-white/20 text-white" : "bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-gray-400"
+                    }`}
+                  >
+                    {promoBanners.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("coupons")}
+                  className={`
+                    flex items-center gap-2 px-4 py-2.5 rounded-xl font-heading text-xs uppercase tracking-wider font-bold transition-all cursor-pointer
+                    ${
+                      activeTab === "coupons"
+                        ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white shadow-sm shadow-[#9306CF]/20"
+                        : "bg-gray-50 dark:bg-[#190B1A] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"
+                    }
+                  `}
+                >
+                  <Ticket className="w-4 h-4" />
+                  <span>Cupons de Desconto</span>
+                </button>
+              </div>
+
+              {/* ABA 1: COMBOS DE PRODUTOS */}
+              {activeTab === "combos" && (
+                <div className="space-y-6 animate-in fade-in duration-150">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-[#4C264F] dark:text-[#F9F5F9]">
+                        <UtensilsCrossed className="w-5 h-5 text-[#9306CF]" />
+                        Combos & Ofertas Casadas
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Gerencie a montagem e precificação de combos que agrupam dois ou mais produtos com desconto automático.
+                      </p>
+                    </div>
+
+                    <Button
                       onClick={() => {
-                        setPromoToEdit(promo);
+                        setComboToEdit(null);
+                        setComboDialogOpen(true);
+                      }}
+                      className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-4 shadow-md shadow-[#9306CF]/20"
+                    >
+                      <Plus className="w-4 h-4" /> Novo Combo
+                    </Button>
+                  </div>
+
+                  {combos.length === 0 ? (
+                    <div className="p-8 text-center border border-dashed border-gray-200 dark:border-[#512B54]/40 rounded-2xl space-y-3">
+                      <div className="w-12 h-12 rounded-full bg-purple-50 dark:bg-purple-950/40 text-[#9306CF] flex items-center justify-center mx-auto text-xl">
+                        🍔
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+                        Nenhum combo cadastrado ainda. Clique em &ldquo;Novo Combo&rdquo; para agrupar produtos (ex: Açaí + Milk-Shake) com preço promocional.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {combos.map((combo) => {
+                        const originalTotal = combo.originalTotal || combo.items?.reduce((s, it) => s + Number(it.product.price) * it.quantity, 0) || 0;
+                        const finalPrice = combo.finalPrice || originalTotal;
+                        const savings = Math.max(0, originalTotal - finalPrice);
+
+                        return (
+                          <div
+                            key={combo.id}
+                            className="bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-[#9306CF]/50 transition-colors"
+                          >
+                            <div
+                              className="h-1.5 w-full absolute top-0 left-0"
+                              style={{
+                                background: `linear-gradient(to right, ${combo.gradientStart || "#9306CF"}, ${combo.gradientEnd || "#940068"})`,
+                              }}
+                            />
+
+                            <div className="space-y-3 pt-1">
+                              <div className="flex justify-between items-start">
+                                <span className="bg-purple-100 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border border-purple-200/50">
+                                  {combo.badge}
+                                </span>
+                                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                  {combo.discountType === "percentage"
+                                    ? `${combo.discountValue}% OFF`
+                                    : `Economize R$ ${savings.toFixed(2).replace(".", ",")}`}
+                                </span>
+                              </div>
+
+                              <div>
+                                <h4 className="font-heading font-bold text-base leading-snug text-[#4C264F] dark:text-[#F9F5F9]">
+                                  {combo.title}
+                                </h4>
+                                {combo.description && (
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1">
+                                    {combo.description}
+                                  </p>
+                                )}
+                              </div>
+
+                              {/* Itens do Combo */}
+                              <div className="space-y-1.5 bg-white dark:bg-[#200B22] rounded-xl p-2.5 border border-gray-200 dark:border-[#512B54]/30">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
+                                  Itens Inclusos ({combo.items?.length || 0}):
+                                </span>
+                                <div className="flex flex-wrap gap-1">
+                                  {combo.items?.map((it) => (
+                                    <span
+                                      key={it.id}
+                                      className="text-[11px] font-semibold bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded-md"
+                                    >
+                                      {it.quantity}x {it.product.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Precificação */}
+                              <div className="flex items-baseline gap-2 pt-1">
+                                {originalTotal > finalPrice && (
+                                  <span className="text-xs text-gray-400 font-mono line-through">
+                                    R$ {originalTotal.toFixed(2).replace(".", ",")}
+                                  </span>
+                                )}
+                                <span className="font-heading font-black text-xl text-emerald-600 dark:text-emerald-400 font-mono">
+                                  R$ {finalPrice.toFixed(2).replace(".", ",")}
+                                </span>
+                                {savings > 0 && (
+                                  <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400">
+                                    (-R$ {savings.toFixed(2).replace(".", ",")})
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Ações */}
+                            <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-200 dark:border-[#512B54]/30">
+                              <Link
+                                href={`/promo/${combo.id}`}
+                                className="text-xs font-semibold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1"
+                              >
+                                Ver Página <ChevronRight className="w-3.5 h-3.5" />
+                              </Link>
+
+                              <div className="flex gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setComboToEdit(combo);
+                                    setComboDialogOpen(true);
+                                  }}
+                                  className="p-1.5 text-[#9306CF] hover:bg-[#9306CF]/10 rounded-lg transition-colors"
+                                  title="Editar Combo"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeletePromo(combo.id)}
+                                  className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
+                                  title="Excluir Combo"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ABA 2: PROMOÇÕES & BANNERS */}
+              {activeTab === "promotions" && (
+                <div className="space-y-6 animate-in fade-in duration-150">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-[#4C264F] dark:text-[#F9F5F9]">
+                        <Tag className="w-5 h-5 text-[#9306CF]" />
+                        Promoções, Destaques & Banners
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Crie e gerencie banners visuais, gradientes, destaques de campanha e faixas promocionais para a vitrine.
+                      </p>
+                    </div>
+
+                    <Button
+                      onClick={() => {
+                        setPromoToEdit(null);
                         setPromoDialogOpen(true);
                       }}
-                      className="p-1.5 text-[#9306CF] hover:bg-[#9306CF]/10 rounded-lg transition-colors"
-                      title="Editar"
+                      className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-4 shadow-md shadow-[#9306CF]/20"
                     >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeletePromo(promo.id)}
-                      className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
-                      title="Excluir"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                      <Plus className="w-4 h-4" /> Nova Promoção / Banner
+                    </Button>
                   </div>
+
+                  {promoBanners.length === 0 ? (
+                    <div className="p-8 text-center border border-dashed border-gray-200 dark:border-[#512B54]/40 rounded-2xl space-y-3">
+                      <div className="w-12 h-12 rounded-full bg-purple-50 dark:bg-purple-950/40 text-[#9306CF] flex items-center justify-center mx-auto text-xl">
+                        🏷️
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+                        Nenhum banner ou destaque cadastrado. Clique em &ldquo;Nova Promoção / Banner&rdquo; para criar um visual para a vitrine.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {promoBanners.map((promo) => (
+                        <div
+                          key={promo.id}
+                          className="bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-[#9306CF]/50 transition-colors"
+                        >
+                          <div
+                            className="h-2 w-full absolute top-0 left-0"
+                            style={{
+                              background: `linear-gradient(to right, ${promo.gradientStart}, ${promo.gradientEnd})`,
+                            }}
+                          />
+
+                          <div>
+                            <div className="flex justify-between items-start mt-2 mb-2">
+                              <span className="bg-white dark:bg-white/10 text-[#4C264F] dark:text-[#F9F5F9] text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border border-gray-200 dark:border-white/10">
+                                {promo.badge}
+                              </span>
+                              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                {promo.discountType === "percentage"
+                                  ? `${promo.discountValue}% OFF`
+                                  : `R$ ${promo.discountValue.toFixed(2)} OFF`}
+                              </span>
+                            </div>
+
+                            <h4 className="font-heading font-bold text-lg leading-snug text-[#4C264F] dark:text-[#F9F5F9]">
+                              {promo.title}
+                            </h4>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1 font-sans">
+                              {promo.description}
+                            </p>
+
+                            {promo.bannerImageUrl && (
+                              <div className="mt-3 h-24 rounded-xl overflow-hidden bg-gray-200 dark:bg-white/10 border border-gray-200 dark:border-[#512B54]/30">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={promo.bannerImageUrl}
+                                  alt={promo.title}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-200 dark:border-[#512B54]/30">
+                            <Link
+                              href={`/promo/${promo.id}`}
+                              className="text-xs font-semibold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1"
+                            >
+                              Ver Página <ChevronRight className="w-3.5 h-3.5" />
+                            </Link>
+
+                            <div className="flex gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPromoToEdit(promo);
+                                  setPromoDialogOpen(true);
+                                }}
+                                className="p-1.5 text-[#9306CF] hover:bg-[#9306CF]/10 rounded-lg transition-colors"
+                                title="Editar Promoção"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeletePromo(promo.id)}
+                                className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
+                                title="Excluir Promoção"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
+              )}
+
+              {/* ABA 3: CUPONS DE DESCONTO */}
+              {activeTab === "coupons" && (
+                <div className="animate-in fade-in duration-150">
+                  <CouponManagement />
+                </div>
+              )}
+            </section>
+          );
+        })()}
       </main>
 
-      {/* Modal Administrativo de Promoções */}
+      {/* Modal Administrativo de Promoções / Banners */}
       <PromotionFormDialog
         open={promoDialogOpen}
         onOpenChange={setPromoDialogOpen}
         onSaved={fetchPromos}
         promoToEdit={promoToEdit}
+      />
+
+      {/* Modal Administrativo de Combos de Produtos */}
+      <ComboFormDialog
+        open={comboDialogOpen}
+        onOpenChange={setComboDialogOpen}
+        onSaved={fetchPromos}
+        comboToEdit={comboToEdit}
       />
     </div>
   );

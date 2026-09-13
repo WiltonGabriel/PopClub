@@ -1,0 +1,546 @@
+"use client";
+
+import { useState, useEffect, useMemo } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { productService, Product } from "../../services/productService";
+import { couponService, Coupon } from "../../services/couponService";
+import {
+  Ticket,
+  Sparkles,
+  Percent,
+  DollarSign,
+  Search,
+  Check,
+  Calendar,
+  Layers,
+  AlertCircle,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
+
+interface CouponFormDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
+  couponToEdit?: Coupon | null;
+}
+
+export function CouponFormDialog({
+  open,
+  onOpenChange,
+  onSaved,
+  couponToEdit,
+}: CouponFormDialogProps) {
+  const [code, setCode] = useState("");
+  const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
+  const [discountValue, setDiscountValue] = useState("");
+  const [minOrderValue, setMinOrderValue] = useState("");
+  const [maxUses, setMaxUses] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
+  const [isActive, setIsActive] = useState(true);
+
+  // Escopo de Aplicação: all vs specific
+  const [scope, setScope] = useState<"all" | "specific">("all");
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [productSearch, setProductSearch] = useState("");
+  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // Carrega lista de produtos para seleção no escopo
+  useEffect(() => {
+    productService
+      .getProducts()
+      .then(setAvailableProducts)
+      .catch((err) => console.error("Erro ao carregar produtos para cupons:", err));
+  }, []);
+
+  // Preenche dados ao abrir ou editar
+  useEffect(() => {
+    if (couponToEdit) {
+      setCode(couponToEdit.code);
+      setDiscountType(couponToEdit.discountType);
+      setDiscountValue(String(couponToEdit.discountValue));
+      setMinOrderValue(couponToEdit.minOrderValue ? String(couponToEdit.minOrderValue) : "");
+      setMaxUses(couponToEdit.maxUses ? String(couponToEdit.maxUses) : "");
+
+      if (couponToEdit.expiresAt) {
+        // Formato para datetime-local (YYYY-MM-DDTHH:mm)
+        const d = new Date(couponToEdit.expiresAt);
+        const formattedDate = d.toISOString().slice(0, 16);
+        setExpiresAt(formattedDate);
+      } else {
+        setExpiresAt("");
+      }
+
+      setIsActive(couponToEdit.isActive);
+
+      if (couponToEdit.productIds && couponToEdit.productIds.length > 0) {
+        setScope("specific");
+        setSelectedProductIds(couponToEdit.productIds);
+      } else {
+        setScope("all");
+        setSelectedProductIds([]);
+      }
+    } else {
+      setCode("");
+      setDiscountType("percentage");
+      setDiscountValue("10");
+      setMinOrderValue("");
+      setMaxUses("");
+      setExpiresAt("");
+      setIsActive(true);
+      setScope("all");
+      setSelectedProductIds([]);
+    }
+    setError("");
+    setProductSearch("");
+  }, [couponToEdit, open]);
+
+  // Gerador de código aleatório amigável
+  const handleGenerateCode = () => {
+    const prefixes = ["POP", "SHAKE", "ACAI", "CLUB", "VIP", "DESCONTO"];
+    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const num = Math.floor(10 + Math.random() * 90);
+    setCode(`${prefix}${num}`);
+  };
+
+  // Produtos filtrados pela busca
+  const filteredProducts = useMemo(() => {
+    if (!productSearch.trim()) return availableProducts;
+    const q = productSearch.toLowerCase();
+    return availableProducts.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        (p.category && p.category.toLowerCase().includes(q))
+    );
+  }, [availableProducts, productSearch]);
+
+  const toggleProduct = (productId: string) => {
+    setSelectedProductIds((prev) =>
+      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    setSelectedProductIds(filteredProducts.map((p) => p.id));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedProductIds([]);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (!code.trim()) {
+      setError("Digite ou gere um código para o cupom.");
+      return;
+    }
+
+    const numDiscount = Number(discountValue);
+    if (isNaN(numDiscount) || numDiscount <= 0) {
+      setError("Informe um valor de desconto válido maior que zero.");
+      return;
+    }
+
+    if (discountType === "percentage" && numDiscount > 100) {
+      setError("O desconto em porcentagem não pode ultrapassar 100%.");
+      return;
+    }
+
+    if (scope === "specific" && selectedProductIds.length === 0) {
+      setError("Selecione pelo menos um produto específico ou marque 'Todos os produtos da loja'.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const payload = {
+        code: code.trim().toUpperCase(),
+        discountType,
+        discountValue: numDiscount,
+        minOrderValue: minOrderValue ? Number(minOrderValue) : 0,
+        maxUses: maxUses ? parseInt(maxUses, 10) : null,
+        expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+        isActive,
+        productIds: scope === "specific" ? selectedProductIds : [],
+      };
+
+      if (couponToEdit) {
+        await couponService.updateCoupon(couponToEdit.id, payload);
+      } else {
+        await couponService.createCoupon(payload);
+      }
+
+      onSaved();
+      onOpenChange(false);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Erro ao salvar cupom.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto bg-white dark:bg-[#200B22] border-gray-200 dark:border-[#512B54]/40 text-foreground p-5 sm:p-7 rounded-2xl shadow-2xl">
+        <DialogHeader className="border-b border-gray-100 dark:border-[#512B54]/30 pb-4">
+          <DialogTitle className="text-lg sm:text-xl font-heading font-black text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
+            <Ticket className="w-5 h-5 text-[#9306CF]" />
+            {couponToEdit ? "Editar Cupom de Desconto" : "Criar Novo Cupom de Desconto"}
+          </DialogTitle>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Configure código promocional, regras de utilização, validade e escopo de produtos.
+          </p>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-5 pt-2">
+          {error && (
+            <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-xl text-red-600 dark:text-red-300 text-xs flex items-center gap-2 font-medium">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* 1. Código do Cupom & Botão Gerar */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+              Código do Cupom *
+            </Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  placeholder="Ex: POPSHAKE10"
+                  className="pl-9 font-mono font-bold text-sm tracking-wider uppercase bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-11"
+                  required
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleGenerateCode}
+                className="h-11 px-3.5 border-gray-200 dark:border-[#512B54]/40 text-xs font-bold text-[#9306CF] hover:bg-purple-50 dark:hover:bg-purple-950/30 flex items-center gap-1.5"
+                title="Gerar código aleatório"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Gerar</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* 2. Tipo e Valor do Desconto */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                Tipo de Desconto *
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDiscountType("percentage")}
+                  className={`
+                    py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all
+                    ${
+                      discountType === "percentage"
+                        ? "bg-[#9306CF] text-white border-[#9306CF] shadow-xs"
+                        : "bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 text-gray-700 dark:text-gray-300 hover:bg-gray-100"
+                    }
+                  `}
+                >
+                  <Percent className="w-3.5 h-3.5" />
+                  <span>Porcentagem</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDiscountType("fixed")}
+                  className={`
+                    py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all
+                    ${
+                      discountType === "fixed"
+                        ? "bg-[#9306CF] text-white border-[#9306CF] shadow-xs"
+                        : "bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 text-gray-700 dark:text-gray-300 hover:bg-gray-100"
+                    }
+                  `}
+                >
+                  <DollarSign className="w-3.5 h-3.5" />
+                  <span>Valor Fixo (R$)</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                {discountType === "percentage" ? "Desconto (%) *" : "Desconto em Reais (R$) *"}
+              </Label>
+              <Input
+                type="number"
+                min="0.1"
+                step={discountType === "percentage" ? "1" : "0.5"}
+                max={discountType === "percentage" ? "100" : undefined}
+                value={discountValue}
+                onChange={(e) => setDiscountValue(e.target.value)}
+                placeholder={discountType === "percentage" ? "Ex: 15" : "Ex: 10.00"}
+                className="font-mono font-bold bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-11"
+                required
+              />
+            </div>
+          </div>
+
+          {/* 3. Regras de Validade e Pedido Mínimo */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                Pedido Mínimo (R$)
+              </Label>
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                value={minOrderValue}
+                onChange={(e) => setMinOrderValue(e.target.value)}
+                placeholder="0 (Opcional)"
+                className="font-mono text-xs bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-10"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                Limite de Usos (Total)
+              </Label>
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                value={maxUses}
+                onChange={(e) => setMaxUses(e.target.value)}
+                placeholder="Ilimitado"
+                className="font-mono text-xs bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-10"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-1">
+                <Calendar className="w-3 h-3 text-[#9306CF]" /> Validade
+              </Label>
+              <Input
+                type="datetime-local"
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
+                className="text-xs bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-10"
+              />
+            </div>
+          </div>
+
+          {/* 4. Escopo de Aplicação Flexível */}
+          <div className="space-y-3 pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                <Layers className="w-4 h-4 text-[#9306CF]" />
+                Escopo de Aplicação do Desconto
+              </Label>
+              <span className="text-[11px] font-medium text-gray-500">
+                {scope === "all" ? "Aplica em todos os produtos" : `${selectedProductIds.length} produto(s) selecionado(s)`}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setScope("all")}
+                className={`
+                  p-3 rounded-xl border text-left transition-all
+                  ${
+                    scope === "all"
+                      ? "bg-purple-50/70 dark:bg-purple-950/30 border-[#9306CF] text-[#4C264F] dark:text-[#F9F5F9]"
+                      : "bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 text-gray-600 dark:text-gray-400 hover:border-gray-300"
+                  }
+                `}
+              >
+                <div className="flex items-center gap-2">
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${scope === "all" ? "border-[#9306CF] bg-[#9306CF]" : "border-gray-400"}`}>
+                    {scope === "all" && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                  </div>
+                  <span className="text-xs font-bold">Toda a Loja</span>
+                </div>
+                <p className="text-[10px] text-gray-500 mt-1 pl-6">
+                  Válido para qualquer item do cardápio.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setScope("specific")}
+                className={`
+                  p-3 rounded-xl border text-left transition-all
+                  ${
+                    scope === "specific"
+                      ? "bg-purple-50/70 dark:bg-purple-950/30 border-[#9306CF] text-[#4C264F] dark:text-[#F9F5F9]"
+                      : "bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 text-gray-600 dark:text-gray-400 hover:border-gray-300"
+                  }
+                `}
+              >
+                <div className="flex items-center gap-2">
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${scope === "specific" ? "border-[#9306CF] bg-[#9306CF]" : "border-gray-400"}`}>
+                    {scope === "specific" && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                  </div>
+                  <span className="text-xs font-bold">Produtos Específicos</span>
+                </div>
+                <p className="text-[10px] text-gray-500 mt-1 pl-6">
+                  Restringe o cupom a itens selecionados.
+                </p>
+              </button>
+            </div>
+
+            {/* Listagem de produtos para seleção restrita */}
+            {scope === "specific" && (
+              <div className="bg-gray-50 dark:bg-[#190B1A] border border-gray-200 dark:border-[#512B54]/40 rounded-xl p-3 space-y-2.5 animate-in fade-in duration-150">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                    <input
+                      type="text"
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      placeholder="Filtrar por nome ou categoria..."
+                      className="w-full bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-lg pl-8 pr-3 py-1.5 text-xs outline-none focus:border-[#9306CF]"
+                    />
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleSelectAll}
+                      className="text-[11px] font-bold text-[#9306CF] hover:underline px-1.5 py-1"
+                    >
+                      Marcar Todos
+                    </button>
+                    <span className="text-gray-300 dark:text-gray-700">|</span>
+                    <button
+                      type="button"
+                      onClick={handleDeselectAll}
+                      className="text-[11px] font-bold text-gray-500 hover:underline px-1.5 py-1"
+                    >
+                      Limpar
+                    </button>
+                  </div>
+                </div>
+
+                <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1 divide-y divide-gray-100 dark:divide-[#512B54]/20">
+                  {filteredProducts.map((p) => {
+                    const isChecked = selectedProductIds.includes(p.id);
+                    return (
+                      <label
+                        key={p.id}
+                        className={`
+                          flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors
+                          ${isChecked ? "bg-purple-100/50 dark:bg-purple-900/30" : "hover:bg-white dark:hover:bg-white/5"}
+                        `}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleProduct(p.id)}
+                            className="w-4 h-4 rounded text-[#9306CF] focus:ring-[#9306CF]/30 border-gray-300 dark:border-[#512B54]"
+                          />
+                          <div className="w-7 h-7 rounded-md bg-gray-200 dark:bg-white/10 overflow-hidden shrink-0">
+                            {p.imageUrl && (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">
+                              {p.name}
+                            </p>
+                            {p.category && (
+                              <span className="text-[9px] text-purple-600 dark:text-purple-400">
+                                {p.category}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <span className="font-mono text-xs font-bold text-gray-600 dark:text-gray-300 shrink-0 ml-2">
+                          R$ {Number(p.price).toFixed(2).replace(".", ",")}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 5. Ativo / Inativo Switch */}
+          <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+            <div>
+              <span className="text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9] block">
+                Status do Cupom
+              </span>
+              <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                {isActive ? "Disponível para os clientes utilizarem no checkout." : "Desativado temporariamente."}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsActive(!isActive)}
+              className={`
+                relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out
+                ${isActive ? "bg-[#35A340]" : "bg-gray-300 dark:bg-gray-700"}
+              `}
+            >
+              <span
+                className={`
+                  pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out
+                  ${isActive ? "translate-x-5" : "translate-x-0"}
+                `}
+              />
+            </button>
+          </div>
+
+          {/* Botões de Ação */}
+          <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-100 dark:border-[#512B54]/30">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider h-11 px-4"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs font-bold uppercase tracking-wider rounded-xl h-11 px-6 shadow-md shadow-[#9306CF]/20 flex items-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Salvando...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  <span>{couponToEdit ? "Salvar Alterações" : "Criar Cupom"}</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

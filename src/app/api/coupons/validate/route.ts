@@ -42,6 +42,20 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
+    // Validação de Escopo de Produtos Específicos
+    const cartProductIds: string[] = Array.isArray(body.productIds) ? body.productIds : [];
+    if (coupon.productIds && coupon.productIds.length > 0) {
+      if (cartProductIds.length > 0) {
+        const hasMatchingProduct = cartProductIds.some((pId: string) => coupon.productIds.includes(pId));
+        if (!hasMatchingProduct) {
+          return NextResponse.json({
+            valid: false,
+            message: "Este cupom é exclusivo para produtos específicos que não estão no seu carrinho.",
+          }, { status: 400 });
+        }
+      }
+    }
+
     let discountAmount = 0;
     const discountVal = Number(coupon.discountValue);
     if (coupon.discountType === "percentage") {
@@ -58,6 +72,7 @@ export async function POST(request: Request) {
         discountType: coupon.discountType,
         discountValue: discountVal,
         discountAmount: Number(discountAmount.toFixed(2)),
+        productIds: coupon.productIds || [],
       },
     });
   } catch (error: any) {

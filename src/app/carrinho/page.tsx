@@ -92,7 +92,8 @@ export default function CarrinhoPage() {
     setCouponError("");
 
     try {
-      const res = await couponService.validateCoupon(couponInput.trim(), itemsTotal);
+      const cartProductIds = items.map((it) => it.productId);
+      const res = await couponService.validateCoupon(couponInput.trim(), itemsTotal, cartProductIds);
       if (res.valid && res.coupon) {
         setAppliedCoupon(res.coupon);
         setCouponInput("");

@@ -133,6 +133,7 @@ model Coupon {
   uses          Int          @default(0)
   expiresAt     DateTime?    @map("expires_at")
   isActive      Boolean      @default(true) @map("is_active")
+  productIds    String[]     @default([]) @map("product_ids")
   createdAt     DateTime     @default(now()) @map("created_at")
   orders        Order[]
 

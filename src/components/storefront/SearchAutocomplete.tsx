@@ -200,12 +200,13 @@ export function SearchAutocomplete({
 
   return (
     <div ref={containerRef} className={`relative w-full ${className}`}>
-      {/* Campo de Input com Ícones */}
+      {/* Campo de Input com Ícone Único */}
       <div className="relative w-full flex items-center">
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
         <input
           ref={inputRef}
-          type="search"
+          type="text"
+          inputMode="search"
           autoFocus={autoFocus}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -224,11 +225,13 @@ export function SearchAutocomplete({
             focus:ring-2 focus:ring-brand-pop-shake/30
             focus:border-brand-pop-shake/50
             transition-all shadow-xs
+            [&::-webkit-search-cancel-button]:hidden
+            [&::-webkit-search-decoration]:hidden
             ${inputClassName}
           `}
         />
 
-        {/* Botão para Limpar Busca */}
+        {/* Botão Único para Limpar Busca */}
         {query && (
           <button
             type="button"
@@ -238,29 +241,29 @@ export function SearchAutocomplete({
               setIsOpen(false);
               inputRef.current?.focus();
             }}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground rounded-full transition-colors cursor-pointer"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground rounded-full transition-colors cursor-pointer"
             title="Limpar busca"
             aria-label="Limpar campo de pesquisa"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      {/* Dropdown Flutuante de Autocomplete */}
+      {/* Dropdown Flutuante de Autocomplete com Largura Ampla */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 w-full bg-white dark:bg-[#230E26] shadow-2xl rounded-2xl border border-purple-100 dark:border-purple-900/40 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
-          <div className="p-2 border-b border-gray-100 dark:border-[#512B54]/30 bg-gray-50/70 dark:bg-[#1A0B1C]/60 flex items-center justify-between px-3.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+        <div className="absolute top-full left-0 mt-2 w-full min-w-[340px] sm:min-w-[420px] md:min-w-[480px] bg-white dark:bg-[#230E26] shadow-2xl rounded-2xl border border-purple-100 dark:border-purple-900/40 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+          <div className="py-2.5 px-3.5 border-b border-gray-100 dark:border-[#512B54]/30 bg-gray-50/70 dark:bg-[#1A0B1C]/60 flex items-center justify-between gap-3">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 whitespace-nowrap">
               Sugestões Rápidas ({matchedProducts.length})
             </span>
-            <span className="text-[10px] text-gray-400 font-mono hidden sm:inline">
-              Pressione Enter para ver todos
+            <span className="text-[10px] text-gray-400 font-mono whitespace-nowrap hidden xs:inline sm:inline">
+              Pressione Enter ↵
             </span>
           </div>
 
           {/* Lista de Resultados Rápidos */}
-          <div className="divide-y divide-gray-100 dark:divide-[#512B54]/30 max-h-80 overflow-y-auto">
+          <div className="divide-y divide-gray-100 dark:divide-[#512B54]/30 max-h-80 overflow-y-auto p-1.5 space-y-0.5">
             {matchedProducts.map((product, idx) => {
               const isSelected = selectedIndex === idx;
               const isJustAdded = addedProductId === product.id;
@@ -271,17 +274,17 @@ export function SearchAutocomplete({
                   onClick={() => handleQuickAction(product)}
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`
-                    p-3 flex items-center justify-between gap-3 cursor-pointer transition-colors
+                    flex items-center justify-between gap-3 p-2.5 rounded-xl cursor-pointer transition-colors
                     ${
                       isSelected
                         ? "bg-[#9306CF]/10 dark:bg-[#9306CF]/20"
-                        : "hover:bg-gray-50 dark:hover:bg-white/5"
+                        : "hover:bg-gray-50 dark:hover:bg-[#2B132D]"
                     }
                   `}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    {/* Foto ou Placeholder */}
-                    <div className="w-11 h-11 rounded-xl bg-gray-100 dark:bg-[#1A0B1C] border border-gray-200 dark:border-[#512B54]/40 shrink-0 overflow-hidden flex items-center justify-center relative">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    {/* Foto ou Placeholder 48x48 */}
+                    <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-[#1A0B1C] border border-gray-200 dark:border-[#512B54]/40 shrink-0 overflow-hidden flex items-center justify-center relative shadow-2xs">
                       {product.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -298,12 +301,12 @@ export function SearchAutocomplete({
                     </div>
 
                     {/* Nome, Categoria e Detalhes */}
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-xs sm:text-sm font-bold text-[#4C264F] dark:text-[#F9F5F9] truncate">
                         {highlightMatch(product.name, debouncedQuery)}
                       </p>
                       {product.category && (
-                        <span className="inline-block text-[10px] font-semibold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/40 px-1.5 py-0.2 rounded mt-0.5">
+                        <span className="inline-block text-[10px] font-semibold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/40 px-1.5 py-0.5 rounded mt-0.5">
                           {product.category}
                         </span>
                       )}
@@ -311,7 +314,7 @@ export function SearchAutocomplete({
                   </div>
 
                   {/* Preço e Botão Rápido de Adicionar */}
-                  <div className="flex items-center gap-2.5 shrink-0">
+                  <div className="flex items-center gap-2.5 shrink-0 pl-2">
                     <span className="font-mono font-bold text-sm text-[#35A340]">
                       R$ {product.price.toFixed(2).replace(".", ",")}
                     </span>
