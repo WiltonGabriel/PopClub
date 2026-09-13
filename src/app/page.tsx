@@ -15,6 +15,7 @@ import { ProductCard } from "../components/storefront/ProductCard";
 import { CategoryChip } from "../components/storefront/CategoryChip";
 import { BottomNav } from "../components/storefront/BottomNav";
 import { CartDrawer } from "../components/storefront/CartDrawer";
+import { SearchAutocomplete } from "../components/storefront/SearchAutocomplete";
 
 // Admin components (unchanged)
 import { CategoryFormDialog } from "../components/admin/CategoryFormDialog";
@@ -210,24 +211,13 @@ export default function Storefront() {
             </button>
           </div>
 
-          {/* ── CENTER: Search — flex-1 + min-w-0 = compresses before pushing buttons ── */}
-          <div className="hidden md:flex flex-1 min-w-0 items-center">
-            <div className="relative w-full max-w-lg">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+          {/* ── CENTER: Search com Autocomplete Instantâneo ── */}
+          <div className="hidden md:flex flex-1 min-w-0 items-center justify-center px-4">
+            <div className="w-full max-w-lg">
+              <SearchAutocomplete
+                products={products}
+                initialValue={search}
                 placeholder="Buscar açaí puro batido na hora, pop shakes, coberturas..."
-                className="
-                  w-full bg-muted border border-border/50 rounded-full
-                  pl-10 pr-4 py-2.5
-                  text-sm text-foreground placeholder:text-muted-foreground
-                  outline-none
-                  focus:ring-2 focus:ring-brand-pop-shake/30
-                  focus:border-brand-pop-shake/50
-                  transition-all
-                "
               />
             </div>
           </div>
@@ -425,68 +415,29 @@ export default function Storefront() {
 
       {/* Mobile search overlay */}
       {mobileSearchOpen && (
-        <div className="fixed inset-0 z-50 bg-background/98 backdrop-blur-md md:hidden flex flex-col">
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-border/30">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                ref={searchInputRef}
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+        <div className="fixed inset-0 z-50 bg-background/98 backdrop-blur-md md:hidden flex flex-col p-4">
+          <div className="flex items-center gap-3 pb-3 border-b border-border/30">
+            <div className="flex-1">
+              <SearchAutocomplete
+                products={products}
+                initialValue={search}
                 placeholder="Buscar açaí puro batido na hora, pop shakes..."
-                className="
-                  w-full bg-brand-surface-2 border border-border/40 rounded-full
-                  pl-9 pr-4 py-2.5 text-sm outline-none
-                  focus:ring-2 focus:ring-brand-pop-shake/30
-                "
+                autoFocus
+                onNavigateToResults={() => setMobileSearchOpen(false)}
+                onSelectProduct={(p) => {
+                  handleAddToCart(p);
+                  setMobileSearchOpen(false);
+                }}
               />
             </div>
             <button
               onClick={() => setMobileSearchOpen(false)}
-              className="p-2 rounded-full hover:bg-brand-surface-2 text-muted-foreground"
+              className="p-2 rounded-full hover:bg-muted text-muted-foreground"
               aria-label="Fechar busca"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
-
-          {/* Search results preview */}
-          {search && (
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
-              {filteredProducts.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8 text-sm">
-                  Nenhum produto encontrado para &ldquo;{search}&rdquo;
-                </p>
-              ) : (
-                filteredProducts.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => {
-                      handleAddToCart(p);
-                      setMobileSearchOpen(false);
-                      setSearch("");
-                    }}
-                    className="w-full flex items-center gap-3 bg-card rounded-2xl p-3 border border-border/30 hover:border-brand-pop-shake/30 hover:shadow-sm transition-all text-left"
-                  >
-                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-brand-surface-2 shrink-0">
-                      {p.imageUrl
-                        ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" /> // eslint-disable-line @next/next/no-img-element
-                        : <div className="w-full h-full flex items-center justify-center"><span className="font-heading font-black gradient-text-brand">{p.name[0]}</span></div>
-                      }
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm text-foreground truncate">{p.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{p.description}</p>
-                    </div>
-                    <span className="font-heading font-black text-sm text-brand-pop-shake shrink-0">
-                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(p.price)}
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
-          )}
         </div>
       )}
 
