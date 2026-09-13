@@ -307,21 +307,21 @@ export default function Storefront() {
                           </Link>
 
                           <Link
-                            href="/pedidos"
-                            onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors"
-                          >
-                            <ReceiptText className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
-                            Meus Pedidos
-                          </Link>
-
-                          <Link
                             href="/admin"
                             onClick={() => setUserMenuOpen(false)}
                             className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors"
                           >
                             <BookOpen className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
                             Gerenciar Cardápio
+                          </Link>
+
+                          <Link
+                            href="/pedidos"
+                            onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors"
+                          >
+                            <ReceiptText className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                            Meus Pedidos
                           </Link>
 
                           <Link
@@ -368,7 +368,7 @@ export default function Storefront() {
                       className="w-full flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors text-left"
                     >
                       <LogOut className="w-4 h-4" />
-                      Encerrar Sessão
+                      Sair
                     </button>
                   </div>
                 )}

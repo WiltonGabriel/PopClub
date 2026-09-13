@@ -50,7 +50,7 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, categoryToEdit
             {categoryToEdit ? "Editar Categoria" : "Nova Categoria"}
           </DialogTitle>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            {categoryToEdit ? "Atualize o nome da seção na vitrine" : "Crie uma nova seção para agrupar produtos"}
+            {categoryToEdit ? "Atualize o nome da seção na página inicial" : "Crie uma nova seção para agrupar produtos"}
           </p>
         </DialogHeader>
 

@@ -366,7 +366,7 @@ export default function PedidosPage() {
                   href="/"
                   className="inline-block mt-2 bg-gradient-to-r from-[#9306CF] to-[#940068] text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider shadow-md shadow-[#9306CF]/20 hover:opacity-95 transition-opacity"
                 >
-                  Explorar Vitrine da Loja
+                  Ir para a Página Inicial
                 </Link>
               </div>
             )

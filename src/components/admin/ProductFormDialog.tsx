@@ -199,7 +199,7 @@ export function ProductFormDialog({
                   )}
                 </div>
 
-                {/* Card do Produto (Design idêntico ao da Vitrine) */}
+                {/* Card do Produto (Design idêntico ao da Página Inicial) */}
                 <div className="w-full max-w-[270px] mx-auto bg-white dark:bg-[#230E26] rounded-2xl border border-gray-200 dark:border-[#512B54]/40 overflow-hidden shadow-lg transition-transform duration-200 hover:scale-[1.02]">
                   {/* Foto do Produto */}
                   <div className="aspect-square w-full bg-gray-100 dark:bg-[#190B1A] relative flex items-center justify-center overflow-hidden">
@@ -249,7 +249,7 @@ export function ProductFormDialog({
               </div>
 
               <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center mt-6">
-                * Visualização em tempo real das alterações na vitrine da loja.
+                * Visualização em tempo real das alterações na página inicial da loja.
               </p>
             </div>
 

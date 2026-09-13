@@ -195,6 +195,93 @@ export default function AdminPedidosPage() {
   const activeOrders = orders.filter((o) => !["completed", "cancelled"].includes(o.status));
   const cancelledOrders = orders.filter((o) => o.status === "cancelled");
 
+  // Badge inteligente de tempo decorrido ou conclusão/cancelamento
+  const renderOrderTimeBadge = (order: Order) => {
+    const createdDate = new Date(order.created_at);
+
+    if (order.status === "completed") {
+      const updatedDate = order.updated_at ? new Date(order.updated_at) : null;
+      if (updatedDate) {
+        const durationMins = Math.max(0, Math.floor((updatedDate.getTime() - createdDate.getTime()) / 60000));
+        if (durationMins > 0 && durationMins < 720) {
+          const formatted =
+            durationMins >= 60
+              ? `${Math.floor(durationMins / 60)}h ${durationMins % 60 > 0 ? `${durationMins % 60}m` : ""}`
+              : `${durationMins} min`;
+          return (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/40">
+              <CheckCircle2 className="w-2.5 h-2.5" />
+              <span>Pronto em {formatted}</span>
+            </span>
+          );
+        }
+        return (
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/40">
+            <CheckCircle2 className="w-2.5 h-2.5" />
+            <span>{updatedDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+          </span>
+        );
+      }
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/40">
+          <CheckCircle2 className="w-2.5 h-2.5" />
+          <span>Concluído</span>
+        </span>
+      );
+    }
+
+    if (order.status === "cancelled") {
+      const cancelDate = order.cancelled_at
+        ? new Date(order.cancelled_at)
+        : order.updated_at
+        ? new Date(order.updated_at)
+        : null;
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-900/40">
+          <XCircle className="w-2.5 h-2.5" />
+          <span>{cancelDate ? cancelDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "Cancelado"}</span>
+        </span>
+      );
+    }
+
+    // Pedidos em aberto (pending, accepted, preparing, ready, delivering)
+    const diffMins = Math.max(0, Math.floor((Date.now() - createdDate.getTime()) / 60000));
+
+    if (diffMins >= 1440) {
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300 border border-gray-200 dark:border-white/10">
+          <Clock className="w-2.5 h-2.5" />
+          <span>{createdDate.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} {createdDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+        </span>
+      );
+    }
+
+    const isUrgent = diffMins >= 40;
+    const isWarning = diffMins >= 20 && diffMins < 40;
+
+    const timeLabel =
+      diffMins < 1
+        ? "Agora"
+        : diffMins < 60
+        ? `${diffMins} min`
+        : `${Math.floor(diffMins / 60)}h ${diffMins % 60 > 0 ? `${diffMins % 60}min` : ""}`;
+
+    return (
+      <span
+        className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+          isUrgent
+            ? "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-900/40 animate-pulse"
+            : isWarning
+            ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-900/40"
+            : "bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300 border border-gray-200 dark:border-white/10"
+        }`}
+      >
+        <Clock className="w-2.5 h-2.5" />
+        <span>{timeLabel}</span>
+      </span>
+    );
+  };
+
   const renderKanbanColumn = (title: string, statuses: OrderStatus[], color: string) => {
     const colOrders = orders.filter((o) => statuses.includes(o.status));
 
@@ -226,12 +313,7 @@ export default function AdminPedidosPage() {
                 !order.delivery_address?.street ||
                 order.delivery_address?.street.toLowerCase().includes("retirada");
 
-              // Cálculo de tempo decorrido
               const createdDate = new Date(order.created_at);
-              const diffMins = Math.max(0, Math.floor((Date.now() - createdDate.getTime()) / 60000));
-              const isUrgent = diffMins >= 40 && order.status !== "completed";
-              const isWarning = diffMins >= 20 && diffMins < 40 && order.status !== "completed";
-
               const nextStage = getNextStage(order.status);
               const whatsAppLink = getWhatsAppLink(order.user?.phone, clientName, order.id);
 
@@ -252,19 +334,8 @@ export default function AdminPedidosPage() {
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                      {/* Badge de Tempo */}
-                      <span
-                        className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          isUrgent
-                            ? "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-900/40 animate-pulse"
-                            : isWarning
-                            ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-900/40"
-                            : "bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300 border border-gray-200 dark:border-white/10"
-                        }`}
-                      >
-                        <Clock className="w-2.5 h-2.5" />
-                        {diffMins < 1 ? "Agora" : `${diffMins} min`}
-                      </span>
+                      {/* Badge Inteligente de Tempo */}
+                      {renderOrderTimeBadge(order)}
 
                       {/* Modalidade */}
                       {isPickup ? (
@@ -289,8 +360,8 @@ export default function AdminPedidosPage() {
                         </span>
                       </div>
 
-                      {/* Botão de WhatsApp */}
-                      {whatsAppLink ? (
+                      {/* Botão de WhatsApp discreto (apenas se houver telefone cadastrado) */}
+                      {whatsAppLink && (
                         <a
                           href={whatsAppLink}
                           target="_blank"
@@ -301,14 +372,6 @@ export default function AdminPedidosPage() {
                           <MessageCircle className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                           <span>WhatsApp</span>
                         </a>
-                      ) : (
-                        <span
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-medium text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-white/5 shrink-0"
-                          title="Telefone não cadastrado"
-                        >
-                          <Phone className="w-2.5 h-2.5" />
-                          <span>Sem whats</span>
-                        </span>
                       )}
                     </div>
 
@@ -464,13 +527,13 @@ export default function AdminPedidosPage() {
             <span className="hidden sm:inline">Gerenciar Cardápio</span>
           </Link>
 
-          {/* Link para Vitrine */}
+          {/* Link para Página Inicial */}
           <Link
             href="/"
             className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
           >
             <Store className="w-4 h-4 text-[#9306CF]" />
-            <span className="hidden sm:inline">Vitrine</span>
+            <span className="hidden sm:inline">Página Inicial</span>
           </Link>
 
           {/* Botão Sair */}
@@ -479,7 +542,7 @@ export default function AdminPedidosPage() {
             className="flex items-center gap-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors border border-transparent hover:border-red-200 dark:hover:border-red-900/40"
           >
             <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Encerrar Sessão</span>
+            <span className="hidden sm:inline">Sair</span>
           </button>
         </div>
       </header>
