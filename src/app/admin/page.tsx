@@ -151,21 +151,29 @@ export default function AdminDashboard() {
       {/* Header do Painel */}
       <header className="bg-white/80 dark:bg-[#1F0B22]/90 backdrop-blur-xl border-b border-gray-200 dark:border-[#512B54]/40 px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
         <div className="flex items-center gap-3">
-          <Link href="/" className="font-heading font-black text-xl tracking-tight flex items-center gap-1">
-            <span className="text-[#4C264F] dark:text-[#F9F5F9]">Pop</span>
-            <span
-              style={{
-                background: "linear-gradient(135deg, #9306CF 0%, #940068 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}
-            >
-              Shake
-            </span>
-            <span className="ml-1 text-xs font-bold px-2 py-0.5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20">
-              Sorveteria • Gestão
-            </span>
+          <Link href="/" className="font-heading font-black text-xl tracking-tight flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/icon.png"
+              alt="Logo Pop Shake"
+              className="w-7 h-7 rounded-full object-contain border border-[#9306CF]/30 shadow-xs shrink-0"
+            />
+            <div className="flex items-center gap-1">
+              <span className="text-[#4C264F] dark:text-[#F9F5F9]">Pop</span>
+              <span
+                style={{
+                  background: "linear-gradient(135deg, #9306CF 0%, #940068 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}
+              >
+                Shake
+              </span>
+              <span className="ml-1 text-xs font-bold px-2 py-0.5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20">
+                Sorveteria • Gestão
+              </span>
+            </div>
           </Link>
         </div>
 

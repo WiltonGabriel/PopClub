@@ -231,9 +231,15 @@ export default function Storefront() {
             {/* Logo */}
             <Link
               href="/"
-              className="flex items-center select-none cursor-pointer hover:opacity-85 transition-opacity duration-200"
+              className="flex items-center gap-2 select-none cursor-pointer hover:opacity-85 transition-opacity duration-200"
               aria-label="Pop Shake — Início"
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/icon.png"
+                alt="Logo Pop Shake"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-contain border border-[#9306CF]/30 shadow-xs shrink-0"
+              />
               <span className="font-heading font-black text-2xl tracking-tight text-foreground flex items-center gap-1.5">
                 Pop<span className="gradient-text-brand">Shake</span>
                 <span className="text-[11px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20 hidden sm:inline-block">
