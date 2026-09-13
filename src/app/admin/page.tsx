@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   LayoutDashboard,
@@ -13,10 +13,14 @@ import {
   Edit2,
   Trash2,
   ChevronRight,
+  Clock,
+  Sparkles,
 } from "lucide-react";
 import { orderService, Order } from "../../services/orderService";
 import { promotionService, Promotion } from "../../services/promotionService";
 import { authService } from "../../services/authService";
+import { playNewOrderChime } from "../../lib/sound";
+import { subscribeToOrderEvents } from "../../lib/orderEvents";
 import { useRouter } from "next/navigation";
 import { Button } from "../../components/ui/button";
 import { PromotionFormDialog } from "../../components/admin/PromotionFormDialog";
@@ -28,17 +32,24 @@ export default function AdminDashboard() {
   const [fetching, setFetching] = useState(true);
   const [promoDialogOpen, setPromoDialogOpen] = useState(false);
   const [promoToEdit, setPromoToEdit] = useState<Promotion | null>(null);
+  const previousOrderCountRef = useRef(0);
 
   const router = useRouter();
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       const data = await orderService.getAllOrders();
-      setOrders(data);
+      setOrders((prev) => {
+        if (previousOrderCountRef.current > 0 && data.length > previousOrderCountRef.current) {
+          playNewOrderChime();
+        }
+        previousOrderCountRef.current = data.length;
+        return data;
+      });
     } catch (error) {
       console.error("Erro ao buscar pedidos:", error);
     }
-  };
+  }, []);
 
   const fetchPromos = useCallback(async () => {
     try {
@@ -53,11 +64,29 @@ export default function AdminDashboard() {
     setFetching(true);
     await Promise.all([fetchOrders(), fetchPromos()]);
     setFetching(false);
-  }, [fetchPromos]);
+  }, [fetchOrders, fetchPromos]);
 
   useEffect(() => {
     loadAll();
-  }, [loadAll]);
+
+    // Polling contínuo leve a cada 15 segundos para atualizar pedidos ativos
+    const interval = setInterval(() => {
+      fetchOrders();
+    }, 15000);
+
+    // Ouvinte imediato de eventos de pedidos locais
+    const unsubscribe = subscribeToOrderEvents((event) => {
+      if (event.type === "order_created") {
+        playNewOrderChime();
+      }
+      fetchOrders();
+    });
+
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
+  }, [loadAll, fetchOrders]);
 
   const handleDeletePromo = async (id: string) => {
     if (confirm("Deseja realmente remover esta promoção?")) {
@@ -109,10 +138,10 @@ export default function AdminDashboard() {
         <div className="flex items-center gap-2.5">
           <Link
             href="/admin/pedidos"
-            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 rounded-xl px-3.5 py-2 shadow-sm shadow-[#9306CF]/20 transition-all"
           >
-            <LayoutDashboard className="w-4 h-4 text-[#9306CF]" />
-            <span className="hidden sm:inline">Painel Operacional</span>
+            <LayoutDashboard className="w-4 h-4" />
+            <span>Gerenciar Pedidos</span>
           </Link>
 
           <Link
@@ -125,7 +154,7 @@ export default function AdminDashboard() {
 
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors border border-transparent hover:border-red-200 dark:hover:border-red-900/40"
+            className="flex items-center gap-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors border border-transparent hover:border-red-200 dark:border-red-900/40"
           >
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:inline">Sair</span>
@@ -134,7 +163,7 @@ export default function AdminDashboard() {
       </header>
 
       <main className="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full space-y-8">
-        {/* Banner de Acesso Rápido ao Painel Operacional de Pedidos */}
+        {/* Banner de Acesso Rápido ao Painel de Pedidos */}
         <div className="bg-gradient-to-r from-[#9306CF]/10 to-[#940068]/10 border border-[#9306CF]/25 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
           <div className="flex items-start sm:items-center gap-3.5">
             <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#9306CF] to-[#940068] text-white flex items-center justify-center shrink-0 shadow-md shadow-[#9306CF]/20">
@@ -142,10 +171,10 @@ export default function AdminDashboard() {
             </div>
             <div>
               <h3 className="font-heading font-bold text-base sm:text-lg text-[#4C264F] dark:text-[#F9F5F9] uppercase tracking-wide">
-                Painel Operacional da Cozinha
+                Central de Despacho & Cozinha
               </h3>
               <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
-                Acompanhe a esteira de pedidos ao vivo, despache entregas e gerencie o fluxo de preparo no Kanban dedicado.
+                Acompanhe a esteira de pedidos ao vivo, despache entregas e controle o fluxo de preparo no Kanban dedicado.
               </p>
             </div>
           </div>
@@ -154,10 +183,113 @@ export default function AdminDashboard() {
             href="/admin/pedidos"
             className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider font-bold h-11 px-5 rounded-xl shadow-md shadow-[#9306CF]/20 transition-all shrink-0"
           >
-            <span>Acessar Esteira de Pedidos</span>
-            <ArrowRight className="w-4 h-4" />
+            <span>Gerenciar Pedidos ➔</span>
           </Link>
         </div>
+
+        {/* Mini Esteira Live (Monitor Compacto no Topo) */}
+        {(() => {
+          const activeOrders = orders.filter((o) => !["completed", "cancelled"].includes(o.status));
+          return (
+            <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 shadow-sm space-y-3.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                  </span>
+                  <h3 className="font-heading font-bold text-sm sm:text-base text-[#4C264F] dark:text-[#F9F5F9] uppercase tracking-wide flex items-center gap-2">
+                    Mini Esteira Live
+                    <span className="text-xs font-normal text-gray-500 dark:text-gray-400 normal-case">
+                      ({activeOrders.length} {activeOrders.length === 1 ? "pedido em andamento" : "pedidos em andamento"})
+                    </span>
+                  </h3>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="hidden sm:inline-block text-[11px] font-mono text-gray-400">
+                    Sincronização a cada 15s
+                  </span>
+                  <Link
+                    href="/admin/pedidos"
+                    className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline inline-flex items-center gap-1"
+                  >
+                    <span>Abrir Esteira Completa</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+
+              {activeOrders.length === 0 ? (
+                <div className="py-6 text-center text-xs text-gray-500 dark:text-gray-400 bg-gray-50/70 dark:bg-[#190B1A]/60 rounded-xl border border-dashed border-gray-200 dark:border-[#512B54]/30 flex items-center justify-center gap-2">
+                  <span>🍳 Tudo tranquilo na cozinha! Nenhum pedido ativo no momento.</span>
+                </div>
+              ) : (
+                <div className="flex gap-3 overflow-x-auto pb-2 pt-1 scrollbar-thin">
+                  {activeOrders.map((order) => {
+                    const clientName = order.user?.fullName || order.user?.username || "Cliente";
+                    const isPickup =
+                      !order.delivery_address?.street ||
+                      order.delivery_address?.street.toLowerCase().includes("retirada");
+
+                    const diffMins = Math.max(0, Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000));
+                    const timeStr = diffMins < 1 ? "Agora" : `${diffMins} min`;
+
+                    let statusBadge = { label: "Novo", color: "bg-[#9306CF]/10 text-[#9306CF] border-[#9306CF]/20" };
+                    if (order.status === "preparing") {
+                      statusBadge = { label: "Em Preparo", color: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200" };
+                    } else if (order.status === "ready" || order.status === "delivering") {
+                      statusBadge = { label: "A Caminho", color: "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200" };
+                    }
+
+                    return (
+                      <div
+                        key={order.id}
+                        className="shrink-0 bg-gray-50/80 dark:bg-[#1A0B1C] border border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/40 rounded-xl p-3 flex flex-col justify-between gap-2.5 min-w-[230px] max-w-[270px] shadow-xs transition-all"
+                      >
+                        <div className="flex items-center justify-between gap-1.5">
+                          <span className="font-mono font-bold text-xs text-[#9306CF] dark:text-[#C7A9C9]">
+                            #{order.id.substring(0, 6)}
+                          </span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusBadge.color}`}>
+                            {statusBadge.label}
+                          </span>
+                        </div>
+
+                        <div>
+                          <p className="font-bold text-xs text-[#4C264F] dark:text-[#F9F5F9] truncate" title={clientName}>
+                            {clientName}
+                          </p>
+                          <div className="flex items-center justify-between mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                            <span className="inline-flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-gray-400" />
+                              {timeStr}
+                            </span>
+                            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                              R$ {Number(order.total_amount).toFixed(2).replace(".", ",")}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+                          <span className="text-[10px] font-bold text-gray-500">
+                            {isPickup ? "🛍️ Balcão" : "🛵 Entrega"}
+                          </span>
+                          <Link
+                            href={`/admin/pedidos?orderId=${order.id}`}
+                            className="text-[11px] font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline inline-flex items-center gap-1"
+                          >
+                            <span>Ver na Central ➔</span>
+                          </Link>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          );
+        })()}
 
         {/* Dashboard Analítico com Métricas e Gráficos */}
         <AnalyticsDashboard orders={orders} loading={fetching} />

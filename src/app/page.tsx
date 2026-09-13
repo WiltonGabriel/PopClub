@@ -40,6 +40,7 @@ import {
   ReceiptText,
   BookOpen,
   LayoutDashboard,
+  ClipboardList,
 } from "lucide-react";
 
 export default function Storefront() {
@@ -298,7 +299,7 @@ export default function Storefront() {
                       {isAdmin ? (
                         <>
                           <Link
-                            href="/admin/pedidos"
+                            href="/admin"
                             onClick={() => setUserMenuOpen(false)}
                             className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors"
                           >
@@ -307,12 +308,12 @@ export default function Storefront() {
                           </Link>
 
                           <Link
-                            href="/admin"
+                            href="/admin/pedidos"
                             onClick={() => setUserMenuOpen(false)}
                             className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors"
                           >
-                            <BookOpen className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
-                            Gerenciar Cardápio
+                            <ClipboardList className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                            Gerenciar Pedidos
                           </Link>
 
                           <Link
