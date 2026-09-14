@@ -7,6 +7,7 @@ import {
   Clock,
   CheckCircle,
   ChevronLeft,
+  ChevronDown,
   RotateCcw,
   Loader2,
   ShoppingBag,
@@ -81,7 +82,15 @@ export default function PedidosPage() {
   const [activeTab, setActiveTab] = useState<"ativos" | "historico">("ativos");
   const [orders, setOrders] = useState<Order[]>([]);
   const [fetching, setFetching] = useState(true);
+  const [expandedOrderIds, setExpandedOrderIds] = useState<Record<string, boolean>>({});
   const previousStatusMap = useRef<Record<string, OrderStatus>>({});
+
+  const toggleOrderExpanded = (id: string) => {
+    setExpandedOrderIds((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
 
   const fetchOrders = useCallback(async (isSilent = false) => {
     if (!isSilent) setFetching(true);
@@ -267,113 +276,137 @@ export default function PedidosPage() {
                   label: order.status,
                   badgeClass: "bg-gray-100 text-gray-700 border-gray-200",
                 };
+                const isExpanded = !!expandedOrderIds[order.id];
+                const firstItem = order.items?.[0];
+                const otherItemsCount = (order.items?.length || 1) - 1;
+                const itemsSummary = firstItem
+                  ? `${firstItem.quantity}x ${firstItem.product?.name || "Item"}${
+                      otherItemsCount > 0 ? ` + ${otherItemsCount} ${otherItemsCount === 1 ? "item" : "itens"}` : ""
+                    }`
+                  : "Pedido";
 
                 return (
                   <div
                     key={order.id}
-                    className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 shadow-sm space-y-4"
+                    className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3 transition-all"
                   >
-                    {/* Topo do Card */}
-                    <div className="flex justify-between items-start gap-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-xs text-[#9306CF] dark:text-[#C7A9C9] bg-[#9306CF]/10 px-2.5 py-0.5 rounded-md border border-[#9306CF]/20">
-                            #{order.id.substring(0, 6)}
-                          </span>
-                          <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 font-mono">
-                            <Clock className="w-3.5 h-3.5 text-gray-400" />
-                            {new Date(order.created_at).toLocaleTimeString("pt-BR", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          Criado em {new Date(order.created_at).toLocaleDateString("pt-BR")}
-                        </p>
-                      </div>
-
-                      {/* Badge de Status */}
+                    {/* ── LINHA 1: Status com bolinha colorida + Horário / ID do Pedido ── */}
+                    <div className="flex justify-between items-center gap-2">
                       <span
-                        className={`text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${statusInfo.badgeClass} inline-flex items-center gap-1.5`}
+                        className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${statusInfo.badgeClass} inline-flex items-center gap-1.5`}
                       >
                         <span className="w-2 h-2 rounded-full bg-current" />
                         {statusInfo.label}
                       </span>
+
+                      <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-gray-400" />
+                          {new Date(order.created_at).toLocaleTimeString("pt-BR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                        <span className="font-bold text-[#9306CF] dark:text-[#C7A9C9] bg-[#9306CF]/10 px-2 py-0.5 rounded border border-[#9306CF]/20">
+                          #{order.id.substring(0, 6)}
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Itens */}
-                    <div className="border-t border-b border-gray-100 dark:border-[#512B54]/30 py-3 space-y-2">
-                      {order.items?.map((item, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-xs">
-                          <span className="text-[#4C264F] dark:text-[#F9F5F9] font-medium flex items-center gap-2">
-                            <span className="text-[#9306CF] font-black">{item.quantity}x</span>
-                            <span>{item.product?.name || "Item"}</span>
-                          </span>
-                          <span className="font-mono text-gray-600 dark:text-gray-300">
-                            {new Intl.NumberFormat("pt-BR", {
-                              style: "currency",
-                              currency: "BRL",
-                            }).format(item.price_at_time * item.quantity)}
-                          </span>
-                        </div>
-                      ))}
+                    {/* ── LINHA 2: Resumo Principal + Total ── */}
+                    <div className="flex items-center justify-between gap-3 text-xs sm:text-sm pt-1">
+                      <p className="font-semibold text-foreground truncate flex-1">
+                        {itemsSummary}
+                      </p>
+                      <span className="font-heading font-black text-sm sm:text-base text-emerald-600 dark:text-emerald-400 shrink-0">
+                        Total: {new Intl.NumberFormat("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        }).format(order.total_amount)}
+                      </span>
                     </div>
 
-                    {/* Endereço */}
-                    {order.delivery_address && (
-                      <div className="bg-gray-50 dark:bg-white/5 p-3 rounded-xl text-xs text-gray-600 dark:text-gray-300 flex items-start gap-2 border border-gray-100 dark:border-[#512B54]/20">
-                        <Bike className="w-4 h-4 text-[#9306CF] shrink-0 mt-0.5" />
-                        <span>
-                          Entrega: {order.delivery_address.street}, {order.delivery_address.number}
-                          {order.delivery_address.neighborhood ? ` - ${order.delivery_address.neighborhood}` : ""}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Taxa de Entrega e Desconto */}
-                    {(order.delivery_fee !== undefined || (order.discount_amount && Number(order.discount_amount) > 0)) && (
-                      <div className="flex flex-wrap items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-1">
-                        {order.delivery_fee !== undefined && (
-                          <span>
-                            Frete:{" "}
-                            {Number(order.delivery_fee) > 0 ? (
-                              <strong className="text-gray-700 dark:text-gray-300 font-mono">
-                                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(order.delivery_fee))}
-                              </strong>
-                            ) : (
-                              <span className="text-emerald-600 dark:text-emerald-400 font-bold uppercase">Grátis</span>
-                            )}
-                          </span>
-                        )}
-                        {order.discount_amount && Number(order.discount_amount) > 0 && (
-                          <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                            Desconto: - {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(order.discount_amount))}
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Total e Acompanhamento */}
-                    <div className="flex justify-between items-center pt-1">
-                      <div>
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 block">
-                          Total do Pedido
-                        </span>
-                        <span className="font-heading font-black text-xl text-emerald-600 dark:text-emerald-400">
-                          {new Intl.NumberFormat("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          }).format(order.total_amount)}
-                        </span>
-                      </div>
+                    {/* ── LINHA 3: Botão Ver Detalhes (Accordion) + Ações ── */}
+                    <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-[#512B54]/30">
+                      <button
+                        type="button"
+                        onClick={() => toggleOrderExpanded(order.id)}
+                        className="text-xs font-semibold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1 py-1 cursor-pointer"
+                      >
+                        <span>{isExpanded ? "Ocultar detalhes" : "Ver detalhes do pedido"}</span>
+                        <ChevronDown
+                          className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                            isExpanded ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
 
                       <Link href={`/rastreamento?id=${order.id}`}>
-                        <Button className="h-10 px-4 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs font-bold uppercase tracking-wider shadow-md shadow-[#9306CF]/20">
-                          Rastrear Entrega 🛵
+                        <Button
+                          size="sm"
+                          className="h-8 px-3 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs font-bold uppercase tracking-wider shadow-sm shadow-[#9306CF]/20"
+                        >
+                          Rastrear 🛵
                         </Button>
                       </Link>
                     </div>
+
+                    {/* ── DETALHES DO PEDIDO EXPANDÍVEIS (ACCORDION) ── */}
+                    {isExpanded && (
+                      <div className="pt-3 border-t border-gray-100 dark:border-[#512B54]/30 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                        {/* Lista Completa de Itens */}
+                        <div className="space-y-2 py-1">
+                          {order.items?.map((item, idx) => (
+                            <div key={idx} className="flex justify-between items-start text-xs gap-2">
+                              <span className="text-[#4C264F] dark:text-[#F9F5F9] font-medium flex items-center gap-2">
+                                <span className="text-[#9306CF] font-black">{item.quantity}x</span>
+                                <span>{item.product?.name || "Item"}</span>
+                              </span>
+                              <span className="font-mono text-gray-600 dark:text-gray-300 shrink-0">
+                                {new Intl.NumberFormat("pt-BR", {
+                                  style: "currency",
+                                  currency: "BRL",
+                                }).format(item.price_at_time * item.quantity)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Endereço */}
+                        {order.delivery_address && (
+                          <div className="bg-gray-50 dark:bg-white/5 p-3 rounded-xl text-xs text-gray-600 dark:text-gray-300 flex items-start gap-2 border border-gray-100 dark:border-[#512B54]/20">
+                            <Bike className="w-4 h-4 text-[#9306CF] shrink-0 mt-0.5" />
+                            <span>
+                              Entrega: {order.delivery_address.street}, {order.delivery_address.number}
+                              {order.delivery_address.neighborhood ? ` - ${order.delivery_address.neighborhood}` : ""}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Taxa de Entrega e Desconto */}
+                        {(order.delivery_fee !== undefined || (order.discount_amount && Number(order.discount_amount) > 0)) && (
+                          <div className="flex flex-wrap items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-1">
+                            {order.delivery_fee !== undefined && (
+                              <span>
+                                Frete:{" "}
+                                {Number(order.delivery_fee) > 0 ? (
+                                  <strong className="text-gray-700 dark:text-gray-300 font-mono">
+                                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(order.delivery_fee))}
+                                  </strong>
+                                ) : (
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-bold uppercase">Grátis</span>
+                                )}
+                              </span>
+                            )}
+                            {order.discount_amount && Number(order.discount_amount) > 0 && (
+                              <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                                Desconto: - {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(order.discount_amount))}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -400,118 +433,156 @@ export default function PedidosPage() {
             historyOrders.length > 0 ? (
               historyOrders.map((order) => {
                 const isCancelled = order.status === "cancelled";
+                const isExpanded = !!expandedOrderIds[order.id];
+                const firstItem = order.items?.[0];
+                const otherItemsCount = (order.items?.length || 1) - 1;
+                const itemsSummary = firstItem
+                  ? `${firstItem.quantity}x ${firstItem.product?.name || "Item"}${
+                      otherItemsCount > 0 ? ` + ${otherItemsCount} ${otherItemsCount === 1 ? "item" : "itens"}` : ""
+                    }`
+                  : "Pedido";
 
                 return (
                   <div
                     key={order.id}
-                    className={`bg-white dark:bg-[#230E26] border rounded-2xl p-5 shadow-sm space-y-3.5 transition-colors ${
+                    className={`bg-white dark:bg-[#230E26] border rounded-2xl p-4 sm:p-5 shadow-sm space-y-3 transition-colors ${
                       isCancelled
                         ? "border-red-200 dark:border-red-900/50"
                         : "border-gray-200 dark:border-[#512B54]/40"
                     }`}
                   >
-                    {/* Topo do Histórico */}
-                    <div className="flex justify-between items-start gap-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`font-mono font-bold text-xs px-2.5 py-0.5 rounded-md border ${
-                              isCancelled
-                                ? "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 border-red-200 dark:border-red-900/40"
-                                : "bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border-[#9306CF]/20"
-                            }`}
-                          >
-                            #{order.id.substring(0, 6)}
-                          </span>
-                          <span className="text-xs text-gray-500 font-mono">
-                            {new Date(order.created_at).toLocaleDateString("pt-BR")} às{" "}
-                            {new Date(order.created_at).toLocaleTimeString("pt-BR", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Badge */}
+                    {/* ── LINHA 1: Status + Data/Hora e ID ── */}
+                    <div className="flex justify-between items-center gap-2">
                       {isCancelled ? (
-                        <span className="bg-red-500 text-white text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                        <span className="bg-red-500 text-white text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
                           <AlertTriangle className="w-3.5 h-3.5" />
-                          Pedido Cancelado
+                          Cancelado
                         </span>
                       ) : (
-                        <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-900/40 flex items-center gap-1">
+                        <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-900/40 flex items-center gap-1">
                           <CheckCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                           Entregue
                         </span>
                       )}
-                    </div>
 
-                    {/* ALERTA EM DESTAQUE SE O PEDIDO FOI CANCELADO */}
-                    {isCancelled && (
-                      <div className="bg-red-50/90 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl p-3.5 space-y-2.5">
-                        <div className="flex items-start gap-2">
-                          <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-                          <div>
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-red-700 dark:text-red-300 block">
-                              Motivo informado pela loja:
-                            </span>
-                            <p className="text-xs text-red-900 dark:text-red-200 font-semibold mt-0.5 leading-relaxed">
-                              {order.cancellation_reason || "Item indisponível no momento"}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="pt-1 border-t border-red-200/60 dark:border-red-900/40 flex justify-end">
-                          <a
-                            href={getStoreWhatsAppUrl(order.id, order.cancellation_reason)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-sm"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5" />
-                            <span>Falar com a loja no WhatsApp</span>
-                          </a>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Itens do Pedido */}
-                    <div className="text-xs text-gray-600 dark:text-gray-300 py-1">
-                      {order.items && order.items.length > 0 ? (
-                        <p className="line-clamp-2">
-                          {order.items
-                            .map((i) => `${i.quantity}x ${i.product?.name || "Item"}`)
-                            .join(", ")}
-                        </p>
-                      ) : (
-                        <p className="italic text-gray-400">Itens não detalhados</p>
-                      )}
-                    </div>
-
-                    {/* Rodapé com Total e Pedir Novamente */}
-                    <div className="flex justify-between items-center pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
-                      <div>
-                        <span className="text-[10px] uppercase font-bold text-gray-400 block">Total</span>
-                        <span className="font-mono font-bold text-base text-[#4C264F] dark:text-[#F9F5F9]">
-                          {new Intl.NumberFormat("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          }).format(order.total_amount)}
+                      <div className="flex items-center gap-2 text-xs text-gray-500 font-mono">
+                        <span>
+                          {new Date(order.created_at).toLocaleDateString("pt-BR")}
+                        </span>
+                        <span
+                          className={`font-bold px-2 py-0.5 rounded border ${
+                            isCancelled
+                              ? "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 border-red-200 dark:border-red-900/40"
+                              : "bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border-[#9306CF]/20"
+                          }`}
+                        >
+                          #{order.id.substring(0, 6)}
                         </span>
                       </div>
+                    </div>
+
+                    {/* ── LINHA 2: Resumo Principal + Total ── */}
+                    <div className="flex items-center justify-between gap-3 text-xs sm:text-sm pt-1">
+                      <p className="font-semibold text-foreground truncate flex-1">
+                        {itemsSummary}
+                      </p>
+                      <span className="font-mono font-bold text-base text-[#4C264F] dark:text-[#F9F5F9] shrink-0">
+                        {new Intl.NumberFormat("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        }).format(order.total_amount)}
+                      </span>
+                    </div>
+
+                    {/* ── LINHA 3: Botão Ver Detalhes (Accordion) + Pedir Novamente ── */}
+                    <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-[#512B54]/30">
+                      <button
+                        type="button"
+                        onClick={() => toggleOrderExpanded(order.id)}
+                        className="text-xs font-semibold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1 py-1 cursor-pointer"
+                      >
+                        <span>{isExpanded ? "Ocultar detalhes" : "Ver detalhes do pedido"}</span>
+                        <ChevronDown
+                          className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                            isExpanded ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
 
                       <Link href="/">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold text-[#9306CF] hover:bg-[#9306CF]/10 gap-1.5 h-9"
+                          className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold text-[#9306CF] hover:bg-[#9306CF]/10 gap-1.5 h-8 px-3"
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
                           <span>Pedir Novamente</span>
                         </Button>
                       </Link>
                     </div>
+
+                    {/* ── DETALHES DO HISTÓRICO EXPANDÍVEIS (ACCORDION) ── */}
+                    {isExpanded && (
+                      <div className="pt-3 border-t border-gray-100 dark:border-[#512B54]/30 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                        {/* ALERTA EM DESTAQUE SE O PEDIDO FOI CANCELADO */}
+                        {isCancelled && (
+                          <div className="bg-red-50/90 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl p-3.5 space-y-2.5">
+                            <div className="flex items-start gap-2">
+                              <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                              <div>
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-red-700 dark:text-red-300 block">
+                                  Motivo informado pela loja:
+                                </span>
+                                <p className="text-xs text-red-900 dark:text-red-200 font-semibold mt-0.5 leading-relaxed">
+                                  {order.cancellation_reason || "Item indisponível no momento"}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="pt-1 border-t border-red-200/60 dark:border-red-900/40 flex justify-end">
+                              <a
+                                href={getStoreWhatsAppUrl(order.id, order.cancellation_reason)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-sm"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                                <span>Falar com a loja no WhatsApp</span>
+                              </a>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Itens do Pedido */}
+                        <div className="space-y-2 py-1">
+                          {order.items?.map((item, idx) => (
+                            <div key={idx} className="flex justify-between items-start text-xs gap-2">
+                              <span className="text-[#4C264F] dark:text-[#F9F5F9] font-medium flex items-center gap-2">
+                                <span className="text-[#9306CF] font-black">{item.quantity}x</span>
+                                <span>{item.product?.name || "Item"}</span>
+                              </span>
+                              <span className="font-mono text-gray-600 dark:text-gray-300 shrink-0">
+                                {new Intl.NumberFormat("pt-BR", {
+                                  style: "currency",
+                                  currency: "BRL",
+                                }).format(item.price_at_time * item.quantity)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Endereço se houver */}
+                        {order.delivery_address && (
+                          <div className="bg-gray-50 dark:bg-white/5 p-3 rounded-xl text-xs text-gray-600 dark:text-gray-300 flex items-start gap-2 border border-gray-100 dark:border-[#512B54]/20">
+                            <Bike className="w-4 h-4 text-[#9306CF] shrink-0 mt-0.5" />
+                            <span>
+                              Entrega: {order.delivery_address.street}, {order.delivery_address.number}
+                              {order.delivery_address.neighborhood ? ` - ${order.delivery_address.neighborhood}` : ""}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })

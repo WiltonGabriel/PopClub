@@ -2,6 +2,7 @@
 
 import { Edit2, Trash2, Plus, IceCream, Coffee, Zap } from "lucide-react";
 import { Product } from "../../services/productService";
+import { getProductCustomization } from "../../data/productCustomizationOptions";
 
 interface ProductCardProps {
   product: Product;
@@ -33,11 +34,11 @@ function getCategoryBadge(name: string) {
   if (l.includes("açaí") || l.includes("acai"))
     return { icon: <IceCream className="w-3 h-3" />, label: "Açaí", color: "bg-brand-pop-shake/10 text-brand-pop-shake" };
   if (l.includes("sorvete"))
-    return { icon: <IceCream className="w-3 h-3" />, label: "Sorvete", color: "bg-blue-50 text-blue-600" };
+    return { icon: <IceCream className="w-3 h-3" />, label: "Sorvete", color: "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-300" };
   if (l.includes("shake") || l.includes("milk"))
-    return { icon: <Coffee className="w-3 h-3" />, label: "Shake", color: "bg-amber-50 text-amber-600" };
+    return { icon: <Coffee className="w-3 h-3" />, label: "Shake", color: "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-300" };
   if (l.includes("combo"))
-    return { icon: <Zap className="w-3 h-3" />, label: "Combo", color: "bg-yellow-50 text-yellow-600" };
+    return { icon: <Zap className="w-3 h-3" />, label: "Combo", color: "bg-yellow-50 text-yellow-600 dark:bg-yellow-950/40 dark:text-yellow-300" };
   return null;
 }
 
@@ -53,6 +54,12 @@ export function ProductCard({
   const isOutOfStock =
     product.isAvailable === false ||
     (product.stock !== undefined && product.stock !== null && product.stock <= 0);
+
+  const customization = getProductCustomization(product);
+  const originalPrice = customization.originalPrice;
+  const discountPercent = originalPrice
+    ? Math.round(((originalPrice - product.price) / originalPrice) * 100)
+    : null;
 
   const badge = getCategoryBadge(product.category ?? "");
   const formattedPrice = new Intl.NumberFormat("pt-BR", {
@@ -73,10 +80,14 @@ export function ProductCard({
     <article
       onClick={handleCardClick}
       className={`
-        product-card relative bg-card rounded-2xl overflow-hidden group
-        flex flex-col border border-border/40 transition-all duration-200
-        ${isOutOfStock ? "opacity-80 cursor-not-allowed" : "cursor-pointer hover:shadow-lg hover:border-[#9306CF]/40 hover:-translate-y-0.5"}
-        ${featured ? "sm:col-span-2" : ""}
+        product-card relative bg-card overflow-hidden group
+        flex flex-row md:flex-col items-center md:items-stretch justify-between
+        min-h-[105px] max-h-[125px] md:min-h-0 md:max-h-none
+        py-3 px-2 sm:px-3 md:p-0
+        border-b md:border border-border/40 last:border-b-0 md:last:border-b md:rounded-2xl
+        transition-all duration-200
+        ${isOutOfStock ? "opacity-80 cursor-not-allowed" : "cursor-pointer hover:bg-muted/30 md:hover:bg-card md:hover:shadow-lg md:hover:border-[#9306CF]/40 md:hover:-translate-y-0.5"}
+        ${featured ? "md:col-span-2" : ""}
       `}
     >
       {/* Admin Controls */}
@@ -107,101 +118,140 @@ export function ProductCard({
         </div>
       )}
 
-      {/* Image Area */}
-      <div className={`relative overflow-hidden bg-brand-surface-2 ${featured ? "aspect-video" : "aspect-[4/3]"}`}>
-        {product.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            className={`object-cover w-full h-full group-hover:scale-105 transition-transform duration-500 ${
-              isOutOfStock ? "grayscale-[50%]" : ""
-            }`}
-          />
-        ) : (
-          <ProductPlaceholder name={product.name} />
-        )}
+      {/* ── LADO ESQUERDO NO MOBILE (65%) / INFERIOR NO DESKTOP: Conteúdo & Preço ── */}
+      <div className="order-1 md:order-2 w-[65%] md:w-full pr-3 md:pr-0 md:p-3 flex flex-col justify-between h-full py-0.5 md:flex-1 gap-1">
+        <div>
+          <h3 className="font-heading font-semibold md:font-bold text-foreground text-sm leading-tight line-clamp-1 md:line-clamp-2">
+            {product.name}
+          </h3>
+          {product.description && (
+            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mt-0.5">
+              {product.description}
+            </p>
+          )}
+        </div>
 
-        {/* Esgotado / Pausado Overlay */}
-        {isOutOfStock && (
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center z-10 pointer-events-none">
-            <span className="bg-red-600/90 text-white font-bold text-xs uppercase px-3 py-1 rounded-full shadow-md tracking-wider border border-red-400/30">
-              Esgotado
+        {/* Linha de Preço & Desconto */}
+        <div className="flex items-center justify-between mt-auto pt-1.5 md:mt-2 md:pt-2 md:border-t md:border-border/30">
+          <div className="flex flex-wrap items-baseline gap-1.5">
+            <span className={`font-heading font-bold md:font-black text-sm md:text-base ${isOutOfStock ? "text-muted-foreground line-through" : "text-brand-pop-shake"}`}>
+              {formattedPrice}
             </span>
+
+            {originalPrice && !isOutOfStock && (
+              <>
+                <span className="text-[10px] sm:text-xs text-muted-foreground line-through font-medium">
+                  R$ {originalPrice.toFixed(2).replace(".", ",")}
+                </span>
+                {discountPercent && discountPercent > 0 && (
+                  <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded-full">
+                    {discountPercent}% OFF
+                  </span>
+                )}
+              </>
+            )}
           </div>
-        )}
 
-        {/* Selo do Card (Badge Flutuante Personalizado ou Categoria) */}
-        {!isOutOfStock && (
-          product.cardBadge ? (
-            <span
-              style={{
-                backgroundColor: product.cardBadge.bgColor,
-                color: product.cardBadge.textColor,
-              }}
-              className="absolute top-2 right-2 rounded-full px-2.5 py-0.5 text-xs font-semibold flex items-center gap-1 shadow-sm select-none z-10"
-            >
-              {product.cardBadge.icon && <span>{product.cardBadge.icon}</span>}
-              <span>{product.cardBadge.text}</span>
-            </span>
-          ) : badge ? (
-            <span className={`badge-clay absolute top-2 right-2 flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full ${badge.color}`}>
-              {badge.icon}
-              {badge.label}
-            </span>
-          ) : null
-        )}
+          {/* Botão Desktop [ + ] */}
+          <div className="hidden md:flex items-center">
+            {isOutOfStock ? (
+              <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-zinc-500 bg-gray-100 dark:bg-zinc-800 px-2.5 py-1 rounded-full border border-dashed border-gray-300 dark:border-zinc-700">
+                Off
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCardClick();
+                }}
+                aria-label={`Personalizar e adicionar ${product.name} ao carrinho`}
+                className="
+                  btn-clay
+                  flex items-center justify-center gap-1
+                  bg-brand-folha-acai text-white
+                  w-9 h-9 rounded-full
+                  font-bold text-lg leading-none
+                  active:scale-95 cursor-pointer shadow-sm
+                "
+              >
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Info Area */}
-      <div className="p-3 flex flex-col flex-1 gap-1">
-        <h3 className="font-heading font-bold text-foreground text-sm leading-tight line-clamp-2">
-          {product.name}
-        </h3>
-        {product.description && (
-          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed flex-1">
-            {product.description}
-          </p>
-        )}
-
-        {/* Price + Add button row */}
-        <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
-          <span className={`font-heading font-black text-base ${isOutOfStock ? "text-muted-foreground line-through" : "text-brand-pop-shake"}`}>
-            {formattedPrice}
-          </span>
-
-          {isOutOfStock ? (
-            <button
-              disabled
-              aria-label="Produto esgotado"
-              className="
-                flex items-center justify-center
-                bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500
-                rounded-full cursor-not-allowed
-                min-w-[44px] min-h-[44px] w-11 h-11
-                border border-dashed border-gray-300 dark:border-zinc-700
-              "
-            >
-              <span className="text-[10px] font-bold uppercase">Off</span>
-            </button>
+      {/* ── LADO DIREITO NO MOBILE (35%) / SUPERIOR NO DESKTOP: Imagem 1:1 e Botão [ + ] Flutuante ── */}
+      <div className="order-2 md:order-1 w-[35%] md:w-full flex justify-end shrink-0">
+        <div className={`
+          relative overflow-hidden bg-brand-surface-2 shrink-0
+          w-24 h-24 sm:w-28 sm:h-28 md:w-full md:h-auto
+          ${featured ? "md:aspect-video" : "md:aspect-[4/3]"}
+          rounded-2xl md:rounded-none md:rounded-t-2xl
+        `}>
+          {product.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={product.imageUrl}
+              alt={product.name}
+              className={`object-cover w-full h-full group-hover:scale-105 transition-transform duration-500 ${
+                isOutOfStock ? "grayscale-[50%]" : ""
+              }`}
+            />
           ) : (
+            <ProductPlaceholder name={product.name} />
+          )}
+
+          {/* Esgotado / Pausado Overlay */}
+          {isOutOfStock && (
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center z-10 pointer-events-none">
+              <span className="bg-red-600/90 text-white font-bold text-[10px] md:text-xs uppercase px-2 py-0.5 md:px-3 md:py-1 rounded-full shadow-md tracking-wider border border-red-400/30">
+                Esgotado
+              </span>
+            </div>
+          )}
+
+          {/* Selo do Card (Badge Flutuante Personalizado ou Categoria) */}
+          {!isOutOfStock && (
+            product.cardBadge ? (
+              <span
+                style={{
+                  backgroundColor: product.cardBadge.bgColor,
+                  color: product.cardBadge.textColor,
+                }}
+                className="absolute top-1.5 right-1.5 md:top-2 md:right-2 rounded-full px-1.5 py-0.5 md:px-2.5 md:py-0.5 text-[10px] md:text-xs font-semibold flex items-center gap-1 shadow-sm select-none z-10"
+              >
+                {product.cardBadge.icon && <span>{product.cardBadge.icon}</span>}
+                <span>{product.cardBadge.text}</span>
+              </span>
+            ) : badge ? (
+              <span className={`badge-clay absolute top-1.5 right-1.5 md:top-2 md:right-2 flex items-center gap-1 text-[9px] md:text-[10px] font-semibold px-1.5 py-0.5 md:px-2 md:py-1 rounded-full ${badge.color}`}>
+                {badge.icon}
+                {badge.label}
+              </span>
+            ) : null
+          )}
+
+          {/* Botão Flutuante Redondo [ + ] no Canto Inferior Direito da Imagem (Mobile Only) */}
+          {!isOutOfStock && (
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 handleCardClick();
               }}
               aria-label={`Personalizar e adicionar ${product.name} ao carrinho`}
               className="
-                btn-clay
-                flex items-center justify-center gap-1
+                md:hidden absolute bottom-1.5 right-1.5 z-10
+                w-8 h-8 rounded-full
                 bg-brand-folha-acai text-white
-                w-9 h-9 rounded-full
-                font-bold text-lg leading-none
-                min-w-[44px] min-h-[44px] w-11 h-11
-                active:scale-95 cursor-pointer
+                flex items-center justify-center
+                shadow-md active:scale-90 cursor-pointer
+                transition-transform
               "
             >
-              <Plus className="w-5 h-5 stroke-[2.5]" />
+              <Plus className="w-4 h-4 stroke-[2.5]" />
             </button>
           )}
         </div>
@@ -209,3 +259,4 @@ export function ProductCard({
     </article>
   );
 }
+

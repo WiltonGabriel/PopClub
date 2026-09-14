@@ -542,13 +542,13 @@ export default function CarrinhoPage() {
                     type="text"
                     value={couponInput}
                     onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                    placeholder="Ex: BEMVINDO10 ou POPSHAKE5"
-                    className="rounded-none border-2 border-border font-mono text-xs uppercase flex-1"
+                    placeholder="Ex: BEMVINDO10"
+                    className="rounded-xl border border-input font-mono text-base md:text-sm uppercase flex-1 h-11 px-3"
                   />
                   <Button
                     type="submit"
                     disabled={validatingCoupon || !couponInput.trim()}
-                    className="rounded-none bg-secondary hover:bg-secondary/90 text-white font-mono text-xs uppercase tracking-wider font-bold px-5"
+                    className="rounded-xl bg-secondary hover:bg-secondary/90 text-white font-mono text-sm uppercase tracking-wider font-bold px-5 h-11"
                   >
                     {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
                   </Button>
@@ -665,8 +665,8 @@ export default function CarrinhoPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="md:col-span-2 space-y-1">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                <div className="md:col-span-2 space-y-1.5">
                   <Label className="font-mono text-xs uppercase text-muted-foreground">
                     Logradouro / Rua *
                   </Label>
@@ -674,12 +674,12 @@ export default function CarrinhoPage() {
                     value={street}
                     onChange={(e) => setStreet(e.target.value)}
                     placeholder="Ex: Av. Beira Mar"
-                    className="rounded-none border-2 border-border text-xs"
+                    className="rounded-xl border border-input text-base md:text-sm h-11 px-3"
                     required
                   />
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <Label className="font-mono text-xs uppercase text-muted-foreground">
                     Número *
                   </Label>
@@ -688,14 +688,14 @@ export default function CarrinhoPage() {
                     value={number}
                     onChange={(e) => setNumber(e.target.value)}
                     placeholder="Ex: 1420"
-                    className="rounded-none border-2 border-border text-xs focus-visible:ring-2 focus-visible:ring-[#9306CF]/30"
+                    className="rounded-xl border border-input text-base md:text-sm h-11 px-3 focus-visible:ring-2 focus-visible:ring-[#9306CF]/30"
                     required
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="space-y-1">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                <div className="space-y-1.5">
                   <Label className="font-mono text-xs uppercase text-muted-foreground">
                     Bairro *
                   </Label>
@@ -703,12 +703,12 @@ export default function CarrinhoPage() {
                     value={neighborhood}
                     onChange={(e) => setNeighborhood(e.target.value)}
                     placeholder="Ex: Centro"
-                    className="rounded-none border-2 border-border text-xs"
+                    className="rounded-xl border border-input text-base md:text-sm h-11 px-3"
                     required
                   />
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <Label className="font-mono text-xs uppercase text-muted-foreground">
                     Cidade / UF
                   </Label>
@@ -716,11 +716,11 @@ export default function CarrinhoPage() {
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
                     placeholder="Ex: Cidade"
-                    className="rounded-none border-2 border-border text-xs"
+                    className="rounded-xl border border-input text-base md:text-sm h-11 px-3"
                   />
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <Label className="font-mono text-xs uppercase text-muted-foreground">
                     CEP
                   </Label>
@@ -728,13 +728,13 @@ export default function CarrinhoPage() {
                     value={zip}
                     onChange={(e) => setZip(e.target.value)}
                     placeholder="00000-000"
-                    className="rounded-none border-2 border-border text-xs font-mono"
+                    className="rounded-xl border border-input text-base md:text-sm font-mono h-11 px-3"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="space-y-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <div className="space-y-1.5">
                   <Label className="font-mono text-xs uppercase text-muted-foreground">
                     Complemento (Apto, Bloco...)
                   </Label>
@@ -742,11 +742,11 @@ export default function CarrinhoPage() {
                     value={complement}
                     onChange={(e) => setComplement(e.target.value)}
                     placeholder="Ex: Apto 302 Bloco B"
-                    className="rounded-none border-2 border-border text-xs"
+                    className="rounded-xl border border-input text-base md:text-sm h-11 px-3"
                   />
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <Label className="font-mono text-xs uppercase text-muted-foreground">
                     Ponto de Referência
                   </Label>
@@ -754,7 +754,7 @@ export default function CarrinhoPage() {
                     value={reference}
                     onChange={(e) => setReference(e.target.value)}
                     placeholder="Ex: Próximo à praça central"
-                    className="rounded-none border-2 border-border text-xs"
+                    className="rounded-xl border border-input text-base md:text-sm h-11 px-3"
                   />
                 </div>
               </div>
@@ -839,7 +839,7 @@ export default function CarrinhoPage() {
                     placeholder={`Ex: ${(Math.ceil(finalTotal / 10) * 10 + 10).toFixed(2)}`}
                     value={changeFor}
                     onChange={(e) => setChangeFor(e.target.value)}
-                    className="rounded-none border-2 border-border text-xs font-mono max-w-xs"
+                    className="rounded-xl border border-input text-base md:text-sm font-mono max-w-xs h-11 px-3"
                   />
                 </div>
               )}

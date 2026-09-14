@@ -53,7 +53,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={cn("font-sans bg-background text-foreground antialiased", inter.className)}
+        className={cn("font-sans bg-background text-foreground antialiased overflow-x-hidden min-h-screen", inter.className)}
         suppressHydrationWarning
       >
         <ThemeProvider>

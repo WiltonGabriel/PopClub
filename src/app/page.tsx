@@ -386,13 +386,13 @@ export default function Storefront() {
             {/* Cart button — opens drawer */}
             <button
               onClick={() => setCartDrawerOpen(true)}
-              className="flex items-center gap-1.5 sm:gap-2 bg-brand-folha-acai hover:bg-brand-folha-acai-dk text-white font-semibold text-xs sm:text-sm px-3 sm:px-4 py-2 sm:py-2.5 rounded-full transition-colors shadow-sm shrink-0 cursor-pointer"
+              className="relative flex items-center justify-center sm:gap-2 bg-brand-folha-acai hover:bg-brand-folha-acai-dk text-white font-semibold text-xs sm:text-sm w-9 h-9 sm:w-auto sm:px-4 sm:py-2.5 rounded-full transition-colors shadow-sm shrink-0 cursor-pointer"
               aria-label={`Carrinho com ${totalItems} itens`}
             >
               <ShoppingBag className="w-4 h-4 shrink-0" />
               <span className="hidden sm:inline">Carrinho</span>
               {totalItems > 0 && (
-                <span className="bg-white text-brand-folha-acai text-xs font-black rounded-full px-1.5 py-0.5 min-w-[20px] text-center leading-none">
+                <span className="absolute -top-1.5 -right-1.5 sm:static bg-white text-brand-folha-acai text-[10px] sm:text-xs font-black rounded-full px-1 sm:px-1.5 py-0.5 min-w-[18px] sm:min-w-[20px] text-center leading-none shadow-sm sm:shadow-none border border-brand-folha-acai/20 sm:border-none">
                   {totalItems}
                 </span>
               )}
@@ -607,22 +607,20 @@ export default function Storefront() {
       ───────────────────────────────────────── */}
       <div
         data-category-bar
-        className="sticky top-[61px] z-30 bg-background/95 dark:bg-[#190B1A]/95 backdrop-blur-sm border-b border-border/30"
+        className="sticky top-[55px] sm:top-[61px] z-30 bg-background/95 dark:bg-[#190B1A]/95 backdrop-blur-md border-b border-border/30"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           {/*
-            pt-3 pb-4: extra bottom padding lets chip shadows breathe.
-            overflow-x-auto clipping is solved by NOT using overflow-hidden
-            on any ancestor — only overflow-x-auto here.
+            Carrossel com rolagem suave, inércia nativa touch e scroll snap
           */}
-          <div className="flex overflow-x-auto gap-2 no-scrollbar items-center pt-3 pb-4">
+          <div className="flex overflow-x-auto gap-2 no-scrollbar items-center py-2.5 px-0.5 snap-x snap-mandatory scroll-smooth touch-pan-x [-webkit-overflow-scrolling:touch]">
             {loading && categories.length === 0 ? (
               <>
-                <div className="shrink-0 w-20 h-10 rounded-full skeleton-light" />
-                <div className="shrink-0 w-28 h-10 rounded-full skeleton-light" />
-                <div className="shrink-0 w-24 h-10 rounded-full skeleton-light" />
-                <div className="shrink-0 w-32 h-10 rounded-full skeleton-light" />
-                <div className="shrink-0 w-24 h-10 rounded-full skeleton-light" />
+                <div className="shrink-0 snap-start w-20 h-10 rounded-full skeleton-light" />
+                <div className="shrink-0 snap-start w-28 h-10 rounded-full skeleton-light" />
+                <div className="shrink-0 snap-start w-24 h-10 rounded-full skeleton-light" />
+                <div className="shrink-0 snap-start w-32 h-10 rounded-full skeleton-light" />
+                <div className="shrink-0 snap-start w-24 h-10 rounded-full skeleton-light" />
               </>
             ) : (
               <>
@@ -631,7 +629,7 @@ export default function Storefront() {
                   onClick={() => setActiveCategory(null)}
                   aria-pressed={activeCategory === null}
                   className={`
-                    chip-clay shrink-0
+                    chip-clay shrink-0 snap-start
                     flex items-center gap-1.5
                     px-4 py-2 rounded-full
                     text-xs font-semibold
@@ -649,7 +647,7 @@ export default function Storefront() {
                 {categories.map((cat, catIdx) => (
                   <div
                     key={cat.id}
-                    className={`relative group shrink-0 transition-transform ${
+                    className={`relative group shrink-0 snap-start transition-transform ${
                       draggedCatIndex === catIdx ? "opacity-40 scale-95" : ""
                     }`}
                   >
@@ -893,44 +891,38 @@ export default function Storefront() {
                   )}
                 </div>
 
-                {/* ── Bento Grid / Slider Mobile ── */}
-                <div className={
-                  isPreview
-                    ? "flex gap-3 overflow-x-auto pb-4 pt-1 snap-x snap-mandatory scrollbar-none sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-4 sm:overflow-visible sm:snap-none"
-                    : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
-                }>
+                {/* ── Catálogo: Linhas Horizontais Compactas no Mobile / Grid Bento no Desktop ── */}
+                <div className="flex flex-col md:grid md:grid-cols-3 lg:grid-cols-4 md:gap-4 bg-card/60 md:bg-transparent rounded-2xl md:rounded-none border border-border/30 md:border-none px-2 sm:px-3 md:px-0">
                   {displayProducts.map((product, prodIndex) => (
-                    <div key={product.id} className={isPreview ? "min-w-[80%] sm:min-w-0 snap-start shrink-0" : ""}>
-                      <ProductCard
-                        product={product}
-                        onAddToCart={handleOpenProductModal}
-                        onOpenDetails={handleOpenProductModal}
-                        isAdmin={canEdit}
-                        onEdit={(p) => { setEditingProduct(p); setProdDialogOpen(true); }}
-                        onDelete={handleDeleteProduct}
-                        featured={hasFeatured && prodIndex === 0}
-                      />
-                    </div>
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onAddToCart={handleOpenProductModal}
+                      onOpenDetails={handleOpenProductModal}
+                      isAdmin={canEdit}
+                      onEdit={(p) => { setEditingProduct(p); setProdDialogOpen(true); }}
+                      onDelete={handleDeleteProduct}
+                      featured={hasFeatured && prodIndex === 0}
+                    />
                   ))}
 
                   {/* Admin: add product */}
                   {canEdit && (
                     <button
                       onClick={() => { setEditingProduct(null); setProdDialogOpen(true); }}
-                      className={`
-                        flex flex-col items-center justify-center gap-2
+                      className="
+                        flex items-center md:flex-col justify-center gap-2
                         border-2 border-dashed border-brand-pop-shake/25
                         bg-brand-pop-shake/3 hover:bg-brand-pop-shake/8
                         hover:border-brand-pop-shake/50
                         rounded-2xl
-                        min-h-[200px]
-                        text-brand-pop-shake/50 hover:text-brand-pop-shake
-                        transition-all duration-200
-                        ${isPreview ? "min-w-[80%] sm:min-w-0 snap-start shrink-0" : ""}
-                      `}
+                        p-3 md:min-h-[200px]
+                        text-brand-pop-shake/70 hover:text-brand-pop-shake
+                        transition-all duration-200 my-2 md:my-0
+                      "
                     >
-                      <div className="w-10 h-10 rounded-full bg-brand-pop-shake/10 flex items-center justify-center">
-                        <Plus className="w-5 h-5" />
+                      <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-brand-pop-shake/10 flex items-center justify-center">
+                        <Plus className="w-4 h-4 md:w-5 md:h-5" />
                       </div>
                       <span className="text-xs font-semibold uppercase tracking-wide">
                         Novo Produto

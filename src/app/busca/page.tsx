@@ -456,7 +456,7 @@ function SearchContent() {
               </div>
             ) : (
               /* Grid de Cards */
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4 bg-card/60 md:bg-transparent rounded-2xl md:rounded-none border border-border/30 md:border-none px-2 sm:px-3 md:px-0">
                 {filteredProducts.map((product) => (
                   <ProductCard
                     key={product.id}

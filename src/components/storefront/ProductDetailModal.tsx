@@ -187,7 +187,7 @@ export function ProductDetailModal({
     (product.stock !== undefined && product.stock !== null && product.stock <= 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 overflow-hidden animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-6 overflow-hidden animate-in fade-in duration-200">
       {/* Backdrop com Blur */}
       <div
         className="fixed inset-0 bg-black/65 backdrop-blur-sm transition-opacity"
@@ -195,20 +195,25 @@ export function ProductDetailModal({
         aria-hidden="true"
       />
 
-      {/* Modal Card / Bottom Sheet */}
+      {/* Modal Card / Bottom Sheet (Mobile-first Drawer / Desktop 2-Column Dialog) */}
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-product-title"
         className="
-          relative w-full max-w-4xl lg:max-w-5xl max-h-[92vh] sm:max-h-[88vh]
+          relative w-full md:max-w-4xl lg:max-w-5xl h-[92vh] md:h-auto md:max-h-[85vh]
           bg-white dark:bg-[#1E0E21] text-foreground
-          border-t sm:border border-gray-200 dark:border-[#512B54]/40
-          rounded-t-[28px] sm:rounded-3xl shadow-2xl
+          border-t md:border border-gray-200 dark:border-[#512B54]/40
+          rounded-t-[28px] md:rounded-3xl shadow-2xl
           flex flex-col md:flex-row overflow-hidden
-          z-10 animate-in slide-in-from-bottom-6 sm:zoom-in-95 duration-200
+          z-10 animate-in slide-in-from-bottom duration-300 md:zoom-in-95 md:duration-200
         "
       >
+        {/* Barra de Pega / Drag Handle no Mobile */}
+        <div className="md:hidden pt-2.5 pb-1 bg-white dark:bg-[#1E0E21] shrink-0 flex justify-center">
+          <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full" />
+        </div>
+
         {/* Botão Fechar Flutuante */}
         <button
           onClick={onClose}
@@ -225,8 +230,8 @@ export function ProductDetailModal({
           <X className="w-5 h-5" />
         </button>
 
-        {/* ── COLUNA ESQUERDA (40% no Desktop, Topo no Mobile): Foto e Tags ── */}
-        <div className="w-full md:w-5/12 h-56 sm:h-72 md:h-auto min-h-[220px] md:min-h-[440px] relative bg-muted/40 shrink-0 overflow-hidden">
+        {/* ── COLUNA ESQUERDA (50% no Desktop, Capa Panorâmica no Mobile): Foto e Tags ── */}
+        <div className="w-full md:w-1/2 h-44 sm:h-52 md:h-auto md:min-h-[440px] relative bg-muted/40 shrink-0 overflow-hidden">
           {product.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -290,10 +295,10 @@ export function ProductDetailModal({
           </div>
         </div>
 
-        {/* ── COLUNA DIREITA (60% no Desktop, Corpo no Mobile): Informações & Grupos ── */}
-        <div className="w-full md:w-7/12 flex flex-col flex-1 min-h-0 bg-white dark:bg-[#1E0E21]">
+        {/* ── COLUNA DIREITA (50% no Desktop, Corpo no Mobile): Informações & Grupos ── */}
+        <div className="w-full md:w-1/2 flex flex-col flex-1 min-h-0 bg-white dark:bg-[#1E0E21]">
           {/* Painel Rolável */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 scrollbar-thin">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 scrollbar-thin pb-28 md:pb-6">
             {/* Cabeçalho do Produto */}
             <div className="space-y-2 border-b border-gray-100 dark:border-[#512B54]/30 pb-4">
               <div className="flex items-start justify-between gap-3">
@@ -507,7 +512,7 @@ export function ProductDetailModal({
                 rows={2}
                 placeholder="Ex: Enviar pouco leite condensado, caprichar na paçoca..."
                 className="
-                  w-full rounded-xl p-3 text-xs sm:text-sm
+                  w-full rounded-xl p-3 text-base md:text-sm
                   bg-white dark:bg-[#230E26]/60
                   border border-gray-200 dark:border-[#512B54]/40
                   text-foreground placeholder:text-muted-foreground
@@ -519,7 +524,14 @@ export function ProductDetailModal({
           </div>
 
           {/* ── RODAPÉ FIXO (Sticky Footer): Quantidade & Adicionar ao Carrinho ── */}
-          <div className="border-t border-gray-200 dark:border-[#512B54]/40 p-3 sm:p-4 bg-white/95 dark:bg-[#1E0E21]/95 backdrop-blur-md shrink-0 flex items-center gap-3">
+          <div className="
+            fixed bottom-0 left-0 right-0 p-3.5 sm:p-4
+            pb-[calc(1rem+env(safe-area-inset-bottom,0px))]
+            bg-white/95 dark:bg-[#1E0E21]/95 backdrop-blur-md
+            border-t border-gray-200 dark:border-[#512B54]/40 z-50
+            md:relative md:bottom-auto md:p-4 md:z-auto md:pb-4
+            shrink-0 flex items-center gap-3
+          ">
             {/* Contador de Quantidade */}
             <div className="flex items-center border border-gray-200 dark:border-[#512B54]/50 rounded-full bg-gray-50 dark:bg-[#230E26] p-1 shrink-0 shadow-xs">
               <button
@@ -575,12 +587,12 @@ export function ProductDetailModal({
                     ? "Item Esgotado"
                     : !isValid
                     ? `Selecione: ${unsatisfiedRequiredGroups[0]?.name || "Obrigatórios"}`
-                    : "Adicionar ao Carrinho"}
+                    : "Adicionar"}
                 </span>
               </span>
 
               <span className="font-mono font-black text-sm sm:text-base shrink-0 ml-2">
-                R$ {totalPrice.toFixed(2).replace(".", ",")}
+                • R$ {totalPrice.toFixed(2).replace(".", ",")}
               </span>
             </button>
           </div>
