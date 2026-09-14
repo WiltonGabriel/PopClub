@@ -25,10 +25,18 @@ import {
   Sparkles,
   FileText,
   BarChart3,
+  Bell,
+  BellOff,
 } from "lucide-react";
 import { orderService, Order, OrderStatus } from "../../../services/orderService";
 import { authService } from "../../../services/authService";
-import { playNewOrderChime } from "../../../lib/sound";
+import { playKitchenBellSound, initAudioUnlock } from "../../../lib/sound";
+import {
+  sendWebNotification,
+  requestNotificationPermission,
+  getNotificationPermission,
+  isNotificationSupported,
+} from "../../../lib/notifications";
 import { subscribeToOrderEvents } from "../../../lib/orderEvents";
 import { Button } from "../../../components/ui/button";
 import { OrderCancelDialog } from "../../../components/admin/OrderCancelDialog";
@@ -45,9 +53,75 @@ export default function AdminPedidosPage() {
   const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
+  // Controle de Som Operacional & Notificações Nativas
+  const [isSoundMuted, setIsSoundMuted] = useState<boolean>(false);
+  const isSoundMutedRef = useRef(isSoundMuted);
+  const [notifPermission, setNotifPermission] = useState<string>("default");
+
   const router = useRouter();
   const { showToast } = useToast();
   const previousCountRef = useRef(0);
+
+  // Inicializa desbloqueio de áudio e restaura preferência de mudo
+  useEffect(() => {
+    initAudioUnlock();
+    if (typeof window !== "undefined") {
+      const savedMute = localStorage.getItem("popshake_admin_sound_muted");
+      if (savedMute !== null) {
+        const muted = savedMute === "true";
+        setIsSoundMuted(muted);
+        isSoundMutedRef.current = muted;
+      }
+      if (isNotificationSupported()) {
+        setNotifPermission(getNotificationPermission());
+      }
+    }
+  }, []);
+
+  // Alterna som do alerta de novo pedido
+  const toggleSoundMute = () => {
+    setIsSoundMuted((prev) => {
+      const next = !prev;
+      isSoundMutedRef.current = next;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("popshake_admin_sound_muted", String(next));
+      }
+      if (!next) {
+        // Toca o sino de teste ao ativar o áudio
+        playKitchenBellSound();
+        showToast({
+          title: "Som Operacional Ativado 🔔",
+          message: "O sino de cozinha tocará a cada novo pedido recebido.",
+          type: "info",
+        });
+      } else {
+        showToast({
+          title: "Som Silenciado 🔕",
+          message: "Alertas sonoros operacionais desativados.",
+          type: "warning",
+        });
+      }
+      return next;
+    });
+  };
+
+  // Solicita permissão para notificações na área de trabalho do operador
+  const handleEnableDesktopNotifs = async () => {
+    const perm = await requestNotificationPermission();
+    setNotifPermission(perm);
+    if (perm === "granted") {
+      if (!isSoundMutedRef.current) playKitchenBellSound();
+      showToast({
+        title: "Notificações no Navegador Ativadas! 🔔",
+        message: "Você será avisado mesmo quando esta aba estiver em segundo plano.",
+        type: "success",
+      });
+      await sendWebNotification("Pop Shake - Central Operacional 🍧", {
+        body: "Notificações da esteira ativadas com sucesso!",
+        icon: "/icon.png",
+      });
+    }
+  };
 
   // Busca lista atualizada de pedidos
   const fetchOrders = useCallback(
@@ -91,12 +165,31 @@ export default function AdminPedidosPage() {
         const data = await orderService.getAllOrders();
         setOrders((prev) => {
           if (previousCountRef.current > 0 && data.length > previousCountRef.current) {
-            playNewOrderChime();
+            // Identifica o novo pedido
+            const newOrders = data.filter((d) => !prev.some((p) => p.id === d.id));
+            const targetOrder = newOrders[0] || data[0];
+            const shortId = targetOrder ? targetOrder.id.substring(0, 6) : "Novo";
+            const formattedTotal = targetOrder?.total_amount
+              ? `R$ ${targetOrder.total_amount.toFixed(2).replace(".", ",")}`
+              : "";
+            const clientName = targetOrder?.user?.fullName || targetOrder?.user?.username || "Cliente";
+
+            // Alerta sonoro de sino de cozinha/balcão se não estiver silenciado
+            if (!isSoundMutedRef.current) {
+              playKitchenBellSound();
+            }
+
+            // Notificação nativa no navegador do operador: "Novo pedido recebido! (#12345 - R$ XX,XX)"
+            sendWebNotification("Novo pedido recebido! 🔔", {
+              body: `#${shortId} - ${formattedTotal} • ${clientName}`,
+              icon: "/icon.png",
+            });
+
             showToast({
-              title: "Novo pedido recebido! 🔔",
-              message: "Um novo pedido acabou de entrar na esteira da cozinha.",
+              title: `Novo pedido recebido! 🔔 (#${shortId})`,
+              message: `${clientName} • ${formattedTotal} entrou na esteira da cozinha.`,
               type: "success",
-              duration: 8000,
+              duration: 9000,
             });
           }
           previousCountRef.current = data.length;
@@ -110,12 +203,19 @@ export default function AdminPedidosPage() {
     // Eventos locais imediatos entre abas
     const unsubscribe = subscribeToOrderEvents((event) => {
       if (event.type === "order_created") {
-        playNewOrderChime();
+        if (!isSoundMutedRef.current) {
+          playKitchenBellSound();
+        }
+        const shortId = event.order?.id ? String(event.order.id).substring(0, 6) : "Novo";
+        sendWebNotification("Novo pedido recebido! 🔔", {
+          body: `Pedido #${shortId} acabou de entrar na esteira da cozinha!`,
+          icon: "/icon.png",
+        });
         showToast({
           title: "Novo pedido recebido! 🔔",
           message: "Um novo pedido entrou na esteira da cozinha.",
           type: "success",
-          duration: 8000,
+          duration: 9000,
         });
       }
       fetchOrders();
@@ -893,7 +993,44 @@ export default function AdminPedidosPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Botão de Alternância de Som Operacional (🔔 Som Ativado / 🔕 Mudo) */}
+            <Button
+              variant="outline"
+              onClick={toggleSoundMute}
+              className={`rounded-xl border text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 h-10 transition-colors cursor-pointer ${
+                isSoundMuted
+                  ? "border-red-300 dark:border-red-900/50 bg-red-50/70 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:bg-red-100"
+                  : "border-emerald-300 dark:border-emerald-900/50 bg-emerald-50/70 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100"
+              }`}
+              title={isSoundMuted ? "Clique para ativar som da cozinha" : "Clique para silenciar avisos sonoros"}
+            >
+              {isSoundMuted ? (
+                <>
+                  <BellOff className="w-3.5 h-3.5 text-red-500" />
+                  <span>🔕 Mudo</span>
+                </>
+              ) : (
+                <>
+                  <Bell className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                  <span>🔔 Som Ativado</span>
+                </>
+              )}
+            </Button>
+
+            {/* Ativador de Notificações Desktop/Navegador para Operador */}
+            {notifPermission === "default" && (
+              <Button
+                variant="outline"
+                onClick={handleEnableDesktopNotifs}
+                className="rounded-xl border-amber-300 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 h-10 transition-colors cursor-pointer"
+                title="Habilitar avisos pop-up do navegador para novos pedidos"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                <span>Ativar Notificações</span>
+              </Button>
+            )}
+
             {/* Toggle de Modo Compacto vs Detalhado */}
             <Button
               variant="outline"

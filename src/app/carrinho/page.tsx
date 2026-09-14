@@ -33,6 +33,8 @@ import { useAddress } from "@/contexts/AddressContext";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import { playDingSound, initAudioUnlock } from "../../lib/sound";
+import { NotificationPermissionBanner } from "../../components/storefront/NotificationPermissionBanner";
 
 export default function CarrinhoPage() {
   const router = useRouter();
@@ -145,8 +147,9 @@ export default function CarrinhoPage() {
   const [checkoutError, setCheckoutError] = useState("");
   const [orderSuccessId, setOrderSuccessId] = useState<string | null>(null);
 
-  // Carrega configurações da loja
+  // Carrega configurações da loja e inicializa desbloqueio de áudio
   useEffect(() => {
+    initAudioUnlock();
     storeSettingsService.getSettings().then(setStoreSettings).catch(console.error);
   }, []);
 
@@ -366,6 +369,7 @@ export default function CarrinhoPage() {
       };
 
       const result = await orderService.createCheckoutOrder(payload);
+      playDingSound();
       setOrderSuccessId(result.order.id);
       clearCart();
     } catch (err: any) {
@@ -399,9 +403,12 @@ export default function CarrinhoPage() {
         <p className="text-muted-foreground text-sm max-w-md mb-2 font-mono">
           Código do Pedido: <strong className="text-primary font-bold">#{orderSuccessId.substring(0, 8)}</strong>
         </p>
-        <p className="text-muted-foreground text-xs max-w-md mb-8">
+        <p className="text-muted-foreground text-xs max-w-md mb-6">
           A cozinha já iniciou o preparo. Lembre-se: o pagamento é realizado no momento da entrega!
         </p>
+
+        {/* Banner para Solicitação Amigável de Permissão de Notificação */}
+        <NotificationPermissionBanner className="mb-6 max-w-md w-full text-left" />
 
         <div className="flex gap-4">
           <Link

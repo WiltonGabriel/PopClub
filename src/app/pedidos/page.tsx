@@ -23,6 +23,9 @@ import { orderService, Order, OrderStatus } from "../../services/orderService";
 import { subscribeToOrderEvents } from "../../lib/orderEvents";
 import { useToast } from "../../components/ui/ToastNotification";
 import { Footer } from "../../components/storefront/Footer";
+import { playDingSound, initAudioUnlock } from "../../lib/sound";
+import { sendWebNotification } from "../../lib/notifications";
+import { NotificationPermissionBanner } from "../../components/storefront/NotificationPermissionBanner";
 
 const STORE_WHATSAPP = process.env.NEXT_PUBLIC_STORE_WHATSAPP || "5584999999999";
 
@@ -106,6 +109,29 @@ export default function PedidosPage() {
           const shortId = updated.id.substring(0, 6);
           const config = STATUS_CONFIG[newStatus];
 
+          // 1. Feedback sonoro sutil (chime/ding)
+          playDingSound();
+
+          // 2. Disparo de Web Notification nativa (mesmo com a aba em segundo plano ou celular bloqueado)
+          let notifBody = `Atualização no pedido #${shortId}: ${config?.label || newStatus}`;
+          if (newStatus === "delivering") {
+            notifBody = `Seu pedido #${shortId} saiu para entrega! 🛵💨`;
+          } else if (newStatus === "preparing") {
+            notifBody = `Seu pedido #${shortId} começou a ser preparado! 🍧`;
+          } else if (newStatus === "ready") {
+            notifBody = `Seu pedido #${shortId} está pronto para envio/retirada! 📦`;
+          } else if (newStatus === "completed") {
+            notifBody = `Pedido #${shortId} entregue! Bom apetite! 🎉`;
+          } else if (newStatus === "cancelled") {
+            notifBody = `Seu pedido #${shortId} foi cancelado pela loja.`;
+          }
+
+          sendWebNotification("Pop Shake Sorveteria", {
+            body: notifBody,
+            icon: "/icon.png",
+          });
+
+          // 3. Feedback visual em Toast imediato
           if (newStatus === "delivering") {
             showToast({
               title: `Seu pedido #${shortId} saiu para entrega! 🛵`,
@@ -147,6 +173,11 @@ export default function PedidosPage() {
       if (!isSilent) setFetching(false);
     }
   }, [showToast]);
+
+  // Desbloqueia áudio na primeira interação do usuário
+  useEffect(() => {
+    initAudioUnlock();
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -243,6 +274,9 @@ export default function PedidosPage() {
       </header>
 
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 py-6 space-y-6">
+        {/* Banner para Solicitação Amigável de Permissão de Notificação */}
+        <NotificationPermissionBanner />
+
         {/* Seletor de Abas */}
         <div className="flex bg-gray-200/70 dark:bg-[#2A102E]/60 p-1 rounded-2xl border border-gray-200 dark:border-[#512B54]/40">
           <button
