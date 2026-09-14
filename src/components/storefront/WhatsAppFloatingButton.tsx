@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { storeSettingsService } from "../../services/storeSettingsService";
 
 export function WhatsAppFloatingButton() {
+  const pathname = usePathname();
   const [whatsappUrl, setWhatsappUrl] = useState("https://wa.me/5565999999999?text=Ol%C3%A1!%20Gostaria%20de%20tirar%20uma%20d%C3%BAvida%20sobre%20os%20pedidos%20da%20Pop%20Shake%20Sorveteria.");
 
   useEffect(() => {
+    if (pathname !== "/") return;
     storeSettingsService
       .getSettings()
       .then((settings) => {
@@ -17,7 +20,11 @@ export function WhatsAppFloatingButton() {
         setWhatsappUrl(url);
       })
       .catch((err) => console.error("Erro ao carregar link de WhatsApp:", err));
-  }, []);
+  }, [pathname]);
+
+  if (pathname !== "/") {
+    return null;
+  }
 
   return (
     <aside
