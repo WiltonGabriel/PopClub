@@ -52,7 +52,77 @@ import {
   Sparkles,
   AlertCircle,
   RefreshCw,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from "lucide-react";
+
+export type HomeSectionId = "promo_banners" | "highlight_banner" | "products_catalog";
+
+const DEFAULT_SECTIONS_ORDER: HomeSectionId[] = [
+  "promo_banners",
+  "highlight_banner",
+  "products_catalog",
+];
+
+const SECTION_LABELS: Record<HomeSectionId, string> = {
+  promo_banners: "Banners Promocionais",
+  highlight_banner: "Faixa Comercial de Destaque",
+  products_catalog: "Catálogo de Produtos & Categorias",
+};
+
+function SectionPositionControlBar({
+  title,
+  index,
+  total,
+  onMoveUp,
+  onMoveDown,
+}: {
+  title: string;
+  index: number;
+  total: number;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+}) {
+  return (
+    <div className="flex justify-end mb-2.5">
+      <div className="inline-flex items-center gap-2 bg-white/95 dark:bg-[#200D22]/95 backdrop-blur-md border border-purple-300/80 dark:border-purple-700/80 rounded-xl px-3 py-1.5 shadow-sm text-xs">
+        <div className="flex items-center gap-1.5 font-semibold text-[#9306CF] dark:text-[#C7A9C9]">
+          <ArrowUpDown className="w-3.5 h-3.5" />
+          <span>{title}</span>
+          <span className="text-[10px] text-muted-foreground font-mono">
+            ({index + 1}/{total})
+          </span>
+        </div>
+        <div className="h-3.5 w-px bg-purple-200 dark:bg-purple-800" />
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            disabled={index === 0}
+            onClick={onMoveUp}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-purple-100/70 dark:bg-purple-900/40 text-[#9306CF] dark:text-[#C7A9C9] hover:bg-purple-200 dark:hover:bg-purple-800/60 active:scale-95 cursor-pointer disabled:hover:scale-100"
+            title={index === 0 ? "Primeira seção da vitrine" : "Subir seção"}
+            aria-label={`Subir seção ${title}`}
+          >
+            <ArrowUp className="w-3.5 h-3.5" />
+            <span>Subir</span>
+          </button>
+          <button
+            type="button"
+            disabled={index === total - 1}
+            onClick={onMoveDown}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-purple-100/70 dark:bg-purple-900/40 text-[#9306CF] dark:text-[#C7A9C9] hover:bg-purple-200 dark:hover:bg-purple-800/60 active:scale-95 cursor-pointer disabled:hover:scale-100"
+            title={index === total - 1 ? "Última seção da vitrine" : "Descer seção"}
+            aria-label={`Descer seção ${title}`}
+          >
+            <ArrowDown className="w-3.5 h-3.5" />
+            <span>Descer</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Storefront() {
   const { isAdmin, user, refreshUser } = useAuth();
@@ -61,6 +131,7 @@ export default function Storefront() {
   const { addItem, totalItems, itemsTotal } = useCart();
   const { theme, toggleTheme } = useTheme();
 
+  const [sectionsOrder, setSectionsOrder] = useState<HomeSectionId[]>(DEFAULT_SECTIONS_ORDER);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,6 +196,25 @@ export default function Storefront() {
 
   useEffect(() => {
     fetchData();
+    try {
+      const savedOrderStr = localStorage.getItem("popshake_home_sections_order");
+      if (savedOrderStr) {
+        const savedOrder: HomeSectionId[] = JSON.parse(savedOrderStr);
+        if (Array.isArray(savedOrder)) {
+          const valid = savedOrder.filter((id) => DEFAULT_SECTIONS_ORDER.includes(id));
+          for (const defId of DEFAULT_SECTIONS_ORDER) {
+            if (!valid.includes(defId)) {
+              valid.push(defId);
+            }
+          }
+          if (valid.length === DEFAULT_SECTIONS_ORDER.length) {
+            setSectionsOrder(valid);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Erro ao carregar popshake_home_sections_order:", err);
+    }
   }, []);
 
   useEffect(() => {
@@ -228,9 +318,29 @@ export default function Storefront() {
     fetchData();
   };
 
+  // Reordenação de seções da vitrine (Home) no Modo Edição
+  const handleMoveSection = (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= sectionsOrder.length) return;
+
+    setSectionsOrder((prev) => {
+      const next = [...prev];
+      const temp = next[index];
+      next[index] = next[targetIndex];
+      next[targetIndex] = temp;
+      try {
+        localStorage.setItem("popshake_home_sections_order", JSON.stringify(next));
+      } catch (err) {
+        console.error("Erro ao salvar ordem das seções:", err);
+      }
+      return next;
+    });
+  };
+
   // Reordenação de categorias via botões de seta
-  const handleMoveCategory = (index: number, direction: "left" | "right") => {
-    const targetIndex = direction === "left" ? index - 1 : index + 1;
+  const handleMoveCategory = (index: number, direction: "left" | "right" | "up" | "down") => {
+    const isBackward = direction === "left" || direction === "up";
+    const targetIndex = isBackward ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= categories.length) return;
 
     setCategories((prev) => {
@@ -753,210 +863,292 @@ export default function Storefront() {
       {/* ─────────────────────────────────────────
           MAIN CONTENT
       ───────────────────────────────────────── */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-6">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-6 space-y-8">
+        {sectionsOrder.map((sectionId, sectionIndex) => {
+          if (sectionId === "promo_banners") {
+            return (
+              <section key="promo_banners" className="relative group/sec">
+                {canEdit && (
+                  <SectionPositionControlBar
+                    title={SECTION_LABELS.promo_banners}
+                    index={sectionIndex}
+                    total={sectionsOrder.length}
+                    onMoveUp={() => handleMoveSection(sectionIndex, "up")}
+                    onMoveDown={() => handleMoveSection(sectionIndex, "down")}
+                  />
+                )}
+                <PromoBanner />
+              </section>
+            );
+          }
 
-        {/* Promo banners */}
-        <PromoBanner />
+          if (sectionId === "highlight_banner") {
+            return (
+              <section key="highlight_banner" className="relative group/sec">
+                {canEdit && (
+                  <SectionPositionControlBar
+                    title={SECTION_LABELS.highlight_banner}
+                    index={sectionIndex}
+                    total={sectionsOrder.length}
+                    onMoveUp={() => handleMoveSection(sectionIndex, "up")}
+                    onMoveDown={() => handleMoveSection(sectionIndex, "down")}
+                  />
+                )}
+                {/* Banner Comercial de Destaque e Apelo de Sabor */}
+                <div
+                  className={`p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#9306CF]/10 via-[#940068]/10 to-[#10B981]/10 border border-[#9306CF]/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-sm ${
+                    canEdit ? "group relative" : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5">
+                    <span className="text-3xl shrink-0">{highlightBanner.icon || "🥣"}</span>
+                    <div>
+                      <p className="font-heading font-bold text-sm sm:text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                        {highlightBanner.title || "Monte do seu jeito: escolha o tamanho e adicione seus acompanhamentos favoritos"}
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                        {highlightBanner.subtitle || "Açaí puro batido na hora, cremoso e com acompanhamentos à sua escolha."}
+                      </p>
+                    </div>
+                  </div>
 
-        {/* Banner Comercial de Destaque e Apelo de Sabor */}
-        <div
-          className={`mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#9306CF]/10 via-[#940068]/10 to-[#10B981]/10 border border-[#9306CF]/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-sm ${
-            canEdit ? "group relative" : ""
-          }`}
-        >
-          <div className="flex items-center gap-3.5">
-            <span className="text-3xl shrink-0">{highlightBanner.icon || "🥣"}</span>
-            <div>
-              <p className="font-heading font-bold text-sm sm:text-base text-[#4C264F] dark:text-[#F9F5F9]">
-                {highlightBanner.title || "Monte do seu jeito: escolha o tamanho e adicione seus acompanhamentos favoritos"}
-              </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                {highlightBanner.subtitle || "Açaí puro batido na hora, cremoso e com acompanhamentos à sua escolha."}
-              </p>
-            </div>
-          </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-white dark:bg-[#1A0B1C] text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/25 shadow-sm">
+                      {highlightBanner.badge || "Refrescância Artesanal"}
+                    </span>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-white dark:bg-[#1A0B1C] text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/25 shadow-sm">
-              {highlightBanner.badge || "Refrescância Artesanal"}
-            </span>
-
-            {/* Botão flutuante para administradores editarem a faixa */}
-            {canEdit && (
-              <button
-                type="button"
-                onClick={() => setEditBannerModalOpen(true)}
-                className="bg-white dark:bg-[#2B132D] shadow-md border border-purple-300 dark:border-purple-700 p-2 rounded-full hover:scale-105 transition-all text-[#9306CF] dark:text-[#C7A9C9] hover:text-[#940068] dark:hover:text-white cursor-pointer ml-1"
-                title="Editar Faixa Promocional"
-                aria-label="Editar Faixa Promocional"
-              >
-                <Pencil className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Product sections by category */}
-        <div className="space-y-10">
-          {loading && products.length === 0 ? (
-            /* Skeleton Loading Grid */
-            <div className="space-y-8" aria-label="Carregando cardápio">
-              {[1, 2].map((sec) => (
-                <div key={sec} className="space-y-4">
-                  <div className="h-6 w-48 rounded-md skeleton-light" />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="h-64 rounded-2xl skeleton-light" />
-                    ))}
+                    {/* Botão flutuante para administradores editarem a faixa */}
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => setEditBannerModalOpen(true)}
+                        className="bg-white dark:bg-[#2B132D] shadow-md border border-purple-300 dark:border-purple-700 p-2 rounded-full hover:scale-105 transition-all text-[#9306CF] dark:text-[#C7A9C9] hover:text-[#940068] dark:hover:text-white cursor-pointer ml-1"
+                        title="Editar Faixa Promocional"
+                        aria-label="Editar Faixa Promocional"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : fetchError && products.length === 0 ? (
-            /* Error Fallback with Retry Button */
-            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-              <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center mb-4">
-                <AlertCircle className="w-7 h-7" />
-              </div>
-              <h3 className="font-heading font-bold text-lg text-foreground mb-1">
-                Não foi possível carregar o cardápio
-              </h3>
-              <p className="text-sm text-muted-foreground max-w-md mb-6">
-                {fetchError}
-              </p>
-              <Button
-                onClick={fetchData}
-                className="bg-brand-folha-acai hover:bg-brand-folha-acai-dk text-white rounded-full px-6 py-2 gap-2 text-sm font-semibold"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Tentar novamente
-              </Button>
-            </div>
-          ) : (
-            categories.map((cat, catIndex) => {
-            // Se tiver uma categoria ativa e não for essa, esconde
-            if (activeCategory && activeCategory !== cat.id) return null;
-
-            const catProducts = filteredProducts.filter(
-              (p) => p.category_id === cat.id || p.category === cat.name
+              </section>
             );
+          }
 
-            if (catProducts.length === 0 && !canEdit) return null;
-
-            // Modo Prévia (na Home) vs Modo Completo
-            const isPreview = !activeCategory && !search;
-            const displayProducts = isPreview ? catProducts.slice(0, 4) : catProducts;
-            const hasMore = catProducts.length > 4;
-
-            // First category gets a featured (wide) card for the first product
-            const hasFeatured = catIndex === 0 && !activeCategory && !search;
-
+          if (sectionId === "products_catalog") {
             return (
-              <section
-                key={cat.id}
-                id={`category-${cat.id}`}
-                className="scroll-mt-36"
-              >
-                {/* Section header */}
-                <div className="flex items-center justify-between mb-4 px-1">
-                  <h2 className="font-heading text-lg sm:text-xl font-bold text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
-                    <span className="w-1 h-6 rounded-full bg-gradient-to-b from-brand-pop-shake to-brand-magenta inline-block" />
-                    {cat.name}
-                    <span className="text-sm font-normal text-muted-foreground">
-                      ({catProducts.length})
-                    </span>
-                  </h2>
-
-                  {/* Botão Ver Mais (iFood style) */}
-                  {isPreview && catProducts.length > 0 && (
-                    <button
-                      onClick={() => scrollToCategory(cat.id)}
-                      className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                      Ver todos ({catProducts.length}) <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-
-                  {/* Voltar (Quando está no modo filtrado/completo) */}
-                  {activeCategory && (
-                    <button
-                      onClick={() => {
-                        setActiveCategory(null);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                      className="text-sm font-semibold text-muted-foreground hover:text-[#4C264F] dark:hover:text-[#F9F5F9] hover:underline flex items-center gap-1 min-h-[44px] transition-colors"
-                    >
-                      Voltar
-                    </button>
-                  )}
-                </div>
-
-                {/* ── Catálogo: Linhas Horizontais Compactas no Mobile / Grid Bento no Desktop ── */}
-                <div className="flex flex-col md:grid md:grid-cols-3 lg:grid-cols-4 md:gap-4 bg-card/60 md:bg-transparent rounded-2xl md:rounded-none border border-border/30 md:border-none px-2 sm:px-3 md:px-0">
-                  {displayProducts.map((product, prodIndex) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onAddToCart={handleOpenProductModal}
-                      onOpenDetails={handleOpenProductModal}
-                      isAdmin={canEdit}
-                      onEdit={(p) => { setEditingProduct(p); setProdDialogOpen(true); }}
-                      onDelete={handleDeleteProduct}
-                      featured={hasFeatured && prodIndex === 0}
-                    />
-                  ))}
-
-                  {/* Admin: add product */}
-                  {canEdit && (
-                    <button
-                      onClick={() => { setEditingProduct(null); setProdDialogOpen(true); }}
-                      className="
-                        flex items-center md:flex-col justify-center gap-2
-                        border-2 border-dashed border-brand-pop-shake/25
-                        bg-brand-pop-shake/3 hover:bg-brand-pop-shake/8
-                        hover:border-brand-pop-shake/50
-                        rounded-2xl
-                        p-3 md:min-h-[200px]
-                        text-brand-pop-shake/70 hover:text-brand-pop-shake
-                        transition-all duration-200 my-2 md:my-0
-                      "
-                    >
-                      <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-brand-pop-shake/10 flex items-center justify-center">
-                        <Plus className="w-4 h-4 md:w-5 md:h-5" />
+              <section key="products_catalog" className="relative group/sec">
+                {canEdit && (
+                  <SectionPositionControlBar
+                    title={SECTION_LABELS.products_catalog}
+                    index={sectionIndex}
+                    total={sectionsOrder.length}
+                    onMoveUp={() => handleMoveSection(sectionIndex, "up")}
+                    onMoveDown={() => handleMoveSection(sectionIndex, "down")}
+                  />
+                )}
+                {/* Product sections by category */}
+                <div className="space-y-10">
+                  {loading && products.length === 0 ? (
+                    /* Skeleton Loading Grid */
+                    <div className="space-y-8" aria-label="Carregando cardápio">
+                      {[1, 2].map((sec) => (
+                        <div key={sec} className="space-y-4">
+                          <div className="h-6 w-48 rounded-md skeleton-light" />
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {[1, 2, 3, 4].map((i) => (
+                              <div key={i} className="h-64 rounded-2xl skeleton-light" />
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : fetchError && products.length === 0 ? (
+                    /* Error Fallback with Retry Button */
+                    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                      <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center mb-4">
+                        <AlertCircle className="w-7 h-7" />
                       </div>
-                      <span className="text-xs font-semibold uppercase tracking-wide">
-                        Novo Produto
-                      </span>
-                    </button>
+                      <h3 className="font-heading font-bold text-lg text-foreground mb-1">
+                        Não foi possível carregar o cardápio
+                      </h3>
+                      <p className="text-sm text-muted-foreground max-w-md mb-6">
+                        {fetchError}
+                      </p>
+                      <Button
+                        onClick={fetchData}
+                        className="bg-brand-folha-acai hover:bg-brand-folha-acai-dk text-white rounded-full px-6 py-2 gap-2 text-sm font-semibold"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Tentar novamente
+                      </Button>
+                    </div>
+                  ) : (
+                    categories.map((cat, catIndex) => {
+                      // Se tiver uma categoria ativa e não for essa, esconde
+                      if (activeCategory && activeCategory !== cat.id) return null;
+
+                      const catProducts = filteredProducts.filter(
+                        (p) => p.category_id === cat.id || p.category === cat.name
+                      );
+
+                      if (catProducts.length === 0 && !canEdit) return null;
+
+                      // Modo Prévia (na Home) vs Modo Completo
+                      const isPreview = !activeCategory && !search;
+                      const displayProducts = isPreview ? catProducts.slice(0, 4) : catProducts;
+                      const hasMore = catProducts.length > 4;
+
+                      // First category gets a featured (wide) card for the first product
+                      const hasFeatured = catIndex === 0 && !activeCategory && !search;
+
+                      return (
+                        <section
+                          key={cat.id}
+                          id={`category-${cat.id}`}
+                          className="scroll-mt-36"
+                        >
+                          {/* Section header */}
+                          <div className="flex items-center justify-between mb-4 px-1 flex-wrap gap-2">
+                            <div className="flex items-center gap-3">
+                              <h2 className="font-heading text-lg sm:text-xl font-bold text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
+                                <span className="w-1 h-6 rounded-full bg-gradient-to-b from-brand-pop-shake to-brand-magenta inline-block" />
+                                {cat.name}
+                                <span className="text-sm font-normal text-muted-foreground">
+                                  ({catProducts.length})
+                                </span>
+                              </h2>
+
+                              {/* Controles de posição da seção da categoria no Modo Edição */}
+                              {canEdit && !activeCategory && (
+                                <div className="inline-flex items-center gap-1.5 bg-white/95 dark:bg-[#200D22]/95 backdrop-blur-md border border-purple-300/80 dark:border-purple-700/80 rounded-xl px-2.5 py-1 text-xs shadow-xs">
+                                  <span className="text-[10px] text-muted-foreground font-mono">
+                                    {catIndex + 1}/{categories.length}
+                                  </span>
+                                  <div className="h-3 w-px bg-purple-200 dark:bg-purple-800" />
+                                  <button
+                                    type="button"
+                                    disabled={catIndex === 0}
+                                    onClick={() => handleMoveCategory(catIndex, "up")}
+                                    className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:bg-purple-100 dark:hover:bg-purple-900/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                                    title={catIndex === 0 ? "Primeira categoria" : "Subir categoria"}
+                                    aria-label={`Subir categoria ${cat.name}`}
+                                  >
+                                    <ArrowUp className="w-3 h-3" />
+                                    <span>Subir</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={catIndex === categories.length - 1}
+                                    onClick={() => handleMoveCategory(catIndex, "down")}
+                                    className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:bg-purple-100 dark:hover:bg-purple-900/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                                    title={catIndex === categories.length - 1 ? "Última categoria" : "Descer categoria"}
+                                    aria-label={`Descer categoria ${cat.name}`}
+                                  >
+                                    <ArrowDown className="w-3 h-3" />
+                                    <span>Descer</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Botão Ver Mais (iFood style) */}
+                            {isPreview && catProducts.length > 0 && (
+                              <button
+                                onClick={() => scrollToCategory(cat.id)}
+                                className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1 cursor-pointer"
+                              >
+                                Ver todos ({catProducts.length}) <ChevronRight className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+
+                            {/* Voltar (Quando está no modo filtrado/completo) */}
+                            {activeCategory && (
+                              <button
+                                onClick={() => {
+                                  setActiveCategory(null);
+                                  window.scrollTo({ top: 0, behavior: "smooth" });
+                                }}
+                                className="text-sm font-semibold text-muted-foreground hover:text-[#4C264F] dark:hover:text-[#F9F5F9] hover:underline flex items-center gap-1 min-h-[44px] transition-colors"
+                              >
+                                Voltar
+                              </button>
+                            )}
+                          </div>
+
+                          {/* ── Catálogo: Linhas Horizontais Compactas no Mobile / Grid Bento no Desktop ── */}
+                          <div className="flex flex-col md:grid md:grid-cols-3 lg:grid-cols-4 md:gap-4 bg-card/60 md:bg-transparent rounded-2xl md:rounded-none border border-border/30 md:border-none px-2 sm:px-3 md:px-0">
+                            {displayProducts.map((product, prodIndex) => (
+                              <ProductCard
+                                key={product.id}
+                                product={product}
+                                onAddToCart={handleOpenProductModal}
+                                onOpenDetails={handleOpenProductModal}
+                                isAdmin={canEdit}
+                                onEdit={(p) => { setEditingProduct(p); setProdDialogOpen(true); }}
+                                onDelete={handleDeleteProduct}
+                                featured={hasFeatured && prodIndex === 0}
+                              />
+                            ))}
+
+                            {/* Admin: add product */}
+                            {canEdit && (
+                              <button
+                                onClick={() => { setEditingProduct(null); setProdDialogOpen(true); }}
+                                className="
+                                  flex items-center md:flex-col justify-center gap-2
+                                  border-2 border-dashed border-brand-pop-shake/25
+                                  bg-brand-pop-shake/3 hover:bg-brand-pop-shake/8
+                                  hover:border-brand-pop-shake/50
+                                  rounded-2xl
+                                  p-3 md:min-h-[200px]
+                                  text-brand-pop-shake/70 hover:text-brand-pop-shake
+                                  transition-all duration-200 my-2 md:my-0
+                                "
+                              >
+                                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-brand-pop-shake/10 flex items-center justify-center">
+                                  <Plus className="w-4 h-4 md:w-5 md:h-5" />
+                                </div>
+                                <span className="text-xs font-semibold uppercase tracking-wide">
+                                  Novo Produto
+                                </span>
+                              </button>
+                            )}
+                          </div>
+                        </section>
+                      );
+                    })
+                  )}
+
+                  {/* Empty state when searching */}
+                  {search && filteredProducts.length === 0 && (
+                    <div className="flex flex-col items-center py-20 gap-4 text-center">
+                      <div className="w-20 h-20 rounded-full bg-brand-surface-2 flex items-center justify-center text-4xl">
+                        🔍
+                      </div>
+                      <div>
+                        <p className="font-heading font-bold text-foreground text-lg">
+                          Nada encontrado
+                        </p>
+                        <p className="text-muted-foreground text-sm mt-1">
+                          Não encontramos resultados para &ldquo;{search}&rdquo;
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setSearch("")}
+                        className="text-sm font-semibold text-brand-pop-shake hover:underline"
+                      >
+                        Limpar busca
+                      </button>
+                    </div>
                   )}
                 </div>
               </section>
             );
-          }))}
+          }
 
-          {/* Empty state when searching */}
-          {search && filteredProducts.length === 0 && (
-            <div className="flex flex-col items-center py-20 gap-4 text-center">
-              <div className="w-20 h-20 rounded-full bg-brand-surface-2 flex items-center justify-center text-4xl">
-                🔍
-              </div>
-              <div>
-                <p className="font-heading font-bold text-foreground text-lg">
-                  Nada encontrado
-                </p>
-                <p className="text-muted-foreground text-sm mt-1">
-                  Não encontramos resultados para &ldquo;{search}&rdquo;
-                </p>
-              </div>
-              <button
-                onClick={() => setSearch("")}
-                className="text-sm font-semibold text-brand-pop-shake hover:underline"
-              >
-                Limpar busca
-              </button>
-            </div>
-          )}
-        </div>
+          return null;
+        })}
       </main>
 
       {/* ─────────────────────────────────────────

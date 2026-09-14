@@ -786,6 +786,22 @@ export default function CarrinhoPage() {
               <div className="flex flex-col gap-2.5 w-full pt-2">
                 <button
                   type="button"
+                  onClick={() => setPaymentType("dinheiro")}
+                  className={`p-4 border-2 flex items-center gap-3 text-left transition-all w-full ${
+                    paymentType === "dinheiro"
+                      ? "border-primary bg-primary/10 shadow-[4px_4px_0px_0px_rgba(147,6,207,0.3)]"
+                      : "border-border hover:bg-muted"
+                  }`}
+                >
+                  <Banknote className="w-6 h-6 text-primary shrink-0" />
+                  <div>
+                    <span className="font-heading font-bold uppercase text-xs block">Dinheiro</span>
+                    <span className="text-[10px] text-muted-foreground font-mono">Pague na entrega</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => setPaymentType("cartao_maquininha")}
                   className={`p-4 border-2 flex items-center gap-3 text-left transition-all w-full ${
                     paymentType === "cartao_maquininha"
@@ -813,22 +829,6 @@ export default function CarrinhoPage() {
                   <div>
                     <span className="font-heading font-bold uppercase text-xs block">Pix na Entrega</span>
                     <span className="text-[10px] text-muted-foreground font-mono">QR Code com entregador</span>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPaymentType("dinheiro")}
-                  className={`p-4 border-2 flex items-center gap-3 text-left transition-all w-full ${
-                    paymentType === "dinheiro"
-                      ? "border-primary bg-primary/10 shadow-[4px_4px_0px_0px_rgba(147,6,207,0.3)]"
-                      : "border-border hover:bg-muted"
-                  }`}
-                >
-                  <Banknote className="w-6 h-6 text-primary shrink-0" />
-                  <div>
-                    <span className="font-heading font-bold uppercase text-xs block">Dinheiro</span>
-                    <span className="text-[10px] text-muted-foreground font-mono">Pague na entrega</span>
                   </div>
                 </button>
               </div>
