@@ -397,6 +397,18 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
                                 Esgotado
                               </span>
                             )}
+                            {product.cardBadge && (
+                              <span
+                                style={{
+                                  backgroundColor: product.cardBadge.bgColor,
+                                  color: product.cardBadge.textColor,
+                                }}
+                                className="text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs inline-flex items-center gap-1"
+                              >
+                                {product.cardBadge.icon && <span>{product.cardBadge.icon}</span>}
+                                <span>{product.cardBadge.text}</span>
+                              </span>
+                            )}
                           </div>
                           {product.category && (
                             <span className="inline-block text-[11px] font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-md mt-1 border border-gray-200/60 dark:border-white/5">

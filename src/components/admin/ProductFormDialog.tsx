@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { productService, Product } from "../../services/productService";
 import { Category } from "../../services/categoryService";
+import { badgeService, CardBadge } from "../../services/badgeService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -16,6 +17,7 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle2,
+  Tag,
 } from "lucide-react";
 
 interface ProductFormDialogProps {
@@ -35,8 +37,10 @@ export function ProductFormDialog({
 }: ProductFormDialogProps) {
   const [name, setName] = useState(productToEdit?.name || "");
   const [description, setDescription] = useState(productToEdit?.description || "");
-  const [price, setPrice] = useState(productToEdit?.price?.toString() || "");
+  const [price, setPrice] = useState(productToEdit?.price !== undefined ? productToEdit.price.toString() : "");
   const [categoryId, setCategoryId] = useState(productToEdit?.category_id || "");
+  const [cardBadgeId, setCardBadgeId] = useState<string>(productToEdit?.cardBadgeId || "none");
+  const [badges, setBadges] = useState<CardBadge[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -46,15 +50,21 @@ export function ProductFormDialog({
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
 
   useEffect(() => {
+    badgeService.getBadges().then(setBadges).catch(console.error);
+  }, []);
+
+  useEffect(() => {
     if (open) {
       setName(productToEdit?.name || "");
       setDescription(productToEdit?.description || "");
       setPrice(productToEdit?.price !== undefined ? productToEdit.price.toString() : "");
       setCategoryId(productToEdit?.category_id || (categories.length > 0 ? categories[0].id : ""));
+      setCardBadgeId(productToEdit?.cardBadgeId || "none");
       setFile(null);
       setError("");
       setRawImageSrc(null);
       setCropModalOpen(false);
+      badgeService.getBadges().then(setBadges).catch(console.error);
     }
   }, [open, productToEdit, categories]);
 
@@ -68,6 +78,11 @@ export function ProductFormDialog({
   const selectedCategory = useMemo(() => {
     return categories.find((c) => c.id === categoryId);
   }, [categories, categoryId]);
+
+  const selectedBadge = useMemo(() => {
+    if (!cardBadgeId || cardBadgeId === "none") return null;
+    return badges.find((b) => b.id === cardBadgeId) || null;
+  }, [badges, cardBadgeId]);
 
   const formattedPrice = useMemo(() => {
     const num = parseFloat(price);
@@ -143,6 +158,7 @@ export function ProductFormDialog({
     try {
       let result: Product;
       const catName = selectedCategory?.name;
+      const finalCardBadgeId = cardBadgeId === "none" ? null : cardBadgeId;
 
       if (productToEdit) {
         result = await productService.updateProduct(
@@ -153,6 +169,7 @@ export function ProductFormDialog({
             price: numPrice,
             category_id: categoryId,
             category: catName,
+            cardBadgeId: finalCardBadgeId,
           },
           file || undefined
         );
@@ -165,6 +182,7 @@ export function ProductFormDialog({
             category_id: categoryId,
             category: catName,
             imageUrl: "",
+            cardBadgeId: finalCardBadgeId,
           },
           file || undefined
         );
@@ -221,6 +239,18 @@ export function ProductFormDialog({
                     {selectedCategory && (
                       <span className="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
                         {selectedCategory.name}
+                      </span>
+                    )}
+                    {selectedBadge && (
+                      <span
+                        style={{
+                          backgroundColor: selectedBadge.bgColor,
+                          color: selectedBadge.textColor,
+                        }}
+                        className="absolute top-2.5 right-2.5 rounded-full px-2.5 py-0.5 text-xs font-semibold flex items-center gap-1 shadow-sm select-none z-10"
+                      >
+                        {selectedBadge.icon && <span>{selectedBadge.icon}</span>}
+                        <span>{selectedBadge.text}</span>
                       </span>
                     )}
                   </div>
@@ -339,6 +369,41 @@ export function ProductFormDialog({
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                {/* Selo do Card (Badge Flutuante) */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="card-badge" className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                      Selo do Card (Badge)
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground font-normal">
+                      opcional
+                    </span>
+                  </div>
+                  <Select value={cardBadgeId} onValueChange={(val) => setCardBadgeId(val || "none")}>
+                    <SelectTrigger id="card-badge" className="w-full h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#2B132D] dark:border-[#512B54]/50 dark:text-white focus:border-[#9306CF] focus:ring-2 focus:ring-[#9306CF]/20">
+                      <SelectValue placeholder="Selecione um selo..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border border-gray-200 dark:border-[#512B54]/50 bg-white dark:bg-[#1F0B22] shadow-xl max-h-60 z-[60]">
+                      <SelectItem value="none" className="cursor-pointer text-sm py-2">
+                        <span className="text-muted-foreground">[ Nenhum selo ]</span>
+                      </SelectItem>
+                      {badges.map((b) => (
+                        <SelectItem key={b.id} value={b.id} className="cursor-pointer text-sm py-2 hover:bg-[#9306CF]/10">
+                          <div className="flex items-center gap-2">
+                            <span
+                              style={{ backgroundColor: b.bgColor, color: b.textColor }}
+                              className="px-2.5 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1 shadow-2xs"
+                            >
+                              {b.icon && <span>{b.icon}</span>}
+                              <span>{b.text}</span>
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Foto do Produto com Recorte 1:1 */}

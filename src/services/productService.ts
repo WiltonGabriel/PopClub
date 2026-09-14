@@ -1,3 +1,5 @@
+import { CardBadge } from "./badgeService";
+
 export interface Product {
   id: string;
   name: string;
@@ -8,6 +10,8 @@ export interface Product {
   imageUrl: string;
   stock?: number | null;
   isAvailable?: boolean;
+  cardBadgeId?: string | null;
+  cardBadge?: CardBadge | null;
 }
 
 export const productService = {
@@ -52,6 +56,8 @@ export const productService = {
       imageUrl: item.imageUrl || "",
       stock: item.stock !== undefined ? item.stock : null,
       isAvailable: item.isAvailable !== undefined ? Boolean(item.isAvailable) : true,
+      cardBadgeId: item.cardBadgeId || null,
+      cardBadge: item.cardBadge || null,
     }));
   },
 
@@ -72,6 +78,9 @@ export const productService = {
         categoryId: product.category_id,
         category: product.category,
         imageUrl: finalImageUrl,
+        stock: product.stock,
+        isAvailable: product.isAvailable,
+        cardBadgeId: product.cardBadgeId || null,
       }),
     });
 
@@ -86,6 +95,10 @@ export const productService = {
       category_id: data.categoryId,
       category: data.category,
       imageUrl: data.imageUrl,
+      stock: data.stock,
+      isAvailable: data.isAvailable,
+      cardBadgeId: data.cardBadgeId,
+      cardBadge: data.cardBadge,
     };
   },
 
@@ -106,6 +119,9 @@ export const productService = {
         categoryId: updates.category_id,
         category: updates.category,
         imageUrl: finalImageUrl,
+        stock: updates.stock,
+        isAvailable: updates.isAvailable,
+        cardBadgeId: updates.cardBadgeId,
       }),
     });
 
@@ -120,6 +136,10 @@ export const productService = {
       category_id: data.categoryId,
       category: data.category,
       imageUrl: data.imageUrl,
+      stock: data.stock,
+      isAvailable: data.isAvailable,
+      cardBadgeId: data.cardBadgeId,
+      cardBadge: data.cardBadge,
     };
   },
 

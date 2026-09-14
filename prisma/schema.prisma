@@ -87,8 +87,10 @@ model Product {
   imageUrl       String?         @map("image_url")
   stock          Int?
   isAvailable    Boolean         @default(true) @map("is_available")
+  cardBadgeId    String?         @map("card_badge_id")
   createdAt      DateTime        @default(now()) @map("created_at")
   categoryRel    Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  cardBadge      CardBadge?      @relation(fields: [cardBadgeId], references: [id], onDelete: SetNull)
   promotionItems PromotionItem[]
   orderItems     OrderItem[]
 
@@ -208,4 +210,16 @@ model StoreSettings {
   updatedAt             DateTime @updatedAt @map("updated_at")
 
   @@map("store_settings")
+}
+
+model CardBadge {
+  id        String    @id @default(uuid())
+  text      String
+  icon      String?
+  bgColor   String    @default("#FEF3C7") @map("bg_color")
+  textColor String    @default("#B45309") @map("text_color")
+  createdAt DateTime  @default(now()) @map("created_at")
+  products  Product[]
+
+  @@map("card_badges")
 }

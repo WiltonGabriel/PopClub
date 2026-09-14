@@ -131,12 +131,25 @@ export function ProductCard({
           </div>
         )}
 
-        {/* Category badge overlay */}
-        {badge && !isOutOfStock && (
-          <span className={`badge-clay absolute top-2 right-2 flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full ${badge.color}`}>
-            {badge.icon}
-            {badge.label}
-          </span>
+        {/* Selo do Card (Badge Flutuante Personalizado ou Categoria) */}
+        {!isOutOfStock && (
+          product.cardBadge ? (
+            <span
+              style={{
+                backgroundColor: product.cardBadge.bgColor,
+                color: product.cardBadge.textColor,
+              }}
+              className="absolute top-2 right-2 rounded-full px-2.5 py-0.5 text-xs font-semibold flex items-center gap-1 shadow-sm select-none z-10"
+            >
+              {product.cardBadge.icon && <span>{product.cardBadge.icon}</span>}
+              <span>{product.cardBadge.text}</span>
+            </span>
+          ) : badge ? (
+            <span className={`badge-clay absolute top-2 right-2 flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full ${badge.color}`}>
+              {badge.icon}
+              {badge.label}
+            </span>
+          ) : null
         )}
       </div>
 

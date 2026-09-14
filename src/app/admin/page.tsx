@@ -38,6 +38,7 @@ import { EditBannerModal } from "../../components/admin/EditBannerModal";
 import { CouponManagement } from "../../components/admin/CouponManagement";
 import { AnalyticsDashboard } from "../../components/admin/AnalyticsDashboard";
 import { DeliveryFeeSettings } from "../../components/admin/DeliveryFeeSettings";
+import { CardBadgesSection } from "../../components/admin/CardBadgesSection";
 
 export default function AdminDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -415,7 +416,7 @@ export default function AdminDashboard() {
                   }`}
                 >
                   <ImageIcon className="w-4 h-4" />
-                  <span>🖼️ Banners</span>
+                  <span>🖼️ Banners & Selos</span>
                   <span
                     className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
                       activeTab === "banners"
@@ -903,6 +904,9 @@ export default function AdminDashboard() {
                       </div>
                     )}
                   </div>
+
+                  {/* SEÇÃO 3: Gestão de Selos / Badges Flutuantes dos Cards */}
+                  <CardBadgesSection onBadgesUpdated={fetchPromos} />
                 </section>
               )}
 

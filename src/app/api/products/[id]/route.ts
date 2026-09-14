@@ -19,7 +19,7 @@ export async function PUT(
     } catch {
       return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
     }
-    const { name, description, price, categoryId, category, imageUrl } = body || {};
+    const { name, description, price, categoryId, category, imageUrl, stock, isAvailable, cardBadgeId } = body || {};
 
     const dataToUpdate: any = {};
     if (name !== undefined) dataToUpdate.name = name;
@@ -28,11 +28,17 @@ export async function PUT(
     if (categoryId !== undefined) dataToUpdate.categoryId = categoryId || null;
     if (category !== undefined) dataToUpdate.category = category;
     if (imageUrl !== undefined) dataToUpdate.imageUrl = imageUrl;
+    if (stock !== undefined) dataToUpdate.stock = stock !== null ? Number(stock) : null;
+    if (isAvailable !== undefined) dataToUpdate.isAvailable = Boolean(isAvailable);
+    if (cardBadgeId !== undefined) dataToUpdate.cardBadgeId = cardBadgeId || null;
 
     const updated = await prisma.product.update({
       where: { id },
       data: dataToUpdate,
-      include: { categoryRel: { select: { name: true } } },
+      include: {
+        categoryRel: { select: { name: true } },
+        cardBadge: true,
+      },
     });
 
     return NextResponse.json({
@@ -43,6 +49,10 @@ export async function PUT(
       categoryId: updated.categoryId,
       category: updated.categoryRel?.name || updated.category || "Outros",
       imageUrl: updated.imageUrl || "",
+      stock: updated.stock,
+      isAvailable: updated.isAvailable,
+      cardBadgeId: updated.cardBadgeId,
+      cardBadge: updated.cardBadge,
     });
   } catch (error: any) {
     console.error("Erro ao atualizar produto:", error);

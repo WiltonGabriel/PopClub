@@ -261,6 +261,22 @@ export function ProductDetailModal({
             )}
           </div>
 
+          {/* Selo do Card no Canto Superior Direito */}
+          {product.cardBadge && (
+            <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 pointer-events-none">
+              <span
+                style={{
+                  backgroundColor: product.cardBadge.bgColor,
+                  color: product.cardBadge.textColor,
+                }}
+                className="rounded-full px-3 py-1 text-xs font-bold flex items-center gap-1.5 shadow-md"
+              >
+                {product.cardBadge.icon && <span>{product.cardBadge.icon}</span>}
+                <span>{product.cardBadge.text}</span>
+              </span>
+            </div>
+          )}
+
           {/* Badge de Pronta Entrega no rodapé da imagem */}
           <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 z-20 flex items-center gap-2 text-white text-xs font-medium drop-shadow pointer-events-none">
             <span className="flex items-center gap-1 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">

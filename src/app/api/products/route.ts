@@ -9,6 +9,7 @@ export async function GET() {
         categoryRel: {
           select: { name: true },
         },
+        cardBadge: true,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -23,6 +24,8 @@ export async function GET() {
       imageUrl: p.imageUrl || "",
       stock: p.stock,
       isAvailable: p.isAvailable,
+      cardBadgeId: p.cardBadgeId,
+      cardBadge: p.cardBadge,
     }));
 
     return NextResponse.json(formatted);
@@ -45,7 +48,7 @@ export async function POST(request: Request) {
     } catch {
       return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
     }
-    const { name, description, price, categoryId, category, imageUrl, stock, isAvailable } = body || {};
+    const { name, description, price, categoryId, category, imageUrl, stock, isAvailable, cardBadgeId } = body || {};
 
     if (!name || price === undefined) {
       return NextResponse.json({ error: "Nome e preço são obrigatórios." }, { status: 400 });
@@ -63,9 +66,11 @@ export async function POST(request: Request) {
         imageUrl: imageUrl || null,
         stock: parsedStock !== null && !isNaN(parsedStock) ? Math.max(0, parsedStock) : null,
         isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : true,
+        cardBadgeId: cardBadgeId || null,
       },
       include: {
         categoryRel: { select: { name: true } },
+        cardBadge: true,
       },
     });
 
@@ -79,6 +84,8 @@ export async function POST(request: Request) {
       imageUrl: product.imageUrl || "",
       stock: product.stock,
       isAvailable: product.isAvailable,
+      cardBadgeId: product.cardBadgeId,
+      cardBadge: product.cardBadge,
     });
   } catch (error: any) {
     console.error("Erro ao criar produto:", error);

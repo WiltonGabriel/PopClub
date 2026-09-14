@@ -11,8 +11,6 @@ import {
   CreditCard,
   QrCode,
   Banknote,
-  Heart,
-  Sparkles,
 } from "lucide-react";
 import { storeSettingsService } from "../../services/storeSettingsService";
 
@@ -137,10 +135,8 @@ export function Footer() {
           </p>
 
           {/* Créditos Equipe ADP */}
-          <p className="text-xs text-gray-400 dark:text-gray-500 font-normal flex items-center justify-center gap-1">
-            <span>Desenvolvido com</span>
-            <Heart className="w-3 h-3 text-purple-500 fill-purple-500" />
-            <span>pela</span>
+          <p className="text-xs text-gray-400 dark:text-gray-500 font-normal">
+            Desenvolvido pela{" "}
             <span className="font-bold text-gray-600 dark:text-gray-300 hover:text-[#9306CF] transition-colors">
               Equipe ADP
             </span>
