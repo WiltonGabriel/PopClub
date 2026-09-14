@@ -17,9 +17,12 @@ export const metadata: Metadata = {
   title: "Pop Shake Sorveteria",
   description: "Cardápio Digital e Delivery Oficial da Pop Shake Sorveteria",
   icons: {
-    icon: "/icon.png",
-    shortcut: "/icon.png",
-    apple: "/icon.png",
+    icon: [
+      { url: "/icon.png?v=2" },
+      { url: "/favicon.ico?v=2" },
+    ],
+    shortcut: "/icon.png?v=2",
+    apple: "/icon.png?v=2",
   },
 };
 
@@ -39,10 +42,10 @@ export default function RootLayout({
         Default is strictly Light Mode unless 'dark' is explicitly stored in localStorage.
       */}
       <head>
-        <link rel="icon" type="image/png" sizes="64x64" href="/icon.png" />
-        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-        <link rel="shortcut icon" href="/icon.png" />
-        <link rel="apple-touch-icon" href="/apple-icon.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon.png?v=2" />
+        <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2" />
+        <link rel="shortcut icon" href="/icon.png?v=2" />
+        <link rel="apple-touch-icon" href="/apple-icon.png?v=2" />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var s=localStorage.getItem('popshake-theme');if(s==='dark'){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}}catch(e){}})();`,
