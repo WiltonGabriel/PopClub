@@ -25,6 +25,7 @@ try {
 }
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   allowedDevOrigins: devOrigins,
   images: {
     remotePatterns: [
