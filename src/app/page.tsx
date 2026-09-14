@@ -40,6 +40,7 @@ import {
   Sun,
   Moon,
   ChevronRight,
+  ChevronLeft,
   LogOut,
   ShieldCheck,
   Pencil,
@@ -146,8 +147,23 @@ export default function Storefront() {
       let hasData = false;
 
       if (catsRes.status === "fulfilled") {
-        setCategories(catsRes.value);
-        if (catsRes.value.length > 0) hasData = true;
+        let loadedCats = catsRes.value;
+        try {
+          const savedOrderStr = localStorage.getItem("popshake_category_order");
+          if (savedOrderStr) {
+            const savedOrder: string[] = JSON.parse(savedOrderStr);
+            loadedCats = [...loadedCats].sort((a, b) => {
+              const idxA = savedOrder.indexOf(a.id);
+              const idxB = savedOrder.indexOf(b.id);
+              if (idxA === -1 && idxB === -1) return 0;
+              if (idxA === -1) return 1;
+              if (idxB === -1) return -1;
+              return idxA - idxB;
+            });
+          }
+        } catch {}
+        setCategories(loadedCats);
+        if (loadedCats.length > 0) hasData = true;
       } else {
         console.error("Erro ao carregar categorias:", catsRes.reason);
       }
@@ -174,11 +190,95 @@ export default function Storefront() {
     }
   };
 
-  // Admin handlers — unchanged
+  // State for drag & drop category reordering
+  const [draggedCatIndex, setDraggedCatIndex] = useState<number | null>(null);
+
+  // Sincronização em Tempo Real (Single Source of Truth) ao salvar categoria
+  const handleCategorySaved = (savedCat: Category) => {
+    // 1. Atualiza imediatamente o estado de categorias em memória (0ms latency)
+    setCategories((prev) => {
+      const exists = prev.some((c) => c.id === savedCat.id);
+      let updatedList: Category[];
+      if (exists) {
+        updatedList = prev.map((c) => (c.id === savedCat.id ? { ...c, ...savedCat } : c));
+      } else {
+        updatedList = [...prev, savedCat];
+      }
+      try {
+        localStorage.setItem("popshake_category_order", JSON.stringify(updatedList.map((c) => c.id)));
+      } catch {}
+      return updatedList;
+    });
+
+    // 2. Se o nome da categoria foi alterado, sincroniza em tempo real os produtos em memória
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (
+          (p as any).categoryId === savedCat.id ||
+          (p as any).category_id === savedCat.id ||
+          (editingCategory && p.category === editingCategory.name)
+        ) {
+          return { ...p, category: savedCat.name, categoryId: savedCat.id, category_id: savedCat.id };
+        }
+        return p;
+      })
+    );
+
+    // 3. Sincroniza em background com o backend
+    fetchData();
+  };
+
+  // Reordenação de categorias via botões de seta
+  const handleMoveCategory = (index: number, direction: "left" | "right") => {
+    const targetIndex = direction === "left" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= categories.length) return;
+
+    setCategories((prev) => {
+      const next = [...prev];
+      const temp = next[index];
+      next[index] = next[targetIndex];
+      next[targetIndex] = temp;
+      try {
+        localStorage.setItem("popshake_category_order", JSON.stringify(next.map((c) => c.id)));
+      } catch {}
+      return next;
+    });
+  };
+
+  // Drag & drop de categorias
+  const handleDragStart = (index: number) => {
+    setDraggedCatIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (targetIndex: number) => {
+    if (draggedCatIndex === null || draggedCatIndex === targetIndex) return;
+    setCategories((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(draggedCatIndex, 1);
+      next.splice(targetIndex, 0, moved);
+      try {
+        localStorage.setItem("popshake_category_order", JSON.stringify(next.map((c) => c.id)));
+      } catch {}
+      return next;
+    });
+    setDraggedCatIndex(null);
+  };
+
+  // Admin handlers
   const handleDeleteCategory = async (id: string) => {
     if (confirm("Deletar esta categoria? Produtos associados perderão o vínculo.")) {
       await categoryService.deleteCategory(id);
-      setCategories((prev) => prev.filter((c) => c.id !== id));
+      setCategories((prev) => {
+        const next = prev.filter((c) => c.id !== id);
+        try {
+          localStorage.setItem("popshake_category_order", JSON.stringify(next.map((c) => c.id)));
+        } catch {}
+        return next;
+      });
     }
   };
 
@@ -257,11 +357,8 @@ export default function Storefront() {
                 alt="Logo Pop Shake"
                 className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-contain border border-[#9306CF]/30 shadow-xs shrink-0"
               />
-              <span className="font-heading font-black text-xl sm:text-2xl tracking-tight text-foreground flex items-center gap-1.5 shrink-0">
+              <span className="font-heading font-black text-xl sm:text-2xl tracking-tight text-foreground flex items-center shrink-0">
                 Pop<span className="gradient-text-brand">Shake</span>
-                <span className="text-[11px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20 hidden sm:inline-block">
-                  Sorveteria
-                </span>
               </span>
             </Link>
 
@@ -549,29 +646,80 @@ export default function Storefront() {
                   🏠 Todos
                 </button>
 
-                {categories.map((cat) => (
-                  <div key={cat.id} className="relative group shrink-0">
+                {categories.map((cat, catIdx) => (
+                  <div
+                    key={cat.id}
+                    className={`relative group shrink-0 transition-transform ${
+                      draggedCatIndex === catIdx ? "opacity-40 scale-95" : ""
+                    }`}
+                  >
                     <CategoryChip
                       category={cat}
                       isActive={activeCategory === cat.id}
                       onClick={() => scrollToCategory(cat.id)}
+                      onContextMenu={(e) => {
+                        if (canEdit) {
+                          e.preventDefault();
+                          setEditingCategory(cat);
+                          setCatDialogOpen(true);
+                        }
+                      }}
+                      title={canEdit ? "Clique com o botão direito ou no lápis para editar" : undefined}
+                      draggable={canEdit}
+                      onDragStart={() => handleDragStart(catIdx)}
+                      onDragOver={handleDragOver}
+                      onDrop={() => handleDrop(catIdx)}
                     />
                     {/* Admin controls on chip */}
                     {canEdit && (
-                      <div className="absolute -top-2 -right-2 hidden group-hover:flex items-center gap-1 bg-white dark:bg-[#2B132D] shadow-md border border-purple-200 dark:border-purple-800 rounded-full p-1 z-20 transition-all">
+                      <div className="absolute -top-3 -right-2 hidden group-hover:flex items-center gap-0.5 bg-white dark:bg-[#2B132D] shadow-lg border border-purple-200 dark:border-purple-800 rounded-full p-1 z-30 transition-all scale-95">
+                        {/* Mover para esquerda */}
+                        {catIdx > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMoveCategory(catIdx, "left");
+                            }}
+                            className="text-gray-500 hover:text-[#9306CF] hover:bg-purple-100 dark:hover:bg-purple-900/40 p-1 rounded-full transition-colors"
+                            title="Mover para a esquerda"
+                            aria-label="Mover categoria para a esquerda"
+                          >
+                            <ChevronLeft className="w-3 h-3" />
+                          </button>
+                        )}
+                        {/* Editar */}
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             setEditingCategory(cat);
                             setCatDialogOpen(true);
                           }}
                           className="text-[#9306CF] hover:text-[#940068] hover:bg-purple-100 dark:hover:bg-purple-900/40 p-1 rounded-full transition-colors"
-                          title="Editar categoria"
+                          title="Editar emoji e nome (ou botão direito)"
                           aria-label={`Editar categoria ${cat.name}`}
                         >
                           <Pencil className="w-3 h-3" />
                         </button>
+                        {/* Mover para direita */}
+                        {catIdx < categories.length - 1 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMoveCategory(catIdx, "right");
+                            }}
+                            className="text-gray-500 hover:text-[#9306CF] hover:bg-purple-100 dark:hover:bg-purple-900/40 p-1 rounded-full transition-colors"
+                            title="Mover para a direita"
+                            aria-label="Mover categoria para a direita"
+                          >
+                            <ChevronRight className="w-3 h-3" />
+                          </button>
+                        )}
+                        {/* Deletar */}
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteCategory(cat.id);
@@ -874,7 +1022,7 @@ export default function Storefront() {
         open={catDialogOpen}
         onOpenChange={setCatDialogOpen}
         categoryToEdit={editingCategory}
-        onSaved={fetchData}
+        onSaved={handleCategorySaved}
       />
       <ProductFormDialog
         open={prodDialogOpen}

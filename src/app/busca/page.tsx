@@ -225,9 +225,6 @@ function SearchContent() {
               >
                 Shake
               </span>
-              <span className="ml-1 text-xs font-bold px-2 py-0.5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20">
-                Sorveteria
-              </span>
             </Link>
           </div>
 

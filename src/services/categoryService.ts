@@ -29,8 +29,14 @@ export const categoryService = {
   },
 
   async updateCategory(id: string, updates: Partial<Omit<Category, "id">>): Promise<Category> {
-    // Caso de edição futura
-    return { id, name: updates.name || "", ...updates };
+    const res = await fetch(`/api/categories/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Erro ao atualizar categoria.");
+    return data;
   },
 
   async deleteCategory(id: string): Promise<void> {

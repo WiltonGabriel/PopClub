@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { categoryService, Category } from "../../services/categoryService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Loader2 } from "lucide-react";
+import { parseCategoryEmojiAndName } from "../storefront/CategoryChip";
 
 interface CategoryFormDialogProps {
   open: boolean;
@@ -15,26 +16,61 @@ interface CategoryFormDialogProps {
   categoryToEdit?: Category | null;
 }
 
-export function CategoryFormDialog({ open, onOpenChange, onSaved, categoryToEdit }: CategoryFormDialogProps) {
-  const [name, setName] = useState(categoryToEdit?.name || "");
+const POPULAR_EMOJIS = [
+  "🍇", "🍦", "🥤", "⚡", "🍴", "🍓", "🔥", "✨",
+  "🍫", "🥥", "🍧", "🥣", "⭐", "🍒", "🍨", "🍪",
+];
+
+export function CategoryFormDialog({
+  open,
+  onOpenChange,
+  onSaved,
+  categoryToEdit,
+}: CategoryFormDialogProps) {
+  const [selectedEmoji, setSelectedEmoji] = useState("🍇");
+  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Sincroniza dados sempre que abrir o modal ou mudar a categoria selecionada
+  useEffect(() => {
+    if (open) {
+      if (categoryToEdit) {
+        const parsed = parseCategoryEmojiAndName(categoryToEdit.name);
+        setSelectedEmoji(parsed.emoji);
+        setName(parsed.cleanName);
+      } else {
+        setSelectedEmoji("🍇");
+        setName("");
+      }
+      setError("");
+    }
+  }, [open, categoryToEdit]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanName = name.trim();
+    if (!cleanName) {
+      setError("Por favor, digite o nome da categoria.");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
+    // Concatena emoji e nome para persistência unificada (Single Source of Truth)
+    const fullName = selectedEmoji ? `${selectedEmoji} ${cleanName}` : cleanName;
+
     try {
-      let result;
+      let result: Category;
       if (categoryToEdit) {
-        result = await categoryService.updateCategory(categoryToEdit.id, { name: name.trim() });
+        result = await categoryService.updateCategory(categoryToEdit.id, { name: fullName });
       } else {
-        result = await categoryService.createCategory(name.trim());
+        result = await categoryService.createCategory(fullName);
       }
+
       onSaved(result);
       onOpenChange(false);
-      setName("");
     } catch (err: any) {
       setError(err.message || "Erro ao salvar a categoria.");
     } finally {
@@ -44,40 +80,94 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, categoryToEdit
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md w-full rounded-2xl bg-white dark:bg-[#1F0B22] text-foreground border border-gray-200 dark:border-[#512B54]/40 shadow-xl p-6">
-        <DialogHeader className="mb-4">
+      <DialogContent className="sm:max-w-md w-full rounded-3xl bg-white dark:bg-[#1F0B22] text-foreground border border-gray-200 dark:border-[#512B54]/40 shadow-2xl p-6">
+        <DialogHeader className="mb-3">
           <DialogTitle className="font-heading text-xl font-bold text-[#4C264F] dark:text-[#F9F5F9]">
-            {categoryToEdit ? "Editar Categoria" : "Nova Categoria"}
+            {categoryToEdit ? "Editar Categoria & Ícone" : "Nova Categoria"}
           </DialogTitle>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {categoryToEdit ? "Atualize o nome da seção na página inicial" : "Crie uma nova seção para agrupar produtos"}
+          <p className="text-xs text-muted-foreground">
+            {categoryToEdit
+              ? "Edite o ícone e o nome exibidos na barra superior e no catálogo"
+              : "Crie uma nova seção para agrupar e organizar seus produtos"}
           </p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Seletor de Emoji / Ícone */}
+          <div className="space-y-2">
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Ícone da Categoria (Emoji)
+            </Label>
+            <div className="flex flex-wrap gap-1.5 p-2 bg-gray-50 dark:bg-[#2B132D]/50 rounded-2xl border border-gray-100 dark:border-[#512B54]/30">
+              {POPULAR_EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => setSelectedEmoji(emoji)}
+                  className={`
+                    w-8 h-8 rounded-xl flex items-center justify-center text-lg
+                    transition-all duration-150 cursor-pointer
+                    ${
+                      selectedEmoji === emoji
+                        ? "bg-[#9306CF] text-white scale-110 shadow-sm ring-2 ring-[#9306CF]/40"
+                        : "hover:bg-gray-200 dark:hover:bg-white/10"
+                    }
+                  `}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+
+            {/* Input para Emoji Personalizado */}
+            <div className="flex items-center gap-2 pt-1">
+              <span className="text-[11px] text-muted-foreground">Ou digite outro emoji:</span>
+              <Input
+                value={selectedEmoji}
+                onChange={(e) => setSelectedEmoji(e.target.value)}
+                maxLength={4}
+                className="w-16 h-8 text-center text-base rounded-lg"
+              />
+            </div>
+          </div>
+
+          {/* Nome da Categoria */}
           <div className="space-y-1.5">
-            <Label htmlFor="cat-name" className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-              Nome da Categoria
+            <Label htmlFor="cat-name" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Nome de Exibição
             </Label>
             <Input
               id="cat-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#2B132D] dark:border-[#512B54]/50 dark:text-white focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
-              placeholder="Ex: Açaí Tradicional, Pop Shakes..."
+              className="h-11 rounded-xl bg-white border-gray-200 text-foreground dark:bg-[#2B132D] dark:border-[#512B54]/50 focus-visible:ring-2 focus-visible:ring-[#9306CF]/30 focus-visible:border-[#9306CF]"
+              placeholder="Ex: Explosão de Recheio, Açaí Tradicional..."
               required
             />
           </div>
 
+          {/* Prévia Instantânea da Pílula */}
+          <div className="p-3 bg-gray-50 dark:bg-white/[0.02] rounded-2xl border border-gray-100 dark:border-[#512B54]/30 flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground">
+              Pré-visualização da Pílula:
+            </span>
+            <div className="flex flex-col items-center justify-center min-w-[76px] px-3.5 py-2 rounded-2xl bg-white dark:bg-[#230E26] border border-[#9306CF]/50 shadow-xs">
+              <span className="text-lg leading-none mb-0.5">{selectedEmoji || "🍧"}</span>
+              <span className="text-[10px] font-bold uppercase text-[#4C264F] dark:text-[#F9F5F9] whitespace-nowrap">
+                {name || "Categoria"}
+              </span>
+            </div>
+          </div>
+
           {error && (
-            <p className="text-red-500 text-xs bg-red-50 dark:bg-red-950/30 p-2.5 rounded-lg border border-red-200 dark:border-red-900/40">
+            <p className="text-red-500 text-xs bg-red-50 dark:bg-red-950/30 p-2.5 rounded-xl border border-red-200 dark:border-red-900/40">
               {error}
             </p>
           )}
 
           <Button
             type="submit"
-            className="w-full h-11 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading font-bold text-sm uppercase tracking-wider shadow-md shadow-[#9306CF]/20 transition-all"
+            className="w-full h-11 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading font-bold text-xs uppercase tracking-wider shadow-md shadow-[#9306CF]/20 transition-all cursor-pointer"
             disabled={loading}
           >
             {loading ? (
@@ -85,8 +175,10 @@ export function CategoryFormDialog({ open, onOpenChange, onSaved, categoryToEdit
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Salvando...
               </span>
+            ) : categoryToEdit ? (
+              "Salvar Alterações Instantaneamente"
             ) : (
-              categoryToEdit ? "Salvar Alterações" : "Criar Categoria"
+              "Criar Categoria"
             )}
           </Button>
         </form>
