@@ -75,6 +75,7 @@ export default function AdminPedidosPage() {
   const [isAdjustDeliveryModalOpen, setIsAdjustDeliveryModalOpen] = useState(false);
   const [deliveryTimeInput, setDeliveryTimeInput] = useState("30-50 min");
   const [shiftActionLoading, setShiftActionLoading] = useState(false);
+  const [currentTime, setCurrentTime] = useState<number>(0);
 
   const router = useRouter();
   const { showToast } = useToast();
@@ -83,6 +84,8 @@ export default function AdminPedidosPage() {
   // Inicializa desbloqueio de áudio e restaura preferência de mudo
   useEffect(() => {
     initAudioUnlock();
+    setCurrentTime(Date.now());
+    const ticker = setInterval(() => setCurrentTime(Date.now()), 30000);
     if (typeof window !== "undefined") {
       const savedMute = localStorage.getItem("popshake_admin_sound_muted");
       if (savedMute !== null) {
@@ -94,33 +97,32 @@ export default function AdminPedidosPage() {
         setNotifPermission(getNotificationPermission());
       }
     }
+    return () => clearInterval(ticker);
   }, []);
 
   // Alterna som do alerta de novo pedido
   const toggleSoundMute = () => {
-    setIsSoundMuted((prev) => {
-      const next = !prev;
-      isSoundMutedRef.current = next;
-      if (typeof window !== "undefined") {
-        localStorage.setItem("popshake_admin_sound_muted", String(next));
-      }
-      if (!next) {
-        // Toca o sino de teste ao ativar o áudio
-        playKitchenBellSound();
-        showToast({
-          title: "Som Operacional Ativado 🔔",
-          message: "O sino de cozinha tocará a cada novo pedido recebido.",
-          type: "info",
-        });
-      } else {
-        showToast({
-          title: "Som Silenciado 🔕",
-          message: "Alertas sonoros operacionais desativados.",
-          type: "warning",
-        });
-      }
-      return next;
-    });
+    const next = !isSoundMuted;
+    setIsSoundMuted(next);
+    isSoundMutedRef.current = next;
+    if (typeof window !== "undefined") {
+      localStorage.setItem("popshake_admin_sound_muted", String(next));
+    }
+    if (!next) {
+      // Toca o sino de teste ao ativar o áudio
+      playKitchenBellSound();
+      showToast({
+        title: "Som Operacional Ativado 🔔",
+        message: "O sino de cozinha tocará a cada novo pedido recebido.",
+        type: "info",
+      });
+    } else {
+      showToast({
+        title: "Som Silenciado 🔕",
+        message: "Alertas sonoros operacionais desativados.",
+        type: "warning",
+      });
+    }
   };
 
   // Solicita permissão para notificações na área de trabalho do operador
@@ -311,38 +313,35 @@ export default function AdminPedidosPage() {
         if (shiftsRes) {
           setShiftData(shiftsRes);
         }
-        setOrders((prev) => {
-          if (previousCountRef.current > 0 && data.length > previousCountRef.current) {
-            // Identifica o novo pedido
-            const newOrders = data.filter((d) => !prev.some((p) => p.id === d.id));
-            const targetOrder = newOrders[0] || data[0];
-            const shortId = targetOrder ? targetOrder.id.substring(0, 6) : "Novo";
-            const formattedTotal = targetOrder?.total_amount
-              ? `R$ ${targetOrder.total_amount.toFixed(2).replace(".", ",")}`
-              : "";
-            const clientName = targetOrder?.user?.fullName || targetOrder?.user?.username || "Cliente";
+        if (previousCountRef.current > 0 && data.length > previousCountRef.current) {
+          // Identifica o novo pedido
+          const targetOrder = data[0];
+          const shortId = targetOrder ? targetOrder.id.substring(0, 6) : "Novo";
+          const formattedTotal = targetOrder?.total_amount
+            ? `R$ ${targetOrder.total_amount.toFixed(2).replace(".", ",")}`
+            : "";
+          const clientName = targetOrder?.user?.fullName || targetOrder?.user?.username || "Cliente";
 
-            // Alerta sonoro de sino de cozinha/balcão se não estiver silenciado
-            if (!isSoundMutedRef.current) {
-              playKitchenBellSound();
-            }
-
-            // Notificação nativa no navegador do operador: "Novo pedido recebido! (#12345 - R$ XX,XX)"
-            sendWebNotification("Novo pedido recebido! 🔔", {
-              body: `#${shortId} - ${formattedTotal} • ${clientName}`,
-              icon: "/icon.png",
-            });
-
-            showToast({
-              title: `Novo pedido recebido! 🔔 (#${shortId})`,
-              message: `${clientName} • ${formattedTotal} entrou na esteira da cozinha.`,
-              type: "success",
-              duration: 9000,
-            });
+          // Alerta sonoro de sino de cozinha/balcão se não estiver silenciado
+          if (!isSoundMutedRef.current) {
+            playKitchenBellSound();
           }
-          previousCountRef.current = data.length;
-          return data;
-        });
+
+          // Notificação nativa no navegador do operador: "Novo pedido recebido! (#12345 - R$ XX,XX)"
+          sendWebNotification("Novo pedido recebido! 🔔", {
+            body: `#${shortId} - ${formattedTotal} • ${clientName}`,
+            icon: "/icon.png",
+          });
+
+          showToast({
+            title: `Novo pedido recebido! 🔔 (#${shortId})`,
+            message: `${clientName} • ${formattedTotal} entrou na esteira da cozinha.`,
+            type: "success",
+            duration: 9000,
+          });
+        }
+        previousCountRef.current = data.length;
+        setOrders(data);
       } catch (err) {
         console.error("Erro no polling de pedidos:", err);
       }
@@ -538,12 +537,20 @@ export default function AdminPedidosPage() {
   };
 
   // Métricas do Topo
-  const today = new Date().toDateString();
-  const todayOrders = orders.filter((o) => new Date(o.created_at).toDateString() === today);
-  const revenueToday = todayOrders
-    .filter((o) => o.status !== "cancelled")
-    .reduce((acc, o) => acc + Number(o.total_amount), 0);
-  const activeOrders = orders.filter((o) => !["completed", "cancelled"].includes(o.status));
+  const todayOrders = useMemo(() => {
+    const todayStr = new Date().toDateString();
+    return orders.filter((o) => new Date(o.created_at).toDateString() === todayStr);
+  }, [orders]);
+
+  const revenueToday = useMemo(() => {
+    return todayOrders
+      .filter((o) => o.status !== "cancelled")
+      .reduce((acc, o) => acc + Number(o.total_amount), 0);
+  }, [todayOrders]);
+
+  const activeOrders = useMemo(() => {
+    return orders.filter((o) => !["completed", "cancelled"].includes(o.status));
+  }, [orders]);
 
   // Contagem de saídas recentes / itens em preparo ativo no quadro
   const activeDemandMap = useMemo(() => {
@@ -598,7 +605,9 @@ export default function AdminPedidosPage() {
       );
     }
 
-    const diffMins = Math.max(0, Math.floor((Date.now() - createdDate.getTime()) / 60000));
+    const diffMins = currentTime > 0
+      ? Math.max(0, Math.floor((currentTime - createdDate.getTime()) / 60000))
+      : 0;
     const isUrgent = diffMins >= 40;
     const isWarning = diffMins >= 20 && diffMins < 40;
 

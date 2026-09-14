@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -48,7 +49,9 @@ export default function RootLayout({
         <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2" />
         <link rel="shortcut icon" href="/icon.png?v=2" />
         <link rel="apple-touch-icon" href="/apple-icon.png?v=2" />
-        <script
+        <Script
+          id="theme-initializer"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var s=localStorage.getItem('popshake-theme');if(s==='dark'){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}}catch(e){}})();`,
           }}
