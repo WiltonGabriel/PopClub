@@ -1,3 +1,9 @@
+export interface BadgeProduct {
+  id: string;
+  name: string;
+  imageUrl?: string | null;
+}
+
 export interface CardBadge {
   id: string;
   text: string;
@@ -8,6 +14,7 @@ export interface CardBadge {
   _count?: {
     products: number;
   };
+  products?: BadgeProduct[];
 }
 
 export const badgeService = {
@@ -57,6 +64,28 @@ export const badgeService = {
     });
     const resData = await res.json();
     if (!res.ok) throw new Error(resData.error || "Erro ao atualizar selo.");
+    return resData;
+  },
+
+  async addProduct(badgeId: string, productId: string): Promise<CardBadge> {
+    const res = await fetch(`/api/badges/${badgeId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ addProductId: productId }),
+    });
+    const resData = await res.json();
+    if (!res.ok) throw new Error(resData.error || "Erro ao vincular produto ao selo.");
+    return resData;
+  },
+
+  async removeProduct(badgeId: string, productId: string): Promise<CardBadge> {
+    const res = await fetch(`/api/badges/${badgeId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ removeProductId: productId }),
+    });
+    const resData = await res.json();
+    if (!res.ok) throw new Error(resData.error || "Erro ao desvincular produto do selo.");
     return resData;
   },
 

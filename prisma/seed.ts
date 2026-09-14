@@ -311,7 +311,7 @@ async function main() {
     },
   ];
 
-  const createdProducts = [];
+  const createdProducts: { id: string; name: string; price: any }[] = [];
   for (const prod of productsData) {
     const p = await prisma.product.create({
       data: {
@@ -328,6 +328,46 @@ async function main() {
     createdProducts.push(p);
   }
   console.log(`✅ ${createdProducts.length} produtos cadastrados com sucesso!`);
+
+  // 6.5 Selos (CardBadges) e vinculação a produtos
+  console.log("🏷️ Cadastrando selos e vinculando a produtos...");
+  await prisma.cardBadge.deleteMany(); // limpar selos antigos
+
+  const badgeCombo = await prisma.cardBadge.create({
+    data: { text: "Combo", icon: "⚡", bgColor: "#FEF3C7", textColor: "#B45309" },
+  });
+  const badgeMaisPedido = await prisma.cardBadge.create({
+    data: { text: "Mais Pedido", icon: "🔥", bgColor: "#FEE2E2", textColor: "#DC2626" },
+  });
+  const badgeLancamento = await prisma.cardBadge.create({
+    data: { text: "Lançamento", icon: "✨", bgColor: "#F3E8FF", textColor: "#7E22CE" },
+  });
+  const badgeRefrescante = await prisma.cardBadge.create({
+    data: { text: "Refrescância Pura", icon: "❄️", bgColor: "#E0F2FE", textColor: "#0369A1" },
+  });
+  const badgeOff = await prisma.cardBadge.create({
+    data: { text: "20% OFF", icon: "🏷️", bgColor: "#DCFCE7", textColor: "#15803D" },
+  });
+
+  // Vincular selos a produtos por nome
+  const linkBadgeToProduct = async (badgeId: string, partialName: string) => {
+    const prod = createdProducts.find((p: any) =>
+      p.name.toLowerCase().includes(partialName.toLowerCase())
+    );
+    if (prod) {
+      await prisma.product.update({ where: { id: prod.id }, data: { cardBadgeId: badgeId } });
+    }
+  };
+
+  await linkBadgeToProduct(badgeLancamento.id, "Framboesa");
+  await linkBadgeToProduct(badgeMaisPedido.id, "500ml Do Seu Jeito");
+  await linkBadgeToProduct(badgeCombo.id, "Hits em Dobro");
+  await linkBadgeToProduct(badgeCombo.id, "Combo");
+  await linkBadgeToProduct(badgeRefrescante.id, "Recheio é Vida");
+  await linkBadgeToProduct(badgeOff.id, "Sorvete Artesanal");
+  await linkBadgeToProduct(badgeOff.id, "na Garrafa");
+
+  console.log("✅ Selos criados e vinculados a produtos com sucesso!");
 
   // 7. Cupons Promocionais
   console.log("🎟️ Cadastrando cupons...");
@@ -401,6 +441,15 @@ async function main() {
   // 5 Pedidos ativos para o dia de hoje na esteira Kanban
   const activeOrderStatuses: OrderStatus[] = ["pending", "accepted", "preparing", "preparing", "delivering"];
 
+  // Atraso realista por status (em minutos) — quanto tempo atrás cada pedido foi criado
+  const statusDelayMinutes: Record<string, [number, number]> = {
+    pending:    [3, 8],
+    accepted:   [6, 13],
+    preparing:  [12, 22],
+    delivering: [18, 35],
+    completed:  [35, 65],
+  };
+
   const ordersToCreate = [];
 
   // Criar os 5 pedidos ativos de hoje
@@ -417,8 +466,10 @@ async function main() {
     const deliveryFee = isDelivery ? (subtotal >= 60 ? 0 : 5.0) : 0;
     const totalAmount = subtotal + deliveryFee;
 
-    // Horário de hoje entre 15h e agora
-    const orderDate = new Date(now - (5 - i) * 15 * 60 * 1000); // últimos 75 minutos
+    // Tempo realista conforme status do pedido
+    const [minMins, maxMins] = statusDelayMinutes[status] || [5, 15];
+    const delayMins = minMins + Math.floor(Math.random() * (maxMins - minMins + 1));
+    const orderDate = new Date(now - delayMins * 60 * 1000);
 
     ordersToCreate.push({
       userId: user.id,

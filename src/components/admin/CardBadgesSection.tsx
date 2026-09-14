@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { badgeService, CardBadge } from "../../services/badgeService";
+import { useState, useEffect, useMemo } from "react";
+import { badgeService, CardBadge, BadgeProduct } from "../../services/badgeService";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -13,8 +13,12 @@ import {
   Sparkles,
   Loader2,
   Eye,
-  Check,
   Palette,
+  ChevronDown,
+  ChevronUp,
+  X,
+  PackagePlus,
+  Search,
 } from "lucide-react";
 
 const SUGGESTED_EMOJIS = ["⚡", "🔥", "✨", "❄️", "🍇", "🍦", "🥤", "🏷️", "⭐", "💥", "🍓", "🍫"];
@@ -30,6 +34,12 @@ const COLOR_PRESETS = [
   { name: "Escuro / Noturno", bg: "#1F2937", text: "#F9FAFB" },
 ];
 
+interface SimpleProduct {
+  id: string;
+  name: string;
+  imageUrl?: string | null;
+}
+
 interface CardBadgesSectionProps {
   onBadgesUpdated?: () => void;
 }
@@ -40,7 +50,14 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
   const [editingBadge, setEditingBadge] = useState<CardBadge | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
-  // Campos do formulário
+  // Expanded badge cards for product management
+  const [expandedBadgeId, setExpandedBadgeId] = useState<string | null>(null);
+  const [allProducts, setAllProducts] = useState<SimpleProduct[]>([]);
+  const [productSearch, setProductSearch] = useState<Record<string, string>>({});
+  const [linkingBadgeId, setLinkingBadgeId] = useState<string | null>(null);
+  const [unlinkingProductId, setUnlinkingProductId] = useState<string | null>(null);
+
+  // Form fields
   const [text, setText] = useState("");
   const [icon, setIcon] = useState("⚡");
   const [bgColor, setBgColor] = useState("#FEF3C7");
@@ -61,8 +78,27 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
     }
   };
 
+  const loadAllProducts = async () => {
+    try {
+      const res = await fetch("/api/products", { signal: AbortSignal.timeout(8000) });
+      if (res.ok) {
+        const data = await res.json();
+        setAllProducts(
+          (data || []).map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            imageUrl: p.imageUrl ?? p.image_url ?? null,
+          }))
+        );
+      }
+    } catch {
+      /* silent */
+    }
+  };
+
   useEffect(() => {
     loadBadges();
+    loadAllProducts();
   }, []);
 
   const openNewForm = () => {
@@ -137,6 +173,42 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
         alert(err.message || "Erro ao excluir selo.");
       }
     }
+  };
+
+  const handleRemoveProduct = async (badgeId: string, productId: string) => {
+    setUnlinkingProductId(productId);
+    try {
+      const updated = await badgeService.removeProduct(badgeId, productId);
+      setBadges((prev) => prev.map((b) => (b.id === badgeId ? updated : b)));
+      onBadgesUpdated?.();
+    } catch (err: any) {
+      alert(err.message || "Erro ao desvincular produto.");
+    } finally {
+      setUnlinkingProductId(null);
+    }
+  };
+
+  const handleAddProduct = async (badgeId: string, productId: string) => {
+    setLinkingBadgeId(badgeId);
+    try {
+      const updated = await badgeService.addProduct(badgeId, productId);
+      setBadges((prev) => prev.map((b) => (b.id === badgeId ? updated : b)));
+      setProductSearch((prev) => ({ ...prev, [badgeId]: "" }));
+      onBadgesUpdated?.();
+    } catch (err: any) {
+      alert(err.message || "Erro ao vincular produto.");
+    } finally {
+      setLinkingBadgeId(null);
+    }
+  };
+
+  // Filtrar produtos disponíveis para vínculo (não vinculados ainda a este badge)
+  const getAvailableProducts = (badge: CardBadge, search: string) => {
+    const linkedIds = new Set((badge.products || []).map((p) => p.id));
+    return allProducts
+      .filter((p) => !linkedIds.has(p.id))
+      .filter((p) => !search || p.name.toLowerCase().includes(search.toLowerCase()))
+      .slice(0, 8);
   };
 
   return (
@@ -382,56 +454,148 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {badges.map((b) => (
-            <div
-              key={b.id}
-              className="p-4 rounded-2xl bg-gray-50/80 dark:bg-[#1A0B1C] border border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/40 transition-all flex flex-col justify-between gap-3 shadow-xs"
-            >
-              <div className="flex items-center justify-between">
-                {/* Visualização Real do Selo */}
-                <span
-                  style={{
-                    backgroundColor: b.bgColor,
-                    color: b.textColor,
-                  }}
-                  className="rounded-full px-2.5 py-0.5 text-xs font-semibold flex items-center gap-1 shadow-xs"
-                >
-                  {b.icon && <span>{b.icon}</span>}
-                  <span>{b.text}</span>
-                </span>
+          {badges.map((b) => {
+            const isExpanded = expandedBadgeId === b.id;
+            const search = productSearch[b.id] || "";
+            const available = getAvailableProducts(b, search);
+            const productCount = b._count?.products ?? (b.products?.length ?? 0);
 
-                <span className="text-[11px] font-mono text-muted-foreground">
-                  {b._count?.products ? `${b._count.products} produto(s)` : "0 produtos"}
-                </span>
-              </div>
+            return (
+              <div
+                key={b.id}
+                className="rounded-2xl bg-gray-50/80 dark:bg-[#1A0B1C] border border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/40 transition-all flex flex-col shadow-xs overflow-hidden"
+              >
+                {/* Cabeçalho do Card */}
+                <div className="p-4 flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    {/* Visualização Real do Selo */}
+                    <span
+                      style={{ backgroundColor: b.bgColor, color: b.textColor }}
+                      className="rounded-full px-2.5 py-0.5 text-xs font-semibold flex items-center gap-1 shadow-xs"
+                    >
+                      {b.icon && <span>{b.icon}</span>}
+                      <span>{b.text}</span>
+                    </span>
 
-              <div className="flex items-center justify-between pt-2 border-t border-gray-200/60 dark:border-white/5">
-                <div className="flex items-center gap-1 text-[10px] font-mono text-gray-400">
-                  <span className="w-2.5 h-2.5 rounded-full border border-black/10 inline-block" style={{ backgroundColor: b.bgColor }} />
-                  <span>{b.bgColor}</span>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedBadgeId(isExpanded ? null : b.id)}
+                      className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground hover:text-foreground transition-colors cursor-pointer px-1.5 py-0.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5"
+                      title={isExpanded ? "Recolher produtos" : "Gerenciar produtos"}
+                    >
+                      <span>{productCount} produto(s)</span>
+                      {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1 border-t border-gray-200/60 dark:border-white/5">
+                    <div className="flex items-center gap-1 text-[10px] font-mono text-gray-400">
+                      <span className="w-2.5 h-2.5 rounded-full border border-black/10 inline-block" style={{ backgroundColor: b.bgColor }} />
+                      <span>{b.bgColor}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => openEditForm(b)}
+                        className="p-1.5 text-[#9306CF] hover:bg-[#9306CF]/10 rounded-lg transition-colors cursor-pointer"
+                        title="Editar Selo"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(b.id, b.text)}
+                        className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors cursor-pointer"
+                        title="Excluir Selo"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => openEditForm(b)}
-                    className="p-1.5 text-[#9306CF] hover:bg-[#9306CF]/10 rounded-lg transition-colors cursor-pointer"
-                    title="Editar Selo"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(b.id, b.text)}
-                    className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors cursor-pointer"
-                    title="Excluir Selo"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                {/* Painel Expansível de Produtos */}
+                {isExpanded && (
+                  <div className="border-t border-gray-200 dark:border-[#512B54]/40 bg-white/60 dark:bg-black/10 p-3 space-y-3 animate-in fade-in duration-150">
+                    {/* Produtos vinculados */}
+                    {(b.products || []).length === 0 ? (
+                      <p className="text-[11px] text-muted-foreground text-center py-1">
+                        Nenhum produto vinculado a este selo.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {(b.products || []).map((prod) => (
+                          <span
+                            key={prod.id}
+                            className="inline-flex items-center gap-1 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full px-2.5 py-0.5 text-[11px] font-medium text-gray-700 dark:text-gray-300"
+                          >
+                            <span className="max-w-[100px] truncate">{prod.name}</span>
+                            <button
+                              type="button"
+                              disabled={unlinkingProductId === prod.id}
+                              onClick={() => handleRemoveProduct(b.id, prod.id)}
+                              className="w-3.5 h-3.5 rounded-full flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors cursor-pointer shrink-0 disabled:opacity-40"
+                              title={`Desvincular "${prod.name}"`}
+                            >
+                              {unlinkingProductId === prod.id ? (
+                                <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                              ) : (
+                                <X className="w-2.5 h-2.5" />
+                              )}
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Busca e vínculo de novos produtos */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                        <PackagePlus className="w-3 h-3 text-[#9306CF]" />
+                        Vincular Produto
+                      </label>
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
+                        <input
+                          type="text"
+                          value={search}
+                          onChange={(e) => setProductSearch((prev) => ({ ...prev, [b.id]: e.target.value }))}
+                          placeholder="Buscar produto..."
+                          className="w-full h-8 pl-7 pr-3 text-xs rounded-lg border border-gray-200 dark:border-[#512B54]/40 bg-white dark:bg-[#2B132D] text-foreground focus:outline-none focus:ring-1 focus:ring-[#9306CF]/40"
+                        />
+                      </div>
+                      {search && available.length === 0 && (
+                        <p className="text-[11px] text-muted-foreground text-center py-1">
+                          Nenhum produto disponível.
+                        </p>
+                      )}
+                      {available.length > 0 && (
+                        <div className="max-h-36 overflow-y-auto rounded-lg border border-gray-200 dark:border-[#512B54]/30 bg-white dark:bg-[#1C0B1E] divide-y divide-gray-100 dark:divide-white/5">
+                          {available.map((prod) => (
+                            <button
+                              key={prod.id}
+                              type="button"
+                              disabled={linkingBadgeId === b.id}
+                              onClick={() => handleAddProduct(b.id, prod.id)}
+                              className="w-full text-left flex items-center gap-2 px-2.5 py-1.5 hover:bg-[#9306CF]/5 transition-colors text-xs text-foreground cursor-pointer disabled:opacity-50"
+                            >
+                              {linkingBadgeId === b.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin shrink-0 text-[#9306CF]" />
+                              ) : (
+                                <Plus className="w-3 h-3 shrink-0 text-[#9306CF]" />
+                              )}
+                              <span className="truncate">{prod.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

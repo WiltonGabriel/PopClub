@@ -9,6 +9,10 @@ export async function GET() {
         _count: {
           select: { products: true },
         },
+        products: {
+          select: { id: true, name: true, imageUrl: true },
+          orderBy: { name: "asc" },
+        },
       },
       orderBy: { createdAt: "asc" },
     });
@@ -31,6 +35,10 @@ export async function GET() {
         include: {
           _count: {
             select: { products: true },
+          },
+          products: {
+            select: { id: true, name: true, imageUrl: true },
+            orderBy: { name: "asc" },
           },
         },
         orderBy: { createdAt: "asc" },

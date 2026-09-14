@@ -20,7 +20,41 @@ export async function PATCH(
       return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
     }
 
-    const { text, icon, bgColor, textColor } = body || {};
+    const { text, icon, bgColor, textColor, addProductId, removeProductId } = body || {};
+
+    // Vincular produto ao selo
+    if (addProductId) {
+      await prisma.product.update({
+        where: { id: addProductId },
+        data: { cardBadgeId: id },
+      });
+      const updated = await prisma.cardBadge.findUnique({
+        where: { id },
+        include: {
+          _count: { select: { products: true } },
+          products: { select: { id: true, name: true, imageUrl: true }, orderBy: { name: "asc" } },
+        },
+      });
+      return NextResponse.json(updated);
+    }
+
+    // Desvincular produto do selo
+    if (removeProductId) {
+      await prisma.product.update({
+        where: { id: removeProductId },
+        data: { cardBadgeId: null },
+      });
+      const updated = await prisma.cardBadge.findUnique({
+        where: { id },
+        include: {
+          _count: { select: { products: true } },
+          products: { select: { id: true, name: true, imageUrl: true }, orderBy: { name: "asc" } },
+        },
+      });
+      return NextResponse.json(updated);
+    }
+
+    // Atualizar campos do selo
     const dataToUpdate: any = {};
     if (text !== undefined) dataToUpdate.text = text.trim();
     if (icon !== undefined) dataToUpdate.icon = icon ? icon.trim() : null;
@@ -30,6 +64,10 @@ export async function PATCH(
     const updated = await prisma.cardBadge.update({
       where: { id },
       data: dataToUpdate,
+      include: {
+        _count: { select: { products: true } },
+        products: { select: { id: true, name: true, imageUrl: true }, orderBy: { name: "asc" } },
+      },
     });
 
     return NextResponse.json(updated);
