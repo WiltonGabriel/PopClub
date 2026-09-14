@@ -452,7 +452,7 @@ export default function CarrinhoPage() {
                           </div>
                         )}
 
-                        {/* Observações da Cozinha */}
+                        {/* Observações do Pedido */}
                         {item.notes && (
                           <p className="text-[11px] italic text-muted-foreground mt-1 bg-muted/60 px-2 py-0.5 rounded">
                             &ldquo;{item.notes}&rdquo;
@@ -783,47 +783,53 @@ export default function CarrinhoPage() {
               </div>
 
               {/* Seleção do Método */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setPaymentType("dinheiro")}
-                  className={`p-4 border-2 flex flex-col items-center justify-center gap-2 text-center transition-all ${
-                    paymentType === "dinheiro"
-                      ? "border-primary bg-primary/10 shadow-[4px_4px_0px_0px_rgba(147,6,207,0.3)]"
-                      : "border-border hover:bg-muted"
-                  }`}
-                >
-                  <Banknote className="w-6 h-6 text-primary" />
-                  <span className="font-heading font-bold uppercase text-xs">Dinheiro</span>
-                  <span className="text-[10px] text-muted-foreground font-mono">Pague na entrega</span>
-                </button>
-
+              <div className="flex flex-col gap-2.5 w-full pt-2">
                 <button
                   type="button"
                   onClick={() => setPaymentType("cartao_maquininha")}
-                  className={`p-4 border-2 flex flex-col items-center justify-center gap-2 text-center transition-all ${
+                  className={`p-4 border-2 flex items-center gap-3 text-left transition-all w-full ${
                     paymentType === "cartao_maquininha"
                       ? "border-primary bg-primary/10 shadow-[4px_4px_0px_0px_rgba(147,6,207,0.3)]"
                       : "border-border hover:bg-muted"
                   }`}
                 >
-                  <CreditCard className="w-6 h-6 text-secondary" />
-                  <span className="font-heading font-bold uppercase text-xs">Cartão (Maquininha)</span>
-                  <span className="text-[10px] text-muted-foreground font-mono">Débito ou Crédito</span>
+                  <CreditCard className="w-6 h-6 text-secondary shrink-0" />
+                  <div>
+                    <span className="font-heading font-bold uppercase text-xs block">Cartão (Maquininha)</span>
+                    <span className="text-[10px] text-muted-foreground font-mono">Débito ou Crédito</span>
+                  </div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setPaymentType("pix_entrega")}
-                  className={`p-4 border-2 flex flex-col items-center justify-center gap-2 text-center transition-all ${
+                  className={`p-4 border-2 flex items-center gap-3 text-left transition-all w-full ${
                     paymentType === "pix_entrega"
                       ? "border-primary bg-primary/10 shadow-[4px_4px_0px_0px_rgba(147,6,207,0.3)]"
                       : "border-border hover:bg-muted"
                   }`}
                 >
-                  <QrCode className="w-6 h-6 text-success" />
-                  <span className="font-heading font-bold uppercase text-xs">Pix na Entrega</span>
-                  <span className="text-[10px] text-muted-foreground font-mono">QR Code com entregador</span>
+                  <QrCode className="w-6 h-6 text-success shrink-0" />
+                  <div>
+                    <span className="font-heading font-bold uppercase text-xs block">Pix na Entrega</span>
+                    <span className="text-[10px] text-muted-foreground font-mono">QR Code com entregador</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentType("dinheiro")}
+                  className={`p-4 border-2 flex items-center gap-3 text-left transition-all w-full ${
+                    paymentType === "dinheiro"
+                      ? "border-primary bg-primary/10 shadow-[4px_4px_0px_0px_rgba(147,6,207,0.3)]"
+                      : "border-border hover:bg-muted"
+                  }`}
+                >
+                  <Banknote className="w-6 h-6 text-primary shrink-0" />
+                  <div>
+                    <span className="font-heading font-bold uppercase text-xs block">Dinheiro</span>
+                    <span className="text-[10px] text-muted-foreground font-mono">Pague na entrega</span>
+                  </div>
                 </button>
               </div>
 

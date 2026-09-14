@@ -57,7 +57,7 @@ export function Footer() {
               </span>
             </div>
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-              O açaí mais cremoso e batido na hora, marmitas fartas, sorvetes artesanais e a
+              O açaí mais cremoso e batido na hora, marmitas fartas, sorvetes e a
               verdadeira explosão de recheios que você ama.
             </p>
             <div className="flex items-center gap-2 pt-1 text-xs text-gray-600 dark:text-gray-300 font-medium">

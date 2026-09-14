@@ -164,7 +164,7 @@ export function getProductCustomization(product: {
   // 3. PADRÃO AÇAÍS (Copos Tradicionais, Hits, Marmitas, Explosão de Recheio)
   return {
     preparationNotice:
-      "⚠️ Aviso da Cozinha: Para manter a consistência e cremosidade ideais durante o transporte, caldas quentes e cremes densos (Nutella/Ninho trufado) são concentrados no topo e em camadas intermediárias estratégicas.",
+      "⚠️ Aviso de Preparo: Para manter a consistência e cremosidade ideais durante o transporte, caldas quentes e cremes densos (Nutella/Ninho trufado) são concentrados no topo e em camadas intermediárias estratégicas.",
     originalPrice,
     promotionalTag: isPromo ? "Destaque da Vitrine" : undefined,
     groups: [

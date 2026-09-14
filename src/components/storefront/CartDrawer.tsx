@@ -167,7 +167,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                       </div>
                     )}
 
-                    {/* Observações da Cozinha */}
+                    {/* Observações do Pedido */}
                     {item.notes && (
                       <p className="text-[11px] italic text-muted-foreground mt-1 bg-muted/60 dark:bg-white/[0.04] px-2 py-0.5 rounded line-clamp-2">
                         &ldquo;{item.notes}&rdquo;

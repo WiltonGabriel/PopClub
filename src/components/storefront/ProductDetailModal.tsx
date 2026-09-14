@@ -492,14 +492,14 @@ export function ProductDetailModal({
               })}
             </div>
 
-            {/* Campo de Observações para a Cozinha */}
+            {/* Campo de Observações do Pedido */}
             <div className="border border-gray-100 dark:border-[#512B54]/30 rounded-2xl p-3.5 sm:p-4 bg-gray-50/50 dark:bg-white/[0.02]">
               <div className="flex items-center justify-between mb-2">
                 <label
                   htmlFor="kitchen-notes"
                   className="font-heading font-bold text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9]"
                 >
-                  Algum comentário ou instrução?
+                  Observações do Pedido
                 </label>
                 <span className="text-[11px] font-mono text-muted-foreground">
                   {notes.length}/140
