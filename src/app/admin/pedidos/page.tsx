@@ -27,6 +27,13 @@ import {
   BarChart3,
   Bell,
   BellOff,
+  Power,
+  Play,
+  History,
+  Printer,
+  X,
+  Coins,
+  CreditCard,
 } from "lucide-react";
 import { orderService, Order, OrderStatus } from "../../../services/orderService";
 import { authService } from "../../../services/authService";
@@ -43,6 +50,9 @@ import { OrderCancelDialog } from "../../../components/admin/OrderCancelDialog";
 import { OrderDetailDrawer } from "../../../components/admin/OrderDetailDrawer";
 import { StockControlSection } from "../../../components/admin/StockControlSection";
 import { useToast } from "../../../components/ui/ToastNotification";
+import { shiftService, ShiftStatusResponse } from "../../../services/shiftService";
+import { storeSettingsService } from "../../../services/storeSettingsService";
+import { printThermalReceipt } from "@/lib/thermalPrinter";
 
 export default function AdminPedidosPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -57,6 +67,14 @@ export default function AdminPedidosPage() {
   const [isSoundMuted, setIsSoundMuted] = useState<boolean>(false);
   const isSoundMutedRef = useRef(isSoundMuted);
   const [notifPermission, setNotifPermission] = useState<string>("default");
+
+  // Controle Operacional de Turno / Sessão da Esteira ("Abrir e Fechar Loja")
+  const [shiftData, setShiftData] = useState<ShiftStatusResponse | null>(null);
+  const [isOpenStoreModalOpen, setIsOpenStoreModalOpen] = useState(false);
+  const [isCloseShiftModalOpen, setIsCloseShiftModalOpen] = useState(false);
+  const [isAdjustDeliveryModalOpen, setIsAdjustDeliveryModalOpen] = useState(false);
+  const [deliveryTimeInput, setDeliveryTimeInput] = useState("30-50 min");
+  const [shiftActionLoading, setShiftActionLoading] = useState(false);
 
   const router = useRouter();
   const { showToast } = useToast();
@@ -123,13 +141,22 @@ export default function AdminPedidosPage() {
     }
   };
 
-  // Busca lista atualizada de pedidos
+  // Busca lista atualizada de pedidos (exclusivamente pedidos NÃO arquivados da esteira ativa)
   const fetchOrders = useCallback(
     async (isManual = false) => {
       if (isManual) setIsRefreshing(true);
       try {
-        const data = await orderService.getAllOrders();
+        const [data, shiftsRes] = await Promise.all([
+          orderService.getAllOrders(false),
+          shiftService.getShiftData().catch(() => null),
+        ]);
         setOrders(data);
+        if (shiftsRes) {
+          setShiftData(shiftsRes);
+          if (shiftsRes.estimatedDeliveryTime) {
+            setDeliveryTimeInput(shiftsRes.estimatedDeliveryTime);
+          }
+        }
         previousCountRef.current = data.length;
         if (isManual) {
           showToast({
@@ -155,6 +182,121 @@ export default function AdminPedidosPage() {
     [showToast]
   );
 
+  // Abertura de Turno / Iniciar Loja
+  const handleOpenStore = async () => {
+    setShiftActionLoading(true);
+    try {
+      await shiftService.openShift(deliveryTimeInput);
+      setIsOpenStoreModalOpen(false);
+      setIsAdjustDeliveryModalOpen(false);
+      await fetchOrders(false);
+      showToast({
+        title: "Loja Aberta com Sucesso! 🟢",
+        message: `Esteira iniciada. Estimativa de entrega: ${deliveryTimeInput}.`,
+        type: "success",
+      });
+    } catch (err: any) {
+      showToast({
+        title: "Erro ao abrir loja",
+        message: err.message || "Não foi possível iniciar o turno.",
+        type: "error",
+      });
+    } finally {
+      setShiftActionLoading(false);
+    }
+  };
+
+  // Encerramento de Turno / Fechar Loja
+  const handleCloseShift = async (force = false) => {
+    setShiftActionLoading(true);
+    try {
+      await shiftService.closeShift(force);
+      setIsCloseShiftModalOpen(false);
+      await fetchOrders(false);
+      showToast({
+        title: "Turno Encerrado! 🔴",
+        message: "A esteira foi limpa e os pedidos foram arquivados para o próximo turno.",
+        type: "success",
+      });
+    } catch (err: any) {
+      if (err.pendingCount) {
+        showToast({
+          title: "Pedidos Pendentes",
+          message: `Existem ${err.pendingCount} pedido(s) em aberto na esteira. Conclua-os ou cancele-os antes de encerrar.`,
+          type: "warning",
+          duration: 9000,
+        });
+      } else {
+        showToast({
+          title: "Erro ao encerrar turno",
+          message: err.message || "Não foi possível fechar o turno.",
+          type: "error",
+        });
+      }
+    } finally {
+      setShiftActionLoading(false);
+    }
+  };
+
+  // Ajuste rápido de tempo de entrega
+  const handleUpdateEstimatedDelivery = async () => {
+    try {
+      await storeSettingsService.updateSettings({ estimatedDeliveryTime: deliveryTimeInput });
+      if (shiftData) {
+        setShiftData({ ...shiftData, estimatedDeliveryTime: deliveryTimeInput });
+      }
+      setIsAdjustDeliveryModalOpen(false);
+      showToast({
+        title: "Previsão de Entrega Atualizada",
+        message: `Novo tempo estimado: ${deliveryTimeInput}.`,
+        type: "success",
+      });
+    } catch (err: any) {
+      showToast({
+        title: "Erro ao atualizar",
+        message: err.message || "Não foi possível salvar o tempo estimado.",
+        type: "error",
+      });
+    }
+  };
+
+  // Pedidos e Totais para Conferência de Caixa do Turno
+  const pendingOrdersInBoard = useMemo(() => {
+    return orders.filter((o) =>
+      ["pending", "accepted", "preparing", "ready", "delivering"].includes(o.status)
+    );
+  }, [orders]);
+
+  const completedOrdersInBoard = useMemo(() => {
+    return orders.filter((o) => o.status === "completed");
+  }, [orders]);
+
+  const cancelledOrdersInBoard = useMemo(() => {
+    return orders.filter((o) => o.status === "cancelled");
+  }, [orders]);
+
+  const shiftCashTotal = useMemo(() => {
+    return completedOrdersInBoard
+      .filter((o) => o.payment_method_type === "dinheiro")
+      .reduce((acc, o) => acc + (o.total_amount || 0), 0);
+  }, [completedOrdersInBoard]);
+
+  const shiftPixTotal = useMemo(() => {
+    return completedOrdersInBoard
+      .filter((o) => o.payment_method_type === "pix_entrega" || !o.payment_method_type)
+      .reduce((acc, o) => acc + (o.total_amount || 0), 0);
+  }, [completedOrdersInBoard]);
+
+  const shiftCardTotal = useMemo(() => {
+    return completedOrdersInBoard
+      .filter((o) => o.payment_method_type === "cartao_maquininha")
+      .reduce((acc, o) => acc + (o.total_amount || 0), 0);
+  }, [completedOrdersInBoard]);
+
+  const shiftRevenueTotal = useMemo(() => {
+    return completedOrdersInBoard.reduce((acc, o) => acc + (o.total_amount || 0), 0);
+  }, [completedOrdersInBoard]);
+
   // Carga inicial e sincronização contínua (polling inteligente + eventos locais)
   useEffect(() => {
     fetchOrders();
@@ -162,7 +304,13 @@ export default function AdminPedidosPage() {
     // Polling inteligente a cada 10 segundos
     const pollInterval = setInterval(async () => {
       try {
-        const data = await orderService.getAllOrders();
+        const [data, shiftsRes] = await Promise.all([
+          orderService.getAllOrders(false),
+          shiftService.getShiftData().catch(() => null),
+        ]);
+        if (shiftsRes) {
+          setShiftData(shiftsRes);
+        }
         setOrders((prev) => {
           if (previousCountRef.current > 0 && data.length > previousCountRef.current) {
             // Identifica o novo pedido
@@ -946,6 +1094,15 @@ export default function AdminPedidosPage() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Link para Histórico de Pedidos */}
+          <Link
+            href="/admin/historico"
+            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+          >
+            <History className="w-4 h-4 text-[#9306CF]" />
+            <span className="hidden sm:inline">Histórico</span>
+          </Link>
+
           {/* Link para Painel Operacional (Métricas & Gráficos) */}
           <Link
             href="/admin"
@@ -977,16 +1134,23 @@ export default function AdminPedidosPage() {
 
       <main className="flex-1 p-4 sm:p-6 max-w-[1600px] mx-auto w-full space-y-6">
         {/* Barra de Ações do Board */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h1 className="font-heading text-xl sm:text-2xl font-bold uppercase tracking-wide flex items-center gap-2 text-[#4C264F] dark:text-[#F9F5F9]">
                 <LayoutDashboard className="w-6 h-6 text-[#9306CF]" /> Central Operacional da Cozinha e Despacho
               </h1>
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                Esteira Live
-              </span>
+              {shiftData?.isOpen ? (
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                  Esteira Live
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-900/40">
+                  <span className="w-2 h-2 rounded-full bg-red-500" />
+                  Esteira Pausada
+                </span>
+              )}
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Controle de montagem de copos, shakes e despacho ágil em 5 etapas integradas.
@@ -994,6 +1158,40 @@ export default function AdminPedidosPage() {
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Interruptor Mestre de Turno / Sessão da Loja */}
+            {shiftData?.isOpen ? (
+              <div className="flex items-center gap-2">
+                {/* Previsão de Entrega */}
+                <button
+                  onClick={() => setIsAdjustDeliveryModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
+                  title="Ajustar tempo estimado de entrega"
+                >
+                  <Clock className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                  <span>{shiftData.estimatedDeliveryTime || "30-50 min"}</span>
+                  <span className="text-[10px] text-purple-500 underline">Ajustar</span>
+                </button>
+
+                {/* Botão Encerrar Turno */}
+                <Button
+                  onClick={() => setIsCloseShiftModalOpen(true)}
+                  variant="destructive"
+                  className="rounded-xl h-10 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 px-3.5 shadow-sm bg-red-600 hover:bg-red-700 text-white cursor-pointer"
+                >
+                  <Power className="w-3.5 h-3.5" />
+                  <span>Encerrar Turno</span>
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={() => setIsOpenStoreModalOpen(true)}
+                className="rounded-xl h-10 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 px-4 shadow-md bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>Iniciar Esteira / Abrir Loja</span>
+              </Button>
+            )}
+
             {/* Botão de Alternância de Som Operacional (🔔 Som Ativado / 🔕 Mudo) */}
             <Button
               variant="outline"
@@ -1008,12 +1206,12 @@ export default function AdminPedidosPage() {
               {isSoundMuted ? (
                 <>
                   <BellOff className="w-3.5 h-3.5 text-red-500" />
-                  <span>🔕 Mudo</span>
+                  <span className="hidden md:inline">🔕 Mudo</span>
                 </>
               ) : (
                 <>
                   <Bell className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
-                  <span>🔔 Som Ativado</span>
+                  <span className="hidden md:inline">🔔 Som Ativado</span>
                 </>
               )}
             </Button>
@@ -1027,7 +1225,7 @@ export default function AdminPedidosPage() {
                 title="Habilitar avisos pop-up do navegador para novos pedidos"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                <span>Ativar Notificações</span>
+                <span className="hidden md:inline">Ativar Notificações</span>
               </Button>
             )}
 
@@ -1040,12 +1238,12 @@ export default function AdminPedidosPage() {
               {isCompact ? (
                 <>
                   <Maximize2 className="w-3.5 h-3.5 text-[#9306CF]" />
-                  <span>⊞ Expandir Detalhes</span>
+                  <span className="hidden md:inline">Expandir</span>
                 </>
               ) : (
                 <>
                   <Minimize2 className="w-3.5 h-3.5 text-[#9306CF]" />
-                  <span>⊟ Modo Compacto</span>
+                  <span className="hidden md:inline">Compacto</span>
                 </>
               )}
             </Button>
@@ -1057,10 +1255,37 @@ export default function AdminPedidosPage() {
               className="rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-2 h-10 px-4 shadow-md shadow-[#9306CF]/20 transition-all cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
-              <span>{isRefreshing ? "Sincronizando..." : "Atualizar Board"}</span>
+              <span className="hidden sm:inline">{isRefreshing ? "Sincronizando..." : "Atualizar"}</span>
             </Button>
           </div>
         </div>
+
+        {/* Banner de Loja Fechada / Turno Inativo */}
+        {shiftData && !shiftData.isOpen && (
+          <div className="bg-gradient-to-r from-red-500/10 via-amber-500/10 to-purple-500/10 border border-red-200 dark:border-red-900/50 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-950/50 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0">
+                <Power className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-heading font-bold text-sm text-red-900 dark:text-red-300">
+                  A Esteira Operacional está Fechada
+                </h4>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  A vitrine pública exibe aviso de fechamento e o checkout está bloqueando novos pedidos.
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => setIsOpenStoreModalOpen(true)}
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-heading font-bold text-xs uppercase tracking-wider rounded-xl shrink-0 cursor-pointer"
+            >
+              <Play className="w-3.5 h-3.5 mr-1 fill-current" />
+              Iniciar Esteira / Abrir Loja
+            </Button>
+          </div>
+        )}
 
         {/* Métricas Rápidas Operacionais */}
         <section className="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -1157,6 +1382,289 @@ export default function AdminPedidosPage() {
         order={orderToCancel}
         onConfirmCancel={handleConfirmCancel}
       />
+
+      {/* Modal 1: Iniciar Esteira / Abrir Loja */}
+      {isOpenStoreModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#1F0B22] border border-gray-200 dark:border-[#512B54]/60 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <Play className="w-5 h-5 fill-current" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-black text-lg text-[#4C264F] dark:text-[#F9F5F9]">
+                    Iniciar Esteira / Abrir Loja
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Ativa a vitrine pública e a recepção de novos pedidos
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsOpenStoreModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-sm">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-2">
+                  Tempo Estimado de Entrega p/ Clientes
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+                  {["30-45 min", "40-50 min", "50-70 min", "60-90 min"].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setDeliveryTimeInput(preset)}
+                      className={`text-xs py-2 px-3 rounded-xl font-bold border transition-all ${
+                        deliveryTimeInput === preset
+                          ? "bg-[#9306CF] text-white border-[#9306CF] shadow-xs"
+                          : "bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-[#512B54]/40 text-gray-700 dark:text-gray-300 hover:bg-gray-100"
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  value={deliveryTimeInput}
+                  onChange={(e) => setDeliveryTimeInput(e.target.value)}
+                  placeholder="Ex: 35-50 min"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#512B54]/50 bg-gray-50 dark:bg-white/5 text-foreground text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-[#9306CF]"
+                />
+              </div>
+
+              <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/40 rounded-2xl p-4 space-y-1 text-xs text-emerald-800 dark:text-emerald-300">
+                <p className="font-bold flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4" /> Pronto para receber pedidos:
+                </p>
+                <p className="leading-relaxed">
+                  Ao abrir a loja, o aviso de fechamento é removido da vitrine, os clientes podem finalizar seus carrinhos normalmente e a esteira da cozinha emitirá alertas sonoros e notificações.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+              <Button
+                variant="outline"
+                onClick={() => setIsOpenStoreModalOpen(false)}
+                className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleOpenStore}
+                disabled={shiftActionLoading}
+                className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider px-5 shadow-md flex items-center gap-2"
+              >
+                {shiftActionLoading ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4 fill-current" />
+                )}
+                <span>Abrir Loja Agora</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 2: Encerrar Turno / Fechar Loja (Com Conferência de Caixa e Validação de Pendentes) */}
+      {isCloseShiftModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#1F0B22] border border-gray-200 dark:border-[#512B54]/60 rounded-3xl p-6 sm:p-7 max-w-xl w-full shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-red-100 dark:bg-red-950/60 flex items-center justify-center text-red-600 dark:text-red-400">
+                  <Power className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-black text-lg text-[#4C264F] dark:text-[#F9F5F9]">
+                    Encerrar Turno / Fechar Loja
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Conferência de caixa e arquivamento da esteira ativa
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsCloseShiftModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Alerta de Segurança se houver pedidos em aberto */}
+              {pendingOrdersInBoard.length > 0 && (
+                <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-2xl p-4 space-y-2 text-xs text-amber-900 dark:text-amber-300">
+                  <div className="flex items-center gap-2 font-bold text-sm">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Atenção: Há {pendingOrdersInBoard.length} pedido(s) em aberto na esteira!</span>
+                  </div>
+                  <p className="leading-relaxed">
+                    Para uma conferência de caixa precisa, finalize ou cancele os pedidos em andamento antes de encerrar o turno:
+                  </p>
+                  <div className="space-y-1 max-h-28 overflow-y-auto pl-2 border-l-2 border-amber-400">
+                    {pendingOrdersInBoard.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between text-[11px] font-mono">
+                        <span>#{p.id.substring(0, 6)} - {p.user?.fullName || p.user?.username || "Cliente"}</span>
+                        <span className="font-bold uppercase text-amber-700 dark:text-amber-400">({p.status})</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Resumo do Turno / Fechamento de Caixa */}
+              <div className="bg-gray-50/80 dark:bg-white/5 border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 space-y-3">
+                <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
+                  <Coins className="w-4 h-4 text-[#9306CF]" />
+                  Resumo Financeiro da Sessão (Concluídos)
+                </h4>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-white dark:bg-[#1A0B1C] p-3 rounded-xl border border-gray-100 dark:border-[#512B54]/30">
+                    <span className="text-[10px] uppercase font-bold text-gray-500 block">Total Faturado</span>
+                    <span className="font-heading font-black text-base text-emerald-600 dark:text-emerald-400">
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(shiftRevenueTotal)}
+                    </span>
+                  </div>
+
+                  <div className="bg-white dark:bg-[#1A0B1C] p-3 rounded-xl border border-gray-100 dark:border-[#512B54]/30">
+                    <span className="text-[10px] uppercase font-bold text-gray-500 block">💵 Dinheiro</span>
+                    <span className="font-heading font-black text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(shiftCashTotal)}
+                    </span>
+                  </div>
+
+                  <div className="bg-white dark:bg-[#1A0B1C] p-3 rounded-xl border border-gray-100 dark:border-[#512B54]/30">
+                    <span className="text-[10px] uppercase font-bold text-gray-500 block">📱 Pix</span>
+                    <span className="font-heading font-black text-base text-purple-600 dark:text-purple-400">
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(shiftPixTotal)}
+                    </span>
+                  </div>
+
+                  <div className="bg-white dark:bg-[#1A0B1C] p-3 rounded-xl border border-gray-100 dark:border-[#512B54]/30">
+                    <span className="text-[10px] uppercase font-bold text-gray-500 block">💳 Cartão Maq.</span>
+                    <span className="font-heading font-black text-base text-blue-600 dark:text-blue-400">
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(shiftCardTotal)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300 pt-1 font-medium">
+                  <span>✓ Entregues: <strong>{completedOrdersInBoard.length}</strong></span>
+                  <span>✕ Cancelados: <strong>{cancelledOrdersInBoard.length}</strong></span>
+                  <span>Total Operado: <strong>{orders.length} pedidos</strong></span>
+                </div>
+              </div>
+
+              {/* Informação sobre o Arquivamento dos Pedidos */}
+              <div className="text-xs text-gray-500 dark:text-gray-400 bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/30 rounded-2xl p-3.5 leading-relaxed">
+                <p>
+                  📦 <strong>Arquivamento da Esteira:</strong> Ao confirmar o encerramento, todos os pedidos concluídos e cancelados serão arquivados da esteira ativa para que o próximo turno comece com as colunas 100% limpas. Todos os dados permanecem preservados para consulta no <strong>Histórico de Pedidos</strong>.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 dark:border-[#512B54]/30">
+              <Button
+                variant="outline"
+                onClick={() => setIsCloseShiftModalOpen(false)}
+                className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider"
+              >
+                Voltar à Esteira
+              </Button>
+              <Button
+                onClick={() => handleCloseShift(pendingOrdersInBoard.length > 0)}
+                disabled={shiftActionLoading}
+                className="rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wider px-5 shadow-md flex items-center gap-2"
+              >
+                {shiftActionLoading ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Power className="w-4 h-4" />
+                )}
+                <span>Encerrar e Fechar Loja</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 3: Ajuste Rápido de Previsão de Entrega */}
+      {isAdjustDeliveryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#1F0B22] border border-gray-200 dark:border-[#512B54]/60 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+              <div className="flex items-center gap-2.5">
+                <Clock className="w-5 h-5 text-[#9306CF]" />
+                <h3 className="font-heading font-black text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                  Ajustar Previsão de Entrega
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsAdjustDeliveryModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                Selecione ou digite o tempo estimado:
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {["25-35 min", "35-50 min", "45-60 min", "60-80 min"].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setDeliveryTimeInput(preset)}
+                    className={`text-xs py-2 px-3 rounded-xl font-bold border transition-all ${
+                      deliveryTimeInput === preset
+                        ? "bg-[#9306CF] text-white border-[#9306CF] shadow-xs"
+                        : "bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-[#512B54]/40 text-gray-700 dark:text-gray-300 hover:bg-gray-100"
+                    }`}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="text"
+                value={deliveryTimeInput}
+                onChange={(e) => setDeliveryTimeInput(e.target.value)}
+                placeholder="Ex: 30-50 min"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#512B54]/50 bg-gray-50 dark:bg-white/5 text-foreground text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-[#9306CF]"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+              <Button
+                variant="outline"
+                onClick={() => setIsAdjustDeliveryModalOpen(false)}
+                className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleUpdateEstimatedDelivery}
+                className="rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white text-xs font-bold uppercase tracking-wider px-5 shadow-md"
+              >
+                Salvar Previsão
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

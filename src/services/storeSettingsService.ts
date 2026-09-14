@@ -4,6 +4,11 @@ export interface StoreSettings {
   freeDeliveryThreshold: number | null;
   whatsappNumber?: string | null;
   whatsappMessage?: string | null;
+  isOpen: boolean;
+  currentShiftId?: string | null;
+  estimatedDeliveryTime: string;
+  openedAt?: string | null;
+  closedAt?: string | null;
   updatedAt?: string;
 }
 
@@ -26,6 +31,9 @@ export const storeSettingsService = {
         freeDeliveryThreshold: 60.0,
         whatsappNumber: "5565999999999",
         whatsappMessage: "Olá! Gostaria de tirar uma dúvida sobre os pedidos da Pop Shake Sorveteria.",
+        isOpen: true,
+        currentShiftId: null,
+        estimatedDeliveryTime: "30-50 min",
       };
     }
   },
@@ -35,6 +43,11 @@ export const storeSettingsService = {
     freeDeliveryThreshold?: number | null;
     whatsappNumber?: string | null;
     whatsappMessage?: string | null;
+    isOpen?: boolean;
+    currentShiftId?: string | null;
+    estimatedDeliveryTime?: string;
+    openedAt?: string | null;
+    closedAt?: string | null;
   }): Promise<StoreSettings> {
     const res = await fetch("/api/settings", {
       method: "PUT",

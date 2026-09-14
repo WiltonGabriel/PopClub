@@ -323,6 +323,11 @@ export default function CarrinhoPage() {
   const handleFinishOrder = async () => {
     setCheckoutError("");
 
+    if (storeSettings && !storeSettings.isOpen) {
+      setCheckoutError("A loja está fechada no momento e não está aceitando novos pedidos. Nosso atendimento abrirá em breve!");
+      return;
+    }
+
     if (items.length === 0) {
       setCheckoutError("Adicione itens ao carrinho antes de continuar.");
       return;
@@ -1048,33 +1053,47 @@ export default function CarrinhoPage() {
       {/* Barra de Ação Fixa Inferior */}
       {items.length > 0 && (
         <div className="fixed bottom-0 left-0 w-full bg-card border-t-2 border-border p-4 z-40 shadow-2xl">
-          <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
-            <div>
-              <span className="text-[10px] font-mono uppercase text-muted-foreground block">
-                Total (Pagamento na Entrega)
-              </span>
-              <span className="font-heading text-2xl font-black text-primary">
-                R$ {finalTotal.toFixed(2).replace(".", ",")}
-              </span>
-            </div>
+          <div className="max-w-4xl mx-auto space-y-2">
+            {storeSettings && !storeSettings.isOpen && (
+              <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/40 rounded-xl p-3 text-xs text-red-700 dark:text-red-300 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
+                <span>Nossa esteira de pedidos está fechada neste momento. Você pode montar seu carrinho e finalizar assim que o atendimento abrir!</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <span className="text-[10px] font-mono uppercase text-muted-foreground block">
+                  Total (Pagamento na Entrega)
+                </span>
+                <span className="font-heading text-2xl font-black text-primary">
+                  R$ {finalTotal.toFixed(2).replace(".", ",")}
+                </span>
+              </div>
 
-            <Button
-              onClick={handleFinishOrder}
-              disabled={submitting}
-              className="h-12 bg-primary hover:bg-primary/90 text-primary-foreground rounded-none font-heading text-base uppercase tracking-wider font-bold px-8 shadow-lg flex items-center gap-2"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  Processando Pedido...
-                </>
-              ) : (
-                <>
-                  Confirmar e Fazer Pedido
-                  <ArrowRight className="w-5 h-5" />
-                </>
-              )}
-            </Button>
+              <Button
+                onClick={handleFinishOrder}
+                disabled={submitting || (storeSettings ? !storeSettings.isOpen : false)}
+                className={`h-12 rounded-none font-heading text-base uppercase tracking-wider font-bold px-8 shadow-lg flex items-center gap-2 ${
+                  storeSettings && !storeSettings.isOpen
+                    ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed text-white dark:bg-gray-700"
+                    : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                }`}
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    Processando Pedido...
+                  </>
+                ) : storeSettings && !storeSettings.isOpen ? (
+                  <>Loja Fechada no Momento</>
+                ) : (
+                  <>
+                    Confirmar e Fazer Pedido
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       )}

@@ -23,10 +23,12 @@ import {
   Zap,
   Pencil,
   Truck,
+  History,
 } from "lucide-react";
 import { orderService, Order } from "../../services/orderService";
 import { promotionService, Promotion } from "../../services/promotionService";
 import { bannerService, HighlightBannerData } from "../../services/bannerService";
+import { storeSettingsService, StoreSettings } from "../../services/storeSettingsService";
 import { authService } from "../../services/authService";
 import { playNewOrderChime } from "../../lib/sound";
 import { subscribeToOrderEvents } from "../../lib/orderEvents";
@@ -56,6 +58,7 @@ export default function AdminDashboard() {
   const [comboDialogOpen, setComboDialogOpen] = useState(false);
   const [comboToEdit, setComboToEdit] = useState<Promotion | null>(null);
   const [editBannerModalOpen, setEditBannerModalOpen] = useState(false);
+  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
   const previousOrderCountRef = useRef(0);
 
   const router = useRouter();
@@ -97,7 +100,12 @@ export default function AdminDashboard() {
 
   const loadAll = useCallback(async () => {
     setFetching(true);
-    await Promise.all([fetchOrders(), fetchPromos(), fetchBanner()]);
+    await Promise.all([
+      fetchOrders(),
+      fetchPromos(),
+      fetchBanner(),
+      storeSettingsService.getSettings().then(setStoreSettings).catch(() => null),
+    ]);
     setFetching(false);
   }, [fetchOrders, fetchPromos, fetchBanner]);
 
@@ -180,6 +188,14 @@ export default function AdminDashboard() {
 
         <div className="flex items-center gap-2.5">
           <Link
+            href="/admin/historico"
+            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+          >
+            <History className="w-4 h-4 text-[#9306CF]" />
+            <span className="hidden sm:inline">Histórico</span>
+          </Link>
+
+          <Link
             href="/admin/pedidos"
             className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 rounded-xl px-3.5 py-2 shadow-sm shadow-[#9306CF]/20 transition-all"
           >
@@ -222,12 +238,22 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <Link
-            href="/admin/pedidos"
-            className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider font-bold h-11 px-5 rounded-xl shadow-md shadow-[#9306CF]/20 transition-all shrink-0"
-          >
-            <span>Gerenciar Pedidos ➔</span>
-          </Link>
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            <Link
+              href="/admin/historico"
+              className="inline-flex items-center justify-center gap-2 border border-gray-200 dark:border-[#512B54]/50 bg-white/80 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 font-heading text-xs uppercase tracking-wider font-bold h-11 px-4 rounded-xl shadow-xs transition-all"
+            >
+              <History className="w-4 h-4 text-[#9306CF]" />
+              <span>Histórico de Pedidos</span>
+            </Link>
+
+            <Link
+              href="/admin/pedidos"
+              className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider font-bold h-11 px-5 rounded-xl shadow-md shadow-[#9306CF]/20 transition-all"
+            >
+              <span>Gerenciar Pedidos ➔</span>
+            </Link>
+          </div>
         </div>
 
         {/* Mini Esteira Live (Monitor Compacto no Topo) */}
@@ -235,18 +261,31 @@ export default function AdminDashboard() {
           const activeOrders = orders.filter((o) => !["completed", "cancelled"].includes(o.status));
           return (
             <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 shadow-sm space-y-3.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                  </span>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  {storeSettings?.isOpen ? (
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                  ) : (
+                    <span className="h-2.5 w-2.5 rounded-full bg-red-500"></span>
+                  )}
                   <h3 className="font-heading font-bold text-sm sm:text-base text-[#4C264F] dark:text-[#F9F5F9] uppercase tracking-wide flex items-center gap-2">
                     Mini Esteira Live
                     <span className="text-xs font-normal text-gray-500 dark:text-gray-400 normal-case">
                       ({activeOrders.length} {activeOrders.length === 1 ? "pedido em andamento" : "pedidos em andamento"})
                     </span>
                   </h3>
+                  {storeSettings?.isOpen ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200">
+                      🟢 Loja Aberta ({storeSettings.estimatedDeliveryTime || "30-50 min"})
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 border border-red-200">
+                      🔴 Loja Fechada
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-3">

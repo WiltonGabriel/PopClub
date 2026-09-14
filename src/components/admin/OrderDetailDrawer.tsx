@@ -18,9 +18,11 @@ import {
   ShoppingBag,
   Sparkles,
   Bike,
+  Printer,
 } from "lucide-react";
 import { Order, OrderStatus } from "../../services/orderService";
 import { Button } from "../ui/button";
+import { printThermalReceipt } from "@/lib/thermalPrinter";
 
 interface OrderDetailDrawerProps {
   order: Order | null;
@@ -165,12 +167,25 @@ export function OrderDetailDrawer({
               </p>
             </div>
 
-            <button
-              onClick={onClose}
-              className="p-2 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => printThermalReceipt(order)}
+                className="h-8 px-2.5 rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold gap-1 hover:bg-gray-100 dark:hover:bg-white/5"
+                title="Imprimir comprovante térmico (80mm / 58mm)"
+              >
+                <Printer className="w-3.5 h-3.5 text-[#9306CF]" />
+                <span className="hidden sm:inline">Cupom</span>
+              </Button>
+
+              <button
+                onClick={onClose}
+                className="p-2 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Body com Scroll */}

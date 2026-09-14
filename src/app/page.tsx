@@ -27,6 +27,7 @@ import { EditBannerModal } from "../components/admin/EditBannerModal";
 import { AdminEditModeToggle } from "../components/admin/AdminEditModeToggle";
 import { bannerService, HighlightBannerData } from "../services/bannerService";
 import { useEditMode } from "../contexts/EditModeContext";
+import { storeSettingsService, StoreSettings } from "../services/storeSettingsService";
 
 // UI + Icons
 import { Button } from "../components/ui/button";
@@ -56,6 +57,8 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
+  History,
+  Clock,
 } from "lucide-react";
 
 export type HomeSectionId = "promo_banners" | "highlight_banner" | "products_catalog";
@@ -142,6 +145,7 @@ export default function Storefront() {
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
 
   // Modal de Detalhes e Personalização do Produto (estilo iFood)
   const [selectedProductForModal, setSelectedProductForModal] = useState<Product | null>(null);
@@ -229,11 +233,16 @@ export default function Storefront() {
       setLoading(true);
       setFetchError(null);
 
-      const [catsRes, prodsRes, bannerRes] = await Promise.allSettled([
+      const [catsRes, prodsRes, bannerRes, settingsRes] = await Promise.allSettled([
         categoryService.getCategories(),
         productService.getProducts(),
         bannerService.getHighlightBanner(),
+        storeSettingsService.getSettings(),
       ]);
+
+      if (settingsRes.status === "fulfilled") {
+        setStoreSettings(settingsRes.value);
+      }
 
       let hasData = false;
 
@@ -594,6 +603,15 @@ export default function Storefront() {
                           </Link>
 
                           <Link
+                            href="/admin/historico"
+                            onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors"
+                          >
+                            <History className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                            Histórico de Pedidos
+                          </Link>
+
+                          <Link
                             href="/pedidos"
                             onClick={() => setUserMenuOpen(false)}
                             className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors"
@@ -682,6 +700,16 @@ export default function Storefront() {
           <HeaderAddressButton className="flex w-full justify-between py-1 px-1.5 text-xs border-none bg-transparent shadow-none hover:bg-muted/40" />
         </div>
       </header>
+
+      {/* Banner Informativo de Loja Fechada */}
+      {storeSettings && !storeSettings.isOpen && (
+        <div className="bg-gradient-to-r from-red-600 via-rose-600 to-[#940068] text-white px-4 py-2.5 text-center text-xs sm:text-sm font-semibold shadow-md sticky top-[65px] z-30 flex items-center justify-center gap-2">
+          <Clock className="w-4 h-4 shrink-0 animate-pulse" />
+          <span>
+            Estamos fechados no momento. Nosso atendimento abrirá em breve! Você pode explorar o cardápio e montar seu pedido.
+          </span>
+        </div>
+      )}
 
       {/* Mobile search overlay */}
       {mobileSearchOpen && (

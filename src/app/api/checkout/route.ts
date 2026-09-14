@@ -50,6 +50,26 @@ export async function POST(request: Request) {
 
     const { items, deliveryAddress, paymentMethod, couponCode } = parsed.data;
 
+    // 0. Validação de Loja Aberta (Turno Operacional)
+    let storeSettings = null;
+    try {
+      storeSettings = await prisma.storeSettings.findUnique({
+        where: { id: "store_config" },
+      });
+    } catch (err) {
+      console.warn("Aviso ao buscar storeSettings no checkout:", err);
+    }
+
+    if (storeSettings && storeSettings.isOpen === false) {
+      return NextResponse.json(
+        {
+          error: "A loja está fechada no momento e não está aceitando novos pedidos. Nosso atendimento abrirá em breve!",
+          code: "STORE_CLOSED",
+        },
+        { status: 403 }
+      );
+    }
+
     // Obtém usuário autenticado se houver
     const authUser = await getAuthUser(request);
 
@@ -206,6 +226,8 @@ export async function POST(request: Request) {
       const newOrder = await tx.order.create({
         data: {
           userId: authUser?.id || null,
+          shiftId: storeSettings?.currentShiftId || null,
+          isArchived: false,
           status: "pending",
           subtotal: calculatedSubtotal,
           discountAmount: totalDiscount,

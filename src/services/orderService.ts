@@ -38,6 +38,8 @@ export interface Order {
   payment_method_type?: string;
   payment_change_for?: number | null;
   delivery_address?: DeliveryAddress;
+  shift_id?: string | null;
+  is_archived?: boolean;
   cancellation_reason?: string | null;
   cancelled_at?: string | null;
   created_at: string;
@@ -49,6 +51,16 @@ export interface Order {
     email: string;
     phone?: string | null;
   } | null;
+}
+
+export interface HistoricalOrdersResponse {
+  orders: Order[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  totalRevenue: number;
+  averageTicket: number;
 }
 
 export interface CheckoutPayload {
@@ -91,13 +103,45 @@ export const orderService = {
     return this.getMyOrders();
   },
 
-  async getAllOrders(): Promise<Order[]> {
-    const res = await fetch("/api/orders?all=true", {
+  async getAllOrders(includeArchived = false): Promise<Order[]> {
+    const url = `/api/orders?all=true&includeArchived=${includeArchived ? "true" : "false"}`;
+    const res = await fetch(url, {
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error || "Erro ao listar todos os pedidos.");
+    }
+    return await res.json();
+  },
+
+  async getHistoricalOrders(params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+  }): Promise<HistoricalOrdersResponse> {
+    const query = new URLSearchParams({
+      all: "true",
+      paginated: "true",
+      includeArchived: "true",
+      page: String(params.page || 1),
+      limit: String(params.limit || 15),
+    });
+
+    if (params.status && params.status !== "all") query.set("status", params.status);
+    if (params.startDate) query.set("startDate", params.startDate);
+    if (params.endDate) query.set("endDate", params.endDate);
+    if (params.search) query.set("search", params.search);
+
+    const res = await fetch(`/api/orders?${query.toString()}`, {
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Erro ao buscar histórico de pedidos.");
     }
     return await res.json();
   },
