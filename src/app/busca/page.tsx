@@ -216,7 +216,7 @@ function SearchContent() {
           </div>
 
           {/* Campo de Busca com Autocomplete Integrado */}
-          <div className="flex-1 max-w-xl mx-2">
+          <div className="flex-1 min-w-[180px] max-w-md mx-2 sm:mx-4">
             <SearchAutocomplete
               products={products}
               initialValue={searchTerm}
@@ -230,18 +230,18 @@ function SearchContent() {
             {/* Meus Pedidos */}
             <Link
               href="/pedidos"
-              className="hidden lg:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+              className="hidden lg:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors shrink-0"
             >
-              <ReceiptText className="w-4 h-4 text-[#9306CF]" />
+              <ReceiptText className="w-4 h-4 text-[#9306CF] shrink-0" />
               <span>Meus Pedidos</span>
             </Link>
 
             {/* Carrinho */}
             <button
               onClick={() => setCartDrawerOpen(true)}
-              className="flex items-center gap-1.5 bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading font-bold text-xs uppercase tracking-wider rounded-xl px-3.5 py-2 shadow-sm shadow-[#9306CF]/20 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading font-bold text-xs uppercase tracking-wider rounded-xl px-3.5 py-2 shadow-sm shadow-[#9306CF]/20 transition-all cursor-pointer shrink-0"
             >
-              <ShoppingBag className="w-4 h-4" />
+              <ShoppingBag className="w-4 h-4 shrink-0" />
               <span className="hidden sm:inline">Carrinho</span>
               {totalItems > 0 && (
                 <span className="bg-white text-[#9306CF] text-[11px] font-black rounded-full px-1.5 py-0.2 min-w-[18px] text-center leading-none">

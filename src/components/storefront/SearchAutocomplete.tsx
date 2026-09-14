@@ -201,8 +201,8 @@ export function SearchAutocomplete({
   return (
     <div ref={containerRef} className={`relative w-full ${className}`}>
       {/* Campo de Input com Ícone Único */}
-      <div className="relative w-full flex items-center">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+      <div className="relative w-full min-w-0 flex items-center">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none shrink-0" />
         <input
           ref={inputRef}
           type="text"
@@ -218,7 +218,7 @@ export function SearchAutocomplete({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className={`
-            w-full bg-muted border border-border/50 rounded-full
+            w-full min-w-0 bg-muted border border-border/50 rounded-full
             pl-10 pr-10 py-2.5
             text-sm text-foreground placeholder:text-muted-foreground
             outline-none

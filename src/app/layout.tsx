@@ -14,14 +14,11 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "sw
 const jetBrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Pop Shake Sorveteria - Açaí, Sorvetes e Shakes Artesanais",
-  description: "Peça seu açaí, sorvetes artesanais e marmitas com entrega rápida na Pop Shake Sorveteria.",
+  title: "Pop Shake Sorveteria",
+  description: "Cardápio Digital e Delivery Oficial da Pop Shake Sorveteria",
   icons: {
-    icon: [
-      { url: "/icon.png", type: "image/png" },
-      { url: "/favicon.ico" },
-    ],
-    shortcut: "/favicon.ico",
+    icon: "/icon.png",
+    shortcut: "/icon.png",
     apple: "/icon.png",
   },
 };
@@ -42,6 +39,10 @@ export default function RootLayout({
         Default is strictly Light Mode unless 'dark' is explicitly stored in localStorage.
       */}
       <head>
+        <link rel="icon" type="image/png" sizes="64x64" href="/icon.png" />
+        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+        <link rel="shortcut icon" href="/icon.png" />
+        <link rel="apple-touch-icon" href="/apple-icon.png" />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var s=localStorage.getItem('popshake-theme');if(s==='dark'){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}}catch(e){}})();`,

@@ -224,14 +224,14 @@ export default function Storefront() {
       ───────────────────────────────────────── */}
       <header className="sticky top-0 z-40 w-full glass-header">
         {/* Single contained row — max-w-7xl keeps it from stretching */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
 
           {/* ── LEFT: Logo + Address ── */}
           <div className="flex items-center gap-2 shrink-0">
             {/* Logo */}
             <Link
               href="/"
-              className="flex items-center gap-2 select-none cursor-pointer hover:opacity-85 transition-opacity duration-200"
+              className="flex items-center gap-2 select-none cursor-pointer hover:opacity-85 transition-opacity duration-200 shrink-0"
               aria-label="Pop Shake — Início"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -240,7 +240,7 @@ export default function Storefront() {
                 alt="Logo Pop Shake"
                 className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-contain border border-[#9306CF]/30 shadow-xs shrink-0"
               />
-              <span className="font-heading font-black text-2xl tracking-tight text-foreground flex items-center gap-1.5">
+              <span className="font-heading font-black text-xl sm:text-2xl tracking-tight text-foreground flex items-center gap-1.5 shrink-0">
                 Pop<span className="gradient-text-brand">Shake</span>
                 <span className="text-[11px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20 hidden sm:inline-block">
                   Sorveteria
@@ -248,8 +248,8 @@ export default function Storefront() {
               </span>
             </Link>
 
-            {/* Address selector — desktop only, shrinks with the logo */}
-            <button className="hidden lg:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors border border-border/40 rounded-xl px-3 py-2 hover:bg-muted">
+            {/* Address selector — desktop only */}
+            <button className="hidden xl:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors border border-border/40 rounded-xl px-3 py-2 hover:bg-muted shrink-0">
               <MapPin className="w-4 h-4 text-brand-pop-shake shrink-0" />
               <span className="font-medium max-w-[140px] truncate">Adicionar endereço</span>
               <ChevronDown className="w-3.5 h-3.5 shrink-0" />
@@ -257,27 +257,25 @@ export default function Storefront() {
           </div>
 
           {/* ── CENTER: Search com Autocomplete Instantâneo ── */}
-          <div className="hidden md:flex flex-1 min-w-0 items-center justify-center px-4">
-            <div className="w-full max-w-lg">
-              <SearchAutocomplete
-                products={products}
-                initialValue={search}
-                placeholder="Buscar..."
-              />
-            </div>
+          <div className="flex-1 min-w-[180px] max-w-md mx-2 sm:mx-4">
+            <SearchAutocomplete
+              products={products}
+              initialValue={search}
+              placeholder="Buscar..."
+            />
           </div>
 
           {/* ── RIGHT: Actions — all shrink-0, never wraps ── */}
-          <div className="flex items-center gap-2 shrink-0 ml-auto md:ml-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
 
-            {/* Cart button — desktop → opens drawer */}
+            {/* Cart button — opens drawer */}
             <button
               onClick={() => setCartDrawerOpen(true)}
-              className="hidden md:flex items-center gap-2 bg-brand-folha-acai hover:bg-brand-folha-acai-dk text-white font-semibold text-sm px-4 py-2.5 rounded-full transition-colors shadow-sm shrink-0"
+              className="flex items-center gap-1.5 sm:gap-2 bg-brand-folha-acai hover:bg-brand-folha-acai-dk text-white font-semibold text-xs sm:text-sm px-3 sm:px-4 py-2 sm:py-2.5 rounded-full transition-colors shadow-sm shrink-0 cursor-pointer"
               aria-label={`Carrinho com ${totalItems} itens`}
             >
-              <ShoppingBag className="w-4 h-4" />
-              <span className="hidden lg:inline">Carrinho</span>
+              <ShoppingBag className="w-4 h-4 shrink-0" />
+              <span className="hidden sm:inline">Carrinho</span>
               {totalItems > 0 && (
                 <span className="bg-white text-brand-folha-acai text-xs font-black rounded-full px-1.5 py-0.5 min-w-[20px] text-center leading-none">
                   {totalItems}
@@ -288,12 +286,12 @@ export default function Storefront() {
             {/* Meus Pedidos — visible to both clients and admin */}
             <Link
               href="/pedidos"
-              className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] border border-border/50 hover:border-[#9306CF]/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full px-3 sm:px-3.5 py-1.5 sm:py-2 transition-all shrink-0 shadow-sm group"
+              className="hidden sm:flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] border border-border/50 hover:border-[#9306CF]/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full px-3 sm:px-3.5 py-1.5 sm:py-2 transition-all shrink-0 shadow-sm group"
               title="Acompanhar Meus Pedidos"
               aria-label="Ver meus pedidos"
             >
-              <ReceiptText className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9] group-hover:scale-110 transition-transform" />
-              <span className="hidden sm:inline">Meus Pedidos</span>
+              <ReceiptText className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9] group-hover:scale-110 transition-transform shrink-0" />
+              <span className="hidden md:inline">Meus Pedidos</span>
             </Link>
 
             {/* Switch de Modo Edição — exclusivo para Administrador */}
@@ -303,10 +301,10 @@ export default function Storefront() {
             {!user ? (
               <Link
                 href="/login"
-                className="flex items-center gap-1.5 text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] border border-border/40 rounded-full px-3.5 py-1.5 hover:bg-muted transition-colors shrink-0"
+                className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] border border-border/40 rounded-full px-3 sm:px-3.5 py-1.5 hover:bg-muted transition-colors shrink-0"
                 aria-label="Entrar na conta"
               >
-                <UserIcon className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                <UserIcon className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9] shrink-0" />
                 <span className="hidden sm:inline">Entrar</span>
               </Link>
             ) : (
@@ -319,17 +317,17 @@ export default function Storefront() {
                   aria-label={`Menu do usuário: ${userFirstName}`}
                 >
                   {/* Avatar circular */}
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#9306CF] to-[#940068] text-white flex items-center justify-center font-bold text-xs shadow-sm ring-1 ring-white/20">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#9306CF] to-[#940068] text-white flex items-center justify-center font-bold text-xs shadow-sm ring-1 ring-white/20 shrink-0">
                     {userFirstName.charAt(0).toUpperCase() || <UserIcon className="w-3.5 h-3.5" />}
                   </div>
 
                   {/* Primeiro nome */}
-                  <span className="text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] max-w-[80px] sm:max-w-[120px] truncate">
+                  <span className="text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] max-w-[80px] sm:max-w-[120px] truncate shrink-0">
                     {userFirstName}
                   </span>
 
                   <ChevronDown
-                    className={`w-3.5 h-3.5 text-muted-foreground group-hover:text-[#9306CF] transition-transform duration-200 ${
+                    className={`w-3.5 h-3.5 text-muted-foreground group-hover:text-[#9306CF] transition-transform duration-200 shrink-0 ${
                       userMenuOpen ? "rotate-180 text-[#9306CF]" : ""
                     }`}
                   />

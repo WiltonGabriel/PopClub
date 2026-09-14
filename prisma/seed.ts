@@ -179,7 +179,7 @@ async function main() {
       price: 17.98,
       categoryId: catHits.id,
       category: catHits.name,
-      imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80",
+      imageUrl: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=600&q=80",
     },
     {
       name: "Hits em Dobro",
@@ -213,7 +213,7 @@ async function main() {
       price: 16.5,
       categoryId: catTradicional.id,
       category: catTradicional.name,
-      imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80",
+      imageUrl: "https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=600&q=80",
     },
     {
       name: "Açaí 500ml Tradicional",
@@ -255,7 +255,7 @@ async function main() {
       price: 28.0,
       categoryId: catRecheio.id,
       category: catRecheio.name,
-      imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80",
+      imageUrl: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=80",
     },
     {
       name: "Recheio é Vida 700ml",
