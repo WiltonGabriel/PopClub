@@ -57,7 +57,7 @@ export async function POST(request: Request) {
         email: cleanEmail,
         passwordHash,
         fullName: fullName || cleanUsername,
-        role: cleanEmail === "admin@popclub.com" ? "admin" : "client",
+        role: "client",
       },
       select: {
         id: true,

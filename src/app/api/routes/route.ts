@@ -58,12 +58,14 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      return NextResponse.json({ error: "Routes API error", details: errorText }, { status: response.status });
+      console.error("Routes API upstream error:", errorText);
+      return NextResponse.json({ error: "Serviço de cálculo de rotas temporariamente indisponível." }, { status: 502 });
     }
 
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    return NextResponse.json({ error: "Failed to calculate route" }, { status: 500 });
+    console.error("Erro interno no cálculo de rota:", error);
+    return NextResponse.json({ error: "Falha interna ao calcular rota." }, { status: 500 });
   }
 }

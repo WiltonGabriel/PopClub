@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("Erro na geocodificação reversa:", error);
     return NextResponse.json(
-      { error: error.message || "Erro ao consultar serviço de localização." },
+      { error: "Erro ao consultar serviço de localização." },
       { status: 500 }
     );
   }

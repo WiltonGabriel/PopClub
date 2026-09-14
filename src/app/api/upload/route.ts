@@ -3,12 +3,23 @@ import path from "path";
 import fs from "fs/promises";
 import crypto from "crypto";
 import sharp from "sharp";
+import { getAuthUser } from "@/lib/auth";
 
-const ALLOWED_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp"];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 export async function POST(request: Request) {
   try {
+    // 0. Autenticação estrita no servidor (Apenas administradores podem fazer upload)
+    const authUser = await getAuthUser(request);
+    if (!authUser || authUser.role !== "admin") {
+      return NextResponse.json(
+        { error: "Acesso negado. Apenas administradores autenticados podem enviar arquivos." },
+        { status: 403 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const targetType = (formData.get("type") as string) || "general"; // 'product' | 'banner' | 'general'
@@ -17,21 +28,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Nenhum arquivo enviado." }, { status: 400 });
     }
 
-    // 1. Validação de formato (bloqueio de vídeos e formatos não permitidos)
-    if (!ALLOWED_MIME_TYPES.includes(file.type.toLowerCase())) {
+    // 1. Validação estrita de extensão do arquivo (bloqueia scripts, .svg com XSS, .html, .php, etc.)
+    const originalExtension = path.extname(file.name || "").toLowerCase();
+    if (!ALLOWED_EXTENSIONS.includes(originalExtension)) {
       return NextResponse.json(
         {
-          error: `Formato de arquivo não suportado (${file.type}). Apenas imagens nos formatos JPEG, PNG ou WebP são permitidas. Arquivos de vídeo como MP4 e WebM são proibidos.`,
+          error: `Extensão de arquivo não permitida (${originalExtension || "desconhecida"}). Apenas .jpg, .jpeg, .png e .webp são aceitos.`,
         },
         { status: 400 }
       );
     }
 
-    // 2. Validação de tamanho máximo
+    // 2. Validação estrita de formato MIME
+    if (!ALLOWED_MIME_TYPES.includes(file.type.toLowerCase())) {
+      return NextResponse.json(
+        {
+          error: `Formato de arquivo não suportado (${file.type}). Apenas imagens nos formatos JPEG, PNG ou WebP são permitidas.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // 3. Validação de tamanho máximo (5 MB)
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
         {
-          error: `O arquivo enviado excede o limite máximo permitido de 10MB (tamanho atual: ${(file.size / (1024 * 1024)).toFixed(2)}MB).`,
+          error: `O arquivo enviado excede o limite máximo permitido de 5MB (tamanho atual: ${(file.size / (1024 * 1024)).toFixed(2)}MB).`,
         },
         { status: 400 }
       );
