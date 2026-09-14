@@ -62,7 +62,7 @@ export function Footer() {
             </p>
             <div className="flex items-center gap-2 pt-1 text-xs text-gray-600 dark:text-gray-300 font-medium">
               <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
-              <span>Ingredientes selecionados & Preparo artesanal</span>
+              <span>Qualidade garantida & Os melhores sabores</span>
             </div>
           </div>
 
@@ -76,7 +76,7 @@ export function Footer() {
                 <Clock className="w-4 h-4 text-[#9306CF] shrink-0 mt-0.5" />
                 <div>
                   <span className="font-semibold text-foreground block">Todos os dias</span>
-                  <span>13:00 às 23:30 (Cozinha & Delivery)</span>
+                  <span>13:00 às 23:30</span>
                 </div>
               </li>
               <li className="flex items-start gap-2">
@@ -121,7 +121,7 @@ export function Footer() {
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-[#512B54]/30 font-medium">
                 <Banknote className="w-3.5 h-3.5 text-amber-500" />
-                <span>Dinheiro (com Troco)</span>
+                <span>Dinheiro</span>
               </div>
             </div>
           </div>

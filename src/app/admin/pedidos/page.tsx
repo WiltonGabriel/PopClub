@@ -738,13 +738,14 @@ export default function AdminPedidosPage() {
                         <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 inline-flex items-center gap-1">
                           {order.payment_method_type === "pix_entrega" && "⚡ Pix"}
                           {order.payment_method_type === "cartao_maquininha" && "💳 Cartão"}
-                          {order.payment_method_type === "dinheiro" && (
-                            order.payment_change_for
-                              ? `💵 Dinheiro (Troco p/ R$ ${order.payment_change_for.toFixed(2)})`
-                              : "💵 Dinheiro"
-                          )}
+                          {order.payment_method_type === "dinheiro" && "💵 Dinheiro"}
                           {!order.payment_method_type && "⚡ Pix"}
                         </span>
+                        {order.payment_method_type === "dinheiro" && order.payment_change_for && (
+                          <span className="block text-[10px] font-mono text-muted-foreground mt-0.5">
+                            Troco p/ R$ {order.payment_change_for.toFixed(2).replace(".", ",")}
+                          </span>
+                        )}
                       </div>
                     </div>
 

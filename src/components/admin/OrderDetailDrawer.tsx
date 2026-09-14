@@ -318,7 +318,7 @@ export function OrderDetailDrawer({
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Método Escolhido:</span>
                   <span className="font-bold capitalize text-[#4C264F] dark:text-[#F9F5F9]">
-                    {isPix ? "⚡ Pix (Pagamento no Recebimento)" : isCash ? "💵 Dinheiro na Entrega" : isCard ? "💳 Cartão (Levar Maquininha)" : order.payment_method_type || "Outro"}
+                    {isPix ? "⚡ Pix (Entrega)" : isCash ? "💵 Dinheiro" : isCard ? "💳 Cartão (Maquininha)" : order.payment_method_type || "Outro"}
                   </span>
                 </div>
 
