@@ -17,6 +17,7 @@ import { BottomNav } from "../components/storefront/BottomNav";
 import { CartDrawer } from "../components/storefront/CartDrawer";
 import { SearchAutocomplete } from "../components/storefront/SearchAutocomplete";
 import { Footer } from "../components/storefront/Footer";
+import { ProductDetailModal } from "../components/storefront/ProductDetailModal";
 
 // Admin components (unchanged)
 import { CategoryFormDialog } from "../components/admin/CategoryFormDialog";
@@ -47,6 +48,7 @@ import {
   BookOpen,
   LayoutDashboard,
   ClipboardList,
+  Sparkles,
   AlertCircle,
   RefreshCw,
 } from "lucide-react";
@@ -67,6 +69,21 @@ export default function Storefront() {
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  // Modal de Detalhes e Personalização do Produto (estilo iFood)
+  const [selectedProductForModal, setSelectedProductForModal] = useState<Product | null>(null);
+  const [productModalOpen, setProductModalOpen] = useState(false);
+
+  const handleOpenProductModal = useCallback((product: Product) => {
+    if (
+      product.isAvailable === false ||
+      (product.stock !== undefined && product.stock !== null && product.stock <= 0)
+    ) {
+      return;
+    }
+    setSelectedProductForModal(product);
+    setProductModalOpen(true);
+  }, []);
 
   // Admin modal state — unchanged
   const [catDialogOpen, setCatDialogOpen] = useState(false);
@@ -262,6 +279,7 @@ export default function Storefront() {
               products={products}
               initialValue={search}
               placeholder="Buscar..."
+              onSelectProduct={handleOpenProductModal}
             />
           </div>
 
@@ -468,8 +486,8 @@ export default function Storefront() {
                 autoFocus
                 onNavigateToResults={() => setMobileSearchOpen(false)}
                 onSelectProduct={(p) => {
-                  handleAddToCart(p);
                   setMobileSearchOpen(false);
+                  handleOpenProductModal(p);
                 }}
               />
             </div>
@@ -737,7 +755,8 @@ export default function Storefront() {
                     <div key={product.id} className={isPreview ? "min-w-[80%] sm:min-w-0 snap-start shrink-0" : ""}>
                       <ProductCard
                         product={product}
-                        onAddToCart={handleAddToCart}
+                        onAddToCart={handleOpenProductModal}
+                        onOpenDetails={handleOpenProductModal}
                         isAdmin={canEdit}
                         onEdit={(p) => { setEditingProduct(p); setProdDialogOpen(true); }}
                         onDelete={handleDeleteProduct}
@@ -869,6 +888,13 @@ export default function Storefront() {
         onOpenChange={setEditBannerModalOpen}
         currentBanner={highlightBanner}
         onSaved={(updated) => setHighlightBanner(updated)}
+      />
+
+      {/* Modal de Detalhes & Personalização do Produto (estilo iFood) */}
+      <ProductDetailModal
+        product={selectedProductForModal}
+        isOpen={productModalOpen}
+        onClose={() => setProductModalOpen(false)}
       />
     </div>
   );

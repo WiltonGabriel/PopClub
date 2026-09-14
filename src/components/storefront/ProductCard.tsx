@@ -5,7 +5,8 @@ import { Product } from "../../services/productService";
 
 interface ProductCardProps {
   product: Product;
-  onAddToCart: (product: Product) => void;
+  onAddToCart?: (product: Product) => void;
+  onOpenDetails?: (product: Product) => void;
   isAdmin?: boolean;
   onEdit?: (product: Product) => void;
   onDelete?: (id: string) => void;
@@ -43,6 +44,7 @@ function getCategoryBadge(name: string) {
 export function ProductCard({
   product,
   onAddToCart,
+  onOpenDetails,
   isAdmin,
   onEdit,
   onDelete,
@@ -58,20 +60,33 @@ export function ProductCard({
     currency: "BRL",
   }).format(product.price);
 
+  const handleCardClick = () => {
+    if (isOutOfStock) return;
+    if (onOpenDetails) {
+      onOpenDetails(product);
+    } else if (onAddToCart) {
+      onAddToCart(product);
+    }
+  };
+
   return (
     <article
+      onClick={handleCardClick}
       className={`
         product-card relative bg-card rounded-2xl overflow-hidden group
-        flex flex-col border border-border/40 transition-opacity
+        flex flex-col border border-border/40 transition-all duration-200
+        ${isOutOfStock ? "opacity-80 cursor-not-allowed" : "cursor-pointer hover:shadow-lg hover:border-[#9306CF]/40 hover:-translate-y-0.5"}
         ${featured ? "sm:col-span-2" : ""}
-        ${isOutOfStock ? "opacity-80" : ""}
       `}
     >
       {/* Admin Controls */}
       {isAdmin && (
         <div className="absolute top-2 left-2 z-20 flex gap-1 bg-white/90 dark:bg-[#2B132D]/90 backdrop-blur-sm p-1 rounded-lg shadow-sm border border-purple-200 dark:border-purple-800/60 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
-            onClick={() => onEdit?.(product)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit?.(product);
+            }}
             title="Editar produto"
             aria-label="Editar produto"
             className="p-1.5 text-brand-pop-shake hover:bg-brand-surface-2 dark:hover:bg-purple-900/30 rounded-md transition-colors"
@@ -79,7 +94,10 @@ export function ProductCard({
             <Edit2 className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={() => onDelete?.(product.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete?.(product.id);
+            }}
             title="Deletar produto"
             aria-label="Deletar produto"
             className="p-1.5 text-destructive hover:bg-red-50 dark:hover:bg-red-950/30 rounded-md transition-colors"
@@ -155,8 +173,11 @@ export function ProductCard({
             </button>
           ) : (
             <button
-              onClick={() => onAddToCart(product)}
-              aria-label={`Adicionar ${product.name} ao carrinho`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCardClick();
+              }}
+              aria-label={`Personalizar e adicionar ${product.name} ao carrinho`}
               className="
                 btn-clay
                 flex items-center justify-center gap-1
@@ -164,7 +185,7 @@ export function ProductCard({
                 w-9 h-9 rounded-full
                 font-bold text-lg leading-none
                 min-w-[44px] min-h-[44px] w-11 h-11
-                active:scale-95
+                active:scale-95 cursor-pointer
               "
             >
               <Plus className="w-5 h-5 stroke-[2.5]" />

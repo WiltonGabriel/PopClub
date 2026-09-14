@@ -2,21 +2,29 @@
 
 import React, { createContext, useState, useEffect, ReactNode } from "react";
 
+export interface SelectedOption {
+  groupName: string;
+  name: string;
+  price: number;
+}
+
 export interface CartItem {
-  id: string; // único no carrinho: `${productId}-${promotionId || 'regular'}`
+  id: string; // único no carrinho: `${productId}-${promotionId || 'regular'}-${optionsKey}-${notesKey}`
   productId: string;
   name: string;
-  price: number; // preço unitário com eventual desconto
+  price: number; // preço unitário com eventual desconto e adicionais
   originalPrice: number;
   quantity: number;
   imageUrl?: string;
   promotionId?: string | null;
   promotionTitle?: string | null;
+  selectedOptions?: SelectedOption[];
+  notes?: string;
 }
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (item: Omit<CartItem, "id">) => void;
+  addItem: (item: Omit<CartItem, "id"> & { id?: string }) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, delta: number) => void;
   clearCart: () => void;
@@ -71,8 +79,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [items, isLoaded]);
 
-  const addItem = (newItem: Omit<CartItem, "id">) => {
-    const id = `${newItem.productId}-${newItem.promotionId || "regular"}`;
+  const addItem = (newItem: Omit<CartItem, "id"> & { id?: string }) => {
+    const optionsKey =
+      newItem.selectedOptions && newItem.selectedOptions.length > 0
+        ? newItem.selectedOptions.map((o) => `${o.groupName}:${o.name}`).sort().join("|")
+        : "base";
+    const notesKey = (newItem.notes || "").trim().toLowerCase();
+    const id =
+      newItem.id ||
+      `${newItem.productId}-${newItem.promotionId || "regular"}-${optionsKey}-${notesKey}`;
+
     setItems((prev) => {
       const existing = prev.find((i) => i.id === id);
       if (existing) {

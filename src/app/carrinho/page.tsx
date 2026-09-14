@@ -435,7 +435,31 @@ export default function CarrinhoPage() {
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2 mt-1">
+                        {/* Adicionais & Opções */}
+                        {item.selectedOptions && item.selectedOptions.length > 0 && (
+                          <div className="mt-1 space-y-0.5">
+                            {item.selectedOptions.map((opt, idx) => (
+                              <p key={idx} className="text-[11px] text-muted-foreground flex items-center gap-1 leading-tight">
+                                <span className="w-1 h-1 rounded-full bg-primary shrink-0" />
+                                <span className="truncate">{opt.name}</span>
+                                {opt.price > 0 && (
+                                  <span className="text-primary font-mono text-[10px] shrink-0 font-semibold">
+                                    (+R$ {opt.price.toFixed(2).replace(".", ",")})
+                                  </span>
+                                )}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Observações da Cozinha */}
+                        {item.notes && (
+                          <p className="text-[11px] italic text-muted-foreground mt-1 bg-muted/60 px-2 py-0.5 rounded">
+                            &ldquo;{item.notes}&rdquo;
+                          </p>
+                        )}
+
+                        <div className="flex items-center gap-2 mt-1.5">
                           <span className="font-mono font-bold text-primary text-sm">
                             R$ {item.price.toFixed(2).replace(".", ",")}
                           </span>

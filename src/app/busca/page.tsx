@@ -25,6 +25,7 @@ import { ProductCard } from "../../components/storefront/ProductCard";
 import { CartDrawer } from "../../components/storefront/CartDrawer";
 import { SearchAutocomplete } from "../../components/storefront/SearchAutocomplete";
 import { Footer } from "../../components/storefront/Footer";
+import { ProductDetailModal } from "../../components/storefront/ProductDetailModal";
 import { useCart } from "../../hooks/useCart";
 import { useTheme } from "../../contexts/ThemeContext";
 import { Button } from "../../components/ui/button";
@@ -38,6 +39,21 @@ function SearchContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Modal de Detalhes e Personalização do Produto
+  const [selectedProductForModal, setSelectedProductForModal] = useState<Product | null>(null);
+  const [productModalOpen, setProductModalOpen] = useState(false);
+
+  const handleOpenProductModal = (product: Product) => {
+    if (
+      product.isAvailable === false ||
+      (product.stock !== undefined && product.stock !== null && product.stock <= 0)
+    ) {
+      return;
+    }
+    setSelectedProductForModal(product);
+    setProductModalOpen(true);
+  };
 
   // Filtros
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -221,6 +237,7 @@ function SearchContent() {
               products={products}
               initialValue={searchTerm}
               onNavigateToResults={(q) => handleUpdateSearchTerm(q)}
+              onSelectProduct={handleOpenProductModal}
               placeholder="Buscar..."
             />
           </div>
@@ -447,7 +464,8 @@ function SearchContent() {
                   <ProductCard
                     key={product.id}
                     product={product}
-                    onAddToCart={handleAddToCart}
+                    onAddToCart={handleOpenProductModal}
+                    onOpenDetails={handleOpenProductModal}
                     isAdmin={false}
                   />
                 ))}
@@ -462,6 +480,13 @@ function SearchContent() {
 
       {/* Cart Drawer */}
       <CartDrawer open={cartDrawerOpen} onClose={() => setCartDrawerOpen(false)} />
+
+      {/* Modal de Detalhes & Personalização do Produto */}
+      <ProductDetailModal
+        product={selectedProductForModal}
+        isOpen={productModalOpen}
+        onClose={() => setProductModalOpen(false)}
+      />
     </div>
   );
 }

@@ -149,7 +149,32 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                         {item.promotionTitle}
                       </span>
                     )}
-                    <p className="font-heading font-black text-sm text-brand-pop-shake mt-0.5">
+
+                    {/* Adicionais e Opções Personalizadas */}
+                    {item.selectedOptions && item.selectedOptions.length > 0 && (
+                      <div className="mt-1 space-y-0.5">
+                        {item.selectedOptions.map((opt, idx) => (
+                          <p key={idx} className="text-[11px] text-muted-foreground flex items-center gap-1 leading-tight">
+                            <span className="w-1 h-1 rounded-full bg-[#9306CF] shrink-0" />
+                            <span className="truncate">{opt.name}</span>
+                            {opt.price > 0 && (
+                              <span className="text-[#9306CF] dark:text-[#C7A9C9] font-mono text-[10px] shrink-0">
+                                (+R$ {opt.price.toFixed(2).replace(".", ",")})
+                              </span>
+                            )}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Observações da Cozinha */}
+                    {item.notes && (
+                      <p className="text-[11px] italic text-muted-foreground mt-1 bg-muted/60 dark:bg-white/[0.04] px-2 py-0.5 rounded line-clamp-2">
+                        &ldquo;{item.notes}&rdquo;
+                      </p>
+                    )}
+
+                    <p className="font-heading font-black text-sm text-brand-pop-shake mt-1">
                       {lineTotal}
                     </p>
 
