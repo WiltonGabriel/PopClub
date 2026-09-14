@@ -55,15 +55,17 @@ export function ComboFormDialog({
   const [error, setError] = useState("");
 
   useEffect(() => {
-    productService
-      .getProducts()
-      .then(setAvailableProducts)
-      .catch((err) => console.error("Erro ao carregar produtos:", err));
-    badgeService
-      .getBadges()
-      .then(setBadges)
-      .catch((err) => console.error("Erro ao carregar selos:", err));
-  }, []);
+    if (open) {
+      productService
+        .getProducts()
+        .then(setAvailableProducts)
+        .catch(() => {});
+      badgeService
+        .getBadges()
+        .then(setBadges)
+        .catch(() => {});
+    }
+  }, [open]);
 
   useEffect(() => {
     if (comboToEdit) {

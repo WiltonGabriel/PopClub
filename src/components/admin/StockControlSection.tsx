@@ -17,9 +17,11 @@ import {
   Plus,
   Minus,
   UtensilsCrossed,
+  Pencil,
 } from "lucide-react";
 import { productService, Product } from "../../services/productService";
 import { categoryService, Category } from "../../services/categoryService";
+import { ProductFormDialog } from "./ProductFormDialog";
 import { useToast } from "../ui/ToastNotification";
 
 interface StockControlSectionProps {
@@ -39,6 +41,10 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "available" | "unavailable">("all");
+
+  // Edição completa de produto via modal
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   // Debounce timers para inputs numéricos por produto
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
@@ -392,6 +398,17 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
                             <h3 className="font-bold text-foreground text-sm truncate">
                               {product.name}
                             </h3>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingProduct(product);
+                                setIsEditDialogOpen(true);
+                              }}
+                              title="Editar dados cadastrais do produto (Foto, Nome, Descrição, Preço, Categoria, Selo)"
+                              className="p-1 rounded-md text-gray-400 hover:text-[#9306CF] hover:bg-[#9306CF]/10 transition-colors cursor-pointer inline-flex items-center justify-center shrink-0"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
                             {!isAvailable && (
                               <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950/80 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/50">
                                 Esgotado
@@ -545,6 +562,29 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Modal de Edição Completa do Produto */}
+      {isEditDialogOpen && (
+        <ProductFormDialog
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          productToEdit={editingProduct}
+          categories={categories}
+          onSaved={(updatedProduct) => {
+            setProducts((prev) =>
+              prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
+            );
+            setIsEditDialogOpen(false);
+            setEditingProduct(null);
+            showToast({
+              title: "Produto atualizado!",
+              message: `${updatedProduct.name} foi atualizado com sucesso.`,
+              type: "success",
+            });
+            loadData(true);
+          }}
+        />
       )}
     </section>
   );

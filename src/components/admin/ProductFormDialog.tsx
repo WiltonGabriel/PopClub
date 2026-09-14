@@ -50,10 +50,6 @@ export function ProductFormDialog({
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
 
   useEffect(() => {
-    badgeService.getBadges().then(setBadges).catch(console.error);
-  }, []);
-
-  useEffect(() => {
     if (open) {
       setName(productToEdit?.name || "");
       setDescription(productToEdit?.description || "");
@@ -64,7 +60,7 @@ export function ProductFormDialog({
       setError("");
       setRawImageSrc(null);
       setCropModalOpen(false);
-      badgeService.getBadges().then(setBadges).catch(console.error);
+      badgeService.getBadges().then(setBadges).catch(() => {});
     }
   }, [open, productToEdit, categories]);
 

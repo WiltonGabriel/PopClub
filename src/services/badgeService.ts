@@ -12,14 +12,17 @@ export interface CardBadge {
 
 export const badgeService = {
   async getBadges(): Promise<CardBadge[]> {
-    const res = await fetch("/api/badges", {
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || "Erro ao listar selos.");
+    try {
+      const res = await fetch("/api/badges", {
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!res.ok) {
+        return [];
+      }
+      return await res.json();
+    } catch {
+      return [];
     }
-    return await res.json();
   },
 
   async createBadge(data: {
