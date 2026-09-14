@@ -1,3 +1,4 @@
 {
-    "terminal.integrated.fontFamily": "JetBrainsMono Nerd Font"
+    "terminal.integrated.fontFamily": "JetBrainsMono Nerd Font",
+    "css.lint.unknownAtRules": "ignore"
 }
