@@ -29,6 +29,7 @@ import { couponService, ValidatedCoupon } from "../../services/couponService";
 import { orderService } from "../../services/orderService";
 import { userService, UserLocation } from "../../services/userService";
 import { storeSettingsService, StoreSettings } from "../../services/storeSettingsService";
+import { useAddress } from "@/contexts/AddressContext";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -64,6 +65,61 @@ export default function CarrinhoPage() {
   const [complement, setComplement] = useState("");
   const [reference, setReference] = useState("");
   const [zip, setZip] = useState("");
+
+  // Integração com AddressContext global
+  const {
+    activeAddress,
+    addresses,
+    activeAddressId,
+    setActiveAddressId,
+    updateActiveAddressFields,
+    openAddressModal,
+  } = useAddress();
+
+  // Sincroniza campos locais quando o activeAddress muda
+  useEffect(() => {
+    if (activeAddress) {
+      if (activeAddress.street) setStreet(activeAddress.street);
+      if (activeAddress.number) setNumber(activeAddress.number);
+      if (activeAddress.neighborhood) setNeighborhood(activeAddress.neighborhood);
+      if (activeAddress.city) setCity(activeAddress.city);
+      if (activeAddress.complement !== undefined) setComplement(activeAddress.complement || "");
+      if (activeAddress.reference !== undefined) setReference(activeAddress.reference || "");
+      if (activeAddress.zip !== undefined) setZip(activeAddress.zip || "");
+      if (activeAddress.latitude !== undefined) setLatitude(activeAddress.latitude || null);
+      if (activeAddress.longitude !== undefined) setLongitude(activeAddress.longitude || null);
+    }
+  }, [activeAddress]);
+
+  // Propaga alterações manuais de endereço em tempo real para o AddressContext (e Header)
+  const handleStreetChange = (val: string) => {
+    setStreet(val);
+    updateActiveAddressFields({ street: val });
+  };
+  const handleNumberChange = (val: string) => {
+    setNumber(val);
+    updateActiveAddressFields({ number: val });
+  };
+  const handleNeighborhoodChange = (val: string) => {
+    setNeighborhood(val);
+    updateActiveAddressFields({ neighborhood: val });
+  };
+  const handleCityChange = (val: string) => {
+    setCity(val);
+    updateActiveAddressFields({ city: val });
+  };
+  const handleComplementChange = (val: string) => {
+    setComplement(val);
+    updateActiveAddressFields({ complement: val });
+  };
+  const handleReferenceChange = (val: string) => {
+    setReference(val);
+    updateActiveAddressFields({ reference: val });
+  };
+  const handleZipChange = (val: string) => {
+    setZip(val);
+    updateActiveAddressFields({ zip: val });
+  };
 
   // Geolocalização
   const [isLocating, setIsLocating] = useState(false);
@@ -176,6 +232,15 @@ export default function CarrinhoPage() {
       if (data.neighborhood) setNeighborhood(data.neighborhood);
       if (data.city) setCity(data.city);
       if (data.postcode) setZip(data.postcode);
+
+      updateActiveAddressFields({
+        street: data.road || street,
+        neighborhood: data.neighborhood || neighborhood,
+        city: data.city || city,
+        zip: data.postcode || zip,
+        latitude: lat,
+        longitude: lon,
+      });
 
       // Auto-focus no campo de Número para agilizar o checkout
       setTimeout(() => {
@@ -568,26 +633,86 @@ export default function CarrinhoPage() {
                   Endereço de Entrega
                 </h3>
 
-                {/* Botão de Ação Rápida: Usar Minha Localização Atual */}
-                <button
-                  type="button"
-                  onClick={handleGetLocation}
-                  disabled={isLocating}
-                  className="inline-flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 px-4 py-2.5 rounded-xl shadow-sm shadow-[#9306CF]/20 transition-all cursor-pointer disabled:opacity-60 shrink-0"
-                >
-                  {isLocating ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin text-white" />
-                      <span>Buscando sinal de GPS do aparelho...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Navigation className="w-4 h-4 text-white" />
-                      <span>📍 Preencher com minha localização atual</span>
-                    </>
-                  )}
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Botão de Trocar / Gerenciar Endereços */}
+                  <button
+                    type="button"
+                    onClick={openAddressModal}
+                    className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/40 px-3 py-2 rounded-xl transition-colors cursor-pointer"
+                  >
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>Selecionar / Alterar</span>
+                  </button>
+
+                  {/* Botão de Ação Rápida: Usar Minha Localização Atual */}
+                  <button
+                    type="button"
+                    onClick={handleGetLocation}
+                    disabled={isLocating}
+                    className="inline-flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 px-3.5 py-2 rounded-xl shadow-xs shadow-[#9306CF]/20 transition-all cursor-pointer disabled:opacity-60 shrink-0"
+                  >
+                    {isLocating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-white" />
+                        <span>Buscando GPS...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Navigation className="w-4 h-4 text-white" />
+                        <span>📍 GPS Atual</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
+
+              {/* Se houver endereços salvos via AddressContext */}
+              {addresses.length > 0 && (
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between">
+                    <Label className="font-mono text-xs uppercase text-muted-foreground">
+                      Endereço ativo selecionado:
+                    </Label>
+                    <button
+                      type="button"
+                      onClick={openAddressModal}
+                      className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline"
+                    >
+                      Ver todos ({addresses.length})
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {addresses.map((addr) => {
+                      const isSelected = addr.id === activeAddressId;
+                      return (
+                        <div
+                          key={addr.id}
+                          onClick={() => setActiveAddressId(addr.id)}
+                          className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                            isSelected
+                              ? "border-[#9306CF] bg-[#9306CF]/5 dark:bg-[#9306CF]/10 shadow-xs"
+                              : "border-border/60 hover:border-[#9306CF]/40 bg-card"
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <span className="block text-xs font-bold text-foreground truncate">
+                              {addr.label ? `${addr.label} • ` : ""}{addr.street}, {addr.number}
+                            </span>
+                            <span className="block text-[11px] text-muted-foreground truncate">
+                              {addr.neighborhood}, {addr.city}
+                            </span>
+                          </div>
+                          {isSelected && (
+                            <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#9306CF] text-white">
+                              Ativo
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Feedback Visual e Inteligente de Precisão (UX) */}
               {isLocating && (
@@ -672,7 +797,7 @@ export default function CarrinhoPage() {
                   </Label>
                   <Input
                     value={street}
-                    onChange={(e) => setStreet(e.target.value)}
+                    onChange={(e) => handleStreetChange(e.target.value)}
                     placeholder="Ex: Av. Beira Mar"
                     className="rounded-xl border border-input text-base md:text-sm h-11 px-3"
                     required
@@ -686,7 +811,7 @@ export default function CarrinhoPage() {
                   <Input
                     ref={numberInputRef}
                     value={number}
-                    onChange={(e) => setNumber(e.target.value)}
+                    onChange={(e) => handleNumberChange(e.target.value)}
                     placeholder="Ex: 1420"
                     className="rounded-xl border border-input text-base md:text-sm h-11 px-3 focus-visible:ring-2 focus-visible:ring-[#9306CF]/30"
                     required
@@ -701,7 +826,7 @@ export default function CarrinhoPage() {
                   </Label>
                   <Input
                     value={neighborhood}
-                    onChange={(e) => setNeighborhood(e.target.value)}
+                    onChange={(e) => handleNeighborhoodChange(e.target.value)}
                     placeholder="Ex: Centro"
                     className="rounded-xl border border-input text-base md:text-sm h-11 px-3"
                     required
@@ -714,7 +839,7 @@ export default function CarrinhoPage() {
                   </Label>
                   <Input
                     value={city}
-                    onChange={(e) => setCity(e.target.value)}
+                    onChange={(e) => handleCityChange(e.target.value)}
                     placeholder="Ex: Cidade"
                     className="rounded-xl border border-input text-base md:text-sm h-11 px-3"
                   />
@@ -726,7 +851,7 @@ export default function CarrinhoPage() {
                   </Label>
                   <Input
                     value={zip}
-                    onChange={(e) => setZip(e.target.value)}
+                    onChange={(e) => handleZipChange(e.target.value)}
                     placeholder="00000-000"
                     className="rounded-xl border border-input text-base md:text-sm font-mono h-11 px-3"
                   />
@@ -740,7 +865,7 @@ export default function CarrinhoPage() {
                   </Label>
                   <Input
                     value={complement}
-                    onChange={(e) => setComplement(e.target.value)}
+                    onChange={(e) => handleComplementChange(e.target.value)}
                     placeholder="Ex: Apto 302 Bloco B"
                     className="rounded-xl border border-input text-base md:text-sm h-11 px-3"
                   />
@@ -752,7 +877,7 @@ export default function CarrinhoPage() {
                   </Label>
                   <Input
                     value={reference}
-                    onChange={(e) => setReference(e.target.value)}
+                    onChange={(e) => handleReferenceChange(e.target.value)}
                     placeholder="Ex: Próximo à praça central"
                     className="rounded-xl border border-input text-base md:text-sm h-11 px-3"
                   />

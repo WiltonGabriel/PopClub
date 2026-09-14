@@ -18,6 +18,7 @@ import { CartDrawer } from "../components/storefront/CartDrawer";
 import { SearchAutocomplete } from "../components/storefront/SearchAutocomplete";
 import { Footer } from "../components/storefront/Footer";
 import { ProductDetailModal } from "../components/storefront/ProductDetailModal";
+import { HeaderAddressButton } from "../components/storefront/HeaderAddressButton";
 
 // Admin components (unchanged)
 import { CategoryFormDialog } from "../components/admin/CategoryFormDialog";
@@ -472,12 +473,8 @@ export default function Storefront() {
               </span>
             </Link>
 
-            {/* Address selector — desktop only */}
-            <button className="hidden xl:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors border border-border/40 rounded-xl px-3 py-2 hover:bg-muted shrink-0">
-              <MapPin className="w-4 h-4 text-brand-pop-shake shrink-0" />
-              <span className="font-medium max-w-[140px] truncate">Adicionar endereço</span>
-              <ChevronDown className="w-3.5 h-3.5 shrink-0" />
-            </button>
+            {/* Address selector — Desktop & Tablet */}
+            <HeaderAddressButton className="hidden md:flex" />
           </div>
 
           {/* ── CENTER: Search com Autocomplete Instantâneo ── */}
@@ -678,6 +675,11 @@ export default function Storefront() {
               )}
             </button>
           </div>
+        </div>
+
+        {/* Mobile address quick-bar */}
+        <div className="md:hidden px-3 py-1.5 border-t border-border/25 bg-white/40 dark:bg-[#1D0920]/40 flex items-center justify-between">
+          <HeaderAddressButton className="flex w-full justify-between py-1 px-1.5 text-xs border-none bg-transparent shadow-none hover:bg-muted/40" />
         </div>
       </header>
 

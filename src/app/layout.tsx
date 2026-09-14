@@ -6,7 +6,9 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { EditModeProvider } from "@/contexts/EditModeContext";
+import { AddressProvider } from "@/contexts/AddressContext";
 import { ToastProvider } from "@/components/ui/ToastNotification";
+import { AddressModal } from "@/components/storefront/AddressModal";
 import { WhatsAppFloatingButton } from "@/components/storefront/WhatsAppFloatingButton";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk", display: "swap" });
@@ -60,10 +62,13 @@ export default function RootLayout({
           <AuthProvider>
             <EditModeProvider>
               <CartProvider>
-                <ToastProvider>
-                  {children}
-                  <WhatsAppFloatingButton />
-                </ToastProvider>
+                <AddressProvider>
+                  <ToastProvider>
+                    {children}
+                    <AddressModal />
+                    <WhatsAppFloatingButton />
+                  </ToastProvider>
+                </AddressProvider>
               </CartProvider>
             </EditModeProvider>
           </AuthProvider>
