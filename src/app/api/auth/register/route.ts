@@ -5,13 +5,13 @@ import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
   try {
-    let body: any;
+    let body: Record<string, unknown> | null = null;
     try {
-      body = await request.json();
+      body = (await request.json()) as Record<string, unknown>;
     } catch {
       return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
     }
-    const { username, email, password, fullName } = body || {};
+    const { username, email, password, fullName } = (body as Record<string, string>) || {};
 
     if (!username || !email || !password) {
       return NextResponse.json({ error: "Todos os campos são obrigatórios." }, { status: 400 });
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ success: true, user, token });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro no cadastro:", error);
     return NextResponse.json({ error: "Erro interno no servidor ao realizar cadastro." }, { status: 500 });
   }

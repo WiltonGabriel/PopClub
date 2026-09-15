@@ -59,6 +59,7 @@ export default function AdminDashboard() {
   const [comboToEdit, setComboToEdit] = useState<Promotion | null>(null);
   const [editBannerModalOpen, setEditBannerModalOpen] = useState(false);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
+  const [currentTime, setCurrentTime] = useState<number>(0);
   const previousOrderCountRef = useRef(0);
 
   const router = useRouter();
@@ -111,10 +112,12 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadAll();
+    setCurrentTime(Date.now());
 
     // Polling contínuo leve a cada 15 segundos para atualizar pedidos ativos
     const interval = setInterval(() => {
       fetchOrders();
+      setCurrentTime(Date.now());
     }, 15000);
 
     // Ouvinte imediato de eventos de pedidos locais
@@ -314,7 +317,9 @@ export default function AdminDashboard() {
                       !order.delivery_address?.street ||
                       order.delivery_address?.street.toLowerCase().includes("retirada");
 
-                    const diffMins = Math.max(0, Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000));
+                    const diffMins = currentTime
+                      ? Math.max(0, Math.floor((currentTime - new Date(order.created_at).getTime()) / 60000))
+                      : 0;
                     const timeStr =
                       diffMins < 1
                         ? "Agora"

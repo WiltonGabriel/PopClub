@@ -71,6 +71,48 @@ const MONTH_NAMES = [
   "Dez",
 ];
 
+interface TooltipEntry {
+  color?: string;
+  name?: string;
+  value?: number | string;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipEntry[];
+  label?: string;
+}
+
+function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white/95 dark:bg-[#1A0B1C]/95 border border-gray-200 dark:border-[#512B54]/70 p-3 rounded-xl shadow-2xl backdrop-blur-md text-xs font-sans space-y-1">
+        <p className="font-bold text-[#4C264F] dark:text-[#F9F5F9] border-b border-gray-100 dark:border-[#512B54]/40 pb-1">
+          {label}
+        </p>
+        {payload.map((entry: TooltipEntry, index: number) => {
+          const entryName = entry.name || "";
+          const entryValue = entry.value ?? "";
+          return (
+            <p key={`item-${index}`} className="flex items-center gap-2" style={{ color: entry.color }}>
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+              <span className="font-medium text-gray-700 dark:text-gray-300">{entryName}:</span>
+              <span className="font-bold font-mono">
+                {entryName.toLowerCase().includes("faturamento") || entryName.toLowerCase().includes("receita")
+                  ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(entryValue) || 0)
+                  : entryName.toLowerCase().includes("pedidos")
+                  ? `${entryValue} pedido(s)`
+                  : entryValue}
+              </span>
+            </p>
+          );
+        })}
+      </div>
+    );
+  }
+  return null;
+}
+
 export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboardProps) {
   const [period, setPeriod] = useState<PeriodFilter>("hoje");
 
@@ -425,33 +467,6 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
       { name: "Retirada no Balcão", value: pickupCount, color: BRAND_COLORS.blue },
     ];
   }, [filteredOrders]);
-
-  // Componente de Tooltip Customizado
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white/95 dark:bg-[#1A0B1C]/95 border border-gray-200 dark:border-[#512B54]/70 p-3 rounded-xl shadow-2xl backdrop-blur-md text-xs font-sans space-y-1">
-          <p className="font-bold text-[#4C264F] dark:text-[#F9F5F9] border-b border-gray-100 dark:border-[#512B54]/40 pb-1">
-            {label}
-          </p>
-          {payload.map((entry: any, index: number) => (
-            <p key={`item-${index}`} className="flex items-center gap-2" style={{ color: entry.color }}>
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-              <span className="font-medium text-gray-700 dark:text-gray-300">{entry.name}:</span>
-              <span className="font-bold font-mono">
-                {entry.name.toLowerCase().includes("faturamento") || entry.name.toLowerCase().includes("receita")
-                  ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(entry.value)
-                  : entry.name.toLowerCase().includes("pedidos")
-                  ? `${entry.value} pedido(s)`
-                  : entry.value}
-              </span>
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
 
   if (loading) {
     return (

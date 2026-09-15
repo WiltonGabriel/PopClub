@@ -67,6 +67,8 @@ export default function CarrinhoPage() {
   const [complement, setComplement] = useState("");
   const [reference, setReference] = useState("");
   const [zip, setZip] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
 
   // Integração com AddressContext global
   const {
@@ -129,8 +131,6 @@ export default function CarrinhoPage() {
   const [accuracyWarning, setAccuracyWarning] = useState<string | null>(null);
   const [pendingCoords, setPendingCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [geoToast, setGeoToast] = useState<string | null>(null);
-  const [latitude, setLatitude] = useState<number | null>(null);
-  const [longitude, setLongitude] = useState<number | null>(null);
 
   const numberInputRef = useRef<HTMLInputElement>(null);
 

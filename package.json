@@ -6,7 +6,7 @@
     "dev": "next dev -H 0.0.0.0 --webpack",
     "build": "next build --webpack",
     "start": "next start -H 0.0.0.0",
-    "lint": "next lint"
+    "lint": "eslint ."
   },
   "prisma": {
     "seed": "ts-node --transpile-only prisma/seed.ts"

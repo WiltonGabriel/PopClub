@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { Prisma, OrderStatus } from "@prisma/client";
 
 export async function GET(request: Request) {
   try {
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
     const limit = Math.max(1, Math.min(100, parseInt(searchParams.get("limit") || "15", 10)));
 
-    let whereClause: any = {};
+    let whereClause: Prisma.OrderWhereInput = {};
 
     if (authUser?.role === "admin" && all) {
       whereClause = {};
@@ -32,7 +33,7 @@ export async function GET(request: Request) {
 
     // Filtro por status
     if (statusFilter && statusFilter !== "all") {
-      whereClause.status = statusFilter;
+      whereClause.status = statusFilter as OrderStatus;
     }
 
     // Filtro por intervalo de datas
@@ -201,7 +202,7 @@ export async function GET(request: Request) {
     }));
 
     return NextResponse.json(formatted);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao listar pedidos:", error);
     return NextResponse.json({ error: "Erro ao buscar pedidos." }, { status: 500 });
   }
@@ -214,20 +215,20 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
     }
 
-    let body: any;
+    let body: Record<string, unknown> | null = null;
     try {
-      body = await request.json();
+      body = (await request.json()) as Record<string, unknown>;
     } catch {
       return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
     }
 
-    const { orderId, status, cancellationReason } = body || {};
+    const { orderId, status, cancellationReason } = (body as Record<string, string>) || {};
 
     if (!orderId || !status) {
       return NextResponse.json({ error: "orderId e status são obrigatórios." }, { status: 400 });
     }
 
-    const dataToUpdate: any = { status };
+    const dataToUpdate: Prisma.OrderUpdateInput = { status: status as OrderStatus };
     if (status === "cancelled") {
       dataToUpdate.cancellationReason = cancellationReason || "Cancelado pela administração";
       dataToUpdate.cancelledAt = new Date();
@@ -282,9 +283,9 @@ export async function PATCH(request: Request) {
     };
 
     return NextResponse.json(formattedUpdated);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao atualizar status do pedido:", error);
-    if (error.code === "P2025") {
+    if ((error as { code?: string })?.code === "P2025") {
       return NextResponse.json({ error: "Pedido não encontrado." }, { status: 404 });
     }
     return NextResponse.json({ error: "Erro ao atualizar pedido." }, { status: 500 });

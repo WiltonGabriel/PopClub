@@ -199,36 +199,7 @@ export default function Storefront() {
     ? (user.fullName || user.user_metadata?.full_name || user.username || user.email.split("@")[0]).split(" ")[0]
     : "";
 
-  useEffect(() => {
-    fetchData();
-    try {
-      const savedOrderStr = localStorage.getItem("popshake_home_sections_order");
-      if (savedOrderStr) {
-        const savedOrder: HomeSectionId[] = JSON.parse(savedOrderStr);
-        if (Array.isArray(savedOrder)) {
-          const valid = savedOrder.filter((id) => DEFAULT_SECTIONS_ORDER.includes(id));
-          for (const defId of DEFAULT_SECTIONS_ORDER) {
-            if (!valid.includes(defId)) {
-              valid.push(defId);
-            }
-          }
-          if (valid.length === DEFAULT_SECTIONS_ORDER.length) {
-            setSectionsOrder(valid);
-          }
-        }
-      }
-    } catch (err) {
-      console.warn("Erro ao carregar popshake_home_sections_order:", err);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (mobileSearchOpen) {
-      setTimeout(() => searchInputRef.current?.focus(), 100);
-    }
-  }, [mobileSearchOpen]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setFetchError(null);
@@ -282,13 +253,42 @@ export default function Storefront() {
       if (!hasData && (catsRes.status === "rejected" || prodsRes.status === "rejected")) {
         setFetchError("Não foi possível carregar os itens do cardápio. Verifique a conexão com a rede.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Erro geral no fetchData:", err);
       setFetchError("Erro ao carregar dados do cardápio.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+    try {
+      const savedOrderStr = localStorage.getItem("popshake_home_sections_order");
+      if (savedOrderStr) {
+        const savedOrder: HomeSectionId[] = JSON.parse(savedOrderStr);
+        if (Array.isArray(savedOrder)) {
+          const valid = savedOrder.filter((id) => DEFAULT_SECTIONS_ORDER.includes(id));
+          for (const defId of DEFAULT_SECTIONS_ORDER) {
+            if (!valid.includes(defId)) {
+              valid.push(defId);
+            }
+          }
+          if (valid.length === DEFAULT_SECTIONS_ORDER.length) {
+            setSectionsOrder(valid);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Erro ao carregar popshake_home_sections_order:", err);
+    }
+  }, [fetchData]);
+
+  useEffect(() => {
+    if (mobileSearchOpen) {
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+  }, [mobileSearchOpen]);
 
   // State for drag & drop category reordering
   const [draggedCatIndex, setDraggedCatIndex] = useState<number | null>(null);

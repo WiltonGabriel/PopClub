@@ -16,7 +16,7 @@ import {
   ArrowLeft,
   Crosshair,
 } from "lucide-react";
-import { useAddress, Address } from "@/contexts/AddressContext";
+import { useAddress } from "@/contexts/AddressContext";
 
 export function AddressModal() {
   const {
@@ -115,7 +115,7 @@ export function AddressModal() {
 
           setView("gps_confirm");
           setTimeout(() => numberInputRef.current?.focus(), 150);
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error("Erro no reverse geocoding:", err);
           setErrorMessage("Localização obtida, por favor complete os dados do logradouro.");
           setView("manual");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, User, MapPin, Package, Star, CreditCard, Settings, LogOut, Loader2, Map } from "lucide-react";
@@ -26,21 +26,14 @@ export default function AccountPage() {
   // Location state
   const [isAddingLocation, setIsAddingLocation] = useState(false);
   const [locAddress, setLocAddress] = useState("");
-  
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
-    } else if (user) {
-      loadUserData();
-    }
-  }, [user, loading, router]);
 
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
+    if (!user) return;
     setFetching(true);
     try {
       const [prof, locs] = await Promise.all([
-        userService.getProfile(user!.id),
-        userService.getLocations(user!.id)
+        userService.getProfile(user.id),
+        userService.getLocations(user.id)
       ]);
       if (prof) {
         setProfile(prof);
@@ -52,7 +45,15 @@ export default function AccountPage() {
     } finally {
       setFetching(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+    } else if (user) {
+      loadUserData();
+    }
+  }, [user, loading, router, loadUserData]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();

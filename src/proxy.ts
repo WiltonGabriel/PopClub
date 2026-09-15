@@ -47,7 +47,7 @@ async function verifyJwtEdge(token: string, secret: string): Promise<{ userId: s
   }
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Proteção server-side de rotas do painel administrativo (/admin e /admin/*)
@@ -85,3 +85,5 @@ export const config = {
     "/admin/:path*",
   ],
 };
+
+export default proxy;
