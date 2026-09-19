@@ -120,7 +120,7 @@ export function CategoriesDrawer({
             type="button"
             onClick={() => handleCategoryClick(null)}
             className={`w-full flex items-center justify-between p-3 rounded-2xl border transition-all text-left cursor-pointer ${
-              activeCategory === null
+              !activeCategory || activeCategory === "all" || activeCategory === "todas"
                 ? "bg-[#9306CF]/10 border-[#9306CF]/50 text-foreground font-semibold shadow-xs"
                 : "bg-card hover:bg-muted/60 border-border/40 text-foreground"
             }`}
@@ -137,7 +137,7 @@ export function CategoriesDrawer({
               </div>
             </div>
 
-            {activeCategory === null ? (
+            {!activeCategory || activeCategory === "all" || activeCategory === "todas" ? (
               <div className="w-6 h-6 rounded-full bg-[#9306CF] text-white flex items-center justify-center shrink-0">
                 <Check className="w-3.5 h-3.5" />
               </div>
@@ -150,7 +150,7 @@ export function CategoriesDrawer({
           {categories.map((cat) => {
             const { emoji, cleanName } = parseCategoryEmojiAndName(cat.name);
             const count = getProductCount(cat);
-            const isSelected = activeCategory === cat.id;
+            const isSelected = activeCategory === cat.id || (cat.slug && activeCategory === cat.slug);
 
             return (
               <button

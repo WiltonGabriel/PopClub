@@ -37,7 +37,18 @@ export async function GET(request: Request) {
     if (!profile) return NextResponse.json({ error: "Perfil não encontrado." }, { status: 404 });
 
     const avatar = profile.avatarUrl || DEFAULT_AVATAR;
-    const accessibilitySettings = profile.accessibilitySettings || DEFAULT_ACCESSIBILITY;
+    const rawSettings = (profile.accessibilitySettings as Record<string, any>) || {};
+    const accessibilitySettings = {
+      fontSize: rawSettings.fontSize || DEFAULT_ACCESSIBILITY.fontSize,
+      colorBlindMode: rawSettings.colorBlindMode || DEFAULT_ACCESSIBILITY.colorBlindMode,
+      highContrast: Boolean(rawSettings.highContrast),
+      reduceMotion: Boolean(rawSettings.reduceMotion),
+      visualAlerts: Boolean(rawSettings.visualAlerts),
+      dyslexicFont: Boolean(rawSettings.dyslexicFont),
+    };
+
+    const defaultPaymentMethod = rawSettings.defaultPaymentMethod || null;
+    const defaultChangeFor = rawSettings.defaultChangeFor !== undefined ? rawSettings.defaultChangeFor : null;
 
     return NextResponse.json({
       id: profile.id,
@@ -49,6 +60,10 @@ export async function GET(request: Request) {
       avatar,
       accessibilitySettings,
       accessibility_settings: accessibilitySettings,
+      default_payment_method: defaultPaymentMethod,
+      defaultPaymentMethod,
+      default_change_for: defaultChangeFor,
+      defaultChangeFor,
       phone: profile.phone,
       created_at: profile.createdAt.toISOString(),
     });
@@ -77,11 +92,33 @@ async function handleUpdateProfile(request: Request) {
     if (body?.avatar !== undefined) dataToUpdate.avatarUrl = body.avatar;
     if (body?.phone !== undefined) dataToUpdate.phone = body.phone;
 
+    // Buscar configurações já existentes para fusão segura sem perda de dados
+    const current = await prisma.user.findUnique({
+      where: { id: authUser.id },
+      select: { accessibilitySettings: true },
+    });
+    const currentSettings = (current?.accessibilitySettings as Record<string, any>) || {};
+    let newSettings: Record<string, any> = { ...currentSettings };
+
     if (body?.accessibilitySettings !== undefined) {
-      dataToUpdate.accessibilitySettings = body.accessibilitySettings;
+      newSettings = { ...newSettings, ...body.accessibilitySettings };
     } else if (body?.accessibility_settings !== undefined) {
-      dataToUpdate.accessibilitySettings = body.accessibility_settings;
+      newSettings = { ...newSettings, ...body.accessibility_settings };
     }
+
+    if (body?.default_payment_method !== undefined) {
+      newSettings.defaultPaymentMethod = body.default_payment_method;
+    } else if (body?.defaultPaymentMethod !== undefined) {
+      newSettings.defaultPaymentMethod = body.defaultPaymentMethod;
+    }
+
+    if (body?.default_change_for !== undefined) {
+      newSettings.defaultChangeFor = body.default_change_for !== "" && body.default_change_for !== null ? Number(body.default_change_for) : null;
+    } else if (body?.defaultChangeFor !== undefined) {
+      newSettings.defaultChangeFor = body.defaultChangeFor !== "" && body.defaultChangeFor !== null ? Number(body.defaultChangeFor) : null;
+    }
+
+    dataToUpdate.accessibilitySettings = newSettings;
 
     const updated = await prisma.user.update({
       where: { id: authUser.id },
@@ -89,7 +126,18 @@ async function handleUpdateProfile(request: Request) {
     });
 
     const avatar = updated.avatarUrl || DEFAULT_AVATAR;
-    const accessibilitySettings = updated.accessibilitySettings || DEFAULT_ACCESSIBILITY;
+    const updatedRaw = (updated.accessibilitySettings as Record<string, any>) || {};
+    const accessibilitySettings = {
+      fontSize: updatedRaw.fontSize || DEFAULT_ACCESSIBILITY.fontSize,
+      colorBlindMode: updatedRaw.colorBlindMode || DEFAULT_ACCESSIBILITY.colorBlindMode,
+      highContrast: Boolean(updatedRaw.highContrast),
+      reduceMotion: Boolean(updatedRaw.reduceMotion),
+      visualAlerts: Boolean(updatedRaw.visualAlerts),
+      dyslexicFont: Boolean(updatedRaw.dyslexicFont),
+    };
+
+    const defaultPaymentMethod = updatedRaw.defaultPaymentMethod || null;
+    const defaultChangeFor = updatedRaw.defaultChangeFor !== undefined ? updatedRaw.defaultChangeFor : null;
 
     return NextResponse.json({
       id: updated.id,
@@ -101,6 +149,10 @@ async function handleUpdateProfile(request: Request) {
       avatar,
       accessibilitySettings,
       accessibility_settings: accessibilitySettings,
+      default_payment_method: defaultPaymentMethod,
+      defaultPaymentMethod,
+      default_change_for: defaultChangeFor,
+      defaultChangeFor,
       phone: updated.phone,
       created_at: updated.createdAt.toISOString(),
     });

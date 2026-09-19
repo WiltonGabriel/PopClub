@@ -7,6 +7,10 @@ export interface AuthUser {
   avatarUrl?: string | null;
   avatar?: string | null;
   accessibilitySettings?: any;
+  defaultPaymentMethod?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
+  defaultChangeFor?: number | null;
+  default_payment_method?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
+  default_change_for?: number | null;
 }
 
 export const authService = {

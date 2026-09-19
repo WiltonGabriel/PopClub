@@ -44,6 +44,8 @@ export async function getAuthUser(request?: Request): Promise<{
   avatarUrl: string | null;
   avatar: string | null;
   accessibilitySettings: any;
+  defaultPaymentMethod?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
+  defaultChangeFor?: number | null;
 } | null> {
   try {
     let token: string | undefined;
@@ -102,6 +104,8 @@ export async function getAuthUser(request?: Request): Promise<{
     const defaultAvatar = "/avatars/avatar-sorvete.svg";
     const avatar = user.avatarUrl || defaultAvatar;
 
+    const rawSettings = (user.accessibilitySettings as Record<string, any>) || {};
+
     return {
       id: user.id,
       email: user.email,
@@ -111,6 +115,8 @@ export async function getAuthUser(request?: Request): Promise<{
       avatarUrl: avatar,
       avatar,
       accessibilitySettings: user.accessibilitySettings || null,
+      defaultPaymentMethod: rawSettings.defaultPaymentMethod || null,
+      defaultChangeFor: rawSettings.defaultChangeFor !== undefined ? rawSettings.defaultChangeFor : null,
     };
   } catch (err: any) {
     console.error("Erro geral em getAuthUser:", err);

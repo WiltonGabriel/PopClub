@@ -30,6 +30,9 @@ import {
   Accessibility,
   Sun,
   Moon,
+  Banknote,
+  QrCode,
+  Wallet,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -102,6 +105,11 @@ export default function AccountPage() {
   const [selectedAvatar, setSelectedAvatar] = useState("/avatars/avatar-sorvete.svg");
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
+  // Preferências de Pagamento na Entrega
+  const [preferredPaymentMethod, setPreferredPaymentMethod] = useState<"pix_entrega" | "cartao_maquininha" | "dinheiro">("pix_entrega");
+  const [preferredChangeFor, setPreferredChangeFor] = useState("");
+  const [isSavingPreferences, setIsSavingPreferences] = useState(false);
+
   // Modal de Avatar
   const [avatarPresets, setAvatarPresets] = useState<AvatarPresetItem[]>(DEFAULT_AVATAR_PRESETS);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
@@ -138,6 +146,21 @@ export default function AccountPage() {
         const userAvatar = prof.avatar || prof.avatar_url || user.avatar || user.avatarUrl || "/avatars/avatar-sorvete.svg";
         setSelectedAvatar(userAvatar);
         setModalAvatarChoice(userAvatar);
+
+        const pMethod = prof.default_payment_method || prof.defaultPaymentMethod || user.defaultPaymentMethod || user.default_payment_method || "pix_entrega";
+        if (pMethod === "dinheiro" || pMethod === "cartao_maquininha" || pMethod === "pix_entrega") {
+          setPreferredPaymentMethod(pMethod);
+        }
+        const pChange = prof.default_change_for !== undefined && prof.default_change_for !== null
+          ? String(prof.default_change_for)
+          : (prof.defaultChangeFor !== undefined && prof.defaultChangeFor !== null
+              ? String(prof.defaultChangeFor)
+              : (user.defaultChangeFor !== undefined && user.defaultChangeFor !== null
+                  ? String(user.defaultChangeFor)
+                  : (user.default_change_for !== undefined && user.default_change_for !== null
+                      ? String(user.default_change_for)
+                      : "")));
+        setPreferredChangeFor(pChange);
       }
       setLocations(locs);
     } catch (err) {
@@ -208,6 +231,34 @@ export default function AccountPage() {
     }
   };
 
+  // Salvar preferências gerais e de pagamento
+  const handleSavePreferences = async () => {
+    if (!user) return;
+    setIsSavingPreferences(true);
+    try {
+      const changeVal = preferredPaymentMethod === "dinheiro" && preferredChangeFor ? parseFloat(preferredChangeFor) : null;
+      const updated = await userService.updateProfile(user.id, {
+        default_payment_method: preferredPaymentMethod,
+        default_change_for: changeVal,
+      });
+      setProfile(updated);
+      await refreshUser();
+      showToast({
+        type: "success",
+        title: "Preferências salvas!",
+        message: "Sua forma de pagamento preferencial e configurações foram atualizadas com sucesso.",
+      });
+    } catch (err: any) {
+      showToast({
+        type: "error",
+        title: "Erro ao salvar preferências",
+        message: err?.message || "Não foi possível salvar suas preferências.",
+      });
+    } finally {
+      setIsSavingPreferences(false);
+    }
+  };
+
   const handleSignOut = async () => {
     resetToDefaults();
     await authService.signOut();
@@ -262,7 +313,6 @@ export default function AccountPage() {
   const sections = [
     { id: "perfil", label: "Meu Perfil", icon: <User className="w-4 h-4" /> },
     { id: "enderecos", label: "Endereços", icon: <MapPin className="w-4 h-4" /> },
-    { id: "pagamentos", label: "Pagamentos", icon: <CreditCard className="w-4 h-4" /> },
     { id: "avaliacoes", label: "Avaliações", icon: <Star className="w-4 h-4" /> },
     { id: "preferencias", label: "Preferências", icon: <Settings className="w-4 h-4" /> },
     { id: "acessibilidade", label: "Acessibilidade", icon: <Accessibility className="w-4 h-4" /> },
@@ -993,24 +1043,170 @@ export default function AccountPage() {
                 </div>
               </div>
 
+              {/* ================= SEÇÃO: FORMA DE PAGAMENTO PREFERENCIAL NA ENTREGA ================= */}
+              <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-[#512B54]/40">
+                <div>
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                    <Wallet className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                    Forma de Pagamento Preferencial na Entrega
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Como o Pop Shake opera exclusivamente com pagamento na entrega, escolha sua preferência habitual para que ela venha pré-selecionada no checkout.
+                  </p>
+                </div>
+
+                {/* Cards de Métodos de Pagamento na Entrega */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                  {/* Opção Pix */}
+                  <button
+                    type="button"
+                    onClick={() => setPreferredPaymentMethod("pix_entrega")}
+                    className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
+                      preferredPaymentMethod === "pix_entrega"
+                        ? "border-[#9306CF] bg-purple-50/70 dark:bg-[#9306CF]/20 shadow-sm ring-1 ring-[#9306CF]/30"
+                        : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#190B1A]/60"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between w-full mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-xs">
+                        <QrCode className="w-5 h-5" />
+                      </div>
+                      {preferredPaymentMethod === "pix_entrega" && (
+                        <span className="w-5 h-5 rounded-full bg-[#9306CF] text-white flex items-center justify-center shadow-xs">
+                          <Check className="w-3 h-3" />
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <span className="font-heading font-bold text-sm text-gray-900 dark:text-white block">
+                        Pix na Entrega
+                      </span>
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
+                        QR Code gerado na hora pelo entregador ao receber seu pedido.
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Opção Cartão na Maquininha */}
+                  <button
+                    type="button"
+                    onClick={() => setPreferredPaymentMethod("cartao_maquininha")}
+                    className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
+                      preferredPaymentMethod === "cartao_maquininha"
+                        ? "border-[#9306CF] bg-purple-50/70 dark:bg-[#9306CF]/20 shadow-sm ring-1 ring-[#9306CF]/30"
+                        : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#190B1A]/60"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between w-full mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center shrink-0 shadow-xs">
+                        <CreditCard className="w-5 h-5" />
+                      </div>
+                      {preferredPaymentMethod === "cartao_maquininha" && (
+                        <span className="w-5 h-5 rounded-full bg-[#9306CF] text-white flex items-center justify-center shadow-xs">
+                          <Check className="w-3 h-3" />
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <span className="font-heading font-bold text-sm text-gray-900 dark:text-white block">
+                        Cartão (Maquininha)
+                      </span>
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
+                        Débito, crédito ou aproximação levado pelo entregador.
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Opção Dinheiro */}
+                  <button
+                    type="button"
+                    onClick={() => setPreferredPaymentMethod("dinheiro")}
+                    className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
+                      preferredPaymentMethod === "dinheiro"
+                        ? "border-[#9306CF] bg-purple-50/70 dark:bg-[#9306CF]/20 shadow-sm ring-1 ring-[#9306CF]/30"
+                        : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#190B1A]/60"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between w-full mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-xs">
+                        <Banknote className="w-5 h-5" />
+                      </div>
+                      {preferredPaymentMethod === "dinheiro" && (
+                        <span className="w-5 h-5 rounded-full bg-[#9306CF] text-white flex items-center justify-center shadow-xs">
+                          <Check className="w-3 h-3" />
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <span className="font-heading font-bold text-sm text-gray-900 dark:text-white block">
+                        Dinheiro em Espécie
+                      </span>
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
+                        Pagamento em cédulas na entrega (com troco se necessário).
+                      </p>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Campo opcional de troco frequente para dinheiro */}
+                {preferredPaymentMethod === "dinheiro" && (
+                  <div className="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 space-y-2 animate-in fade-in-50 duration-200">
+                    <Label htmlFor="preferred-change" className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      Troco frequente para quanto? (Opcional)
+                    </Label>
+                    <div className="flex items-center gap-2 max-w-xs">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">R$</span>
+                        <Input
+                          id="preferred-change"
+                          type="number"
+                          step="0.01"
+                          placeholder="Ex: 50.00"
+                          value={preferredChangeFor}
+                          onChange={(e) => setPreferredChangeFor(e.target.value)}
+                          className="pl-9 h-10 rounded-xl bg-white dark:bg-[#190B1A] border-gray-300 dark:border-[#512B54]/60 text-sm font-mono"
+                        />
+                      </div>
+                      {preferredChangeFor && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setPreferredChangeFor("")}
+                          className="text-xs text-muted-foreground hover:text-foreground h-9 px-2 cursor-pointer"
+                        >
+                          Limpar
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Esse valor virá pré-preenchido no campo de troco ao finalizar pedidos em dinheiro.
+                    </p>
+                  </div>
+                )}
+              </div>
+
               {/* Rodapé com Salvar */}
               <div className="pt-4 border-t border-gray-200 dark:border-[#512B54]/40 flex items-center justify-end">
                 <Button
                   type="button"
-                  onClick={() => {
-                    showToast({ type: "success", title: "Preferências salvas!", message: "Suas configurações de tema e notificações foram atualizadas." });
-                  }}
-                  className="h-11 px-6 rounded-xl font-heading font-bold uppercase tracking-widest text-xs bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white shadow-md shadow-[#9306CF]/20 cursor-pointer flex items-center gap-1.5"
+                  disabled={isSavingPreferences}
+                  onClick={handleSavePreferences}
+                  className="h-11 px-6 rounded-xl font-heading font-bold uppercase tracking-widest text-xs bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white shadow-md shadow-[#9306CF]/20 cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
                 >
-                  <CheckCircle2 className="w-4 h-4" />
-                  Salvar Preferências
+                  {isSavingPreferences ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4" />
+                  )}
+                  {isSavingPreferences ? "Salvando..." : "Salvar Preferências"}
                 </Button>
               </div>
             </div>
           )}
 
           {/* Placeholders for other sections */}
-          {(activeSection === "pagamentos" || activeSection === "avaliacoes") && (
+          {activeSection === "avaliacoes" && (
             <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm flex flex-col items-center justify-center py-20 text-center">
               <Settings className="w-12 h-12 text-gray-400 dark:text-gray-600 mb-4" />
               <h3 className="font-heading font-bold text-xl uppercase tracking-wider mb-2 text-[#4C264F] dark:text-[#F9F5F9]">

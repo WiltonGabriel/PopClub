@@ -17,6 +17,10 @@ export interface UserProfile {
   avatar?: string | null;
   accessibilitySettings?: AccessibilitySettings;
   accessibility_settings?: AccessibilitySettings;
+  default_payment_method?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
+  default_change_for?: number | null;
+  defaultPaymentMethod?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
+  defaultChangeFor?: number | null;
   phone: string | null;
   created_at: string;
 }
@@ -51,6 +55,8 @@ export interface UserPreferences {
   push_notifications: boolean;
   newsletter: boolean;
   theme: string;
+  default_payment_method?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
+  default_change_for?: number | null;
 }
 
 export const userService = {

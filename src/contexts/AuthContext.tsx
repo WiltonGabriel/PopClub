@@ -12,6 +12,10 @@ export interface AppUser {
   avatarUrl?: string | null;
   avatar?: string | null;
   accessibilitySettings?: any;
+  defaultPaymentMethod?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
+  defaultChangeFor?: number | null;
+  default_payment_method?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
+  default_change_for?: number | null;
   user_metadata?: {
     username?: string;
     full_name?: string;
@@ -56,6 +60,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           avatarUrl: avatar,
           avatar: avatar,
           accessibilitySettings: current.accessibilitySettings,
+          defaultPaymentMethod: current.defaultPaymentMethod || current.default_payment_method || null,
+          defaultChangeFor: current.defaultChangeFor !== undefined ? current.defaultChangeFor : (current.default_change_for !== undefined ? current.default_change_for : null),
+          default_payment_method: current.defaultPaymentMethod || current.default_payment_method || null,
+          default_change_for: current.defaultChangeFor !== undefined ? current.defaultChangeFor : (current.default_change_for !== undefined ? current.default_change_for : null),
           user_metadata: {
             username: current.username,
             full_name: current.fullName || current.username,

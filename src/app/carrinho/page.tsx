@@ -156,9 +156,23 @@ export default function CarrinhoPage() {
     storeSettingsService.getSettings().then(setStoreSettings).catch(console.error);
   }, []);
 
-  // Carrega endereços salvos se estiver logado
+  // Carrega endereços salvos e preferências de pagamento se estiver logado
   useEffect(() => {
     if (user?.id) {
+      // Pré-seleciona forma de pagamento e troco preferencial do cliente
+      const prefPayment = user.defaultPaymentMethod || user.default_payment_method || (user.accessibilitySettings as any)?.defaultPaymentMethod;
+      if (prefPayment && (prefPayment === "pix_entrega" || prefPayment === "cartao_maquininha" || prefPayment === "dinheiro")) {
+        setPaymentType(prefPayment);
+      }
+      const prefChange = user.defaultChangeFor !== undefined && user.defaultChangeFor !== null
+        ? user.defaultChangeFor
+        : (user.default_change_for !== undefined && user.default_change_for !== null
+            ? user.default_change_for
+            : (user.accessibilitySettings as any)?.defaultChangeFor);
+      if (prefChange !== undefined && prefChange !== null && prefChange !== "") {
+        setChangeFor(String(prefChange));
+      }
+
       userService
         .getLocations(user.id)
         .then((locs) => {

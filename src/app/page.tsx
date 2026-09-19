@@ -457,6 +457,12 @@ export default function Storefront() {
   const handleCloseMobileCategoryView = useCallback(() => {
     setMobileCategoryView(null);
     setActiveCategory(null);
+    if (typeof window !== "undefined" && window.history) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("categoria");
+      url.searchParams.delete("category");
+      window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+    }
     const targetScroll = savedScrollYRef.current || 0;
     setTimeout(() => {
       window.scrollTo({ top: targetScroll, behavior: "smooth" });
@@ -465,40 +471,51 @@ export default function Storefront() {
 
   const handleSelectCategory = useCallback(
     (catId: string | null) => {
-      if (!catId) {
+      if (!catId || catId === "all" || catId === "todas") {
         if (mobileCategoryView) {
           handleCloseMobileCategoryView();
         } else {
           setActiveCategory(null);
+          if (typeof window !== "undefined" && window.history) {
+            const url = new URL(window.location.href);
+            url.searchParams.delete("categoria");
+            url.searchParams.delete("category");
+            window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+          }
           window.scrollTo({ top: 0, behavior: "smooth" });
         }
         return;
       }
 
-      const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+      const cat = categories.find(
+        (c) => c.id === catId || (c.slug && c.slug === catId) || c.name.toLowerCase() === catId.toLowerCase()
+      );
+      const effectiveId = cat ? cat.id : catId;
 
-      if (isMobile) {
-        const cat = categories.find((c) => c.id === catId);
-        if (cat) {
-          if (!mobileCategoryView) {
-            savedScrollYRef.current = window.scrollY;
-            if (typeof window !== "undefined" && window.history) {
-              window.history.pushState({ categoryId: cat.id }, "");
-            }
-          }
-          setActiveCategory(cat.id);
-          setMobileCategoryView(cat);
-          setTimeout(() => {
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }, 30);
-          return;
-        }
+      if (typeof window !== "undefined" && window.history) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("categoria", cat?.slug || effectiveId);
+        window.history.replaceState({ categoryId: effectiveId }, "", url.pathname + url.search);
       }
 
-      // Desktop: rola suavemente até o container da categoria
-      setActiveCategory(catId);
+      const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+
+      if (isMobile && cat) {
+        if (!mobileCategoryView) {
+          savedScrollYRef.current = window.scrollY;
+        }
+        setActiveCategory(cat.id);
+        setMobileCategoryView(cat);
+        setTimeout(() => {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }, 30);
+        return;
+      }
+
+      // Desktop / Tablet: rola suavemente até o container da categoria
+      setActiveCategory(effectiveId);
       setTimeout(() => {
-        const el = document.getElementById(`category-${catId}`);
+        const el = document.getElementById(`category-${effectiveId}`);
         if (el) {
           const offset = 140; // header + category bar height
           const top = el.getBoundingClientRect().top + window.scrollY - offset;
@@ -508,6 +525,21 @@ export default function Storefront() {
     },
     [categories, mobileCategoryView, handleCloseMobileCategoryView]
   );
+
+  // Sincroniza categoria inicial via URL (?categoria=... ou ?category=...)
+  useEffect(() => {
+    if (typeof window === "undefined" || categories.length === 0) return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const catParam = urlParams.get("categoria") || urlParams.get("category");
+    if (catParam && catParam !== "all" && catParam !== "todas") {
+      const matched = categories.find(
+        (c) => c.id === catParam || (c.slug && c.slug === catParam) || c.name.toLowerCase() === catParam.toLowerCase()
+      );
+      if (matched && activeCategory !== matched.id) {
+        handleSelectCategory(matched.id);
+      }
+    }
+  }, [categories, handleSelectCategory, activeCategory]);
 
   const scrollToCategory = handleSelectCategory;
 
@@ -945,7 +977,7 @@ export default function Storefront() {
                 {/* “Todos” chip */}
                 <button
                   onClick={() => handleSelectCategory(null)}
-                  aria-pressed={activeCategory === null}
+                  aria-pressed={!activeCategory || activeCategory === "all" || activeCategory === "todas"}
                   className={`
                     chip-clay shrink-0 snap-start
                     flex items-center gap-1.5
@@ -953,7 +985,7 @@ export default function Storefront() {
                     text-xs font-semibold
                     border transition-all duration-200 min-h-[40px]
                     ${
-                      activeCategory === null
+                      !activeCategory || activeCategory === "all" || activeCategory === "todas"
                         ? "category-active border-transparent"
                         : "bg-card border-border/40 text-foreground hover:text-brand-pop-shake hover:border-brand-pop-shake/40 hover:bg-muted"
                     }
@@ -962,17 +994,19 @@ export default function Storefront() {
                   🏠 Todos
                 </button>
 
-                {categories.map((cat, catIdx) => (
-                  <div
-                    key={cat.id}
-                    className={`relative group shrink-0 snap-start transition-transform ${
-                      draggedCatIndex === catIdx ? "opacity-40 scale-95" : ""
-                    }`}
-                  >
-                    <CategoryChip
-                      category={cat}
-                      isActive={activeCategory === cat.id}
-                      onClick={() => scrollToCategory(cat.id)}
+                {categories.map((cat, catIdx) => {
+                  const isCatSelected = activeCategory === cat.id || (cat.slug ? activeCategory === cat.slug : false);
+                  return (
+                    <div
+                      key={cat.id}
+                      className={`relative group shrink-0 snap-start transition-transform ${
+                        draggedCatIndex === catIdx ? "opacity-40 scale-95" : ""
+                      }`}
+                    >
+                      <CategoryChip
+                        category={cat}
+                        isActive={isCatSelected}
+                        onClick={() => handleSelectCategory(cat.id)}
                       onContextMenu={(e) => {
                         if (canEdit) {
                           e.preventDefault();
@@ -1049,7 +1083,8 @@ export default function Storefront() {
                       </div>
                     )}
                   </div>
-                ))}
+                );
+              })}
 
                 {/* Admin: add category */}
                 {canEdit && (
@@ -1454,14 +1489,14 @@ export default function Storefront() {
           BOTTOM NAV (mobile only)
       ───────────────────────────────────────── */}
       <BottomNav
-        isCategoryActive={Boolean(activeCategory || mobileCategoryView || categoriesDrawerOpen)}
+        isCategoryActive={Boolean(
+          (activeCategory && activeCategory !== "all" && activeCategory !== "todas") ||
+          mobileCategoryView ||
+          categoriesDrawerOpen
+        )}
         onCategoriesClick={() => setCategoriesDrawerOpen(true)}
         onHomeClick={() => {
-          if (mobileCategoryView) {
-            handleCloseMobileCategoryView();
-          }
-          setActiveCategory(null);
-          window.scrollTo({ top: 0, behavior: "smooth" });
+          handleSelectCategory(null);
         }}
       />
 
