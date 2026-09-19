@@ -41,6 +41,7 @@ import {
 import { useToast } from "../../components/ui/ToastNotification";
 import { authService } from "../../services/authService";
 import { userService, UserProfile, UserLocation } from "../../services/userService";
+import { useAddress } from "../../contexts/AddressContext";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -62,6 +63,14 @@ const AVATAR_PRESETS = [
 export default function AccountPage() {
   const { user, loading, refreshUser } = useAuth();
   const { theme, toggleTheme, setTheme } = useTheme();
+  const { 
+    addresses, 
+    activeAddressId, 
+    setActiveAddressId, 
+    openAddressModal, 
+    deleteAddress: deleteAddressCtx,
+    refreshAddresses 
+  } = useAddress();
   const { 
     previewSettings, 
     updatePreview, 
@@ -756,74 +765,114 @@ export default function AccountPage() {
 
           {/* ================= ABA: ENDEREÇOS ================= */}
           {activeSection === "enderecos" && (
-            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm">
-              <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] mb-6 flex items-center gap-2">
-                <MapPin className="w-6 h-6 text-[#9306CF] dark:text-[#C7A9C9]" /> Meus Endereços
-              </h2>
+            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border/40">
+                <div>
+                  <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
+                    <MapPin className="w-6 h-6 text-[#9306CF] dark:text-[#C7A9C9]" /> Meus Endereços
+                  </h2>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                    Gerencie seus endereços de entrega cadastrados na conta.
+                  </p>
+                </div>
+                <Button 
+                  onClick={openAddressModal}
+                  className="h-10 px-4 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white font-heading uppercase tracking-wider text-xs font-bold shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer"
+                >
+                  <MapPin className="w-4 h-4" /> + Novo Endereço
+                </Button>
+              </div>
 
-              {!isAddingLocation ? (
-                <>
-                  <div className="space-y-4 mb-6">
-                    {locations.length > 0 ? locations.map(loc => (
-                      <div key={loc.id} className="border border-gray-200 dark:border-[#512B54]/40 rounded-xl p-4 flex justify-between items-center bg-gray-50/70 dark:bg-[#190B1A]/80">
-                        <div>
-                          <p className="font-sans text-sm font-medium text-[#4C264F] dark:text-[#F9F5F9] mb-1">{loc.address_line}</p>
-                          {loc.is_default && (
-                            <span className="bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full border border-[#9306CF]/20">
-                              Padrão
+              <div className="space-y-3.5">
+                {addresses.length > 0 ? (
+                  addresses.map((addr) => {
+                    const isDefault = addr.id === activeAddressId;
+                    return (
+                      <div 
+                        key={addr.id} 
+                        className={`border rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 transition-all ${
+                          isDefault 
+                            ? "border-[#9306CF]/50 bg-[#9306CF]/5 dark:bg-[#9306CF]/10 shadow-xs" 
+                            : "border-gray-200 dark:border-[#512B54]/40 bg-gray-50/70 dark:bg-[#190B1A]/80 hover:border-[#9306CF]/30"
+                        }`}
+                      >
+                        <div className="space-y-1.5 min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-heading font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-1.5">
+                              <MapPin className="w-4 h-4 text-[#9306CF]" /> {addr.label || "Endereço"}
                             </span>
-                          )}
+                            {isDefault ? (
+                              <span className="inline-flex items-center gap-1 bg-[#9306CF]/15 text-[#9306CF] dark:text-[#C7A9C9] text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border border-[#9306CF]/30">
+                                <Check className="w-3 h-3" /> Padrão / Ativo
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveAddressId(addr.id);
+                                  showToast({
+                                    type: "success",
+                                    title: "Endereço Definido",
+                                    message: "Este endereço agora é seu padrão de entrega.",
+                                  });
+                                }}
+                                className="text-[11px] text-[#9306CF] dark:text-[#C7A9C9] hover:underline font-semibold cursor-pointer"
+                              >
+                                Definir como padrão
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-snug">
+                            {addr.street}, {addr.number}
+                            {addr.complement ? ` (${addr.complement})` : ""}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Bairro {addr.neighborhood} • {addr.city}
+                            {addr.zip ? ` • CEP ${addr.zip}` : ""}
+                            {addr.reference ? ` • Ref: ${addr.reference}` : ""}
+                          </p>
                         </div>
-                        <button 
-                          onClick={() => userService.deleteLocation(loc.id).then(loadUserData)}
-                          className="text-xs text-red-600 dark:text-red-400 hover:underline font-semibold uppercase cursor-pointer"
-                        >
-                          Remover
-                        </button>
+
+                        <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
+                          <button 
+                            onClick={async () => {
+                              if (confirm("Tem certeza que deseja remover este endereço?")) {
+                                await deleteAddressCtx(addr.id);
+                                showToast({
+                                  type: "info",
+                                  title: "Endereço Removido",
+                                  message: "O endereço foi excluído da sua conta com sucesso.",
+                                });
+                              }
+                            }}
+                            className="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-semibold uppercase tracking-wider hover:underline cursor-pointer px-2 py-1"
+                          >
+                            Remover
+                          </button>
+                        </div>
                       </div>
-                    )) : (
-                      <p className="text-gray-600 dark:text-gray-300 text-sm">Nenhum endereço salvo.</p>
-                    )}
-                  </div>
-                  <Button 
-                    onClick={() => setIsAddingLocation(true)}
-                    className="w-full h-12 rounded-xl border border-dashed border-gray-300 dark:border-[#512B54]/60 bg-transparent text-[#4C264F] dark:text-[#F9F5F9] hover:bg-gray-100 dark:hover:bg-white/5 uppercase text-sm tracking-wider font-semibold cursor-pointer"
-                  >
-                    + Novo Endereço
-                  </Button>
-                </>
-              ) : (
-                <form onSubmit={handleSaveLocation} className="space-y-5 border border-gray-200 dark:border-[#512B54]/40 p-5 rounded-xl bg-gray-50/70 dark:bg-[#190B1A]/80">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                      Buscar no Mapa
-                    </Label>
-                    <div className="flex gap-2">
-                      <Input 
-                        value={locAddress}
-                        onChange={e => setLocAddress(e.target.value)}
-                        placeholder="Ex: Av. Paulista, 1000"
-                        className="h-12 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#1F0B22] dark:border-[#512B54]/50 dark:text-white focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
-                        required
-                      />
-                      <Button type="button" onClick={simulateGetLocation} className="h-12 w-12 shrink-0 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white p-0 shadow-sm cursor-pointer">
-                        <Map className="w-5 h-5" />
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-10 px-4 rounded-2xl border border-dashed border-gray-300 dark:border-[#512B54]/50 bg-gray-50/40 dark:bg-[#190B1A]/40 space-y-3">
+                    <MapPin className="w-10 h-10 text-muted-foreground/40 mx-auto" />
+                    <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">
+                      Nenhum endereço salvo nesta conta ainda.
+                    </p>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                      Cadastre um endereço para receber entregas rápidas e calculadas em tempo real.
+                    </p>
+                    <div>
+                      <Button 
+                        onClick={openAddressModal}
+                        className="h-10 px-4 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] text-white font-heading text-xs uppercase tracking-wider font-bold shadow-sm cursor-pointer"
+                      >
+                        + Cadastrar Primeiro Endereço
                       </Button>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                      * Em produção, isso abrirá um modal do Google Maps para precisão &lt; 4m.
-                    </p>
                   </div>
-                  <div className="flex gap-4">
-                    <Button type="button" onClick={() => setIsAddingLocation(false)} variant="outline" className="flex-1 h-12 rounded-xl border border-gray-200 dark:border-[#512B54]/40 text-gray-700 dark:text-gray-300 uppercase tracking-widest text-xs font-semibold cursor-pointer">
-                      Cancelar
-                    </Button>
-                    <Button type="submit" className="flex-1 h-12 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white font-heading uppercase tracking-widest text-sm shadow-md cursor-pointer">
-                      Salvar Endereço
-                    </Button>
-                  </div>
-                </form>
-              )}
+                )}
+              </div>
             </div>
           )}
 

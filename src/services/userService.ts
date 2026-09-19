@@ -24,13 +24,26 @@ export interface UserProfile {
 export interface UserLocation {
   id: string;
   user_id: string;
+  userId?: string;
   name: string | null;
+  label?: string | null;
+  street: string;
+  number: string;
+  neighborhood: string;
+  city: string;
+  state?: string;
+  complement?: string | null;
+  reference?: string | null;
+  zip?: string | null;
   address_line: string;
-  latitude: number;
-  longitude: number;
+  addressLine?: string;
+  latitude: number | null;
+  longitude: number | null;
   accuracy: number | null;
   is_default: boolean;
+  isDefault?: boolean;
   created_at: string;
+  createdAt?: string;
 }
 
 export interface UserPreferences {
@@ -66,25 +79,39 @@ export const userService = {
     return await res.json();
   },
 
-  async addLocation(location: Omit<UserLocation, "id" | "created_at">): Promise<UserLocation> {
+  async addLocation(location: Partial<UserLocation>): Promise<UserLocation> {
     const res = await fetch("/api/users/locations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(location),
     });
     if (!res.ok) {
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       throw new Error(data.error || "Erro ao salvar endereço.");
     }
     return await res.json();
   },
 
-  async setDefaultLocation(locationId: string, _userId: string): Promise<void> {
-    // Pode ser implementado se necessário
+  async setDefaultLocation(locationId: string, _userId?: string): Promise<void> {
+    const res = await fetch(`/api/users/locations/${locationId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isDefault: true }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Erro ao definir endereço padrão.");
+    }
   },
 
   async deleteLocation(locationId: string): Promise<void> {
-    // Pode ser implementado se necessário
+    const res = await fetch(`/api/users/locations/${locationId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Erro ao remover endereço.");
+    }
   },
 
   async getPreferences(_userId: string): Promise<UserPreferences | null> {

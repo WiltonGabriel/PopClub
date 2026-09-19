@@ -37,12 +37,43 @@ export const authService = {
   },
 
   async signOut() {
-    const res = await fetch("/api/auth/logout", {
-      method: "POST",
-    });
-    if (!res.ok) {
-      const data = await res.json();
-      throw new Error(data.error || "Erro ao sair.");
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+    } catch (err) {
+      console.error("Erro ao chamar endpoint de logout:", err);
+    }
+
+    if (typeof window !== "undefined") {
+      try {
+        // Limpa carrinho
+        localStorage.removeItem("popclub_cart_v1");
+        // Limpa chaves legadas e chaves de guest
+        localStorage.removeItem("popshake_addresses");
+        localStorage.removeItem("popshake_active_address");
+        localStorage.removeItem("popshake_guest_addresses");
+        localStorage.removeItem("popshake_guest_active_address");
+
+        // Remove todas as chaves de endereços cacheadas por usuário
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (
+            k &&
+            (k.startsWith("popshake_addresses_") ||
+              k.startsWith("popshake_active_address_"))
+          ) {
+            keysToRemove.push(k);
+          }
+        }
+        keysToRemove.forEach((k) => localStorage.removeItem(k));
+      } catch (err) {
+        console.warn("Erro ao higienizar storage no logout:", err);
+      }
+
+      // Notifica contextos ativos para reset imediato em memória
+      window.dispatchEvent(new Event("popshake:signout"));
     }
   },
 

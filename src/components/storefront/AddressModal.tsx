@@ -209,7 +209,7 @@ export function AddressModal() {
       street: street.trim(),
       number: number.trim(),
       neighborhood: neighborhood.trim(),
-      city: city.trim() || "Local",
+      city: city.trim() || "Várzea Grande",
       complement: complement.trim() || undefined,
       reference: reference.trim() || undefined,
       zip: zip.trim() || undefined,

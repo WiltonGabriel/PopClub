@@ -57,9 +57,17 @@ model UserLocation {
   id          String   @id @default(uuid())
   userId      String   @map("user_id")
   name        String?
-  addressLine String   @map("address_line")
-  latitude    Float
-  longitude   Float
+  addressLine String?  @map("address_line")
+  street      String   @default("")
+  number      String   @default("")
+  neighborhood String  @default("")
+  city        String   @default("Várzea Grande")
+  state       String   @default("MT")
+  complement  String?
+  reference   String?
+  zip         String?
+  latitude    Float?
+  longitude   Float?
   accuracy    Float?
   isDefault   Boolean  @default(false) @map("is_default")
   createdAt   DateTime @default(now()) @map("created_at")

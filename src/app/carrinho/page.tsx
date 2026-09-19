@@ -163,7 +163,16 @@ export default function CarrinhoPage() {
           const def = locs.find((l) => l.is_default) || locs[0];
           if (def) {
             setSelectedLocationId(def.id);
-            setStreet(def.address_line);
+            if (def.street) setStreet(def.street);
+            else if (def.address_line) setStreet(def.address_line);
+            if (def.number) setNumber(def.number);
+            if (def.neighborhood) setNeighborhood(def.neighborhood);
+            if (def.city) setCity(def.city);
+            if (def.complement) setComplement(def.complement);
+            if (def.reference) setReference(def.reference);
+            if (def.zip) setZip(def.zip);
+            if (def.latitude) setLatitude(def.latitude);
+            if (def.longitude) setLongitude(def.longitude);
           }
         })
         .catch(console.error);
@@ -789,13 +798,24 @@ export default function CarrinhoPage() {
                     onChange={(e) => {
                       setSelectedLocationId(e.target.value);
                       const found = savedLocations.find((l) => l.id === e.target.value);
-                      if (found) setStreet(found.address_line);
+                      if (found) {
+                        if (found.street) setStreet(found.street);
+                        else if (found.address_line) setStreet(found.address_line);
+                        if (found.number) setNumber(found.number);
+                        if (found.neighborhood) setNeighborhood(found.neighborhood);
+                        if (found.city) setCity(found.city);
+                        if (found.complement) setComplement(found.complement);
+                        if (found.reference) setReference(found.reference);
+                        if (found.zip) setZip(found.zip);
+                        if (found.latitude) setLatitude(found.latitude);
+                        if (found.longitude) setLongitude(found.longitude);
+                      }
                     }}
-                    className="w-full bg-background border-2 border-border rounded-none p-2.5 font-mono text-xs"
+                    className="w-full bg-background border-2 border-border rounded-xl p-2.5 font-sans text-xs"
                   >
                     {savedLocations.map((l) => (
                       <option key={l.id} value={l.id}>
-                        {l.name ? `${l.name} - ` : ""}{l.address_line}
+                        {l.name ? `${l.name} - ` : ""}{l.street ? `${l.street}, ${l.number} - ${l.neighborhood}` : l.address_line}
                       </option>
                     ))}
                   </select>

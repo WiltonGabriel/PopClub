@@ -923,7 +923,7 @@ export default function Storefront() {
       ───────────────────────────────────────── */}
       <div
         data-category-bar
-        className="sticky top-[55px] sm:top-[61px] z-30 bg-background/95 dark:bg-[#190B1A]/95 backdrop-blur-md border-b border-border/30"
+        className="hidden md:block sticky top-[55px] sm:top-[61px] z-30 bg-background/95 dark:bg-[#190B1A]/95 backdrop-blur-md border-b border-border/30"
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           {/*

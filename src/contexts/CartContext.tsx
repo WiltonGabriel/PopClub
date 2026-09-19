@@ -79,6 +79,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [items, isLoaded]);
 
+  // Escuta evento global de signout para esvaziar carrinho
+  useEffect(() => {
+    const handleSignOut = () => {
+      setItems([]);
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch {}
+    };
+    window.addEventListener("popshake:signout", handleSignOut);
+    return () => window.removeEventListener("popshake:signout", handleSignOut);
+  }, []);
+
   const addItem = (newItem: Omit<CartItem, "id"> & { id?: string }) => {
     const optionsKey =
       newItem.selectedOptions && newItem.selectedOptions.length > 0
