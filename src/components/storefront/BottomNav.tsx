@@ -31,13 +31,6 @@ export function BottomNav({ onSearchClick, onCategoriesClick, onHomeClick }: Bot
       action: onCategoriesClick,
     },
     {
-      id: "search",
-      label: "Buscar",
-      icon: Search,
-      href: undefined,
-      action: onSearchClick,
-    },
-    {
       id: "orders",
       label: "Pedidos",
       icon: ReceiptText,

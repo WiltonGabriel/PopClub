@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
 import { productService, Product } from "../services/productService";
 import { categoryService, Category } from "../services/categoryService";
@@ -12,7 +12,7 @@ import { useTheme } from "../contexts/ThemeContext";
 // Storefront components
 import { PromoBanner } from "../components/storefront/PromoBanner";
 import { ProductCard } from "../components/storefront/ProductCard";
-import { CategoryChip } from "../components/storefront/CategoryChip";
+import { CategoryChip, parseCategoryEmojiAndName } from "../components/storefront/CategoryChip";
 import { BottomNav } from "../components/storefront/BottomNav";
 import { CartDrawer } from "../components/storefront/CartDrawer";
 import { SearchAutocomplete } from "../components/storefront/SearchAutocomplete";
@@ -58,6 +58,7 @@ import {
   RefreshCw,
   ArrowUp,
   ArrowDown,
+  ArrowLeft,
   ArrowUpDown,
   History,
   Clock,
@@ -432,21 +433,99 @@ export default function Storefront() {
     [addItem]
   );
 
-  const scrollToCategory = (catId: string | null) => {
-    setActiveCategory(catId);
-    if (!catId) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
-    setTimeout(() => {
-      const el = document.getElementById(`category-${catId}`);
-      if (el) {
-        const offset = 140; // header + category bar height
-        const top = el.getBoundingClientRect().top + window.scrollY - offset;
-        window.scrollTo({ top, behavior: "smooth" });
+  // Salva posição de scroll da vitrine para restaurar ao voltar da categoria dedicada no mobile
+  const savedScrollYRef = useRef<number>(0);
+  const [mobileCategoryView, setMobileCategoryView] = useState<Category | null>(null);
+
+  // Escuta o botão voltar do celular/navegador para fechar a visualização dedicada suavemente
+  useEffect(() => {
+    const handlePopState = () => {
+      if (mobileCategoryView) {
+        setMobileCategoryView(null);
+        setActiveCategory(null);
+        const targetScroll = savedScrollYRef.current || 0;
+        setTimeout(() => {
+          window.scrollTo({ top: targetScroll, behavior: "instant" });
+        }, 20);
       }
-    }, 50);
-  };
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [mobileCategoryView]);
+
+  const handleCloseMobileCategoryView = useCallback(() => {
+    setMobileCategoryView(null);
+    setActiveCategory(null);
+    const targetScroll = savedScrollYRef.current || 0;
+    setTimeout(() => {
+      window.scrollTo({ top: targetScroll, behavior: "smooth" });
+    }, 20);
+  }, []);
+
+  const handleSelectCategory = useCallback(
+    (catId: string | null) => {
+      if (!catId) {
+        if (mobileCategoryView) {
+          handleCloseMobileCategoryView();
+        } else {
+          setActiveCategory(null);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+        return;
+      }
+
+      const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+
+      if (isMobile) {
+        const cat = categories.find((c) => c.id === catId);
+        if (cat) {
+          if (!mobileCategoryView) {
+            savedScrollYRef.current = window.scrollY;
+            if (typeof window !== "undefined" && window.history) {
+              window.history.pushState({ categoryId: cat.id }, "");
+            }
+          }
+          setActiveCategory(cat.id);
+          setMobileCategoryView(cat);
+          setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }, 30);
+          return;
+        }
+      }
+
+      // Desktop: rola suavemente até o container da categoria
+      setActiveCategory(catId);
+      setTimeout(() => {
+        const el = document.getElementById(`category-${catId}`);
+        if (el) {
+          const offset = 140; // header + category bar height
+          const top = el.getBoundingClientRect().top + window.scrollY - offset;
+          window.scrollTo({ top, behavior: "smooth" });
+        }
+      }, 50);
+    },
+    [categories, mobileCategoryView, handleCloseMobileCategoryView]
+  );
+
+  const scrollToCategory = handleSelectCategory;
+
+  // Produtos filtrados para a visualização dedicada de categoria no mobile
+  const dedicatedCategoryProducts = useMemo(() => {
+    if (!mobileCategoryView) return [];
+    return products.filter(
+      (p) =>
+        p.category_id === mobileCategoryView.id ||
+        (p as any).categoryId === mobileCategoryView.id ||
+        p.category === mobileCategoryView.name
+    );
+  }, [products, mobileCategoryView]);
+
+  const { emoji: dedicatedCategoryEmoji, cleanName: dedicatedCategoryName } = useMemo(() => {
+    if (!mobileCategoryView) return { emoji: "🍧", cleanName: "" };
+    return parseCategoryEmojiAndName(mobileCategoryView.name);
+  }, [mobileCategoryView]);
 
   const filteredProducts = search.trim()
     ? products.filter(
@@ -479,20 +558,25 @@ export default function Storefront() {
           <div className="flex items-center shrink-0">
             <Link
               href="/"
+              onClick={() => {
+                if (mobileCategoryView) {
+                  handleCloseMobileCategoryView();
+                }
+              }}
               className="flex items-center select-none cursor-pointer hover:opacity-85 transition-opacity duration-200 shrink-0"
               aria-label="Pop Shake — Início"
             >
-              <span className="font-heading font-black text-xl sm:text-2xl tracking-tight text-foreground flex items-center shrink-0">
+              <span className="font-heading font-black text-lg xs:text-xl sm:text-2xl tracking-tight text-foreground flex items-center shrink-0">
                 Pop<span className="gradient-text-brand">Shake</span>
               </span>
             </Link>
           </div>
 
           {/* ── 2. CENTRO-MOBILE: Botão de endereço em pill flexível no Mobile (< md) ── */}
-          <div className="flex md:hidden items-center justify-center flex-1 min-w-0 px-1">
+          <div className="flex md:hidden items-center justify-center min-w-0 mx-1">
             <HeaderAddressButton
-              className="max-w-[140px] sm:max-w-[180px] py-1 px-2 text-xs border-border/40 rounded-full"
-              spanClassName="max-w-[80px] xs:max-w-[120px] truncate"
+              isMobile
+              className="px-2 py-1 text-xs border-border/40 rounded-full"
             />
           </div>
 
@@ -509,8 +593,19 @@ export default function Storefront() {
             </div>
           </div>
 
-          {/* ── 3. DIREITA: Actions (No mobile apenas o Avatar) ── */}
+          {/* ── 3. DIREITA: Actions (No mobile: Busca + Avatar) ── */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+
+            {/* Botão de Busca compacto no Mobile (< md) — posicionado entre o endereço e o avatar */}
+            <button
+              type="button"
+              onClick={() => setMobileSearchOpen(true)}
+              className="md:hidden flex items-center justify-center w-8 h-8 rounded-full border border-border/50 hover:border-[#9306CF]/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 text-foreground transition-all shadow-xs active:scale-95 cursor-pointer"
+              aria-label="Buscar produtos no cardápio"
+              title="Buscar produtos"
+            >
+              <Search className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+            </button>
 
             {/* 1. [ Meus Pedidos ] — Desktop only */}
             <Link
@@ -847,7 +942,7 @@ export default function Storefront() {
               <>
                 {/* “Todos” chip */}
                 <button
-                  onClick={() => setActiveCategory(null)}
+                  onClick={() => handleSelectCategory(null)}
                   aria-pressed={activeCategory === null}
                   className={`
                     chip-clay shrink-0 snap-start
@@ -975,7 +1070,65 @@ export default function Storefront() {
           MAIN CONTENT
       ───────────────────────────────────────── */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-6 space-y-8">
-        {sectionsOrder.map((sectionId, sectionIndex) => {
+        {/* ── VISUALIZAÇÃO DEDICADA DE CATEGORIA NO MOBILE ── */}
+        {mobileCategoryView ? (
+          <div className="space-y-5 animate-in fade-in duration-200">
+            {/* Cabeçalho da Categoria Dedicada com Botão Voltar Destacado */}
+            <div className="sticky top-[49px] sm:top-[53px] z-30 -mx-4 px-4 py-3 bg-background/95 backdrop-blur-md border-b border-border/40 shadow-xs flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={handleCloseMobileCategoryView}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#9306CF]/30 bg-[#9306CF]/10 hover:bg-[#9306CF]/20 text-[#9306CF] dark:text-[#C7A9C9] font-heading font-bold text-xs uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-xs"
+                aria-label="Voltar para a vitrine principal"
+              >
+                <ArrowLeft className="w-4 h-4 shrink-0" />
+                <span>Voltar</span>
+              </button>
+
+              {/* Título da categoria com emoji/ícone e contador total de itens */}
+              <div className="text-right min-w-0 flex-1">
+                <h1 className="font-heading font-bold text-sm xs:text-base text-foreground truncate">
+                  {dedicatedCategoryEmoji} {dedicatedCategoryName}
+                </h1>
+                <span className="text-[11px] font-semibold text-muted-foreground block">
+                  ({dedicatedCategoryProducts.length} {dedicatedCategoryProducts.length === 1 ? "produto" : "produtos"})
+                </span>
+              </div>
+            </div>
+
+            {/* Listagem Completa de Produtos da Categoria (Sem Carrosséis Horizontais) */}
+            {dedicatedCategoryProducts.length > 0 ? (
+              <div className="flex flex-col bg-card/60 rounded-2xl border border-border/30 px-2 sm:px-3 divide-y divide-border/20">
+                {dedicatedCategoryProducts.map((product: Product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onAddToCart={handleOpenProductModal}
+                    onOpenDetails={handleOpenProductModal}
+                    isAdmin={canEdit}
+                    onEdit={(p) => { setEditingProduct(p); setProdDialogOpen(true); }}
+                    onDelete={handleDeleteProduct}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="py-16 text-center space-y-4 bg-card/40 rounded-2xl border border-dashed border-border/60 p-6">
+                <p className="text-muted-foreground text-sm">
+                  Nenhum produto cadastrado nesta categoria no momento.
+                </p>
+                <Button
+                  type="button"
+                  onClick={handleCloseMobileCategoryView}
+                  variant="outline"
+                  className="rounded-xl border-[#9306CF]/40 text-[#9306CF] hover:bg-[#9306CF]/10 cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1.5" /> Voltar ao Cardápio
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : (
+          sectionsOrder.map((sectionId, sectionIndex) => {
           if (sectionId === "promo_banners") {
             return (
               <section key="promo_banners" className="relative group/sec">
@@ -1259,7 +1412,8 @@ export default function Storefront() {
           }
 
           return null;
-        })}
+        })
+      )}
       </main>
 
       {/* ─────────────────────────────────────────
@@ -1298,11 +1452,14 @@ export default function Storefront() {
           BOTTOM NAV (mobile only)
       ───────────────────────────────────────── */}
       <BottomNav
-        onSearchClick={() => setMobileSearchOpen(true)}
         onCategoriesClick={() => setCategoriesDrawerOpen(true)}
         onHomeClick={() => {
-          setActiveCategory(null);
-          window.scrollTo({ top: 0, behavior: "smooth" });
+          if (mobileCategoryView) {
+            handleCloseMobileCategoryView();
+          } else {
+            setActiveCategory(null);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }
         }}
       />
 
