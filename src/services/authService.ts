@@ -66,6 +66,7 @@ export const authService = {
             k &&
             (k.startsWith("popshake_addresses_") ||
               k.startsWith("popshake_active_address_") ||
+              k.startsWith("popshake_orders_") ||
               k.startsWith("popshake_user_"))
           ) {
             keysToRemove.push(k);

@@ -9,6 +9,7 @@ import { playDingSound, initAudioUnlock } from "../lib/sound";
 import { sendWebNotification } from "../lib/notifications";
 
 const GUEST_ORDERS_STORAGE_KEY = "popshake_guest_order_ids";
+const getUserOrdersKey = (userId: string) => `popshake_orders_${userId}`;
 
 interface OrderContextType {
   orders: Order[];
@@ -72,7 +73,7 @@ const STATUS_CONFIG: Record<
 };
 
 export function OrderProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { showToast } = useToast();
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -115,6 +116,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
 
   // Busca pedidos estritamente isolados para o usuário ou para os pedidos anônimos locais
   const refreshOrders = useCallback(async (silent = false) => {
+    if (authLoading) return;
     if (!silent) setLoading(true);
 
     try {
@@ -124,6 +126,10 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
       if (currentUserId) {
         // Usuário logado: busca exclusivamente os pedidos atrelados ao seu userId
         data = await orderService.getOrdersByUser();
+        // Salva cache isolado deste usuário (0ms na próxima visualização)
+        try {
+          localStorage.setItem(getUserOrdersKey(currentUserId), JSON.stringify(data));
+        } catch {}
       } else if (guestOrderIds.length > 0) {
         // Visitante não autenticado: busca estritamente os pedidos da sua lista de tracking anônima
         data = await orderService.getOrdersByUser(guestOrderIds);
@@ -201,7 +207,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [user?.id, guestOrderIds, showToast]);
+  }, [user?.id, authLoading, guestOrderIds, showToast]);
 
   // Reconciliação intencional: quando um usuário loga e possui pedidos de visitante pendentes
   useEffect(() => {
@@ -232,16 +238,38 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
 
   // ISOLAMENTO DE SESSÃO: Limpeza imediata no logout ou na troca de usuário
   useEffect(() => {
+    if (authLoading) return;
+
     const currentUserId = user?.id || null;
 
     if (activeUserIdRef.current !== currentUserId) {
       // Usuário mudou (login, logout ou troca de conta) -> RESET COMPLETO
       activeUserIdRef.current = currentUserId;
-      setOrders([]);
       previousStatusMap.current = {};
+
+      if (currentUserId) {
+        // Tenta carregar o cache isolado deste usuário imediatamente (0ms)
+        try {
+          const cached = localStorage.getItem(getUserOrdersKey(currentUserId));
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed)) {
+              setOrders(parsed);
+            }
+          } else {
+            setOrders([]);
+          }
+        } catch {
+          setOrders([]);
+        }
+      } else {
+        // Deslogou -> Limpa estritamente em memória
+        setOrders([]);
+      }
+
       refreshOrders(false);
     }
-  }, [user?.id, refreshOrders]);
+  }, [user?.id, authLoading, refreshOrders]);
 
   // Resposta ao evento global de logout sanitizando qualquer resquício em memória
   useEffect(() => {
