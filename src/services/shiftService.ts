@@ -84,6 +84,8 @@ export const shiftService = {
       const err: any = new Error(body.error || "Erro ao encerrar turno da loja.");
       err.pendingCount = body.pendingCount;
       err.pendingOrders = body.pendingOrders;
+      err.breakdown = body.breakdown;
+      err.code = body.code;
       throw err;
     }
     return body;

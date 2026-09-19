@@ -39,6 +39,12 @@ import {
   Sun,
   Moon,
   Menu,
+  ShieldAlert,
+  ExternalLink,
+  Inbox,
+  ChefHat,
+  PackageCheck,
+  Bike,
 } from "lucide-react";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { orderService, Order, OrderStatus } from "../../../services/orderService";
@@ -296,17 +302,25 @@ export default function AdminPedidosPage() {
     try {
       await shiftService.closeShift();
       setIsCloseShiftModalOpen(false);
+
+      // Trava de segurança: Pausar alertas sonoros de novos pedidos ao encerrar o turno
+      setIsSoundMuted(true);
+      isSoundMutedRef.current = true;
+      try {
+        localStorage.setItem("popshake_admin_sound_muted", "true");
+      } catch {}
+
       await fetchOrders(false);
       showToast({
-        title: "Turno Encerrado! 🔴",
+        title: "Turno Encerrado com Sucesso! 🔴",
         message: "A esteira foi limpa e os pedidos foram arquivados para o próximo turno.",
         type: "success",
       });
     } catch (err: any) {
       if (err.pendingCount) {
         showToast({
-          title: "Pedidos Pendentes",
-          message: `Existem ${err.pendingCount} pedido(s) em aberto na esteira. Conclua-os ou cancele-os antes de encerrar.`,
+          title: "Atenção: Pedidos Ativos na Esteira",
+          message: `Não é possível encerrar. Existem ${err.pendingCount} pedido(s) em andamento. Conclua ou cancele-os primeiro.`,
           type: "warning",
           duration: 9000,
         });
@@ -350,6 +364,74 @@ export default function AdminPedidosPage() {
       ["pending", "accepted", "preparing", "ready", "delivering"].includes(o.status)
     );
   }, [orders]);
+
+  // Detalhamento de pedidos pendentes por etapa para trava operacional de encerramento de turno
+  const pendingBreakdown = useMemo(() => {
+    const inbox = pendingOrdersInBoard.filter((o) => o.status === "pending");
+    const preparing = pendingOrdersInBoard.filter((o) => ["accepted", "preparing"].includes(o.status));
+    const ready = pendingOrdersInBoard.filter((o) => o.status === "ready");
+    const delivering = pendingOrdersInBoard.filter((o) => o.status === "delivering");
+
+    return {
+      inbox,
+      preparing,
+      ready,
+      delivering,
+    };
+  }, [pendingOrdersInBoard]);
+
+  const breakdownSummaryText = useMemo(() => {
+    const parts: string[] = [];
+    if (pendingBreakdown.inbox.length > 0) {
+      parts.push(`${pendingBreakdown.inbox.length} aguardando aceite`);
+    }
+    if (pendingBreakdown.preparing.length > 0) {
+      parts.push(`${pendingBreakdown.preparing.length} em preparo`);
+    }
+    if (pendingBreakdown.ready.length > 0) {
+      parts.push(`${pendingBreakdown.ready.length} pronto`);
+    }
+    if (pendingBreakdown.delivering.length > 0) {
+      parts.push(`${pendingBreakdown.delivering.length} a caminho`);
+    }
+    return parts.join(", ");
+  }, [pendingBreakdown]);
+
+  const getPendingStageBadge = (status: OrderStatus) => {
+    switch (status) {
+      case "pending":
+        return {
+          label: "Aguardando Aceite",
+          icon: Inbox,
+          color: "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/60 dark:text-amber-200 dark:border-amber-800",
+        };
+      case "accepted":
+      case "preparing":
+        return {
+          label: "Em Preparo",
+          icon: ChefHat,
+          color: "bg-blue-100 text-blue-900 border-blue-300 dark:bg-blue-950/60 dark:text-blue-200 dark:border-blue-800",
+        };
+      case "ready":
+        return {
+          label: "Pronto / Despacho",
+          icon: PackageCheck,
+          color: "bg-purple-100 text-purple-900 border-purple-300 dark:bg-purple-950/60 dark:text-purple-200 dark:border-purple-800",
+        };
+      case "delivering":
+        return {
+          label: "A Caminho",
+          icon: Bike,
+          color: "bg-orange-100 text-orange-900 border-orange-300 dark:bg-orange-950/60 dark:text-orange-200 dark:border-orange-800",
+        };
+      default:
+        return {
+          label: status,
+          icon: Clock,
+          color: "bg-gray-100 text-gray-800 border-gray-300 dark:bg-white/10 dark:text-gray-200 dark:border-white/20",
+        };
+    }
+  };
 
   const completedOrdersInBoard = useMemo(() => {
     return orders.filter((o) => o.status === "completed");
@@ -2050,155 +2132,283 @@ export default function AdminPedidosPage() {
         </div>
       )}
 
-      {/* Modal 2: Encerrar Turno / Fechar Loja (Com Conferência de Caixa e Validação de Pendentes) */}
+      {/* Modal 2: Encerramento de Turno / Trava de Segurança Operacional */}
       {isCloseShiftModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#1F0B22] border border-gray-200 dark:border-[#512B54]/60 rounded-3xl p-6 sm:p-7 max-w-xl w-full shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-red-100 dark:bg-red-950/60 flex items-center justify-center text-red-600 dark:text-red-400">
-                  <Power className="w-5 h-5" />
+          {pendingOrdersInBoard.length > 0 ? (
+            /* CENÁRIO A: Modal de Alerta e Bloqueio Operacional com Pedidos Ativos */
+            <div className="bg-white dark:bg-[#1F0B22] border-2 border-amber-400 dark:border-amber-600/70 rounded-3xl p-6 sm:p-7 max-w-xl w-full shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-start justify-between pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700/60 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                    <ShieldAlert className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-black text-lg text-[#4C264F] dark:text-[#F9F5F9]">
+                      Atenção: Não é possível encerrar o turno agora
+                    </h3>
+                    <p className="text-xs text-amber-800 dark:text-amber-300 font-medium">
+                      Existem pedidos em andamento no ciclo de vida operacional da esteira
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-heading font-black text-lg text-[#4C264F] dark:text-[#F9F5F9]">
-                    Encerrar Turno / Fechar Loja
-                  </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Conferência de caixa e arquivamento da esteira ativa
+                <button
+                  onClick={() => setIsCloseShiftModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Resumo Numérico e Detalhamento por Etapa */}
+              <div className="bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200">
+                    Total de Pedidos Pendentes
+                  </span>
+                  <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-500 text-white shadow-sm">
+                    {pendingOrdersInBoard.length} {pendingOrdersInBoard.length === 1 ? "pedido ativo" : "pedidos ativos"}
+                  </span>
+                </div>
+
+                {breakdownSummaryText && (
+                  <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
+                    Detalhamento: <span>{breakdownSummaryText}</span>
                   </p>
+                )}
+
+                {/* 4 Cards das Etapas */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                  <div className="bg-white/90 dark:bg-[#1A0B1C] p-2.5 rounded-xl border border-amber-200 dark:border-amber-800/40 text-center">
+                    <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-amber-800 dark:text-amber-300 mb-0.5">
+                      <Inbox className="w-3.5 h-3.5" />
+                      <span>Inbox</span>
+                    </div>
+                    <span className="font-heading font-black text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                      {pendingBreakdown.inbox.length}
+                    </span>
+                  </div>
+
+                  <div className="bg-white/90 dark:bg-[#1A0B1C] p-2.5 rounded-xl border border-blue-200 dark:border-blue-800/40 text-center">
+                    <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-blue-800 dark:text-blue-300 mb-0.5">
+                      <ChefHat className="w-3.5 h-3.5" />
+                      <span>Cozinha</span>
+                    </div>
+                    <span className="font-heading font-black text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                      {pendingBreakdown.preparing.length}
+                    </span>
+                  </div>
+
+                  <div className="bg-white/90 dark:bg-[#1A0B1C] p-2.5 rounded-xl border border-purple-200 dark:border-purple-800/40 text-center">
+                    <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-purple-800 dark:text-purple-300 mb-0.5">
+                      <PackageCheck className="w-3.5 h-3.5" />
+                      <span>Pronto</span>
+                    </div>
+                    <span className="font-heading font-black text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                      {pendingBreakdown.ready.length}
+                    </span>
+                  </div>
+
+                  <div className="bg-white/90 dark:bg-[#1A0B1C] p-2.5 rounded-xl border border-orange-200 dark:border-orange-800/40 text-center">
+                    <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-orange-800 dark:text-orange-300 mb-0.5">
+                      <Bike className="w-3.5 h-3.5" />
+                      <span>A Caminho</span>
+                    </div>
+                    <span className="font-heading font-black text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                      {pendingBreakdown.delivering.length}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <button
-                onClick={() => setIsCloseShiftModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            <div className="space-y-4">
-              {/* Alerta de Segurança e Trava Operacional se houver pedidos em aberto */}
-              {pendingOrdersInBoard.length > 0 ? (
-                <div className="bg-red-50 dark:bg-red-950/40 border-2 border-red-300 dark:border-red-800 rounded-2xl p-4 space-y-3 text-xs text-red-900 dark:text-red-200">
-                  <div className="flex items-center gap-2 font-bold text-sm text-red-700 dark:text-red-300">
-                    <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
-                    <span>Bloqueio de Segurança: {pendingOrdersInBoard.length} pedido(s) em aberto na esteira!</span>
-                  </div>
-                  <p className="leading-relaxed text-[11px] text-red-800 dark:text-red-300">
-                    Por integridade de caixa e atendimento, o encerramento do turno é <strong>terminantemente bloqueado</strong> enquanto houver pedidos pendentes, em preparo ou em rota. Finalize ou cancele todos os pedidos da lista abaixo para liberar o fechamento:
-                  </p>
-                  <div className="space-y-1.5 max-h-36 overflow-y-auto pl-2 border-l-2 border-red-400 dark:border-red-600">
-                    {pendingOrdersInBoard.map((p) => (
-                      <div key={p.id} className="flex items-center justify-between text-[11px] font-mono bg-white/70 dark:bg-black/30 p-2 rounded-xl border border-red-100 dark:border-red-900/30">
-                        <span className="font-bold text-[#4C264F] dark:text-[#F9F5F9]">
-                          #{p.id.substring(0, 6)} - {p.user?.fullName || p.user?.username || "Cliente"}
-                        </span>
-                        <span className="font-bold uppercase text-[10px] px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                          {p.status}
-                        </span>
+              {/* Mensagem Explicativa */}
+              <p className="text-xs leading-relaxed text-gray-600 dark:text-gray-300">
+                Por integridade e segurança operacional, o encerramento do turno permanece <strong>estritamente travado</strong> enquanto houver pedidos em andamento. Conclua ou cancele cada pedido abaixo para liberar o fechamento:
+              </p>
+
+              {/* Lista Rápida com Atalhos para a Esteira */}
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                {pendingOrdersInBoard.map((p) => {
+                  const badge = getPendingStageBadge(p.status);
+                  const BadgeIcon = badge.icon;
+                  return (
+                    <div
+                      key={p.id}
+                      className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-[#512B54]/40 hover:border-purple-300 dark:hover:border-purple-700 transition-colors"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="font-mono font-bold text-xs text-[#4C264F] dark:text-[#F9F5F9]">
+                            #{p.id.substring(0, 6)}
+                          </span>
+                          <span className="font-bold text-xs text-gray-800 dark:text-gray-200 truncate max-w-[160px]">
+                            {p.user?.fullName || p.user?.username || "Cliente"}
+                          </span>
+                          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${badge.color}`}>
+                            <BadgeIcon className="w-3 h-3" />
+                            {badge.label}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
+                          <span className="font-semibold text-gray-700 dark:text-gray-300">
+                            {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(p.total_amount || 0)}
+                          </span>
+                          <span>•</span>
+                          <span>
+                            {new Date(p.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                          <span>•</span>
+                          <span className="truncate max-w-[170px]">
+                            {p.items?.map((it) => `${it.quantity}x ${it.product?.name || "Item"}`).join(", ") || "Pedido PopClub"}
+                          </span>
+                        </div>
                       </div>
-                    ))}
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setIsCloseShiftModalOpen(false);
+                          setSelectedOrderForDrawer(p);
+                        }}
+                        className="rounded-xl h-8 px-2.5 text-xs font-bold text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/60 hover:bg-purple-50 dark:hover:bg-purple-950/40 shrink-0 flex items-center gap-1 cursor-pointer"
+                        title="Visualizar pedido na esteira para avançar ou finalizar"
+                      >
+                        <span>Ver Pedido</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Botões do Modal A */}
+              <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-[#512B54]/30">
+                <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1">
+                  🔒 Fechamento travado ({pendingOrdersInBoard.length} pendências)
+                </span>
+                <Button
+                  onClick={() => setIsCloseShiftModalOpen(false)}
+                  className="rounded-xl bg-[#4C264F] hover:bg-[#68356C] text-white text-xs font-bold uppercase tracking-wider px-5 shadow-md cursor-pointer"
+                >
+                  Voltar para a Esteira
+                </Button>
+              </div>
+            </div>
+          ) : (
+            /* CENÁRIO B: Modal de Confirmação de Encerramento Seguro */
+            <div className="bg-white dark:bg-[#1F0B22] border border-gray-200 dark:border-[#512B54]/60 rounded-3xl p-6 sm:p-7 max-w-xl w-full shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <CheckCircle2 className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-black text-lg text-[#4C264F] dark:text-[#F9F5F9]">
+                      Confirmar Encerramento de Turno
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Esteira 100% finalizada — Fechamento seguro e conferência de caixa
+                    </p>
                   </div>
                 </div>
-              ) : (
+                <button
+                  onClick={() => setIsCloseShiftModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Banner de Validação Positiva */}
                 <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-2xl p-3.5 flex items-center gap-3 text-xs text-emerald-900 dark:text-emerald-200">
                   <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <div>
                     <span className="font-bold text-sm block text-emerald-700 dark:text-emerald-300">
-                      Esteira 100% Limpa e Pronta para Fechamento
+                      Esteira 100% Finalizada (Zero Pedidos Ativos)
                     </span>
                     <span className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80">
-                      Nenhum pedido pendente em aberto. A conferência de caixa pode ser salva com segurança no histórico.
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Resumo do Turno / Fechamento de Caixa */}
-              <div className="bg-gray-50/80 dark:bg-white/5 border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 space-y-3">
-                <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
-                  <Coins className="w-4 h-4 text-[#9306CF]" />
-                  Resumo Financeiro da Sessão (Concluídos)
-                </h4>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="bg-white dark:bg-[#1A0B1C] p-3 rounded-xl border border-gray-100 dark:border-[#512B54]/30">
-                    <span className="text-[10px] uppercase font-bold text-gray-500 block">Total Faturado</span>
-                    <span className="font-heading font-black text-base text-emerald-600 dark:text-emerald-400">
-                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(shiftRevenueTotal)}
-                    </span>
-                  </div>
-
-                  <div className="bg-white dark:bg-[#1A0B1C] p-3 rounded-xl border border-gray-100 dark:border-[#512B54]/30">
-                    <span className="text-[10px] uppercase font-bold text-gray-500 block">💵 Dinheiro</span>
-                    <span className="font-heading font-black text-base text-[#4C264F] dark:text-[#F9F5F9]">
-                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(shiftCashTotal)}
-                    </span>
-                  </div>
-
-                  <div className="bg-white dark:bg-[#1A0B1C] p-3 rounded-xl border border-gray-100 dark:border-[#512B54]/30">
-                    <span className="text-[10px] uppercase font-bold text-gray-500 block">📱 Pix</span>
-                    <span className="font-heading font-black text-base text-purple-600 dark:text-purple-400">
-                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(shiftPixTotal)}
-                    </span>
-                  </div>
-
-                  <div className="bg-white dark:bg-[#1A0B1C] p-3 rounded-xl border border-gray-100 dark:border-[#512B54]/30">
-                    <span className="text-[10px] uppercase font-bold text-gray-500 block">💳 Cartão Maq.</span>
-                    <span className="font-heading font-black text-base text-blue-600 dark:text-blue-400">
-                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(shiftCardTotal)}
+                      Todos os pedidos da sessão foram concluídos ou cancelados. O encerramento seguro está liberado.
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300 pt-1 font-medium">
-                  <span>✓ Entregues: <strong>{completedOrdersInBoard.length}</strong></span>
-                  <span>✕ Cancelados: <strong>{cancelledOrdersInBoard.length}</strong></span>
-                  <span>Total Operado: <strong>{orders.length} pedidos</strong></span>
+                {/* Resumo do Turno / Fechamento de Caixa */}
+                <div className="bg-gray-50/80 dark:bg-white/5 border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 space-y-3">
+                  <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
+                    <Coins className="w-4 h-4 text-[#9306CF]" />
+                    Resumo Financeiro da Sessão (Concluídos)
+                  </h4>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-white dark:bg-[#1A0B1C] p-3 rounded-xl border border-gray-100 dark:border-[#512B54]/30">
+                      <span className="text-[10px] uppercase font-bold text-gray-500 block">Total Faturado</span>
+                      <span className="font-heading font-black text-base text-emerald-600 dark:text-emerald-400">
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(shiftRevenueTotal)}
+                      </span>
+                    </div>
+
+                    <div className="bg-white dark:bg-[#1A0B1C] p-3 rounded-xl border border-gray-100 dark:border-[#512B54]/30">
+                      <span className="text-[10px] uppercase font-bold text-gray-500 block">💵 Dinheiro</span>
+                      <span className="font-heading font-black text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(shiftCashTotal)}
+                      </span>
+                    </div>
+
+                    <div className="bg-white dark:bg-[#1A0B1C] p-3 rounded-xl border border-gray-100 dark:border-[#512B54]/30">
+                      <span className="text-[10px] uppercase font-bold text-gray-500 block">📱 Pix</span>
+                      <span className="font-heading font-black text-base text-purple-600 dark:text-purple-400">
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(shiftPixTotal)}
+                      </span>
+                    </div>
+
+                    <div className="bg-white dark:bg-[#1A0B1C] p-3 rounded-xl border border-gray-100 dark:border-[#512B54]/30">
+                      <span className="text-[10px] uppercase font-bold text-gray-500 block">💳 Cartão Maq.</span>
+                      <span className="font-heading font-black text-base text-blue-600 dark:text-blue-400">
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(shiftCardTotal)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300 pt-1 font-medium">
+                    <span>✓ Concluídos: <strong>{completedOrdersInBoard.length}</strong></span>
+                    <span>✕ Cancelados: <strong>{cancelledOrdersInBoard.length}</strong></span>
+                    <span>Total Operado: <strong>{orders.length} pedidos</strong></span>
+                  </div>
+                </div>
+
+                {/* Informação sobre o Arquivamento dos Pedidos e Alertas */}
+                <div className="text-xs text-gray-500 dark:text-gray-400 bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/30 rounded-2xl p-3.5 leading-relaxed">
+                  <p>
+                    📦 <strong>Arquivamento da Esteira:</strong> Ao confirmar o encerramento, todos os pedidos concluídos e cancelados serão arquivados da esteira ativa para que o próximo turno comece 100% limpo. Os alertas sonoros de novos pedidos serão pausados e todos os dados consolidados no <strong>Histórico de Pedidos</strong>.
+                  </p>
                 </div>
               </div>
 
-              {/* Informação sobre o Arquivamento dos Pedidos */}
-              <div className="text-xs text-gray-500 dark:text-gray-400 bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/30 rounded-2xl p-3.5 leading-relaxed">
-                <p>
-                  📦 <strong>Arquivamento da Esteira:</strong> Ao confirmar o encerramento, todos os pedidos concluídos e cancelados serão arquivados da esteira ativa para que o próximo turno comece com as colunas 100% limpas. Todos os dados permanecem preservados para consulta no <strong>Histórico de Pedidos</strong>.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 dark:border-[#512B54]/30">
-              <Button
-                variant="outline"
-                onClick={() => setIsCloseShiftModalOpen(false)}
-                className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider"
-              >
-                {pendingOrdersInBoard.length > 0 ? "Voltar à Esteira para Finalizar Pedidos" : "Cancelar"}
-              </Button>
-              {pendingOrdersInBoard.length === 0 ? (
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 dark:border-[#512B54]/30">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCloseShiftModalOpen(false)}
+                  className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider"
+                >
+                  Cancelar
+                </Button>
                 <Button
                   onClick={handleCloseShift}
                   disabled={shiftActionLoading}
-                  className="rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wider px-5 shadow-md flex items-center gap-2"
+                  className="rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wider px-5 shadow-md flex items-center gap-2 cursor-pointer"
                 >
                   {shiftActionLoading ? (
                     <RefreshCw className="w-4 h-4 animate-spin" />
                   ) : (
                     <Power className="w-4 h-4" />
                   )}
-                  <span>Encerrar e Fechar Loja</span>
+                  <span>Confirmar Encerramento de Turno</span>
                 </Button>
-              ) : (
-                <Button
-                  disabled
-                  className="rounded-xl bg-gray-200 dark:bg-white/10 text-gray-400 dark:text-gray-500 text-xs font-bold uppercase tracking-wider px-5 cursor-not-allowed flex items-center gap-2"
-                  title="Conclua ou cancele todos os pedidos para liberar o encerramento"
-                >
-                  <Power className="w-4 h-4" />
-                  <span>Fechamento Bloqueado ({pendingOrdersInBoard.length})</span>
-                </Button>
-              )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

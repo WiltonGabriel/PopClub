@@ -188,21 +188,44 @@ export async function POST(request: Request) {
           id: true,
           status: true,
           totalAmount: true,
+          createdAt: true,
+          user: {
+            select: {
+              fullName: true,
+              username: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
         },
       });
 
       // BLOQUEIO TERMINANTE: Sem bypass acidental
       if (pendingOrders.length > 0) {
+        const inboxCount = pendingOrders.filter((o) => o.status === "pending").length;
+        const preparingCount = pendingOrders.filter((o) => ["accepted", "preparing"].includes(o.status)).length;
+        const readyCount = pendingOrders.filter((o) => o.status === "ready").length;
+        const deliveringCount = pendingOrders.filter((o) => o.status === "delivering").length;
+
         return NextResponse.json(
           {
-            error: `Existem ${pendingOrders.length} pedido(s) em aberto na esteira. Conclua ou cancele todos os pedidos antes de fechar a loja.`,
+            error: `Não é possível encerrar o turno agora. Existem ${pendingOrders.length} pedido(s) ativos na esteira.`,
             code: "PENDING_ORDERS_ACTIVE",
             pendingCount: pendingOrders.length,
+            breakdown: {
+              inbox: inboxCount,
+              preparing: preparingCount,
+              ready: readyCount,
+              delivering: deliveringCount,
+            },
             pendingOrders: pendingOrders.map((p) => ({
               id: p.id,
               shortId: p.id.substring(0, 6),
               status: p.status,
               totalAmount: Number(p.totalAmount),
+              clientName: p.user?.fullName || p.user?.username || "Cliente",
+              createdAt: p.createdAt.toISOString(),
             })),
           },
           { status: 400 }
