@@ -38,6 +38,7 @@ import {
   ChevronDown,
   Sun,
   Moon,
+  Menu,
 } from "lucide-react";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { orderService, Order, OrderStatus } from "../../../services/orderService";
@@ -67,6 +68,10 @@ export default function AdminPedidosPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [fetching, setFetching] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Estados de Responsividade Mobile
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileKanbanTab, setMobileKanbanTab] = useState<"novos" | "preparo" | "entrega" | "concluidos" | "cancelados">("novos");
   
   // Compactação granular por coluna da esteira (persistido em localStorage)
   const [compactColumns, setCompactColumns] = useState<Record<string, boolean>>(() => {
@@ -1404,9 +1409,9 @@ export default function AdminPedidosPage() {
   return (
     <div className="min-h-screen flex flex-col font-sans pb-16 bg-[#F8F9FA] dark:bg-[#190B1A] text-foreground transition-colors duration-200">
       {/* Header Dedicado de Gestão de Pedidos */}
-      <header className="bg-white/85 dark:bg-[#1F0B22]/90 backdrop-blur-xl border-b border-gray-200 dark:border-[#512B54]/40 px-6 py-4 flex justify-between items-center sticky top-0 z-40 shadow-sm">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="font-heading font-black text-xl tracking-tight flex items-center gap-1.5 select-none hover:opacity-85 transition-opacity">
+      <header className="bg-white/85 dark:bg-[#1F0B22]/90 backdrop-blur-xl border-b border-gray-200 dark:border-[#512B54]/40 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center sticky top-0 z-40 shadow-sm">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Link href="/" className="font-heading font-black text-lg sm:text-xl tracking-tight flex items-center gap-1.5 select-none hover:opacity-85 transition-opacity">
             <div className="flex items-center gap-1">
               <span className="text-[#4C264F] dark:text-[#F9F5F9]">Pop</span>
               <span
@@ -1419,46 +1424,44 @@ export default function AdminPedidosPage() {
               >
                 Shake
               </span>
-              <span className="ml-1 text-xs font-bold px-2 py-0.5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20">
-                Gestão de Pedidos
+              <span className="ml-1 text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20">
+                Gestão
               </span>
             </div>
           </Link>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Link para Histórico de Pedidos */}
+        <div className="flex items-center gap-1.5 sm:gap-3">
+          {/* Links Desktop (sm+) */}
           <Link
             href="/admin/historico"
-            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            className="hidden sm:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
           >
             <History className="w-4 h-4 text-[#9306CF]" />
-            <span className="hidden sm:inline">Histórico</span>
+            <span>Histórico</span>
           </Link>
 
-          {/* Link para Painel Operacional (Métricas & Gráficos) */}
           <Link
             href="/admin"
-            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            className="hidden sm:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
           >
             <BarChart3 className="w-4 h-4 text-[#9306CF]" />
-            <span className="hidden sm:inline">Painel Operacional</span>
+            <span>Painel Operacional</span>
           </Link>
 
-          {/* Link para Página Inicial */}
           <Link
             href="/"
-            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            className="hidden sm:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
           >
             <Store className="w-4 h-4 text-[#9306CF]" />
-            <span className="hidden sm:inline">Página Inicial</span>
+            <span>Página Inicial</span>
           </Link>
 
           <button
             onClick={toggleTheme}
             aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
             title={theme === "dark" ? "Modo claro" : "Modo escuro"}
-            className="flex items-center justify-center w-9 h-9 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             {theme === "dark" ? (
               <Sun className="w-4 h-4 text-amber-500" />
@@ -1467,14 +1470,66 @@ export default function AdminPedidosPage() {
             )}
           </button>
 
-          {/* Botão Sair */}
+          {/* Botão Sair Desktop (sm+) */}
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors border border-transparent hover:border-red-200 dark:border-red-900/40"
+            className="hidden sm:flex items-center gap-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors border border-transparent hover:border-red-200 dark:border-red-900/40"
           >
             <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Sair</span>
+            <span>Sair</span>
           </button>
+
+          {/* Menu Hambúrguer / Dropdown no Mobile (< sm) */}
+          <div className="relative sm:hidden">
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              aria-label="Abrir menu de navegação"
+              className="flex items-center justify-center w-8 h-8 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer"
+            >
+              {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4 text-[#9306CF]" />}
+            </button>
+
+            {mobileMenuOpen && (
+              <div className="absolute right-0 top-10 z-50 w-52 bg-white dark:bg-[#1E0921] border border-gray-200 dark:border-[#512B54]/60 rounded-2xl p-2 shadow-2xl space-y-1 animate-in fade-in zoom-in-95 duration-150">
+                <Link
+                  href="/admin/historico"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF]"
+                >
+                  <History className="w-4 h-4 text-[#9306CF]" />
+                  <span>Histórico</span>
+                </Link>
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF]"
+                >
+                  <BarChart3 className="w-4 h-4 text-[#9306CF]" />
+                  <span>Painel Operacional</span>
+                </Link>
+                <Link
+                  href="/"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF]"
+                >
+                  <Store className="w-4 h-4 text-[#9306CF]" />
+                  <span>Página Inicial</span>
+                </Link>
+                <div className="border-t border-gray-100 dark:border-[#512B54]/30 my-1" />
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleSignOut();
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 text-left cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sair</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -1503,7 +1558,7 @@ export default function AdminPedidosPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 pt-0.5 max-w-full">
             {/* Interruptor Mestre de Turno / Sessão da Loja */}
             {shiftData?.isOpen ? (
               <div className="flex items-center gap-2">
@@ -1715,66 +1770,111 @@ export default function AdminPedidosPage() {
         />
 
         {/* Métricas Rápidas Operacionais */}
-        <section className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block">
-                Faturamento Hoje
+        <section className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
+          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-sm flex items-center justify-between">
+            <div className="min-w-0">
+              <span className="text-[10px] sm:text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block truncate">
+                Faturamento
               </span>
-              <span className="font-heading font-black text-xl sm:text-2xl text-emerald-600 dark:text-emerald-400">
+              <span className="font-heading font-black text-base sm:text-2xl text-emerald-600 dark:text-emerald-400 truncate block">
                 {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(revenueToday)}
               </span>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-              <DollarSign className="w-5 h-5" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 ml-1">
+              <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block">
-                Pedidos Ativos
+          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-sm flex items-center justify-between">
+            <div className="min-w-0">
+              <span className="text-[10px] sm:text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block truncate">
+                Ativos
               </span>
-              <span className="font-heading font-black text-xl sm:text-2xl text-blue-600 dark:text-blue-400">
+              <span className="font-heading font-black text-base sm:text-2xl text-blue-600 dark:text-blue-400">
                 {activeOrders.length}
               </span>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
-              <Activity className="w-5 h-5" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 ml-1">
+              <Activity className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block">
+          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-sm flex items-center justify-between">
+            <div className="min-w-0">
+              <span className="text-[10px] sm:text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block truncate">
                 Total Hoje
               </span>
-              <span className="font-heading font-black text-xl sm:text-2xl text-[#4C264F] dark:text-[#F9F5F9]">
+              <span className="font-heading font-black text-base sm:text-2xl text-[#4C264F] dark:text-[#F9F5F9]">
                 {todayOrders.length}
               </span>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-[#9306CF]/10 flex items-center justify-center text-[#9306CF]">
-              <PackageSearch className="w-5 h-5" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-[#9306CF]/10 flex items-center justify-center text-[#9306CF] shrink-0 ml-1">
+              <PackageSearch className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block">
+          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-sm flex items-center justify-between">
+            <div className="min-w-0">
+              <span className="text-[10px] sm:text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block truncate">
                 Cancelados
               </span>
-              <span className="font-heading font-black text-xl sm:text-2xl text-red-600 dark:text-red-400">
+              <span className="font-heading font-black text-base sm:text-2xl text-red-600 dark:text-red-400">
                 {cancelledOrders.length}
               </span>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-950/40 flex items-center justify-center text-red-600 dark:text-red-400">
-              <AlertTriangle className="w-5 h-5" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-red-50 dark:bg-red-950/40 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0 ml-1">
+              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
         </section>
 
-        {/* Grid Principal do Kanban em 5 Colunas */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4 overflow-x-auto pb-4 items-start">
+        {/* Abas do Kanban no Mobile (< md) */}
+        <div className="md:hidden flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+          {[
+            { key: "novos", label: "Novos", color: "#9306CF", count: orders.filter((o) => ["pending", "accepted"].includes(o.status)).length },
+            { key: "preparo", label: "Preparo", color: "#EAB308", count: orders.filter((o) => ["preparing"].includes(o.status)).length },
+            { key: "entrega", label: "Entrega", color: "#940068", count: orders.filter((o) => ["ready", "delivering"].includes(o.status)).length },
+            { key: "concluidos", label: "Concluídos", color: "#10B981", count: orders.filter((o) => ["completed"].includes(o.status)).length },
+            { key: "cancelados", label: "Cancelados", color: "#EF4444", count: orders.filter((o) => ["cancelled"].includes(o.status)).length },
+          ].map((tab) => {
+            const isActive = mobileKanbanTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setMobileKanbanTab(tab.key as any)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                  isActive
+                    ? "bg-[#9306CF] text-white shadow-sm scale-[1.02]"
+                    : "bg-white dark:bg-[#230E26] text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-50 dark:hover:bg-white/5"
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                    isActive
+                      ? "bg-white/20 text-white"
+                      : "bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Coluna Ativa do Kanban no Mobile (< md) */}
+        <div className="md:hidden space-y-4">
+          {mobileKanbanTab === "novos" && renderKanbanColumn("Novos", ["pending", "accepted"], "#9306CF", "novos")}
+          {mobileKanbanTab === "preparo" && renderKanbanColumn("Em Preparo", ["preparing"], "#EAB308", "preparo")}
+          {mobileKanbanTab === "entrega" && renderKanbanColumn("A Caminho / Pronto", ["ready", "delivering"], "#940068", "entrega")}
+          {mobileKanbanTab === "concluidos" && renderKanbanColumn("Concluídos", ["completed"], "#10B981", "concluidos")}
+          {mobileKanbanTab === "cancelados" && renderKanbanColumn("Cancelados", ["cancelled"], "#EF4444", "cancelados", true)}
+        </div>
+
+        {/* Grid Principal do Kanban em 5 Colunas (md+) */}
+        <section className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4 overflow-x-auto pb-4 items-start">
           {renderKanbanColumn("Novos", ["pending", "accepted"], "#9306CF", "novos")}
           {renderKanbanColumn("Em Preparo", ["preparing"], "#EAB308", "preparo")}
           {renderKanbanColumn("A Caminho / Pronto", ["ready", "delivering"], "#940068", "entrega")}

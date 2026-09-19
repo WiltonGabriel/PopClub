@@ -509,6 +509,7 @@ export function ProductDetailModal({
                 id="kitchen-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value.slice(0, 140))}
+                maxLength={140}
                 rows={2}
                 placeholder="Ex: Enviar pouco leite condensado, caprichar na paçoca..."
                 className="

@@ -29,8 +29,8 @@ const settingsUpdateSchema = z.object({
   isOpen: z.boolean().optional(),
   currentShiftId: z.string().nullable().optional(),
   estimatedDeliveryTime: z.string().optional(),
-  estimatedTimePresets: z.array(z.string()).optional(),
-  rejectionReasonPresets: z.array(z.string()).optional(),
+  estimatedTimePresets: z.array(z.string().trim().max(15, "Preset de tempo deve ter no máximo 15 caracteres")).max(4, "Máximo de 4 presets de tempo permitidos").optional(),
+  rejectionReasonPresets: z.array(z.string().trim().max(60, "Motivo deve ter no máximo 60 caracteres")).max(6, "Máximo de 6 presets de motivo permitidos").optional(),
   openedAt: z.string().nullable().optional(),
   closedAt: z.string().nullable().optional(),
 });

@@ -554,8 +554,8 @@ export default function Storefront() {
         {/* Single contained row — max-w-7xl keeps it from stretching */}
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-4 w-full">
 
-          {/* ── 1. ESQUERDA: Logotipo textual PopShake ── */}
-          <div className="flex items-center shrink-0">
+          {/* ── 1. ESQUERDA: Logotipo tipográfico PopShake + Chip de Endereço no Mobile ── */}
+          <div className="flex items-center gap-2 min-w-0 shrink">
             <Link
               href="/"
               onClick={() => {
@@ -570,14 +570,27 @@ export default function Storefront() {
                 Pop<span className="gradient-text-brand">Shake</span>
               </span>
             </Link>
+
+            {/* Chip de endereço agrupado à esquerda no Mobile (< md) */}
+            <div className="flex md:hidden items-center min-w-0">
+              <HeaderAddressButton
+                isMobile
+                className="max-w-[110px] truncate text-xs px-2 py-1 rounded-full border-border/40"
+              />
+            </div>
           </div>
 
-          {/* ── 2. CENTRO-MOBILE: Botão de endereço em pill flexível no Mobile (< md) ── */}
-          <div className="flex md:hidden items-center justify-center min-w-0 mx-1">
-            <HeaderAddressButton
-              isMobile
-              className="px-2 py-1 text-xs border-border/40 rounded-full"
-            />
+          {/* ── 2. CENTRO: Busca Centralizada no Mobile (< md) ── */}
+          <div className="flex md:hidden flex-1 justify-center max-w-[160px] mx-2">
+            <button
+              type="button"
+              onClick={() => setMobileSearchOpen(true)}
+              className="flex items-center justify-center w-8 h-8 rounded-full border border-border/50 hover:border-[#9306CF]/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 text-foreground transition-all shadow-xs active:scale-95 cursor-pointer"
+              aria-label="Buscar produtos no cardápio"
+              title="Buscar produtos"
+            >
+              <Search className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+            </button>
           </div>
 
           {/* ── CENTRO-DESKTOP: Endereço + Busca com Autocomplete (md+) ── */}
@@ -593,19 +606,8 @@ export default function Storefront() {
             </div>
           </div>
 
-          {/* ── 3. DIREITA: Actions (No mobile: Busca + Avatar) ── */}
+          {/* ── 3. DIREITA: Actions (No mobile: apenas Avatar na extrema direita) ── */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-
-            {/* Botão de Busca compacto no Mobile (< md) — posicionado entre o endereço e o avatar */}
-            <button
-              type="button"
-              onClick={() => setMobileSearchOpen(true)}
-              className="md:hidden flex items-center justify-center w-8 h-8 rounded-full border border-border/50 hover:border-[#9306CF]/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 text-foreground transition-all shadow-xs active:scale-95 cursor-pointer"
-              aria-label="Buscar produtos no cardápio"
-              title="Buscar produtos"
-            >
-              <Search className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
-            </button>
 
             {/* 1. [ Meus Pedidos ] — Desktop only */}
             <Link
@@ -1452,14 +1454,14 @@ export default function Storefront() {
           BOTTOM NAV (mobile only)
       ───────────────────────────────────────── */}
       <BottomNav
+        isCategoryActive={Boolean(activeCategory || mobileCategoryView || categoriesDrawerOpen)}
         onCategoriesClick={() => setCategoriesDrawerOpen(true)}
         onHomeClick={() => {
           if (mobileCategoryView) {
             handleCloseMobileCategoryView();
-          } else {
-            setActiveCategory(null);
-            window.scrollTo({ top: 0, behavior: "smooth" });
           }
+          setActiveCategory(null);
+          window.scrollTo({ top: 0, behavior: "smooth" });
         }}
       />
 

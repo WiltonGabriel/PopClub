@@ -9,9 +9,10 @@ interface BottomNavProps {
   onSearchClick?: () => void;
   onCategoriesClick?: () => void;
   onHomeClick?: () => void;
+  isCategoryActive?: boolean;
 }
 
-export function BottomNav({ onSearchClick, onCategoriesClick, onHomeClick }: BottomNavProps) {
+export function BottomNav({ onSearchClick, onCategoriesClick, onHomeClick, isCategoryActive }: BottomNavProps) {
   const pathname = usePathname();
   const { totalItems } = useCart();
 
@@ -58,7 +59,14 @@ export function BottomNav({ onSearchClick, onCategoriesClick, onHomeClick }: Bot
     >
       <div className="flex items-center justify-around h-16 px-2">
         {navItems.map(({ id, label, icon: Icon, href, action }) => {
-          const isActive = href ? pathname === href : false;
+          const isActive =
+            id === "categories"
+              ? Boolean(isCategoryActive)
+              : id === "home"
+              ? pathname === "/" && !isCategoryActive
+              : href
+              ? pathname === href
+              : false;
           const isCart = id === "cart";
 
           const buttonContent = (

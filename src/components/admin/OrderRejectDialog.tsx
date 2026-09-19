@@ -11,11 +11,18 @@ import {
   Store,
   Bike,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { Order } from "@/services/orderService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { storeSettingsService } from "@/services/storeSettingsService";
+
+// ─── Limites rígidos anti-bloat ──────────────────────────────────────────────────────────────────
+const MAX_PRESETS = 6;
+const MAX_PRESET_LEN = 60;
+const MAX_REASON_LEN = 120;
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface OrderRejectDialogProps {
   open: boolean;
@@ -69,14 +76,22 @@ export function OrderRejectDialog({
     !order.delivery_address?.street ||
     order.delivery_address?.street.toLowerCase().includes("retirada");
   const totalItemsCount = order.items?.reduce((acc, i) => acc + i.quantity, 0) || 0;
+  const presetsAtLimit = presets.length >= MAX_PRESETS;
+  const reasonRemaining = MAX_REASON_LEN - reason.length;
 
   const handleSelectPreset = (presetText: string) => {
     setReason(presetText);
   };
 
   const handleAddPreset = async () => {
-    if (!newPresetValue.trim()) return;
-    const trimmed = newPresetValue.trim();
+    const trimmed = newPresetValue.trim().replace(/\s+/g, " ");
+    if (!trimmed) return;
+
+    // Limite quantitativo
+    if (presets.length >= MAX_PRESETS) return;
+
+    // Limite de comprimento
+    if (trimmed.length > MAX_PRESET_LEN) return;
 
     if (presets.includes(trimmed)) {
       setNewPresetValue("");
@@ -202,9 +217,18 @@ export function OrderRejectDialog({
           {/* Gestão rápida de presets inline */}
           {isManagingPresets && (
             <div className="p-3 bg-red-50/70 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 rounded-2xl space-y-2.5 animate-in fade-in duration-150">
-              <span className="text-[11px] font-bold text-red-900 dark:text-red-200 block">
-                Personalizar Motivos de Recusa:
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-red-900 dark:text-red-200 block">
+                  Personalizar Motivos de Recusa:
+                </span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  presetsAtLimit
+                    ? "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
+                    : "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300"
+                }`}>
+                  {presets.length}/{MAX_PRESETS}
+                </span>
+              </div>
               <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                 {presets.map((p) => (
                   <div
@@ -224,31 +248,49 @@ export function OrderRejectDialog({
                 ))}
               </div>
 
-              <div className="flex gap-2 pt-1">
-                <Input
-                  type="text"
-                  placeholder="Novo motivo de cancelamento..."
-                  value={newPresetValue}
-                  onChange={(e) => setNewPresetValue(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddPreset();
-                    }
-                  }}
-                  className="h-8 text-xs bg-white dark:bg-[#1A0B12]"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleAddPreset}
-                  disabled={isSavingPresets || !newPresetValue.trim()}
-                  className="h-8 text-xs bg-red-600 hover:bg-red-700 text-white shrink-0"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-1" />
-                  Adicionar
-                </Button>
-              </div>
+              {presetsAtLimit ? (
+                <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <p className="text-[11px] text-amber-700 dark:text-amber-300 font-semibold">
+                    Limite máximo de {MAX_PRESETS} motivos atingido. Remova um para adicionar outro.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex gap-2 pt-1">
+                  <div className="flex-1 relative">
+                    <Input
+                      type="text"
+                      placeholder="Novo motivo de cancelamento..."
+                      value={newPresetValue}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\s+/g, " ");
+                        setNewPresetValue(val.slice(0, MAX_PRESET_LEN));
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddPreset();
+                        }
+                      }}
+                      maxLength={MAX_PRESET_LEN}
+                      className="h-8 text-xs bg-white dark:bg-[#1A0B12] pr-12"
+                    />
+                    <span className="absolute right-2 top-2 text-[10px] text-gray-400 pointer-events-none font-mono">
+                      {newPresetValue.length}/{MAX_PRESET_LEN}
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleAddPreset}
+                    disabled={isSavingPresets || !newPresetValue.trim() || presetsAtLimit}
+                    className="h-8 text-xs bg-red-600 hover:bg-red-700 text-white shrink-0"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" />
+                    Adicionar
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
@@ -278,13 +320,24 @@ export function OrderRejectDialog({
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9] flex items-center justify-between">
             <span>Justificativa Obrigatória:</span>
-            <span className="text-[10px] text-gray-400 font-normal">Visível para o cliente</span>
+            <span className={`text-[10px] font-mono font-bold ${
+              reasonRemaining <= 20
+                ? "text-red-500 dark:text-red-400"
+                : reasonRemaining <= 50
+                ? "text-amber-500 dark:text-amber-400"
+                : "text-gray-400"
+            }`}>
+              {reasonRemaining}/{MAX_REASON_LEN}
+            </span>
           </label>
           <textarea
             rows={3}
             placeholder="Selecione um motivo acima ou descreva detalhadamente a justificativa para o cliente..."
             value={reason}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReason(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+              setReason(e.target.value.slice(0, MAX_REASON_LEN))
+            }
+            maxLength={MAX_REASON_LEN}
             className="w-full p-3 text-xs rounded-xl bg-gray-50 dark:bg-[#2A0E18] border border-gray-200 dark:border-red-900/40 text-foreground focus:outline-none focus:ring-2 focus:ring-red-500/50 resize-none"
           />
         </div>

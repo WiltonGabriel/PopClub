@@ -13,12 +13,19 @@ import {
   Store,
   Loader2,
   Zap,
+  AlertCircle,
 } from "lucide-react";
 import { Order } from "@/services/orderService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { storeSettingsService } from "@/services/storeSettingsService";
 import { printThermalReceipt } from "@/lib/thermalPrinter";
+
+// ─── Limites rígidos anti-bloat ───────────────────────────────────────────────
+const MAX_PRESETS = 4;
+const MAX_PRESET_LEN = 15;
+const MAX_CUSTOM_LEN = 15;
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface OrderAcceptDialogProps {
   open: boolean;
@@ -73,6 +80,7 @@ export function OrderAcceptDialog({
       setSelectedTime(defaultTime);
       setIsManagingPresets(false);
       setCustomTime("");
+      setNewPresetValue("");
     }
   }, [open, presets, storeDefaultTime]);
 
@@ -82,9 +90,11 @@ export function OrderAcceptDialog({
   };
 
   const handleCustomChange = (val: string) => {
-    setCustomTime(val);
-    if (val.trim()) {
-      setSelectedTime(`${val.trim()} min`);
+    // Limita comprimento
+    const truncated = val.slice(0, MAX_CUSTOM_LEN);
+    setCustomTime(truncated);
+    if (truncated.trim()) {
+      setSelectedTime(`${truncated.trim()} min`);
     } else if (presets.length > 0) {
       setSelectedTime(presets[0]);
     }
@@ -92,10 +102,16 @@ export function OrderAcceptDialog({
 
   // Salvar novo preset
   const handleAddPreset = async () => {
-    if (!newPresetValue.trim()) return;
-    const formatted = newPresetValue.trim().endsWith("min")
-      ? newPresetValue.trim()
-      : `${newPresetValue.trim()} min`;
+    const trimmed = newPresetValue.trim().replace(/\s+/g, " ");
+    if (!trimmed) return;
+
+    // Limite quantitativo
+    if (presets.length >= MAX_PRESETS) return;
+
+    // Limite de comprimento
+    if (trimmed.length > MAX_PRESET_LEN) return;
+
+    const formatted = trimmed.endsWith("min") ? trimmed : `${trimmed} min`;
 
     if (presets.includes(formatted)) {
       setNewPresetValue("");
@@ -193,6 +209,7 @@ export function OrderAcceptDialog({
     !order.delivery_address?.street ||
     order.delivery_address?.street.toLowerCase().includes("retirada");
   const totalItemsCount = order.items?.reduce((acc, i) => acc + i.quantity, 0) || 0;
+  const presetsAtLimit = presets.length >= MAX_PRESETS;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -270,9 +287,18 @@ export function OrderAcceptDialog({
           {/* Gestão rápida de presets inline */}
           {isManagingPresets && (
             <div className="p-3 bg-purple-50/70 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/40 rounded-2xl space-y-2.5 animate-in fade-in duration-150">
-              <span className="text-[11px] font-bold text-[#4C264F] dark:text-[#C7A9C9] block">
-                Personalizar Botões Rápidos de Tempo:
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-[#4C264F] dark:text-[#C7A9C9] block">
+                  Personalizar Botões Rápidos de Tempo:
+                </span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  presetsAtLimit
+                    ? "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
+                    : "bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300"
+                }`}>
+                  {presets.length}/{MAX_PRESETS}
+                </span>
+              </div>
               <div className="flex flex-wrap gap-1.5">
                 {presets.map((p) => (
                   <span
@@ -292,31 +318,50 @@ export function OrderAcceptDialog({
                 ))}
               </div>
 
-              <div className="flex gap-2 pt-1">
-                <Input
-                  type="text"
-                  placeholder="Ex: 40-60 min ou 45 min"
-                  value={newPresetValue}
-                  onChange={(e) => setNewPresetValue(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddPreset();
-                    }
-                  }}
-                  className="h-8 text-xs bg-white dark:bg-[#1A0B1C]"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleAddPreset}
-                  disabled={isSavingPresets || !newPresetValue.trim()}
-                  className="h-8 text-xs bg-[#9306CF] hover:bg-[#881BAA] text-white cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-1" />
-                  Adicionar
-                </Button>
-              </div>
+              {/* Aviso de limite atingido */}
+              {presetsAtLimit ? (
+                <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <p className="text-[11px] text-amber-700 dark:text-amber-300 font-semibold">
+                    Limite máximo de {MAX_PRESETS} botões atingido. Remova um para adicionar outro.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex gap-2 pt-1">
+                  <div className="flex-1 relative">
+                    <Input
+                      type="text"
+                      placeholder="Ex: 40-60 min ou 45"
+                      value={newPresetValue}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\s+/g, " ");
+                        setNewPresetValue(val.slice(0, MAX_PRESET_LEN));
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddPreset();
+                        }
+                      }}
+                      maxLength={MAX_PRESET_LEN}
+                      className="h-8 text-xs bg-white dark:bg-[#1A0B1C] pr-10"
+                    />
+                    <span className="absolute right-2.5 top-2 text-[10px] text-gray-400 pointer-events-none font-mono">
+                      {newPresetValue.length}/{MAX_PRESET_LEN}
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleAddPreset}
+                    disabled={isSavingPresets || !newPresetValue.trim() || presetsAtLimit}
+                    className="h-8 text-xs bg-[#9306CF] hover:bg-[#881BAA] text-white cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" />
+                    Adicionar
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
@@ -383,9 +428,10 @@ export function OrderAcceptDialog({
             <div className="relative flex-1">
               <Input
                 type="text"
-                placeholder="Ex: 45 min ou 60"
+                placeholder="Ex: 45 ou 60"
                 value={customTime}
                 onChange={(e) => handleCustomChange(e.target.value)}
+                maxLength={MAX_CUSTOM_LEN}
                 className="h-9 text-xs rounded-xl pr-12 bg-gray-50 dark:bg-[#250F29] border-gray-200 dark:border-[#512B54]/40"
               />
               <span className="absolute right-3 top-2.5 text-xs text-gray-400 font-mono pointer-events-none">

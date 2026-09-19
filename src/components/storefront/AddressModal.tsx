@@ -210,10 +210,10 @@ export function AddressModal() {
       number: number.trim(),
       neighborhood: neighborhood.trim(),
       city: city.trim() || "Várzea Grande",
-      complement: complement.trim() || undefined,
+      complement: complement.trim().slice(0, 50) || undefined,
       reference: reference.trim() || undefined,
       zip: zip.trim() || undefined,
-      label,
+      label: (label.trim() || "Casa").slice(0, 30),
       latitude: coords.lat,
       longitude: coords.lon,
     });
@@ -515,12 +515,16 @@ export function AddressModal() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-foreground">Complemento / Apto</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-foreground">Complemento / Apto</label>
+                    <span className="text-[10px] font-mono text-muted-foreground">{complement.length}/50</span>
+                  </div>
                   <input
                     type="text"
                     placeholder="Apto 102, Bloco B"
                     value={complement}
-                    onChange={(e) => setComplement(e.target.value)}
+                    onChange={(e) => setComplement(e.target.value.slice(0, 50))}
+                    maxLength={50}
                     className="w-full px-3 py-2 text-sm bg-background border border-border rounded-xl focus:border-[#9306CF] outline-hidden"
                   />
                 </div>
@@ -547,7 +551,7 @@ export function AddressModal() {
                       type="button"
                       onClick={() => setLabel(lbl)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
-                        label === lbl
+                        label === lbl || (lbl === "Outro" && label !== "Casa" && label !== "Trabalho")
                           ? "bg-[#9306CF] text-white border-[#9306CF] shadow-xs"
                           : "bg-muted/60 text-muted-foreground border-border hover:bg-muted"
                       }`}
@@ -559,6 +563,22 @@ export function AddressModal() {
                     </button>
                   ))}
                 </div>
+                {label !== "Casa" && label !== "Trabalho" && (
+                  <div className="pt-1.5 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-medium text-muted-foreground">Apelido do Endereço</label>
+                      <span className="text-[10px] font-mono text-muted-foreground">{label === "Outro" ? 0 : label.length}/30</span>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Ex: Casa da Vó, Academia..."
+                      value={label === "Outro" ? "" : label}
+                      onChange={(e) => setLabel(e.target.value.slice(0, 30))}
+                      maxLength={30}
+                      className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-lg focus:border-[#9306CF] outline-hidden"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="pt-2 flex gap-2">
@@ -666,12 +686,16 @@ export function AddressModal() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-foreground">Complemento / Apto</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-foreground">Complemento / Apto</label>
+                    <span className="text-[10px] font-mono text-muted-foreground">{complement.length}/50</span>
+                  </div>
                   <input
                     type="text"
                     placeholder="Casa, Apto 204..."
                     value={complement}
-                    onChange={(e) => setComplement(e.target.value)}
+                    onChange={(e) => setComplement(e.target.value.slice(0, 50))}
+                    maxLength={50}
                     className="w-full px-3 py-2 text-sm bg-background border border-border rounded-xl focus:border-[#9306CF] outline-hidden"
                   />
                 </div>
@@ -698,7 +722,7 @@ export function AddressModal() {
                       type="button"
                       onClick={() => setLabel(lbl)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
-                        label === lbl
+                        label === lbl || (lbl === "Outro" && label !== "Casa" && label !== "Trabalho")
                           ? "bg-[#9306CF] text-white border-[#9306CF] shadow-xs"
                           : "bg-muted/60 text-muted-foreground border-border hover:bg-muted"
                       }`}
@@ -710,6 +734,22 @@ export function AddressModal() {
                     </button>
                   ))}
                 </div>
+                {label !== "Casa" && label !== "Trabalho" && (
+                  <div className="pt-1.5 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-medium text-muted-foreground">Apelido do Endereço</label>
+                      <span className="text-[10px] font-mono text-muted-foreground">{label === "Outro" ? 0 : label.length}/30</span>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Ex: Casa da Vó, Academia..."
+                      value={label === "Outro" ? "" : label}
+                      onChange={(e) => setLabel(e.target.value.slice(0, 30))}
+                      maxLength={30}
+                      className="w-full px-3 py-1.5 text-xs bg-background border border-border rounded-lg focus:border-[#9306CF] outline-hidden"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="pt-2 flex gap-2">

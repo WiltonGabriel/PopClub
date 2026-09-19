@@ -192,8 +192,8 @@ export function AvatarPresetManager() {
       setIsSaving(true);
 
       const payload = {
-        name: formName.trim(),
-        description: formDescription.trim(),
+        name: formName.trim().slice(0, 25),
+        description: formDescription.trim().slice(0, 40),
         imageUrl: formImageUrl.trim(),
         category: formCategory.trim() || null,
         order: Number(formOrder),
@@ -461,14 +461,20 @@ export function AvatarPresetManager() {
 
               {/* Nome */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                  Nome do Avatar *
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                    Nome do Avatar *
+                  </Label>
+                  <span className="text-[10px] font-mono text-muted-foreground">
+                    {formName.length}/25
+                  </span>
+                </div>
                 <Input
                   type="text"
                   placeholder="Ex: Sundae Amora, Picolé Pop..."
                   value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
+                  onChange={(e) => setFormName(e.target.value.slice(0, 25))}
+                  maxLength={25}
                   className="rounded-xl"
                   required
                 />
@@ -476,14 +482,20 @@ export function AvatarPresetManager() {
 
               {/* Descrição */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                  Descrição Breve *
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                    Descrição Breve *
+                  </Label>
+                  <span className="text-[10px] font-mono text-muted-foreground">
+                    {formDescription.length}/40
+                  </span>
+                </div>
                 <Input
                   type="text"
                   placeholder="Ex: Clássico sundae artesanal com calda de amora"
                   value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
+                  onChange={(e) => setFormDescription(e.target.value.slice(0, 40))}
+                  maxLength={40}
                   className="rounded-xl"
                   required
                 />

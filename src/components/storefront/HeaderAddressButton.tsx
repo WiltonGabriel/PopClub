@@ -45,7 +45,7 @@ export function HeaderAddressButton({
         onClick={openAddressModal}
         title={fullAddressText}
         aria-label={`Endereço de entrega: ${displayText}. Clique para alterar.`}
-        className={`group flex items-center gap-1 text-xs text-[#4C264F] dark:text-[#F9F5F9] hover:text-[#9306CF] dark:hover:text-white transition-all border border-border/40 hover:border-[#9306CF]/50 bg-white/70 dark:bg-[#230E26]/70 hover:bg-muted/80 rounded-full px-2 py-1 shrink min-w-0 max-w-[130px] sm:max-w-[150px] shadow-xs cursor-pointer active:scale-95 ${className}`}
+        className={`group flex items-center gap-1 text-xs text-[#4C264F] dark:text-[#F9F5F9] hover:text-[#9306CF] dark:hover:text-white transition-all border border-border/40 hover:border-[#9306CF]/50 bg-white/70 dark:bg-[#230E26]/70 hover:bg-muted/80 rounded-full px-2 py-1 shrink min-w-0 max-w-[110px] sm:max-w-[150px] shadow-xs cursor-pointer active:scale-95 ${className}`}
       >
         <MapPin className="w-3 h-3 text-[#9306CF] dark:text-[#C7A9C9] shrink-0 group-hover:scale-110 transition-transform" />
         <span className={`font-medium truncate text-left text-xs leading-none ${spanClassName}`}>
