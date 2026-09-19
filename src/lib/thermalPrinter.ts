@@ -1,11 +1,11 @@
 import { Order } from "@/services/orderService";
 
-export function printThermalReceipt(order: Order, storeName = "Pop Shake Sorveteria") {
+export function printOrderReceipt(order: Order, storeName = "Pop Shake Sorveteria") {
   if (typeof window === "undefined") return;
 
   const printWindow = window.open("", "_blank", "width=400,height=600");
   if (!printWindow) {
-    alert("Por favor, habilite popups no seu navegador para imprimir o comprovante térmico.");
+    alert("Por favor, habilite popups no seu navegador para imprimir o comprovante.");
     return;
   }
 
@@ -71,7 +71,7 @@ export function printThermalReceipt(order: Order, storeName = "Pop Shake Sorvete
     <html lang="pt-BR">
     <head>
       <meta charset="UTF-8">
-      <title>Pedido #${shortId} - Cupom Térmico</title>
+      <title>Pedido #${shortId} - Comprovante</title>
       <style>
         @page {
           size: 80mm auto;
@@ -154,7 +154,7 @@ export function printThermalReceipt(order: Order, storeName = "Pop Shake Sorvete
       </style>
     </head>
     <body>
-      <button class="print-btn no-print" onclick="window.print()">🖨️ Imprimir Cupom Térmico (80mm / 58mm)</button>
+      <button class="print-btn no-print" onclick="window.print()">🖨️ Imprimir Comprovante (80mm / 58mm)</button>
 
       <div class="header">
         <div class="title">${storeName}</div>
@@ -247,3 +247,9 @@ export function printThermalReceipt(order: Order, storeName = "Pop Shake Sorvete
   printWindow.document.write(receiptHtml);
   printWindow.document.close();
 }
+
+/**
+ * Alias mantido para compatibilidade retroativa
+ */
+export const printThermalReceipt = printOrderReceipt;
+

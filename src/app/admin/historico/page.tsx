@@ -488,11 +488,11 @@ export default function AdminHistoricoPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => printThermalReceipt(order)}
-                        className="h-9 px-2.5 rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold gap-1 hover:bg-gray-100 dark:hover:bg-white/5"
-                        title="Imprimir Cupom Térmico (80mm/58mm)"
+                        className="h-9 px-2.5 rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold gap-1 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
+                        title="Imprimir Comprovante (80mm / 58mm)"
                       >
                         <Printer className="w-3.5 h-3.5 text-[#9306CF]" />
-                        <span className="hidden sm:inline">Cupom</span>
+                        <span className="hidden sm:inline">Comprovante</span>
                       </Button>
 
                       <Button

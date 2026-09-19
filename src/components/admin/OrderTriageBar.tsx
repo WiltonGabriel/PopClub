@@ -11,10 +11,12 @@ import {
   Bike,
   Volume2,
   VolumeX,
+  Printer,
 } from "lucide-react";
 import { Order } from "@/services/orderService";
 import { Button } from "@/components/ui/button";
 import { playKitchenBellSound } from "@/lib/sound";
+import { printThermalReceipt } from "@/lib/thermalPrinter";
 
 interface OrderTriageBarProps {
   pendingOrders: Order[];
@@ -84,7 +86,7 @@ export function OrderTriageBar({
               </span>
             </div>
             <p className="text-xs text-gray-600 dark:text-gray-400">
-              Aceite para definir o tempo de preparo e enviar a comanda para impressão
+              Aceite para definir o tempo de preparo e gerar o comprovante
             </p>
           </div>
         </div>
@@ -206,8 +208,18 @@ export function OrderTriageBar({
                 <Button
                   size="sm"
                   variant="outline"
+                  onClick={() => printThermalReceipt(order)}
+                  className="h-8 px-2 rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 cursor-pointer"
+                  title="Imprimir Comprovante"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
                   onClick={() => onViewOrderDetails(order)}
-                  className="h-8 px-2 rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300"
+                  className="h-8 px-2 rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 cursor-pointer"
                   title="Ver Detalhes do Pedido"
                 >
                   <FileText className="w-3.5 h-3.5" />

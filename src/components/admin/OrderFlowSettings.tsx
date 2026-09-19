@@ -9,6 +9,7 @@ import {
   Save,
   CheckCircle2,
   Loader2,
+  Printer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,24 @@ export function OrderFlowSettings() {
 
   const [newTimeInput, setNewTimeInput] = useState("");
   const [newReasonInput, setNewReasonInput] = useState("");
+
+  const [autoPrintReceipt, setAutoPrintReceipt] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const saved =
+        localStorage.getItem("popshake_auto_print_receipt") ??
+        localStorage.getItem("autoPrintReceiptOnAccept");
+      return saved === "true";
+    }
+    return false;
+  });
+
+  const handleToggleAutoPrintReceipt = (checked: boolean) => {
+    setAutoPrintReceipt(checked);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("popshake_auto_print_receipt", String(checked));
+      localStorage.setItem("autoPrintReceiptOnAccept", String(checked));
+    }
+  };
 
   useEffect(() => {
     async function loadSettings() {
@@ -270,6 +289,40 @@ export function OrderFlowSettings() {
               Adicionar
             </Button>
           </div>
+        </div>
+
+        {/* Bloco 3: Automação de Impressão de Comprovante */}
+        <div className="space-y-3 pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
+              <Printer className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9]">
+                Automação de Impressão de Comprovante
+              </h3>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                Configure a impressão de comprovantes para 80mm e 58mm
+              </p>
+            </div>
+          </div>
+
+          <label className="flex items-center justify-between p-3.5 bg-gray-50 dark:bg-[#250F29] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl cursor-pointer select-none">
+            <div className="space-y-0.5 pr-3">
+              <span className="text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9] block">
+                Imprimir comprovante automaticamente ao aceitar
+              </span>
+              <span className="text-[11px] text-gray-500 dark:text-gray-400 block">
+                Ao confirmar o aceite do pedido na triagem, abre imediatamente o diálogo de impressão
+              </span>
+            </div>
+            <input
+              type="checkbox"
+              checked={autoPrintReceipt}
+              onChange={(e) => handleToggleAutoPrintReceipt(e.target.checked)}
+              className="w-4 h-4 rounded text-[#9306CF] focus:ring-[#9306CF] border-gray-300 cursor-pointer"
+            />
+          </label>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Clock,
   Printer,
@@ -12,6 +12,7 @@ import {
   Bike,
   Store,
   Loader2,
+  Zap,
 } from "lucide-react";
 import { Order } from "@/services/orderService";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ interface OrderAcceptDialogProps {
   onConfirmAccept: (orderId: string, estimatedTime: string) => Promise<void>;
   initialPresets?: string[];
   onPresetsUpdated?: (presets: string[]) => void;
+  storeDefaultTime?: string;
 }
 
 export function OrderAcceptDialog({
@@ -35,11 +37,12 @@ export function OrderAcceptDialog({
   onConfirmAccept,
   initialPresets = ["20-30 min", "35-50 min", "50-70 min"],
   onPresetsUpdated,
+  storeDefaultTime,
 }: OrderAcceptDialogProps) {
   const [presets, setPresets] = useState<string[]>(initialPresets);
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [customTime, setCustomTime] = useState<string>("");
-  const [autoPrint, setAutoPrint] = useState<boolean>(true);
+  const [autoPrint, setAutoPrint] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Modo de gestão rápida de presets
@@ -50,25 +53,28 @@ export function OrderAcceptDialog({
   useEffect(() => {
     if (initialPresets && initialPresets.length > 0) {
       setPresets(initialPresets);
-      setSelectedTime((prev) => prev || initialPresets[0]);
     }
   }, [initialPresets]);
 
   useEffect(() => {
     if (open) {
-      // Carrega preferência de impressão automática
-      const savedPrint = localStorage.getItem("popshake_auto_print_receipt");
+      // Carrega preferência de operador (padrão false para não disparar impressão involuntária)
+      const savedPrint =
+        localStorage.getItem("popshake_auto_print_receipt") ??
+        localStorage.getItem("autoPrintReceiptOnAccept");
       if (savedPrint !== null) {
         setAutoPrint(savedPrint === "true");
+      } else {
+        setAutoPrint(false);
       }
-      // Define preset padrão se não estiver definido
-      if (presets.length > 0) {
-        setSelectedTime((prev) => prev || presets[0]);
-      }
+
+      // Prioriza o tempo padrão global da esteira da loja
+      const defaultTime = storeDefaultTime || (presets.length > 0 ? presets[0] : "30-50 min");
+      setSelectedTime(defaultTime);
       setIsManagingPresets(false);
       setCustomTime("");
     }
-  }, [open, presets]);
+  }, [open, presets, storeDefaultTime]);
 
   if (!open || !order) return null;
 
@@ -90,11 +96,6 @@ export function OrderAcceptDialog({
     } else if (presets.length > 0) {
       setSelectedTime(presets[0]);
     }
-  };
-
-  const handleToggleAutoPrint = (checked: boolean) => {
-    setAutoPrint(checked);
-    localStorage.setItem("popshake_auto_print_receipt", String(checked));
   };
 
   // Salvar novo preset
@@ -143,10 +144,16 @@ export function OrderAcceptDialog({
     }
   };
 
-  const handleConfirm = async () => {
-    if (!order) return;
+  const handleToggleAutoPrint = (checked: boolean) => {
+    setAutoPrint(checked);
+    localStorage.setItem("popshake_auto_print_receipt", String(checked));
+    localStorage.setItem("autoPrintReceiptOnAccept", String(checked));
+  };
+
+  const handleConfirm = useCallback(async () => {
+    if (!order || isSubmitting) return;
     setIsSubmitting(true);
-    const finalEstimatedTime = selectedTime || "30-50 min";
+    const finalEstimatedTime = selectedTime || storeDefaultTime || "30-50 min";
 
     try {
       await onConfirmAccept(order.id, finalEstimatedTime);
@@ -155,7 +162,7 @@ export function OrderAcceptDialog({
         try {
           printThermalReceipt(order);
         } catch (printErr) {
-          console.error("Erro ao disparar impressão térmica:", printErr);
+          console.error("Erro ao disparar impressão de comprovante:", printErr);
         }
       }
 
@@ -165,7 +172,26 @@ export function OrderAcceptDialog({
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [order, isSubmitting, selectedTime, storeDefaultTime, onConfirmAccept, autoPrint, onOpenChange]);
+
+  // Tecla Enter para aceite rápido e Escape para fechar
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onOpenChange(false);
+      } else if (e.key === "Enter" && !isManagingPresets) {
+        const target = e.target as HTMLElement;
+        if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") {
+          return;
+        }
+        e.preventDefault();
+        handleConfirm();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, isManagingPresets, handleConfirm, onOpenChange]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -187,7 +213,7 @@ export function OrderAcceptDialog({
           </div>
           <button
             onClick={() => onOpenChange(false)}
-            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -233,7 +259,7 @@ export function OrderAcceptDialog({
             <button
               type="button"
               onClick={() => setIsManagingPresets(!isManagingPresets)}
-              className="text-[11px] font-bold text-[#9306CF] hover:underline flex items-center gap-1"
+              className="text-[11px] font-bold text-[#9306CF] hover:underline flex items-center gap-1 cursor-pointer"
             >
               <Settings className="w-3 h-3" />
               <span>{isManagingPresets ? "Fechar Gestão" : "Gerenciar Tempos"}</span>
@@ -257,7 +283,7 @@ export function OrderAcceptDialog({
                       type="button"
                       onClick={() => handleRemovePreset(p)}
                       disabled={isSavingPresets || presets.length <= 1}
-                      className="text-red-500 hover:text-red-700 disabled:opacity-30 ml-0.5"
+                      className="text-red-500 hover:text-red-700 disabled:opacity-30 ml-0.5 cursor-pointer"
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
@@ -284,7 +310,7 @@ export function OrderAcceptDialog({
                   size="sm"
                   onClick={handleAddPreset}
                   disabled={isSavingPresets || !newPresetValue.trim()}
-                  className="h-8 text-xs bg-[#9306CF] hover:bg-[#881BAA] text-white"
+                  className="h-8 text-xs bg-[#9306CF] hover:bg-[#881BAA] text-white cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5 mr-1" />
                   Adicionar
@@ -293,25 +319,59 @@ export function OrderAcceptDialog({
             </div>
           )}
 
-          {/* Chips dos presets de tempo */}
-          <div className="grid grid-cols-3 gap-2">
-            {presets.map((preset) => {
-              const isSelected = selectedTime === preset && !customTime;
-              return (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => handleSelectPreset(preset)}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold font-mono transition-all text-center border cursor-pointer ${
-                    isSelected
-                      ? "bg-[#9306CF] text-white border-[#9306CF] shadow-sm shadow-[#9306CF]/30 scale-[1.02]"
-                      : "bg-gray-50 dark:bg-[#250F29] text-gray-700 dark:text-gray-300 border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/50"
-                  }`}
-                >
-                  {preset}
-                </button>
-              );
-            })}
+          {/* ⚡ Botão em Destaque: Padrão da Loja */}
+          {storeDefaultTime && (
+            <button
+              type="button"
+              onClick={() => handleSelectPreset(storeDefaultTime)}
+              className={`w-full py-2.5 px-4 rounded-2xl text-xs sm:text-sm font-bold transition-all flex items-center justify-between border cursor-pointer ${
+                selectedTime === storeDefaultTime && !customTime
+                  ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white border-transparent shadow-md shadow-[#9306CF]/25 scale-[1.01]"
+                  : "bg-purple-50/70 dark:bg-purple-950/30 text-purple-900 dark:text-purple-200 border-purple-200 dark:border-purple-800/50 hover:border-[#9306CF]/60"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-amber-400 fill-amber-400 shrink-0" />
+                <span>Usar Padrão da Loja ({storeDefaultTime})</span>
+              </div>
+              <span
+                className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                  selectedTime === storeDefaultTime && !customTime
+                    ? "bg-white/20 text-white"
+                    : "bg-[#9306CF]/15 text-[#9306CF] dark:text-[#C7A9C9]"
+                }`}
+              >
+                Padrão
+              </span>
+            </button>
+          )}
+
+          {/* Outros Presets Rápidos */}
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+              Outros tempos rápidos:
+            </span>
+            <div className="grid grid-cols-3 gap-2">
+              {presets
+                .filter((p) => p !== storeDefaultTime)
+                .map((preset) => {
+                  const isSelected = selectedTime === preset && !customTime;
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => handleSelectPreset(preset)}
+                      className={`py-2 px-2.5 rounded-xl text-xs font-bold font-mono transition-all text-center border cursor-pointer ${
+                        isSelected
+                          ? "bg-[#9306CF] text-white border-[#9306CF] shadow-sm shadow-[#9306CF]/30 scale-[1.02]"
+                          : "bg-gray-50 dark:bg-[#250F29] text-gray-700 dark:text-gray-300 border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/50"
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  );
+                })}
+            </div>
           </div>
 
           {/* Campo de tempo personalizado */}
@@ -334,17 +394,17 @@ export function OrderAcceptDialog({
           </div>
         </div>
 
-        {/* Checkbox de Impressão Térmica Automática */}
+        {/* Checkbox de Impressão Automática de Comprovante */}
         <label className="flex items-center gap-2.5 p-3 rounded-xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/30 cursor-pointer select-none">
           <input
             type="checkbox"
             checked={autoPrint}
             onChange={(e) => handleToggleAutoPrint(e.target.checked)}
-            className="w-4 h-4 rounded text-[#9306CF] focus:ring-[#9306CF] border-gray-300"
+            className="w-4 h-4 rounded text-[#9306CF] focus:ring-[#9306CF] border-gray-300 cursor-pointer"
           />
           <div className="flex items-center gap-2 text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9]">
             <Printer className="w-3.5 h-3.5 text-[#9306CF]" />
-            <span>Imprimir Comanda Automaticamente</span>
+            <span>Imprimir comprovante automaticamente ao aceitar</span>
           </div>
         </label>
 
@@ -355,7 +415,7 @@ export function OrderAcceptDialog({
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
-            className="flex-1 rounded-xl h-11 text-xs font-bold uppercase tracking-wider border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5"
+            className="flex-1 rounded-xl h-11 text-xs font-bold uppercase tracking-wider border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
           >
             Voltar
           </Button>

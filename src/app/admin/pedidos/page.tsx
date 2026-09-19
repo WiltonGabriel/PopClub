@@ -80,6 +80,25 @@ export default function AdminPedidosPage() {
   });
   const [isCompactDropdownOpen, setIsCompactDropdownOpen] = useState(false);
 
+  // Impressão automática de comprovante ao aceitar (persistido em localStorage, padrão false)
+  const [autoPrintReceipt, setAutoPrintReceipt] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const saved =
+        localStorage.getItem("popshake_auto_print_receipt") ??
+        localStorage.getItem("autoPrintReceiptOnAccept");
+      return saved === "true";
+    }
+    return false;
+  });
+
+  const handleToggleAutoPrintReceipt = (checked: boolean) => {
+    setAutoPrintReceipt(checked);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("popshake_auto_print_receipt", String(checked));
+      localStorage.setItem("autoPrintReceiptOnAccept", String(checked));
+    }
+  };
+
   // Estados do Fluxo de Triagem (Aceite & Recusa)
   const [orderToAccept, setOrderToAccept] = useState<Order | null>(null);
   const [isAcceptModalOpen, setIsAcceptModalOpen] = useState(false);
@@ -894,16 +913,25 @@ export default function AdminPedidosPage() {
                         </span>
                       </div>
 
-                      {/* Linha 4: Ações Rápidas - Somente Ver Ficha */}
+                      {/* Linha 4: Ações Rápidas - Ver Ficha e Imprimir Comprovante */}
                       <div className="flex items-center gap-1.5 pt-1">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => setSelectedOrderForDrawer(order)}
-                          className="w-full h-7 text-[10px] font-bold rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center gap-1"
+                          className="flex-1 h-7 text-[10px] font-bold rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center gap-1 cursor-pointer"
                         >
                           <FileText className="w-3 h-3 text-[#9306CF]" />
                           <span>Ver Ficha</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => printThermalReceipt(order)}
+                          className="h-7 px-2 text-[10px] font-bold rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center cursor-pointer"
+                          title="Imprimir Comprovante (80mm / 58mm)"
+                        >
+                          <Printer className="w-3 h-3 text-[#9306CF]" />
                         </Button>
                       </div>
                     </div>
@@ -992,8 +1020,17 @@ export default function AdminPedidosPage() {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => printThermalReceipt(order)}
+                          className="h-7 px-2 text-[10px] font-bold rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center cursor-pointer"
+                          title="Imprimir Comprovante"
+                        >
+                          <Printer className="w-3 h-3 text-[#9306CF]" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => setSelectedOrderForDrawer(order)}
-                          className="h-7 px-2 text-[10px] font-bold rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5"
+                          className="h-7 px-2 text-[10px] font-bold rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
                           title="Ver Ficha Completa"
                         >
                           <FileText className="w-3 h-3 text-[#9306CF]" />
@@ -1006,7 +1043,7 @@ export default function AdminPedidosPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleRevertStatus(order.id, order.status)}
-                            className="h-7 px-2 text-[10px] font-bold rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5"
+                            className="h-7 px-2 text-[10px] font-bold rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
                             title={prevStage.label}
                           >
                             <RotateCcw className="w-3 h-3" />
@@ -1017,7 +1054,7 @@ export default function AdminPedidosPage() {
                           <Button
                             size="sm"
                             onClick={() => handleUpdateStatus(order.id, order.status)}
-                            className="flex-1 h-7 rounded-lg bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading font-bold text-[10px] uppercase tracking-wider shadow-xs"
+                            className="flex-1 h-7 rounded-lg bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading font-bold text-[10px] uppercase tracking-wider shadow-xs cursor-pointer"
                           >
                             <span>{nextStage.label}</span>
                           </Button>
@@ -1030,8 +1067,18 @@ export default function AdminPedidosPage() {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => printThermalReceipt(order)}
+                          className="h-7 px-2 text-[10px] font-bold rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center cursor-pointer"
+                          title="Imprimir Comprovante"
+                        >
+                          <Printer className="w-3 h-3 text-[#9306CF]" />
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => setSelectedOrderForDrawer(order)}
-                          className="h-7 px-2 text-[10px] font-bold rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5"
+                          className="h-7 px-2 text-[10px] font-bold rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
                           title="Ver Ficha Completa"
                         >
                           <FileText className="w-3 h-3 text-[#9306CF]" />
@@ -1079,16 +1126,25 @@ export default function AdminPedidosPage() {
                       </p>
                     </div>
 
-                    {/* Ações da Coluna de Cancelados - Somente Ver Ficha (SEM REATIVAR) */}
+                    {/* Ações da Coluna de Cancelados - Ver Ficha e Imprimir Comprovante (SEM REATIVAR) */}
                     <div className="flex items-center gap-1.5 pt-1 border-t border-red-100 dark:border-red-900/30">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setSelectedOrderForDrawer(order)}
-                        className="w-full text-[11px] font-bold h-8 rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5"
+                        className="flex-1 text-[11px] font-bold h-8 rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer flex items-center justify-center gap-1"
                       >
-                        <FileText className="w-3 h-3 text-[#9306CF] mr-1" />
+                        <FileText className="w-3 h-3 text-[#9306CF]" />
                         <span>Ver Ficha Completa</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => printThermalReceipt(order)}
+                        className="h-8 px-2.5 rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 cursor-pointer flex items-center justify-center"
+                        title="Imprimir Comprovante"
+                      >
+                        <Printer className="w-3.5 h-3.5 text-[#9306CF]" />
                       </Button>
                     </div>
                   </div>
@@ -1259,6 +1315,14 @@ export default function AdminPedidosPage() {
                           <XCircle className="w-3.5 h-3.5" />
                           <span>Recusar</span>
                         </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => printThermalReceipt(order)}
+                          className="h-9 px-3 rounded-xl border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center cursor-pointer"
+                          title="Imprimir Comprovante (80mm / 58mm)"
+                        >
+                          <Printer className="w-3.5 h-3.5 text-[#9306CF]" />
+                        </Button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-1.5">
@@ -1291,16 +1355,27 @@ export default function AdminPedidosPage() {
                       </div>
                     )}
 
-                    {/* Ações Secundárias: Ver Ficha Completa + Cancelar */}
+                    {/* Ações Secundárias: Ver Ficha Completa + Comprovante + Cancelar */}
                     <div className="flex items-center justify-between gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedOrderForDrawer(order)}
-                        className="text-[11px] font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline inline-flex items-center gap-1"
-                      >
-                        <FileText className="w-3 h-3" />
-                        <span>Ver Ficha Completa ➔</span>
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedOrderForDrawer(order)}
+                          className="text-[11px] font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline inline-flex items-center gap-1 cursor-pointer"
+                        >
+                          <FileText className="w-3 h-3" />
+                          <span>Ver Ficha Completa ➔</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => printThermalReceipt(order)}
+                          className="text-[11px] font-bold text-gray-500 dark:text-gray-400 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] inline-flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Imprimir Comprovante (80mm / 58mm)"
+                        >
+                          <Printer className="w-3 h-3 text-[#9306CF]" />
+                          <span>Comprovante</span>
+                        </button>
+                      </div>
 
                       {order.status !== "completed" && order.status !== "pending" && (
                         <button
@@ -1309,7 +1384,7 @@ export default function AdminPedidosPage() {
                             setOrderToCancel(order);
                             setCancelDialogOpen(true);
                           }}
-                          className="text-[11px] font-bold text-red-600 dark:text-red-400 hover:underline inline-flex items-center gap-1"
+                          className="text-[11px] font-bold text-red-600 dark:text-red-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
                         >
                           <XCircle className="w-3 h-3" />
                           <span>Cancelar</span>
@@ -1568,6 +1643,24 @@ export default function AdminPedidosPage() {
                       Expandir Todas
                     </button>
                   </div>
+
+                  {/* Controle de Impressão Automática */}
+                  <div className="pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+                    <span className="text-[11px] font-bold text-[#4C264F] dark:text-[#F9F5F9] block mb-1">
+                      Impressão de Comprovante
+                    </span>
+                    <label className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer text-xs select-none">
+                      <input
+                        type="checkbox"
+                        checked={autoPrintReceipt}
+                        onChange={(e) => handleToggleAutoPrintReceipt(e.target.checked)}
+                        className="w-4 h-4 rounded text-[#9306CF] focus:ring-[#9306CF] border-gray-300 cursor-pointer"
+                      />
+                      <span className="text-gray-700 dark:text-gray-300 font-medium text-[11px] leading-tight">
+                        Imprimir comprovante automaticamente ao aceitar
+                      </span>
+                    </label>
+                  </div>
                 </div>
               )}
             </div>
@@ -1725,6 +1818,7 @@ export default function AdminPedidosPage() {
         onConfirmAccept={handleConfirmAccept}
         initialPresets={timePresets}
         onPresetsUpdated={setTimePresets}
+        storeDefaultTime={shiftData?.estimatedDeliveryTime || "30-50 min"}
       />
 
       {/* Modal Operacional de Recusa (Triagem de Novos Pedidos) */}

@@ -167,11 +167,11 @@ export function OrderDetailDrawer({
                 variant="outline"
                 size="sm"
                 onClick={() => printThermalReceipt(order)}
-                className="h-8 px-2.5 rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold gap-1 hover:bg-gray-100 dark:hover:bg-white/5"
-                title="Imprimir comprovante térmico (80mm / 58mm)"
+                className="h-8 px-2.5 rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold gap-1 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
+                title="Imprimir Comprovante (80mm / 58mm)"
               >
                 <Printer className="w-3.5 h-3.5 text-[#9306CF]" />
-                <span className="hidden sm:inline">Cupom</span>
+                <span className="hidden sm:inline">Comprovante</span>
               </Button>
 
               <button
@@ -280,7 +280,7 @@ export function OrderDetailDrawer({
             <div className="bg-gray-50 dark:bg-[#230E26] rounded-2xl p-4 border border-gray-200 dark:border-[#512B54]/40 space-y-3">
               <span className="text-[11px] uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
                 <ShoppingBag className="w-3.5 h-3.5 text-[#9306CF]" />
-                Comanda / Itens do Pedido ({order.items?.length || 0})
+                Itens do Pedido ({order.items?.length || 0})
               </span>
 
               <div className="divide-y divide-gray-200/60 dark:divide-[#512B54]/30">
