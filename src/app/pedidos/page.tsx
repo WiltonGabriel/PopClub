@@ -232,7 +232,7 @@ export default function PedidosPage() {
   return (
     <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#190B1A] text-foreground flex flex-col font-sans transition-colors duration-200">
       {/* Header */}
-      <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-white/85 dark:bg-[#1F0B22]/90 border-b border-gray-200 dark:border-[#512B54]/40 px-4 py-4 flex items-center justify-between shadow-sm">
+      <header className="sticky top-0 z-40 w-full max-w-full overflow-x-hidden backdrop-blur-xl bg-white/85 dark:bg-[#1F0B22]/90 border-b border-gray-200 dark:border-[#512B54]/40 px-4 py-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
           <Link
             href="/"
@@ -265,7 +265,7 @@ export default function PedidosPage() {
 
           <Link
             href="/carrinho"
-            className="flex items-center gap-1.5 border border-gray-200 dark:border-[#512B54]/40 px-3 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-xs font-bold text-gray-700 dark:text-gray-200 transition-colors"
+            className="hidden sm:flex items-center gap-1.5 border border-gray-200 dark:border-[#512B54]/40 px-3 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-xs font-bold text-gray-700 dark:text-gray-200 transition-colors"
           >
             <ShoppingBag className="w-4 h-4 text-[#9306CF]" />
             <span className="hidden sm:inline">Carrinho</span>

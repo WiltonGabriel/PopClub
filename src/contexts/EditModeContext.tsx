@@ -4,12 +4,14 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 
 interface EditModeContextType {
   isEditMode: boolean;
+  isDesktop: boolean;
   toggleEditMode: () => void;
   setEditMode: (enabled: boolean) => void;
 }
 
 const EditModeContext = createContext<EditModeContextType>({
-  isEditMode: true,
+  isEditMode: false,
+  isDesktop: false,
   toggleEditMode: () => {},
   setEditMode: () => {},
 });
@@ -17,12 +19,22 @@ const EditModeContext = createContext<EditModeContextType>({
 const STORAGE_KEY = "popclub-admin-edit-mode";
 
 export function EditModeProvider({ children }: { children: React.ReactNode }) {
-  // Padrão como true para administradores
-  const [isEditMode, setIsEditModeState] = useState<boolean>(true);
+  // Padrão como true para administradores no Desktop
+  const [isEditModeState, setIsEditModeState] = useState<boolean>(true);
   const [isMounted, setIsMounted] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
+
+    const checkViewport = () => {
+      const desktop = typeof window !== "undefined" && window.innerWidth >= 768;
+      setIsDesktop(desktop);
+    };
+
+    checkViewport();
+    window.addEventListener("resize", checkViewport);
+
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved !== null) {
@@ -31,9 +43,19 @@ export function EditModeProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.error("Erro ao ler modo de edição do localStorage:", e);
     }
+
+    return () => {
+      window.removeEventListener("resize", checkViewport);
+    };
   }, []);
 
   const setEditMode = (enabled: boolean) => {
+    // Se a tela for mobile (< 768px), o modo de edição não pode ser ativado
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setIsEditModeState(false);
+      return;
+    }
+
     setIsEditModeState(enabled);
     try {
       localStorage.setItem(STORAGE_KEY, String(enabled));
@@ -43,13 +65,18 @@ export function EditModeProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleEditMode = () => {
-    setEditMode(!isEditMode);
+    if (!isDesktop) return;
+    setEditMode(!isEditModeState);
   };
+
+  // Trava de segurança: somente ativo se montado no cliente E em tela Desktop (>= 768px)
+  const effectiveEditMode = isMounted && isDesktop ? isEditModeState : false;
 
   return (
     <EditModeContext.Provider
       value={{
-        isEditMode: isMounted ? isEditMode : true,
+        isEditMode: effectiveEditMode,
+        isDesktop,
         toggleEditMode,
         setEditMode,
       }}

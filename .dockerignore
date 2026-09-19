@@ -17,11 +17,11 @@ docker-compose*.yml
 popshake-stack.yml
 
 # Environment and sensitive files
-.env
-.env*.local
-.env.production
+.env*
 *.pem
 *.key
+*.cert
+*.crt
 
 # Logs
 npm-debug.log*

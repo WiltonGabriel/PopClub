@@ -3,8 +3,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, User, MapPin, Package, Star, CreditCard, Settings, LogOut, Loader2, Map } from "lucide-react";
+import { ChevronLeft, User, MapPin, Package, Star, CreditCard, Settings, LogOut, Loader2, Map, Sun, Moon, Check } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
+import { useTheme } from "../../contexts/ThemeContext";
 import { authService } from "../../services/authService";
 import { userService, UserProfile, UserLocation } from "../../services/userService";
 import { Button } from "../../components/ui/button";
@@ -13,6 +14,7 @@ import { Label } from "../../components/ui/label";
 
 export default function AccountPage() {
   const { user, loading } = useAuth();
+  const { theme, toggleTheme, setTheme } = useTheme();
   const router = useRouter();
   
   const [activeSection, setActiveSection] = useState("perfil");
@@ -119,7 +121,7 @@ export default function AccountPage() {
   return (
     <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#190B1A] text-foreground flex flex-col font-sans transition-colors duration-200">
       {/* Header com contraste dinâmico */}
-      <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-white/80 dark:bg-[#190B1A]/80 border-b border-gray-200 dark:border-[#512B54]/40 px-4 py-4 flex items-center gap-3">
+      <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-white/80 dark:bg-[#190B1A]/80 border-b border-gray-200 dark:border-[#512B54]/40 px-4 py-3 sm:py-4 flex items-center justify-between gap-3">
         <Link 
           href="/" 
           className="flex items-center gap-1.5 p-2 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-[#4C264F] dark:text-[#F9F5F9] font-medium text-sm transition-colors group"
@@ -130,6 +132,25 @@ export default function AccountPage() {
             Minha Conta
           </span>
         </Link>
+
+        {/* Botão de Alternância Rápida de Tema */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
+          title={theme === "dark" ? "Modo claro" : "Modo escuro"}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-[#512B54]/40 bg-white/70 dark:bg-[#230E26]/70 hover:bg-gray-100 dark:hover:bg-white/5 text-xs font-semibold text-[#4C264F] dark:text-[#F9F5F9] transition-all shadow-xs active:scale-95 cursor-pointer"
+        >
+          {theme === "dark" ? (
+            <Sun className="w-4 h-4 text-amber-500 shrink-0" />
+          ) : (
+            <Moon className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9] shrink-0" />
+          )}
+          <span className="hidden xs:inline">Tema:</span>
+          <span className="font-bold text-[#9306CF] dark:text-[#C7A9C9]">
+            {theme === "dark" ? "Escuro" : "Claro"}
+          </span>
+        </button>
       </header>
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-8 flex flex-col md:flex-row gap-8">
@@ -141,6 +162,21 @@ export default function AccountPage() {
             <p className="font-heading font-bold text-lg text-[#4C264F] dark:text-[#F9F5F9] truncate">
               {profile?.full_name || user?.username || user?.email}
             </p>
+
+            {/* Quick theme switcher on mobile & desktop */}
+            <div className="mt-3 pt-3 border-t border-gray-100 dark:border-[#512B54]/30 flex items-center justify-between">
+              <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+                {theme === "dark" ? <Moon className="w-3.5 h-3.5 text-[#9306CF]" /> : <Sun className="w-3.5 h-3.5 text-amber-500" />}
+                Aparência
+              </span>
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="text-xs font-bold px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-[#9306CF]/10 hover:text-[#9306CF] transition-colors border border-border/40 cursor-pointer"
+              >
+                {theme === "dark" ? "🌙 Escuro" : "☀️ Claro"}
+              </button>
+            </div>
           </div>
 
           <nav className="flex flex-col gap-2">
@@ -290,8 +326,77 @@ export default function AccountPage() {
             </div>
           )}
 
+          {activeSection === "preferencias" && (
+            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
+              <div>
+                <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
+                  <Settings className="w-6 h-6 text-[#9306CF] dark:text-[#C7A9C9]" /> Preferências da Conta
+                </h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                  Personalize a aparência visual e sua experiência de uso na Pop Shake.
+                </p>
+              </div>
+
+              {/* Seletor Visual de Tema */}
+              <div className="space-y-3">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                  Tema da Aplicação
+                </Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Card Modo Claro */}
+                  <button
+                    type="button"
+                    onClick={() => setTheme("light")}
+                    className={`flex items-start gap-3.5 p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                      theme === "light"
+                        ? "border-[#9306CF] bg-purple-50/60 shadow-md shadow-[#9306CF]/10"
+                        : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#190B1A]/60"
+                    }`}
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 shadow-xs">
+                      <Sun className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="font-heading font-bold text-sm text-gray-900 dark:text-white">Modo Claro</span>
+                        {theme === "light" && <Check className="w-4 h-4 text-[#9306CF]" />}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Fundo branco, tons neutros e visual solar.
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Card Modo Escuro */}
+                  <button
+                    type="button"
+                    onClick={() => setTheme("dark")}
+                    className={`flex items-start gap-3.5 p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                      theme === "dark"
+                        ? "border-[#9306CF] bg-[#2A1030] shadow-md shadow-[#9306CF]/20"
+                        : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#190B1A]/60"
+                    }`}
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-purple-950 text-purple-300 flex items-center justify-center shrink-0 shadow-xs">
+                      <Moon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="font-heading font-bold text-sm text-gray-900 dark:text-white">Modo Escuro</span>
+                        {theme === "dark" && <Check className="w-4 h-4 text-[#9306CF]" />}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Roxo escuro (#190B1A) perfeito para conforto visual à noite.
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Placeholders for other sections */}
-          {(activeSection === "pagamentos" || activeSection === "avaliacoes" || activeSection === "preferencias") && (
+          {(activeSection === "pagamentos" || activeSection === "avaliacoes") && (
             <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm flex flex-col items-center justify-center py-20 text-center">
               <Settings className="w-12 h-12 text-gray-400 dark:text-gray-600 mb-4" />
               <h3 className="font-heading font-bold text-xl uppercase tracking-wider mb-2 text-[#4C264F] dark:text-[#F9F5F9]">

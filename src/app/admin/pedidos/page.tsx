@@ -36,7 +36,10 @@ import {
   CreditCard,
   SlidersHorizontal,
   ChevronDown,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "../../../contexts/ThemeContext";
 import { orderService, Order, OrderStatus } from "../../../services/orderService";
 import { authService } from "../../../services/authService";
 import { playKitchenBellSound, initAudioUnlock } from "../../../lib/sound";
@@ -60,6 +63,7 @@ import { OrderAcceptDialog } from "../../../components/admin/OrderAcceptDialog";
 import { OrderRejectDialog } from "../../../components/admin/OrderRejectDialog";
 
 export default function AdminPedidosPage() {
+  const { theme, toggleTheme } = useTheme();
   const [orders, setOrders] = useState<Order[]>([]);
   const [fetching, setFetching] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -1380,6 +1384,19 @@ export default function AdminPedidosPage() {
             <Store className="w-4 h-4 text-[#9306CF]" />
             <span className="hidden sm:inline">Página Inicial</span>
           </Link>
+
+          <button
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
+            title={theme === "dark" ? "Modo claro" : "Modo escuro"}
+            className="flex items-center justify-center w-9 h-9 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          >
+            {theme === "dark" ? (
+              <Sun className="w-4 h-4 text-amber-500" />
+            ) : (
+              <Moon className="w-4 h-4 text-[#9306CF]" />
+            )}
+          </button>
 
           {/* Botão Sair */}
           <button

@@ -1,100 +1,57 @@
-PROPRIETARY & SOURCE-AVAILABLE LICENSE
-LICENÇA PROPRIETÁRIA DE CÓDIGO FONTE DISPONÍVEL (SOURCE-AVAILABLE)
+PROPRIETARY & CONFIDENTIAL LICENSE
+LICENÇA PROPRIETÁRIA E CONFIDENCIAL — TODOS OS DIREITOS RESERVADOS
 
-Copyright (c) 2026 Equipe ADP & Pop Shake Sorveteria. All rights reserved / Todos os direitos reservados.
-
-================================================================================
-ENGLISH VERSION
-================================================================================
-
-This software, including but not limited to its source code, assets, graphic designs, interfaces, database schemas, APIs, and related documentation (collectively, the "Software"), is proprietary to Equipe ADP and Pop Shake Sorveteria (the "Copyright Holders").
-
-1. NATURE OF THIS LICENSE (NOT OPEN SOURCE)
-This Software is made publicly visible under a proprietary "source-available" license. The fact that the source code is publicly accessible on GitHub or any other platform DOES NOT make this Software open source, does NOT place it in the public domain, and does NOT grant any general right or license to copy, reuse, modify, redistribute, or commercially exploit the Software.
-
-2. PERMITTED ACCESS AND VIEWING
-Subject to the terms and restrictions set forth in this License, any person is granted a limited, revocable, non-exclusive, non-transferable, and royalty-free permission to:
-   (a) Access, browse, and view the public repository and read the source code;
-   (b) Inspect the architecture, examine system workflows, and study the technical implementation strictly for individual learning, educational inquiry, technical review, or non-commercial personal demonstration;
-   (c) Conduct academic or non-commercial evaluation of the codebase, provided that such evaluation does not involve extracting, distributing, or repurposing any portion of the Software.
-
-3. PORTFOLIO AND PROFESSIONAL PRESENTATION RULES
-Portfolio presentation is strictly governed as follows and is treated separately from general viewing permissions:
-   (a) Legitimate Contributors Only: Only individuals who were actual, verified members of the development team and who tangibly contributed to the development of the Software are permitted to present the project within their professional portfolio, resume, or career profiles.
-   (b) Scope of Contribution: Each verified contributor must accurately, honestly, and exclusively describe their own specific roles, deliverables, and actual contributions to the project.
-   (c) Non-Contributors Prohibited: Any individual who merely accessed, viewed, studied, reviewed, or evaluated this repository is STRICTLY PROHIBITED from presenting the Software, or any part of it, in a professional portfolio, resume, personal website, or social media profile as their own work, or in any manner that creates or implies the impression that they developed, authored, co-authored, or participated in the project.
-
-4. THIRD-PARTY CITATIONS AND REFERENCES
-Third parties are permitted to reference or cite this project (for example, in academic papers, technical articles, or architecture case studies) strictly as a third-party project, provided that:
-   (a) The Software is explicitly credited to "Equipe ADP" and "Pop Shake Sorveteria";
-   (b) A clear link to the official repository is included;
-   (c) The citation does not insinuate, suggest, or imply authorship, co-authorship, partnership, endorsement, sponsorship, or personal participation that does not exist.
-
-5. PROHIBITED ACTS
-Except as expressly authorized in advance and in writing by both Copyright Holders, you may NOT:
-   (a) Copy, reproduce, clone for reuse, extract, scrape, or incorporate the Software, in whole or in part, into any other project, software, codebase, library, or repository;
-   (b) Modify, adapt, translate, transform, decompile, reverse engineer, or create derivative works based on the Software;
-   (c) Distribute, publish, republish, mirror, broadcast, license, sublicense, sell, rent, lease, or transfer the Software or any portion thereof;
-   (d) Host, deploy, execute, or operate the Software for commercial delivery, production, business operations, SaaS, or commercial services of any third-party establishment;
-   (e) Remove, obscure, alter, or delete any copyright notices, author credits, trademarks, logos, or proprietary legends contained within or affixed to the Software.
-
-6. PROHIBITION AGAINST MISREPRESENTATION AND FALSE AUTHORSHIP
-You are explicitly and strictly prohibited from:
-   (a) Presenting yourself as the author, co-author, creator, or co-creator of the Software without having participated in its development;
-   (b) Claiming, presenting, or misrepresenting yourself as a developer, contributor, designer, or member of the development team without having actually contributed;
-   (c) Appropriating or claiming credit for features, code, architecture, solutions, or contributions performed by other team members;
-   (d) Using screenshots, user interfaces, code snippets, architecture diagrams, or branding from the Software to misrepresent your technical experience or fraudulently create the impression of having designed, built, or delivered the project.
-
-7. RESERVATION OF RIGHTS & NO IMPLIED LICENSES
-All rights not expressly granted to you in this License are strictly reserved by Equipe ADP and Pop Shake Sorveteria. Nothing in this License shall be construed by implication, estoppel, or otherwise as granting any license, title, ownership, or right to reproduce, modify, redistribute, create derivative works from, or commercially exploit the Software.
-
-8. DISCLAIMER OF WARRANTY & LIMITATION OF LIABILITY
-THE SOFTWARE IS PROVIDED "AS IS", FOR VIEWING AND INFORMATIONAL PURPOSES ONLY, WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) ARISING IN ANY WAY OUT OF ACCESSING, VIEWING, OR USING THE SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+Copyright (c) 2026 Pop Shake Sorveteria & Wilton Gabriel (Equipe ADP).
+All rights reserved / Todos os direitos reservados.
 
 ================================================================================
-VERSÃO EM PORTUGUÊS
+ENGLISH VERSION — STRICTLY PROPRIETARY & CONFIDENTIAL
 ================================================================================
 
-Este software, incluindo, sem limitação, seu código-fonte, elementos visuais, designs gráficos, interfaces, esquemas de banco de dados, APIs e documentações associadas (coletivamente, o "Software"), é de propriedade exclusiva da Equipe ADP e da Pop Shake Sorveteria ("Detentores dos Direitos").
+NOTICE: THIS REPOSITORY AND ITS CONTENTS ARE PRIVATE, PROPRIETARY, AND CONFIDENTIAL.
 
-1. NATUREZA DESTA LICENÇA (NÃO É OPEN SOURCE)
-Este Software é disponibilizado publicamente sob uma licença proprietária de código-fonte disponível ("source-available"). O fato de o repositório e o código-fonte estarem publicamente acessíveis no GitHub ou em qualquer outra plataforma NÃO torna o Software código aberto (open source), NÃO o coloca em domínio público e NÃO concede autorização geral de uso, cópia, modificação, redistribuição ou exploração comercial.
+1. PROPRIETARY OWNERSHIP
+This software, including without limitation its entire source code, algorithms, user interfaces, visual design assets, branding, icons, audio chimes, database schemas, API routes, configurations, scripts, and documentation (collectively, the "Software"), is the exclusive, confidential property of Pop Shake Sorveteria and Wilton Gabriel (Equipe ADP) (the "Copyright Holders").
 
-2. ACESSO E VISUALIZAÇÃO PERMITIDOS
-Sujeito aos termos e restrições estabelecidos nesta Licença, é concedida a qualquer pessoa uma permissão limitada, revogável, não exclusiva, intransferível e gratuita exclusivamente para:
-   (a) Acessar, navegar e visualizar o repositório público e ler o código-fonte;
-   (b) Analisar a arquitetura, examinar fluxos de funcionamento e estudar a implementação técnica estritamente para fins de aprendizado individual, estudo educacional, revisão técnica ou demonstração pessoal não comercial;
-   (c) Realizar avaliação acadêmica ou técnica não comercial do código, desde que tal avaliação não envolva extração, cópia, redistribuição ou reaproveitamento de qualquer parte do Software.
+2. STRICT PROHIBITION OF UNAUTHORIZED ACCESS AND USE
+This Software is hosted in a PRIVATE repository. Any access, cloning, copying, downloading, caching, reproducing, distributing, modifying, decompiling, reverse engineering, disassembling, creating derivative works, publishing, licensing, sublicensing, selling, renting, or deploying of this Software, in whole or in part, without prior express written authorization directly signed by the Copyright Holders is strictly prohibited.
 
-3. REGRAS DE PORTFÓLIO E ATRIBUIÇÃO PROFISSIONAL
-A apresentação do projeto em portfólio é regulada de forma estrita e independente do simples direito de visualização:
-   (a) Exclusivo para Participantes Efetivos: Apenas indivíduos que comprovadamente integraram a equipe de desenvolvimento e efetivamente contribuíram para a construção do Software possuem autorização para incluir o projeto em seus portfólios profissionais, currículos ou perfis de carreira.
-   (b) Escopo da Participação: Cada integrante autorizado deve descrever com rigor e veracidade estritamente suas próprias funções, entregas e contribuições reais no projeto.
-   (c) Proibição para Não Participantes: Qualquer pessoa que apenas visualizou, estudou, revisou ou teve acesso ao repositório é TERMINANTEMENTE PROIBIDA de exibir o Software, no todo ou em parte, em seu portfólio, currículo, site pessoal ou redes sociais como projeto próprio, ou de induzir terceiros a acreditar que participou, desenvolveu, concebeu ou assinou o projeto.
+3. NO OPEN SOURCE / NO PUBLIC LICENSE
+No portion of this Software is open source or in the public domain. No license, express or implied, by estoppel or otherwise, is granted to any party, employee, contractor, visitor, or third party, except under a separate, formal, written commercial agreement executed by the Copyright Holders.
 
-4. CITAÇÕES E REFERÊNCIAS POR TERCEIROS
-Terceiros têm permissão para citar ou referenciar este projeto (por exemplo, em trabalhos acadêmicos, artigos técnicos ou estudos comparativos de arquitetura) estritamente como projeto de terceiros, desde que:
-   (a) A autoria seja atribuída expressamente à "Equipe ADP" e à "Pop Shake Sorveteria";
-   (b) Seja incluído link direcionando ao repositório oficial;
-   (c) A citação não afirme, sugira ou insinue autoria, coautoria, parceria, endosso, patrocínio ou participação pessoal inexistente.
+4. PORTFOLIO AND CITATION RESTRICTIONS
+(a) Authorized Contributors Only: Only verified individuals who tangibly contributed code or architecture as part of the official development team may reference their specific, verifiable deliverables in professional resumes or portfolios.
+(b) False Claims Prohibited: Claiming authorship, co-authorship, ownership, or falsely representing participation in this project is unlawful and strictly prohibited.
+(c) Screenshots and Assets: Redistribution of private source code snippets, database dumps, server credentials, or internal administrative dashboards without explicit written consent is strictly prohibited.
 
-5. ATOS EXPRESSAMENTE PROIBIDOS
-Salvo autorização prévia e expressa por escrito concedida em conjunto por ambos os Detentores dos Direitos, é TERMINANTEMENTE PROIBIDO:
-   (a) Copiar, reproduzir, clonar para reuso, extrair partes do código ou incorporar o Software, total ou parcialmente, em qualquer outro projeto, software, base de código, biblioteca ou repositório;
-   (b) Modificar, adaptar, traduzir, transformar, descompilar, realizar engenharia reversa ou criar obras derivadas baseadas no Software;
-   (c) Distribuir, publicar, republicar, espelhar, transmitir, licenciar, sublicenciar, vender, alugar ou transferir o Software ou qualquer fração deste;
-   (d) Hospedar, implantar, executar ou operar o Software para serviços de entrega, operações comerciais, produção, modelo SaaS ou atendimento operacional de qualquer terceiro ou estabelecimento comercial;
-   (e) Remover, ocultar, alterar ou suprimir quaisquer avisos de direitos autorais, créditos de autoria, marcas, logotipos ou notas de propriedade fixados ou contidos no Software.
+5. LEGAL REMEDIES
+Unauthorized possession, use, reproduction, or distribution of this Software constitutes copyright infringement, trade secret misappropriation, and breach of confidentiality under applicable international intellectual property treaties and Brazilian law (Lei nº 9.609/1998 e Lei nº 9.610/1998), subjecting violators to civil damages, injunctive relief, and criminal prosecution.
 
-6. PROIBIÇÃO CONTRA FALSIDADE DE AUTORIA E FALSA PARTICIPAÇÃO
-É expressa e rigorosamente proibido a qualquer pessoa:
-   (a) Apresentar-se como autor, coautor, criador ou cocriador do Software sem ter participado do seu desenvolvimento;
-   (b) Apresentar-se como desenvolvedor, contribuidor, designer ou integrante da equipe sem ter efetivamente contribuído;
-   (c) Reivindicar para si soluções, funcionalidades, códigos, designs ou contribuições executadas por outros integrantes;
-   (d) Utilizar capturas de tela (screenshots), interfaces visuais, trechos de código, diagramas de arquitetura ou identidade visual do projeto para forjar experiência técnica ou criar a falsa impressão de autoria ou participação no desenvolvimento.
+6. DISCLAIMER OF WARRANTY
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM OR IN CONNECTION WITH THE SOFTWARE.
 
-7. RESERVA DE DIREITOS E AUSÊNCIA DE LICENÇAS IMPLÍCITAS
-Todos os direitos não expressamente concedidos por esta Licença pertencem exclusivamente e permanecem reservados à Equipe ADP e à Pop Shake Sorveteria. Nenhuma disposição desta Licença poderá ser interpretada, por implicação, preclusão ou qualquer outro instituto jurídico, como concessão de licença, título, titularidade ou direito de cópia, modificação, redistribuição, derivação ou exploração comercial do Software.
+================================================================================
+VERSÃO EM PORTUGUÊS — ESTRITAMENTE PROPRIETÁRIO E CONFIDENCIAL
+================================================================================
 
-8. ISENÇÃO DE GARANTIAS E LIMITAÇÃO DE RESPONSABILIDADE
-O SOFTWARE É DISPONIBILIZADO "COMO ESTÁ", EXCLUSIVAMENTE PARA VISUALIZAÇÃO E FINS INFORMATIVOS, SEM GARANTIA DE QUALQUER NATUREZA, EXPRESSA OU IMPLÍCITA, INCLUINDO, SEM LIMITAÇÃO, GARANTIAS DE COMERCIABILIDADE, ADEQUAÇÃO A UMA FINALIDADE ESPECÍFICA, TÍTULO E NÃO VIOLAÇÃO. EM NENHUMA HIPÓTESE OS DETENTORES DOS DIREITOS AUTORAIS OU CONTRIBUIDORES SERÃO RESPONSÁVEIS POR QUAISQUER DANOS DIRETOS, INDIRETOS, INCIDENTAIS, ESPECIAIS, EXEMPLARES OU CONSEQUENCIAIS (INCLUINDO, SEM LIMITAÇÃO, CONTRATAÇÃO DE BENS OU SERVIÇOS SUBSTITUTOS; PERDA DE USO, DADOS OU LUCROS; OU INTERRUPÇÃO DE ATIVIDADES) DECORRENTES DO ACESSO, VISUALIZAÇÃO OU USO DO SOFTWARE, AINDA QUE AVISADOS DA POSSIBILIDADE DE TAIS DANOS.
+AVISO: ESTE REPOSITÓRIO E SEU CONTEÚDO SÃO PRIVADOS, PROPRIETÁRIOS E CONFIDENCIAIS.
+
+1. PROPRIEDADE INTELECTUAL EXCLUSIVA
+Este software, incluindo, sem limitação, a totalidade de seu código-fonte, algoritmos, interfaces gráficas de usuário, elementos visuais, identidade visual, logotipos, ícones, áudios e alertas sonoros, esquemas relacionais de banco de dados, rotas de API, arquivos de configuração, scripts de automação e documentações técnicas (coletivamente, o "Software"), é de propriedade exclusiva, privada e confidencial da Pop Shake Sorveteria e de Wilton Gabriel (Equipe ADP) ("Detentores dos Direitos").
+
+2. PROIBIÇÃO ABSOLUTA DE USO E ACESSO NÃO AUTORIZADO
+Este Software é mantido em repositório PRIVADO. Qualquer ato de acesso, clonagem, cópia, download, reprodução, distribuição, modificação, engenharia reversa, descompilação, desmontagem, criação de obras derivadas, publicação, licenciamento, sublicenciamento, venda, locação, empréstimo, hospedagem ou implantação deste Software, total ou parcialmente, sem expressa e prévia autorização por escrito assinada pelos Detentores dos Direitos, é estritamente proibido.
+
+3. AUSÊNCIA DE LICENÇA PÚBLICA (NÃO É CÓDIGO ABERTO)
+Nenhuma parte deste Software é de código aberto (open-source) nem pertence a domínio público. Nenhuma licença, expressa ou tácita, por preclusão ou qualquer outro meio, é outorgada a terceiros, colaboradores, prestadores de serviço ou visitantes, salvo sob contrato formal de prestação de serviços ou licença comercial privativa firmado por escrito com os Detentores dos Direitos.
+
+4. REGRAS DE PORTFÓLIO E ATRIBUIÇÃO PROFISSIONAL
+(a) Exclusividade para Contribuidores Efetivos: Somente integrantes oficiais que participaram comprovadamente da concepção técnica e codificação do Software têm autorização para citar suas funções específicas e entregas em seus currículos ou portfólios profissionais.
+(b) Vedação a Atribuição Fraudulenta: É expressamente proibido a qualquer indivíduo alegar falsamente autoria, coautoria ou desenvolvimento de funcionalidades ou do sistema como um todo sem ter feito parte da equipe oficial.
+(c) Proibição de Divulgação de Telas Sensíveis: É proibido expor capturas de tela contendo dados reais de clientes, credenciais, chaves de API ou relatórios financeiros da empresa.
+
+5. SANÇÕES LEGAIS
+A posse, cópia, reuso ou divulgação não autorizada deste Software constitui violação de direitos autorais, apropriação indevida de segredos de negócio e quebra de dever de confidencialidade, nos termos da Lei de Software (Lei Federal nº 9.609/1998), da Lei de Direitos Autorais (Lei Federal nº 9.610/1998) e tratados internacionais pertinentes, sujeitando os infratores a indenizações por perdas e danos materiais e morais, medidas cautelares e responsabilização criminal.
+
+6. ISENÇÃO DE GARANTIAS
+O SOFTWARE É FORNECIDO "COMO ESTÁ", SEM GARANTIAS DE QUALQUER NATUREZA, EXPRESSAS OU IMPLÍCITAS. EM NENHUMA HIPÓTESE OS DETENTORES DOS DIREITOS SERÃO RESPONSÁVEIS POR QUAISQUER DANOS INDIRETOS, INCIDENTAIS OU EMERGENTES DECORRENTES DO USO OU IMPOSSIBILIDADE DE USO DO SOFTWARE.

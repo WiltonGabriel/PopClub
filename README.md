@@ -1,6 +1,8 @@
-# Pop Shake Sorveteria — Plataforma de Delivery PWA
+# Pop Shake Sorveteria — Plataforma Proprietária de Delivery PWA & Gestão Operacional
 
-Plataforma integrada de delivery, gestão operacional de pedidos e cardápio digital desenvolvida pela **Equipe ADP** para a **Pop Shake Sorveteria**. O sistema conecta a experiência de compra do cliente em formato Progressive Web App (PWA) a um painel administrativo em tempo real com esteira Kanban de cozinha, controle de estoque e inteligência de vendas.
+> [!IMPORTANT]
+> **REPOSITÓRIO PRIVADO E CONFIDENCIAL**
+> Este software e seu código-fonte são de propriedade estritamente privada e confidencial da **Pop Shake Sorveteria** e de **Wilton Gabriel (Equipe ADP)**. Todos os direitos são reservados. É terminantemente proibida qualquer cópia, distribuição, clonagem, reuso, engenharia reversa ou publicação não autorizada.
 
 ---
 
@@ -8,204 +10,219 @@ Plataforma integrada de delivery, gestão operacional de pedidos e cardápio dig
 
 - [Visão Geral](#visão-geral)
 - [Arquitetura e Tecnologias](#arquitetura-e-tecnologias)
-- [Funcionalidades da Aplicação](#funcionalidades-da-aplicação)
-  - [Vitrine e Experiência do Cliente](#vitrine-e-experiência-do-cliente)
-  - [Painel Operacional e Administrativo](#painel-operacional-e-administrativo)
-- [Estrutura de Diretórios](#estrutura-de-diretórios)
-- [Guia de Instalação e Execução](#guia-de-instalação-e-execução)
-  - [Pré-requisitos](#pré-requisitos)
-  - [Configuração de Ambiente](#configuração-de-ambiente)
-  - [Banco de Dados e Seed Oficial](#banco-de-dados-e-seed-oficial)
-  - [Execução em Desenvolvimento](#execução-em-desenvolvimento)
-  - [Compilação de Produção](#compilação-de-produção)
-- [Licença e Propriedade](#licença-e-propriedade)
+- [Módulos e Funcionalidades](#módulos-e-funcionalidades)
+  - [1. Storefront & Experiência do Cliente (PWA)](#1-storefront--experiência-do-cliente-pwa)
+  - [2. Esteira Kanban de Cozinha & Triagem de Pedidos](#2-esteira-kanban-de-cozinha--triagem-de-pedidos)
+  - [3. Gestão de Turno, Fechamento de Caixa & Histórico](#3-gestão-de-turno-fechamento-de-caixa--histórico)
+  - [4. Painel Administrativo & Métricas de Vendas](#4-painel-administrativo--métricas-de-vendas)
+  - [5. Modo de Edição da Vitrine (Exclusivo Desktop)](#5-modo-de-edição-da-vitrine-exclusivo-desktop)
+- [Infraestrutura, Docker & Deploy Contínuo (CI/CD)](#infraestrutura-docker--deploy-contínuo-cicd)
+- [Estrutura do Projeto](#estrutura-do-projeto)
+- [Guia de Desenvolvimento Local](#guia-de-desenvolvimento-local)
+  - [Configuração de Variáveis de Ambiente](#configuração-de-variáveis-de-ambiente)
+  - [Banco de Dados & Prisma](#banco-de-dados--prisma)
+  - [Execução Local](#execução-local)
+  - [Build de Produção & Verificação](#build-de-produção--verificação)
+- [Segurança & Boas Práticas](#segurança--boas-práticas)
+- [Licença e Propriedade Intelectual](#licença-e-propriedade-intelectual)
 
 ---
 
 ## Visão Geral
 
-A plataforma foi concebida para atender à demanda de uma sorveteria e açaiteria de alta rotatividade, combinando:
+A plataforma **Pop Shake Sorveteria** é um ecossistema full-stack desenvolvido especificamente para atender a operação de delivery e balcão de sorvetes, açaís e sobremesas de alta rotatividade.
 
-1. **Storefront PWA Responsivo:** Acesso multiplataforma (desktop, tablet e mobile) com suporte a instalação na tela de início, tema Claro padronizado, busca com autocompletação instantânea e checkout dinâmico.
-2. **Esteira de Pedidos em Tempo Real (Kanban):** Painel de cozinha e expedição com colunas operacionais (*Pendentes*, *Em Preparo*, *A Caminho*, *Entregues* e *Cancelados*), alertas sonoros e cálculo de tempo decorrido.
-3. **Gestão Centralizada da Operação:** Controle de estoque com suporte a itens sob demanda/finitos, criação de combos promocionais, cupons de desconto, banners editáveis e gráficos de métricas financeiras.
+O sistema integra ponta a ponta:
+1. **Cliente final:** Compra intuitiva via Progressive Web App (PWA), temas Claro e Escuro, detecção de localização por GPS, cupons e acompanhamento ao vivo.
+2. **Cozinha e Atendimento:** Esteira Kanban em tempo real, barra de triagem de pedidos com alerta sonoro contínuo, impressão automática de comprovantes térmicos e cálculo dinâmico de tempos de preparo.
+3. **Gestão e Administração:** Controle financeiro, abertura e fechamento de turnos/caixa com conferência cega, auditoria de estoque, precificação e campanhas promocionais.
 
 ---
 
 ## Arquitetura e Tecnologias
 
-A aplicação utiliza uma arquitetura full-stack orientada a componentes no Next.js (App Router), com tipagem estrita em TypeScript e comunicação persistente via banco relacional:
-
-- **Core & Framework:** [Next.js 16](https://nextjs.org/) (App Router, Webpack/Turbopack, Server Actions e Route Handlers RESTful).
-- **Linguagem:** [TypeScript 5](https://www.typescriptlang.org/) com checagem estrita de tipos em tempo de compilação.
-- **Frontend & Estilização:** [React 19](https://react.dev/), [Tailwind CSS 3.4](https://tailwindcss.com/), [Shadcn UI](https://ui.shadcn.com/) (`@base-ui/react`), e ícones vetoriais [Lucide React](https://lucide.dev/).
-- **Camada de Dados & Persistência:** [PostgreSQL](https://www.postgresql.org/) gerenciado via [Prisma ORM 6](https://www.prisma.io/) com esquema relacional tipado e validação por esquemas [Zod](https://zod.dev/).
-- **PWA & Cache:** [`@ducanh2912/next-pwa`](https://github.com/DuCanhGH/next-pwa) para geração de Service Worker, cache inteligente de assets estáticos e manifesto para navegadores móveis.
-- **Geolocalização & Mapas:** Google Maps Platform API (`@vis.gl/react-google-maps`) para geocodificação reversa de endereços e estimativa de entrega.
-- **Gráficos & Visualização de Dados:** [Recharts 3](https://recharts.org/) com relatórios interativos de faturamento, ticket médio e volume de itens.
-- **Segurança & Autenticação:** Criptografia de senhas com `bcryptjs` e sessões assinadas via tokens JWT (`jsonwebtoken`) transmitidos em cookies `HttpOnly`.
-
----
-
-## Funcionalidades da Aplicação
-
-### Vitrine e Experiência do Cliente
-
-- **Catálogo Oficial:** Categorização fluida (*Destaques & Novidades*, *Linha Hits & Marmitas*, *Açaí Tradicional*, *Explosão de Recheio*, *Combos Família*, *Sorvetes Artesanais*).
-- **Busca Instantânea:** Componente de busca rápida com autocompletação em tempo real, filtros por categoria e atalho para adição direta ao pedido.
-- **Checkout com Geolocalização:** Botão de captura da localização atual via GPS com resolução reversa automática de logradouro, número, bairro e cidade.
-- **Cálculo de Entrega Dinâmico:** Taxa padrão de entrega configurável pelo lojista e isenção automática de frete ao atingir valor mínimo de pedido.
-- **Motor de Cupons:** Validação de cupons percentuais e de valor fixo, regras de pedido mínimo e contagem de utilizações.
-- **Canal Oficial de Atendimento:** Botão flutuante integrado ao WhatsApp comercial da sorveteria, redirecionando com mensagem pré-configurada.
-- **Acompanhamento de Pedidos:** Rastreamento do status do pedido pelo cliente em tempo real com detalhamento de itens, subtotal e endereço.
-
-### Painel Operacional e Administrativo
-
-- **Esteira Kanban de Pedidos (`/admin/pedidos`):**
-  - Monitoramento visual de todos os pedidos ativos.
-  - Transição de status em um clique com atualização imediata.
-  - Abertura de gaveta com ficha técnica detalhada do pedido.
-  - Contato direto com o cliente via link de WhatsApp formatado.
-  - Cancelamento formal com registro obrigatório de motivo.
-- **Métricas & Indicadores de Vendas (`/admin`):**
-  - Faturamento bruto, ticket médio e taxa de conversão.
-  - Gráficos de receita por período (*Hoje*, *7 Dias*, *Este Mês*, *Este Ano*, *Todo o Período*).
-  - Divisão de métodos de pagamento (Pix, Cartão, Dinheiro) e modalidades (Delivery vs Retirada).
-  - Ranking dos produtos mais vendidos da casa.
-- **Controle de Estoque & Disponibilidade:**
-  - Alternância imediata de itens ativos/pausados na loja.
-  - Suporte a estoque sob demanda (infinito) ou contagem de unidades finitas.
-  - Monitoramento de demanda ativa na cozinha por produto.
-- **Gestão de Marketing:**
-  - Montador de Combos com precificação original vs promocional.
-  - Campanhas promocionais com gradientes customizáveis.
-  - Faixa comercial editável em tempo real diretamente na Home pelo lojista.
+- **Core & Framework:** [Next.js 16](https://nextjs.org/) (App Router, Server Actions, Route Handlers RESTful e compilação otimizada via Webpack).
+- **Linguagem:** [TypeScript 5](https://www.typescriptlang.org/) com tipagem estrita de ponta a ponta.
+- **Interface & Design System:** [React 19](https://react.dev/), [Tailwind CSS 3.4](https://tailwindcss.com/) com tokens semânticos (`#190B1A`, `#230E26`, `#9306CF`, `#940068`, `#35A340`), [Shadcn UI](https://ui.shadcn.com/) (`@base-ui/react`) e ícones vetoriais [Lucide React](https://lucide.dev/).
+- **Banco de Dados & ORM:** [PostgreSQL](https://www.postgresql.org/) estruturado via [Prisma ORM 6](https://www.prisma.io/) com migrações tipadas e esquemas de validação por [Zod](https://zod.dev/).
+- **PWA & Cache:** [`@ducanh2912/next-pwa`](https://github.com/DuCanhGH/next-pwa) com Service Worker para execução em modo app nativo nos smartphones.
+- **Geolocalização:** Google Maps Platform API (`@vis.gl/react-google-maps`) com suporte a geocodificação reversa de coordenadas GPS para logradouros, bairros e cidades brasileiras.
+- **Impressão Térmica:** Módulo nativo cliente de formatação de recibos para impressoras térmicas ESC/POS de 80mm e 58mm.
+- **Autenticação & Sessões:** Criptografia com `bcryptjs` e emissão de tokens JWT seguros em cookies `HttpOnly` com validação de papéis (`admin` vs `customer`).
+- **Deploy & Contêineres:** Docker multi-stage build, GitHub Packages (GHCR), Portainer CE e Traefik Reverse Proxy com certificados SSL Let's Encrypt automáticos.
 
 ---
 
-## Estrutura de Diretórios
+## Módulos e Funcionalidades
+
+### 1. Storefront & Experiência do Cliente (PWA)
+* **Design Responsivo & Dark Mode Completo:** Interface adaptada para celulares, tablets e desktops, com alternância de tema persistente no `localStorage` (disponível no menu de usuário, perfil e tela `/conta`).
+* **Header Mobile Otimizado:** Layout compacto e sem cortes, contendo estritamente o logotipo, chip de endereço truncado com geolocalização e botão de perfil, evitando duplicidades com a barra inferior (`BottomNav.tsx`).
+* **Catálogo & Busca Inteligente:** Autocompletação instantânea de produtos com realce de termos e atalho direto para o modal de montagem.
+* **Carrinho & Checkout:** Seleção de complementos, cálculo de taxa de entrega com frete grátis por valor mínimo, aplicação de cupons e captura de localização GPS de alta precisão.
+* **Acompanhamento ao Vivo (`/pedidos`):** Status em tempo real do pedido com linha do tempo de entrega e canal direto de WhatsApp comercial.
+
+### 2. Esteira Kanban de Cozinha & Triagem de Pedidos
+* **Barra de Triagem de Novos Pedidos (`OrderTriageBar`):** Destaque visual superior para pedidos no estado `pending`, com cronômetro em tempo real do tempo de espera e alerta sonoro contínuo com repetição inteligente.
+* **Modal de Aceite Rápido (`OrderAcceptDialog`):** Seleção de tempo estimado com presets personalizáveis (ex: `20-30 min`, `35-50 min`), entrada manual em minutos e disparo automático opcional de impressão térmica.
+* **Modal de Recusa com Motivo (`OrderRejectDialog`):** Presets de justificativa de cancelamento com validação obrigatória e notificação ao cliente.
+* **Compactação Granular por Coluna:** O operador pode colapsar individualmente qualquer coluna da esteira (*Pendentes*, *Preparo*, *Entrega*, *Concluídos*, *Cancelados*) para focar nos estágios críticos, com memória salva no navegador.
+* **Imutabilidade de Cancelamento:** Pedidos cancelados não possuem opção de reativação indevida, garantindo consistência no estoque e relatórios financeiros.
+
+### 3. Gestão de Turno, Fechamento de Caixa & Histórico
+* **Controle de Turnos Operacionais (`shiftService`):** Abertura de caixa com valor inicial, registro de operadores e fechamento cego com contagem física por método de pagamento (Dinheiro, Pix, Cartão).
+* **Bloqueio Automático de Loja Fechada:** Se o estabelecimento estiver fechado nas configurações da loja ou sem turno aberto, a vitrine exibe banner de aviso e impede finalização de novos pedidos.
+* **Histórico Paginado (`/admin/historico`):** Consulta abrangente de pedidos anteriores com filtros avançados por período, status, modalidade e cliente.
+
+### 4. Painel Administrativo & Métricas de Vendas
+* **Dashboard Financeiro (`/admin`):** Métricas de faturamento bruto, ticket médio, gráficos de distribuição de pagamento e curva de vendas temporais.
+* **Gerenciamento de Cardápio e Estoque:** Pausa e ativação de itens em tempo real, suporte a estoque finito ou sob demanda.
+* **Configuração de Presets (`OrderFlowSettings`):** Edição dinâmica dos tempos de preparo e dos motivos pré-configurados de recusa diretamente no banco de dados.
+* **Taxas de Entrega & Isenções:** Ajuste em tempo real de taxas base e valor mínimo para frete grátis.
+
+### 5. Modo de Edição da Vitrine (Exclusivo Desktop)
+* **Trava de Segurança:** A edição inline de seções da Home (arrastar blocos, trocar ordem, editar textos e banners diretamente na vitrine) é restrita a computadores e telas grandes (`>= 768px`).
+* **Proteção em Dispositivos Móveis:** Em celulares e tablets, o botão de edição é ocultado e o contexto `EditModeContext` força o estado de edição para desativado, garantindo que no celular o admin visualize a loja exatamente como o cliente final, operando alterações estruturais pelo painel `/admin`.
+
+---
+
+## Infraestrutura, Docker & Deploy Contínuo (CI/CD)
+
+O projeto conta com esteira automatizada de compilação e publicação em contêineres:
+
+```
+[ Push na branch 'main' ]
+         │
+         ▼
+[ GitHub Actions: docker-build-push.yml ]
+         │
+         ├── Validação de Build do Next.js
+         ├── Build da Imagem Docker Multi-Stage (Alpine Node 20)
+         └── Push da imagem otimizada para o GHCR (ghcr.io/wiltongabriel/popclub)
+         │
+         ▼
+[ Portainer Stack (popshake-stack.yml) ]
+         │
+         ├── Pull automático da nova imagem
+         ├── Execução sob Traefik Reverse Proxy com SSL HTTPS
+         └── Persistência do volume de mídia 'popshake_uploads'
+```
+
+### Arquivo da Stack do Portainer (`popshake-stack.yml`)
+O container roda em modo `standalone` do Next.js, consumindo baixo consumo de memória (~120MB) e roteado automaticamente pelo Traefik através de labels Docker.
+
+---
+
+## Estrutura do Projeto
 
 ```
 PopClub/
 ├── prisma/
-│   ├── schema.prisma          # Esquema relacional Prisma (PostgreSQL)
-│   └── seed.ts                # Seed oficial (21 produtos, categorias, clientes e 105 pedidos)
+│   ├── schema.prisma              # Modelagem relacional Prisma (PostgreSQL)
+│   └── seed.ts                    # Dados iniciais e produtos padrão para dev
 ├── public/
-│   ├── favicon.ico            # Favicon oficial
-│   ├── icon.png               # Ícone da aplicação (512x512)
-│   ├── icon-192x192.png       # Ícone PWA (192x192)
-│   ├── icon-512x512.png       # Ícone PWA (512x512)
-│   └── sw.js                  # Service Worker gerado pelo Next-PWA
+│   ├── icon.png                   # Ícone oficial da aplicação (512x512)
+│   ├── favicon.ico                # Favicon padrão
+│   ├── notification.mp3           # Alarme sonoro de novo pedido
+│   └── uploads/                   # Volume de imagens carregadas
 ├── src/
 │   ├── app/
-│   │   ├── (storefront)/      # Rotas públicas: /, /busca, /carrinho, /pedidos, /conta
-│   │   ├── admin/             # Rotas administrativas: /admin e /admin/pedidos
-│   │   ├── api/               # Route Handlers RESTful (auth, products, orders, settings, etc.)
-│   │   ├── layout.tsx         # Layout raiz com providers globais e tema padrão Light
-│   │   └── manifest.ts        # Manifesto PWA da Pop Shake Sorveteria
+│   │   ├── page.tsx               # Vitrine pública com Header responsivo e catálogo
+│   │   ├── layout.tsx             # Layout global com Providers de Tema, Auth e Cart
+│   │   ├── carrinho/              # Página de Checkout e cálculo de entrega
+│   │   ├── pedidos/               # Acompanhamento de pedidos ao vivo do cliente
+│   │   ├── conta/                 # Perfil do cliente, endereços e alternador de tema
+│   │   ├── busca/                 # Página de busca avançada com autocompletação
+│   │   ├── admin/
+│   │   │   ├── page.tsx           # Dashboard de métricas e configurações da loja
+│   │   │   ├── pedidos/page.tsx   # Esteira Kanban com triagem de novos pedidos
+│   │   │   └── historico/page.tsx # Histórico paginado de pedidos
+│   │   └── api/                   # Route Handlers RESTful seguros
 │   ├── components/
-│   │   ├── admin/             # Modais, Esteira Kanban, Controle de Estoque e Dashboards
-│   │   ├── storefront/        # Cabeçalho, Rodapé, Cards de Produto, Busca e Banner
-│   │   └── ui/                # Primitivos de interface Shadcn UI e Notificações Toast
-│   ├── contexts/              # Contextos React (Auth, Cart, Theme, EditMode)
-│   ├── hooks/                 # Hooks reutilizáveis (useAuth, useCart)
-│   ├── lib/                   # Utilitários, cliente Prisma singleton e criptografia
-│   └── services/              # Camada de comunicação cliente-servidor (API Services)
-├── .env.example               # Modelo de variáveis de ambiente
-├── next.config.ts             # Configuração do Next.js, PWA e domínios remotos de imagens
-├── package.json               # Dependências do projeto e scripts npm
-├── tailwind.config.ts         # Tokens de design do Tailwind CSS
-└── LICENSE                    # Licença proprietária comercial bilíngue
+│   │   ├── admin/                 # Componentes da esteira, triagem, presets e modais
+│   │   ├── storefront/            # Header, BottomNav, Banner, Cards de produtos
+│   │   └── ui/                    # Componentes base Shadcn UI e Toasts
+│   ├── contexts/                  # AuthContext, CartContext, ThemeContext, EditModeContext
+│   ├── lib/                       # Prisma client singleton, impressora térmica, utilitários
+│   └── services/                  # Clientes de API tipados para comunicação cliente-servidor
+├── .env.example                   # Modelo limpo de variáveis de ambiente
+├── Dockerfile                     # Construção multi-stage da imagem de produção
+├── popshake-stack.yml             # Manifesto Docker Compose / Portainer para produção
+├── package.json                   # Dependências do projeto e scripts npm
+├── LICENSE                        # Licença proprietária confidencial
+└── README.md                      # Documentação técnica oficial
 ```
 
 ---
 
-## Guia de Instalação e Execução
+## Guia de Desenvolvimento Local
 
-### Pré-requisitos
+### Configuração de Variáveis de Ambiente
 
-- [Node.js](https://nodejs.org/) versão `20.x` ou superior.
-- Gerenciador de pacotes `npm`, `pnpm` ou `yarn`.
-- Instância ativa do [PostgreSQL](https://www.postgresql.org/) (localmente ou via Docker).
-
-### Configuração de Ambiente
-
-1. Clone o repositório em sua máquina local:
-   ```bash
-   git clone https://github.com/WiltonGabriel/PopClub.git
-   cd PopClub
-   ```
-
-2. Crie o arquivo de variáveis de ambiente a partir do modelo fornecido:
-   ```bash
-   cp .env.example .env
-   ```
-
-3. Edite as variáveis no `.env` com suas credenciais:
-   ```env
-   # Google Maps Platform (Geocodificação de endereços)
-   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="sua_chave_google_maps"
-
-   # Conexão com o PostgreSQL
-   DATABASE_URL="postgresql://usuario:senha@localhost:5432/popclub?schema=public"
-
-   # Assinatura de tokens JWT (gerar hash seguro de no mínimo 32 caracteres)
-   JWT_SECRET="sua_chave_secreta_jwt_super_segura"
-   ```
-
-### Banco de Dados e Seed Oficial
-
-Instale as dependências e aplique a estrutura do banco de dados:
-
+Crie o arquivo local a partir do modelo:
 ```bash
-# 1. Instalar pacotes
-npm install
+cp .env.example .env
+```
 
-# 2. Sincronizar tabelas no PostgreSQL via Prisma
-npx prisma db push
+Defina os valores das chaves necessárias:
+```env
+# Google Maps Platform (Geocodificação e autocompletação)
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="sua_chave_google_maps"
 
-# 3. Gerar cliente tipado do Prisma
+# Conexão com o Banco PostgreSQL local ou em contêiner
+DATABASE_URL="postgresql://postgres:postgrespassword@localhost:5432/popclub?schema=public"
+
+# Chave de assinatura para sessões JWT (mínimo de 32 caracteres)
+JWT_SECRET="chave_secreta_jwt_para_desenvolvimento_local"
+```
+
+### Banco de Dados & Prisma
+
+Inicie o PostgreSQL (ex: via Docker) e execute:
+```bash
+# 1. Gerar os clientes tipados do Prisma
 npx prisma generate
 
-# 4. Executar o seed completo (Produtos oficiais, categorias, admin e 105 pedidos históricos)
+# 2. Aplicar o esquema no banco de dados
+npx prisma db push
+
+# 3. (Opcional) Popular o banco com dados de catálogo para desenvolvimento
 npx prisma db seed
 ```
 
-> **Credenciais padrão do Administrador:**
-> - **E-mail:** `admin@popclub.com`
-> - **Senha:** `@64844048`
-
-### Execução em Desenvolvimento
-
-Para iniciar o servidor de desenvolvimento:
+### Execução Local
 
 ```bash
 npm run dev
 ```
+Acesse `http://localhost:3000` no seu navegador.
 
-A aplicação estará disponível em `http://localhost:3000` (e nos IPs da rede local/Tailscale configurados).
+### Build de Produção & Verificação
 
-### Compilação de Produção
-
-Para validar a integridade dos tipos e gerar o bundle de produção otimizado:
-
+Antes de qualquer deploy, valide a tipagem e gere os artefatos de produção:
 ```bash
-# Checagem de tipagem TypeScript
+# Verificação estrita de TypeScript
 npx tsc --noEmit
 
-# Compilação completa do Next.js
-npm run build
+# Lint de boas práticas e purity do React 19
+npm run lint
 
-# Inicialização do servidor em produção
-npm run start
+# Compilação completa standalone do Next.js
+npm run build
 ```
 
 ---
 
-## Licença e Propriedade
+## Segurança & Boas Práticas
 
-Copyright © 2026 **Pop Shake Sorveteria** & **Equipe ADP**. Todos os direitos reservados.
+- **Proteção de Segredos:** Arquivos `.env`, `.env.local`, certificados `.pem`, chaves e dumps de dados estão rigorosamente ignorados pelo `.gitignore` e `.dockerignore`.
+- **Prevenção de Acesso Indevido:** Rotas administrativas (`/admin/*`) e endpoints de mutação exigem validação de sessão em middleware/serviço com token JWT seguro em cookie `HttpOnly`.
+- **Persistência de Dados de Usuários:** Uploads e arquivos de mídia da loja são gravados no volume dedicado do Docker (`popshake_uploads`), nunca descartados na recriação de contêineres.
 
-Este software é proprietário e disponibilizado sob a licença comercial **Source-Available**. O código-fonte é disponibilizado publicamente exclusivamente para fins de visualização, auditoria arquitetural e portfólio profissional. Qualquer reprodução, distribuição, modificação, sublicenciamento ou comercialização do código sem consentimento prévio e por escrito é estritamente proibida.
+---
 
-Para mais detalhes, consulte o arquivo [LICENSE](./LICENSE).
+## Licença e Propriedade Intelectual
+
+Copyright © 2026 **Pop Shake Sorveteria** & **Wilton Gabriel (Equipe ADP)**. Todos os direitos reservados.
+
+Este projeto é um software comercial privado e confidencial. Nenhuma parte desta aplicação pode ser reproduzida, copiada, distribuída ou transmitida sem a prévia autorização por escrito dos detentores dos direitos autorais. Para os termos legais completos, consulte o arquivo [LICENSE](./LICENSE).

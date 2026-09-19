@@ -459,101 +459,113 @@ export default function Storefront() {
           Layout: [Logo | Address] [Search→flex-1] [Actions | shrink-0]
           overflow-x is prevented by min-w-0 on the search wrapper.
       ───────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 w-full glass-header">
+      {/* ─────────────────────────────────────────
+          HEADER COMPACTO & PROFISSIONAL
+          Mobile: Logo + Endereço + Menu/Avatar (Sem cortes, sem barra duplicada)
+          Desktop: Logo + Endereço + Busca + Carrinho + Pedidos + AdminToggle + Menu + Tema
+      ───────────────────────────────────────── */}
+      <header className="sticky top-0 z-40 w-full max-w-full overflow-x-hidden glass-header">
         {/* Single contained row — max-w-7xl keeps it from stretching */}
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-4 w-full">
 
-          {/* ── LEFT: Logo + Address ── */}
+          {/* ── LEFT: Logo ── */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Logo */}
             <Link
               href="/"
-              className="flex items-center gap-2 select-none cursor-pointer hover:opacity-85 transition-opacity duration-200 shrink-0"
+              className="flex items-center gap-1.5 sm:gap-2 select-none cursor-pointer hover:opacity-85 transition-opacity duration-200 shrink-0"
               aria-label="Pop Shake — Início"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/icon.png"
                 alt="Logo Pop Shake"
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-contain border border-[#9306CF]/30 shadow-xs shrink-0"
+                className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-contain border border-[#9306CF]/30 shadow-xs shrink-0"
               />
-              <span className="font-heading font-black text-xl sm:text-2xl tracking-tight text-foreground flex items-center shrink-0">
+              <span className="font-heading font-black text-lg sm:text-2xl tracking-tight text-foreground flex items-center shrink-0">
                 Pop<span className="gradient-text-brand">Shake</span>
               </span>
             </Link>
-
-            {/* Address selector — Desktop & Tablet */}
-            <HeaderAddressButton className="hidden md:flex" />
           </div>
 
-          {/* ── CENTER: Search com Autocomplete Instantâneo ── */}
-          <div className="flex-1 min-w-[180px] max-w-md mx-2 sm:mx-4">
-            <SearchAutocomplete
-              products={products}
-              initialValue={search}
-              placeholder="Buscar..."
-              onSelectProduct={handleOpenProductModal}
+          {/* ── CENTER-MOBILE: Chip de Endereço no Mobile (< md) ── */}
+          <div className="flex md:hidden items-center justify-center flex-1 min-w-0 px-1">
+            <HeaderAddressButton
+              className="max-w-[150px] sm:max-w-[220px] py-1 px-2 text-xs border-border/40"
+              spanClassName="max-w-[95px] xs:max-w-[140px] truncate"
             />
           </div>
 
-          {/* ── RIGHT: Actions — all shrink-0, never wraps ── */}
+          {/* ── CENTER-DESKTOP: Endereço + Busca com Autocomplete (md+) ── */}
+          <div className="hidden md:flex items-center gap-3 flex-1 max-w-xl mx-4 min-w-0">
+            <HeaderAddressButton className="shrink-0" />
+            <div className="flex-1 min-w-[180px]">
+              <SearchAutocomplete
+                products={products}
+                initialValue={search}
+                placeholder="Buscar produtos, sabores..."
+                onSelectProduct={handleOpenProductModal}
+              />
+            </div>
+          </div>
+
+          {/* ── RIGHT: Actions ── */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
 
-            {/* Cart button — opens drawer */}
+            {/* Cart button — Desktop only (already present in BottomNav on mobile) */}
             <button
               onClick={() => setCartDrawerOpen(true)}
-              className="relative flex items-center justify-center sm:gap-2 bg-brand-folha-acai hover:bg-brand-folha-acai-dk text-white font-semibold text-xs sm:text-sm w-9 h-9 sm:w-auto sm:px-4 sm:py-2.5 rounded-full transition-colors shadow-sm shrink-0 cursor-pointer"
+              className="hidden md:flex relative items-center justify-center gap-2 bg-brand-folha-acai hover:bg-brand-folha-acai-dk text-white font-semibold text-xs sm:text-sm px-4 py-2.5 rounded-full transition-colors shadow-sm shrink-0 cursor-pointer"
               aria-label={`Carrinho com ${totalItems} itens`}
             >
               <ShoppingBag className="w-4 h-4 shrink-0" />
-              <span className="hidden sm:inline">Carrinho</span>
+              <span>Carrinho</span>
               {totalItems > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 sm:static bg-white text-brand-folha-acai text-[10px] sm:text-xs font-black rounded-full px-1 sm:px-1.5 py-0.5 min-w-[18px] sm:min-w-[20px] text-center leading-none shadow-sm sm:shadow-none border border-brand-folha-acai/20 sm:border-none">
+                <span className="bg-white text-brand-folha-acai text-xs font-black rounded-full px-1.5 py-0.5 min-w-[20px] text-center leading-none">
                   {totalItems}
                 </span>
               )}
             </button>
 
-            {/* Meus Pedidos — visible to both clients and admin */}
+            {/* Meus Pedidos — Desktop only (already present in BottomNav on mobile) */}
             <Link
               href="/pedidos"
-              className="hidden sm:flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] border border-border/50 hover:border-[#9306CF]/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full px-3 sm:px-3.5 py-1.5 sm:py-2 transition-all shrink-0 shadow-sm group"
+              className="hidden md:flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] border border-border/50 hover:border-[#9306CF]/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full px-3 sm:px-3.5 py-1.5 sm:py-2 transition-all shrink-0 shadow-sm group"
               title="Acompanhar Meus Pedidos"
               aria-label="Ver meus pedidos"
             >
               <ReceiptText className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9] group-hover:scale-110 transition-transform shrink-0" />
-              <span className="hidden md:inline">Meus Pedidos</span>
+              <span>Meus Pedidos</span>
             </Link>
 
-            {/* Switch de Modo Edição — exclusivo para Administrador */}
+            {/* Switch de Modo Edição — exclusivo para Administrador no Desktop */}
             {isAdmin && <AdminEditModeToggle />}
 
             {/* Account / User Menu */}
             {!user ? (
               <Link
                 href="/login"
-                className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] border border-border/40 rounded-full px-3 sm:px-3.5 py-1.5 hover:bg-muted transition-colors shrink-0"
+                className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] border border-border/40 rounded-full px-2.5 sm:px-3.5 py-1.5 hover:bg-muted transition-colors shrink-0"
                 aria-label="Entrar na conta"
               >
                 <UserIcon className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9] shrink-0" />
-                <span className="hidden sm:inline">Entrar</span>
+                <span className="hidden xs:inline">Entrar</span>
               </Link>
             ) : (
               <div className="relative shrink-0" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen((prev) => !prev)}
-                  className="flex items-center gap-2 border border-border/50 hover:border-[#9306CF]/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full pl-1.5 pr-2.5 sm:pr-3 py-1 transition-all shrink-0 group shadow-sm"
+                  className="flex items-center gap-1.5 sm:gap-2 border border-border/50 hover:border-[#9306CF]/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full pl-1.5 pr-2 sm:pr-3 py-1 transition-all shrink-0 group shadow-sm"
                   aria-expanded={userMenuOpen}
                   aria-haspopup="true"
                   aria-label={`Menu do usuário: ${userFirstName}`}
                 >
                   {/* Avatar circular */}
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#9306CF] to-[#940068] text-white flex items-center justify-center font-bold text-xs shadow-sm ring-1 ring-white/20 shrink-0">
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-tr from-[#9306CF] to-[#940068] text-white flex items-center justify-center font-bold text-xs shadow-sm ring-1 ring-white/20 shrink-0">
                     {userFirstName.charAt(0).toUpperCase() || <UserIcon className="w-3.5 h-3.5" />}
                   </div>
 
                   {/* Primeiro nome */}
-                  <span className="text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] max-w-[80px] sm:max-w-[120px] truncate shrink-0">
+                  <span className="text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] max-w-[65px] sm:max-w-[120px] truncate shrink-0">
                     {userFirstName}
                   </span>
 
@@ -566,7 +578,7 @@ export default function Storefront() {
 
                 {/* Dropdown Menu */}
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/50 shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="absolute right-0 mt-2 w-56 sm:w-60 rounded-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/50 shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                     {/* Cabeçalho do Dropdown */}
                     <div className="px-4 py-2 border-b border-gray-100 dark:border-[#512B54]/30">
                       <p className="text-xs font-semibold text-[#4C264F] dark:text-[#F9F5F9] truncate">
@@ -654,6 +666,29 @@ export default function Storefront() {
 
                     <div className="border-t border-gray-100 dark:border-[#512B54]/30 my-1" />
 
+                    {/* 🌓 Alternar Tema (Claro / Escuro) — Fixo logo acima de Sair */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toggleTheme();
+                      }}
+                      className="w-full flex items-center justify-between px-4 py-2.5 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        {theme === "dark" ? (
+                          <Sun className="w-4 h-4 text-amber-500" />
+                        ) : (
+                          <Moon className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                        )}
+                        <span>Alternar Tema (Claro / Escuro)</span>
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                        {theme === "dark" ? "Escuro" : "Claro"}
+                      </span>
+                    </button>
+
+                    <div className="border-t border-gray-100 dark:border-[#512B54]/30 my-1" />
+
                     {/* Sair */}
                     <button
                       onClick={async () => {
@@ -671,13 +706,13 @@ export default function Storefront() {
               </div>
             )}
 
-            {/* Theme toggle — Sun / Moon */}
+            {/* Theme toggle — Sun / Moon (Desktop only, mobile has it in user dropdown and /conta) */}
             <button
               onClick={toggleTheme}
               aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
               title={theme === "dark" ? "Modo claro" : "Modo escuro"}
               className="
-                flex items-center justify-center
+                hidden md:flex items-center justify-center
                 w-9 h-9 rounded-full
                 border border-border/40
                 text-muted-foreground hover:text-foreground
@@ -693,11 +728,6 @@ export default function Storefront() {
               )}
             </button>
           </div>
-        </div>
-
-        {/* Mobile address quick-bar */}
-        <div className="md:hidden px-3 py-1.5 border-t border-border/25 bg-white/40 dark:bg-[#1D0920]/40 flex items-center justify-between">
-          <HeaderAddressButton className="flex w-full justify-between py-1 px-1.5 text-xs border-none bg-transparent shadow-none hover:bg-muted/40" />
         </div>
       </header>
 
