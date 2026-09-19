@@ -19,6 +19,7 @@ import { SearchAutocomplete } from "../components/storefront/SearchAutocomplete"
 import { Footer } from "../components/storefront/Footer";
 import { ProductDetailModal } from "../components/storefront/ProductDetailModal";
 import { HeaderAddressButton } from "../components/storefront/HeaderAddressButton";
+import { CategoriesDrawer } from "../components/storefront/CategoriesDrawer";
 
 // Admin components (unchanged)
 import { CategoryFormDialog } from "../components/admin/CategoryFormDialog";
@@ -45,6 +46,7 @@ import {
   ChevronLeft,
   LogOut,
   ShieldCheck,
+  Crown,
   Pencil,
   Trash2,
   ReceiptText,
@@ -143,6 +145,7 @@ export default function Storefront() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+  const [categoriesDrawerOpen, setCategoriesDrawerOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
@@ -429,8 +432,12 @@ export default function Storefront() {
     [addItem]
   );
 
-  const scrollToCategory = (catId: string) => {
+  const scrollToCategory = (catId: string | null) => {
     setActiveCategory(catId);
+    if (!catId) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     setTimeout(() => {
       const el = document.getElementById(`category-${catId}`);
       if (el) {
@@ -468,34 +475,28 @@ export default function Storefront() {
         {/* Single contained row — max-w-7xl keeps it from stretching */}
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-4 w-full">
 
-          {/* ── LEFT: Logo ── */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* ── 1. ESQUERDA: Logotipo textual PopShake ── */}
+          <div className="flex items-center shrink-0">
             <Link
               href="/"
-              className="flex items-center gap-1.5 sm:gap-2 select-none cursor-pointer hover:opacity-85 transition-opacity duration-200 shrink-0"
+              className="flex items-center select-none cursor-pointer hover:opacity-85 transition-opacity duration-200 shrink-0"
               aria-label="Pop Shake — Início"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/icon.png"
-                alt="Logo Pop Shake"
-                className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-contain border border-[#9306CF]/30 shadow-xs shrink-0"
-              />
-              <span className="font-heading font-black text-lg sm:text-2xl tracking-tight text-foreground flex items-center shrink-0">
+              <span className="font-heading font-black text-xl sm:text-2xl tracking-tight text-foreground flex items-center shrink-0">
                 Pop<span className="gradient-text-brand">Shake</span>
               </span>
             </Link>
           </div>
 
-          {/* ── CENTER-MOBILE: Chip de Endereço no Mobile (< md) ── */}
+          {/* ── 2. CENTRO-MOBILE: Botão de endereço em pill flexível no Mobile (< md) ── */}
           <div className="flex md:hidden items-center justify-center flex-1 min-w-0 px-1">
             <HeaderAddressButton
-              className="max-w-[150px] sm:max-w-[220px] py-1 px-2 text-xs border-border/40"
-              spanClassName="max-w-[95px] xs:max-w-[140px] truncate"
+              className="max-w-[140px] sm:max-w-[180px] py-1 px-2 text-xs border-border/40 rounded-full"
+              spanClassName="max-w-[80px] xs:max-w-[120px] truncate"
             />
           </div>
 
-          {/* ── CENTER-DESKTOP: Endereço + Busca com Autocomplete (md+) ── */}
+          {/* ── CENTRO-DESKTOP: Endereço + Busca com Autocomplete (md+) ── */}
           <div className="hidden md:flex items-center gap-3 flex-1 max-w-xl mx-4 min-w-0">
             <HeaderAddressButton className="shrink-0" />
             <div className="flex-1 min-w-[180px]">
@@ -508,7 +509,7 @@ export default function Storefront() {
             </div>
           </div>
 
-          {/* ── RIGHT: Actions na ordem exata solicitada ── */}
+          {/* ── 3. DIREITA: Actions (No mobile apenas o Avatar) ── */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
 
             {/* 1. [ Meus Pedidos ] — Desktop only */}
@@ -545,34 +546,51 @@ export default function Storefront() {
             {!user ? (
               <Link
                 href="/login"
-                className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] border border-border/40 rounded-full px-2.5 sm:px-3.5 py-2 hover:bg-muted transition-colors shrink-0"
+                className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] border border-border/40 rounded-full p-2 md:px-3.5 md:py-2 hover:bg-muted transition-colors shrink-0"
                 aria-label="Entrar na conta"
               >
                 <UserIcon className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9] shrink-0" />
-                <span className="hidden xs:inline">Entrar</span>
+                <span className="hidden md:inline">Entrar</span>
               </Link>
             ) : (
               <div className="relative shrink-0" ref={userMenuRef}>
                 <button
                   type="button"
                   onClick={() => setUserMenuOpen((prev) => !prev)}
-                  className="flex items-center gap-1.5 sm:gap-2 border border-border/50 hover:border-[#9306CF]/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full pl-1.5 pr-2 sm:pr-3 py-1 transition-all shrink-0 group shadow-xs cursor-pointer"
+                  className="flex items-center gap-1.5 sm:gap-2 border border-border/50 hover:border-[#9306CF]/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full p-1 md:pl-1.5 md:pr-3 md:py-1 transition-all shrink-0 group shadow-xs cursor-pointer"
                   aria-expanded={userMenuOpen}
                   aria-haspopup="true"
                   aria-label={`Menu do usuário: ${userFirstName}`}
                 >
-                  {/* Avatar circular */}
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-tr from-[#9306CF] to-[#940068] text-white flex items-center justify-center font-bold text-xs shadow-xs ring-1 ring-white/20 shrink-0">
+                  {/* Avatar circular com moldura e micro-badge para Administrador */}
+                  <div
+                    className={`relative w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-[#9306CF] to-[#940068] text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0 transition-all ${
+                      isAdmin
+                        ? "ring-2 ring-purple-600 dark:ring-purple-400 ring-offset-2 ring-offset-background"
+                        : "ring-1 ring-white/20"
+                    }`}
+                  >
                     {userFirstName.charAt(0).toUpperCase() || <UserIcon className="w-3.5 h-3.5" />}
+
+                    {/* Micro-tag/badge flutuante para Administrador */}
+                    {isAdmin && (
+                      <span
+                        className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center shadow-xs ring-1 ring-background"
+                        title="Administrador"
+                      >
+                        <Crown className="w-2.5 h-2.5 fill-current" />
+                      </span>
+                    )}
                   </div>
 
-                  {/* Primeiro nome */}
-                  <span className="text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] max-w-[65px] sm:max-w-[120px] truncate shrink-0">
+                  {/* Nome do usuário truncado — Oculto no Mobile (< md) */}
+                  <span className="hidden md:inline-flex text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] max-w-[120px] truncate shrink-0">
                     {userFirstName}
                   </span>
 
+                  {/* Chevron — Oculto no Mobile (< md) */}
                   <ChevronDown
-                    className={`w-3.5 h-3.5 text-muted-foreground group-hover:text-[#9306CF] transition-transform duration-200 shrink-0 ${
+                    className={`hidden md:inline-flex w-3.5 h-3.5 text-muted-foreground group-hover:text-[#9306CF] transition-transform duration-200 shrink-0 ${
                       userMenuOpen ? "rotate-180 text-[#9306CF]" : ""
                     }`}
                   />
@@ -1251,10 +1269,23 @@ export default function Storefront() {
       ───────────────────────────────────────── */}
       <BottomNav
         onSearchClick={() => setMobileSearchOpen(true)}
-        onCategoriesClick={() => {
-          const bar = document.querySelector("[data-category-bar]");
-          bar?.scrollIntoView({ behavior: "smooth" });
+        onCategoriesClick={() => setCategoriesDrawerOpen(true)}
+        onHomeClick={() => {
+          setActiveCategory(null);
+          window.scrollTo({ top: 0, behavior: "smooth" });
         }}
+      />
+
+      {/* ─────────────────────────────────────────
+          CATEGORIES DRAWER / BOTTOM SHEET (mobile & quick access)
+      ───────────────────────────────────────── */}
+      <CategoriesDrawer
+        open={categoriesDrawerOpen}
+        onClose={() => setCategoriesDrawerOpen(false)}
+        categories={categories}
+        products={products}
+        activeCategory={activeCategory}
+        onSelectCategory={(catId) => scrollToCategory(catId)}
       />
 
       {/* ─────────────────────────────────────────

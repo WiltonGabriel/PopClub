@@ -168,13 +168,7 @@ export default function AdminDashboard() {
       {/* Header do Painel */}
       <header className="bg-white/80 dark:bg-[#1F0B22]/90 backdrop-blur-xl border-b border-gray-200 dark:border-[#512B54]/40 px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
         <div className="flex items-center gap-3">
-          <Link href="/" className="font-heading font-black text-xl tracking-tight flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/icon.png"
-              alt="Logo Pop Shake"
-              className="w-7 h-7 rounded-full object-contain border border-[#9306CF]/30 shadow-xs shrink-0"
-            />
+          <Link href="/" className="font-heading font-black text-xl tracking-tight flex items-center gap-1.5 select-none hover:opacity-85 transition-opacity">
             <div className="flex items-center gap-1">
               <span className="text-[#4C264F] dark:text-[#F9F5F9]">Pop</span>
               <span

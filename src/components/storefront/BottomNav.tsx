@@ -8,9 +8,10 @@ import { useCart } from "../../hooks/useCart";
 interface BottomNavProps {
   onSearchClick?: () => void;
   onCategoriesClick?: () => void;
+  onHomeClick?: () => void;
 }
 
-export function BottomNav({ onSearchClick, onCategoriesClick }: BottomNavProps) {
+export function BottomNav({ onSearchClick, onCategoriesClick, onHomeClick }: BottomNavProps) {
   const pathname = usePathname();
   const { totalItems } = useCart();
 
@@ -108,13 +109,25 @@ export function BottomNav({ onSearchClick, onCategoriesClick }: BottomNavProps) 
           const baseClass = `
             group relative flex-1 flex items-center justify-center
             min-h-[44px] rounded-xl transition-all duration-200
-            active:scale-90
+            active:scale-90 cursor-pointer
             ${isActive ? "bg-brand-pop-shake/8" : "hover:bg-brand-surface-2"}
           `;
 
           if (href) {
             return (
-              <Link key={id} href={href} className={baseClass} aria-label={label}>
+              <Link
+                key={id}
+                href={href}
+                onClick={(e) => {
+                  if (id === "home" && pathname === "/") {
+                    e.preventDefault();
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                    if (onHomeClick) onHomeClick();
+                  }
+                }}
+                className={baseClass}
+                aria-label={label}
+              >
                 {buttonContent}
               </Link>
             );
@@ -123,6 +136,7 @@ export function BottomNav({ onSearchClick, onCategoriesClick }: BottomNavProps) 
           return (
             <button
               key={id}
+              type="button"
               onClick={action}
               className={baseClass}
               aria-label={label}
