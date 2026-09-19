@@ -135,6 +135,64 @@ function TrackingContent() {
     return () => clearInterval(interval);
   }, [orderId, order?.status]);
 
+  // Origem do despacho: prioriza a origem gravada no próprio pedido (multilojas/filiais)
+  const originCoords = useMemo(() => ({
+    lat: order?.origin_latitude ?? storeCoords.lat,
+    lng: order?.origin_longitude ?? storeCoords.lng,
+  }), [order?.origin_latitude, order?.origin_longitude, storeCoords.lat, storeCoords.lng]);
+
+  // Coordenadas de destino gravadas no pedido
+  const destCoords = useMemo(() => ({
+    lat: order?.delivery_address?.latitude || originCoords.lat + 0.008,
+    lng: order?.delivery_address?.longitude || originCoords.lng + 0.008,
+  }), [order?.delivery_address?.latitude, order?.delivery_address?.longitude, originCoords.lat, originCoords.lng]);
+
+  const courierCoords = useMemo(() => (
+    order?.courier_latitude && order?.courier_longitude
+      ? { lat: order.courier_latitude, lng: order.courier_longitude }
+      : null
+  ), [order?.courier_latitude, order?.courier_longitude]);
+
+  // Métricas de entrega calculadas imediatamente (garante exibição instantânea sem atraso de carregamento)
+  const initialMetrics = useMemo(() => {
+    if (!order) {
+      return {
+        distanceKm: 0,
+        formattedDistance: "0 km",
+        etaMinutes: 15,
+        formattedEta: "15-25 min",
+        isArriving: false,
+      };
+    }
+    const activeOrigin = courierCoords || originCoords;
+    const distanceKm = calculateHaversineDistanceKm(
+      activeOrigin.lat,
+      activeOrigin.lng,
+      destCoords.lat,
+      destCoords.lng
+    );
+    const etaMinutes = Math.max(1, Math.round((distanceKm / 26) * 60 + 2));
+    const isArriving = distanceKm <= 0.3;
+    const formattedDistance =
+      distanceKm < 1
+        ? `${Math.round(distanceKm * 1000)} m`
+        : `${distanceKm.toFixed(1).replace(".", ",")} km`;
+    const formattedEta = isArriving ? "Chegando!" : `${etaMinutes} min`;
+
+    return {
+      distanceKm,
+      formattedDistance,
+      etaMinutes,
+      formattedEta,
+      isArriving,
+    };
+  }, [
+    order,
+    courierCoords,
+    originCoords,
+    destCoords,
+  ]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 space-y-4">
@@ -176,61 +234,11 @@ function TrackingContent() {
 
   const clientName = order.user?.fullName || order.user?.username || "Cliente";
 
-  // Origem do despacho: prioriza a origem gravada no próprio pedido (multilojas/filiais)
-  const originCoords = {
-    lat: order.origin_latitude ?? storeCoords.lat,
-    lng: order.origin_longitude ?? storeCoords.lng,
-  };
-
-  // Coordenadas de destino gravadas no pedido
-  const destCoords = {
-    lat: order.delivery_address?.latitude || originCoords.lat + 0.008,
-    lng: order.delivery_address?.longitude || originCoords.lng + 0.008,
-  };
-
-  const courierCoords =
-    order.courier_latitude && order.courier_longitude
-      ? { lat: order.courier_latitude, lng: order.courier_longitude }
-      : null;
-
   // Link para contato via WhatsApp
   const rawWhatsapp = (storeSettings?.whatsappNumber || "5565999999999").replace(/\D/g, "");
   const whatsappUrl = `https://wa.me/${rawWhatsapp}?text=${encodeURIComponent(
     `Olá! Gostaria de falar sobre o pedido #${order.id.substring(0, 6)} da Pop Shake Sorveteria.`
   )}`;
-
-  // Métricas de entrega calculadas imediatamente (garante exibição instantânea sem atraso de carregamento)
-  const initialMetrics = useMemo(() => {
-    const activeOrigin = courierCoords || originCoords;
-    const distanceKm = calculateHaversineDistanceKm(
-      activeOrigin.lat,
-      activeOrigin.lng,
-      destCoords.lat,
-      destCoords.lng
-    );
-    const etaMinutes = Math.max(1, Math.round((distanceKm / 26) * 60 + 2));
-    const isArriving = distanceKm <= 0.3;
-    const formattedDistance =
-      distanceKm < 1
-        ? `${Math.round(distanceKm * 1000)} m`
-        : `${distanceKm.toFixed(1).replace(".", ",")} km`;
-    const formattedEta = isArriving ? "Chegando!" : `${etaMinutes} min`;
-
-    return {
-      distanceKm,
-      formattedDistance,
-      etaMinutes,
-      formattedEta,
-      isArriving,
-    };
-  }, [
-    courierCoords?.lat,
-    courierCoords?.lng,
-    originCoords.lat,
-    originCoords.lng,
-    destCoords.lat,
-    destCoords.lng,
-  ]);
 
   // --------------------------------------------------------------------------
   // CASO 1: Pedido "A CAMINHO / SAIU PARA ENTREGA" (delivering)

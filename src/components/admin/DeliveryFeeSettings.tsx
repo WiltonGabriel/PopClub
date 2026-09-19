@@ -56,6 +56,9 @@ export function DeliveryFeeSettings() {
   const [storeLatitude, setStoreLatitude] = useState(-15.6536);
   const [storeLongitude, setStoreLongitude] = useState(-56.1322);
   const [storeAddress, setStoreAddress] = useState("Várzea Grande, MT");
+  const [latInput, setLatInput] = useState("-15.653600");
+  const [lngInput, setLngInput] = useState("-56.132200");
+  const [isStoreSettingsLoaded, setIsStoreSettingsLoaded] = useState(false);
   const [storeSearchQuery, setStoreSearchQuery] = useState("");
   const [isSearchingStore, setIsSearchingStore] = useState(false);
   const [storeSearchResults, setStoreSearchResults] = useState<any[]>([]);
@@ -81,15 +84,17 @@ export function DeliveryFeeSettings() {
         if (settings.whatsappMessage) {
           setWhatsappMessage(settings.whatsappMessage);
         }
-        if (settings.storeLatitude !== undefined && settings.storeLatitude !== null) {
-          setStoreLatitude(settings.storeLatitude);
-        }
-        if (settings.storeLongitude !== undefined && settings.storeLongitude !== null) {
-          setStoreLongitude(settings.storeLongitude);
-        }
-        if (settings.storeAddress) {
-          setStoreAddress(settings.storeAddress);
-        }
+
+        const lat = settings.storeLatitude !== undefined && settings.storeLatitude !== null ? settings.storeLatitude : -15.6536;
+        const lng = settings.storeLongitude !== undefined && settings.storeLongitude !== null ? settings.storeLongitude : -56.1322;
+        const address = settings.storeAddress || "Várzea Grande, MT";
+
+        setStoreLatitude(lat);
+        setStoreLongitude(lng);
+        setLatInput(lat.toFixed(6));
+        setLngInput(lng.toFixed(6));
+        setStoreAddress(address);
+        setIsStoreSettingsLoaded(true);
       })
       .catch((err) => {
         console.error(err);
@@ -119,6 +124,8 @@ export function DeliveryFeeSettings() {
   const handleSelectSearchResult = (result: any) => {
     setStoreLatitude(result.latitude);
     setStoreLongitude(result.longitude);
+    setLatInput(result.latitude.toFixed(6));
+    setLngInput(result.longitude.toFixed(6));
     setStoreAddress(result.displayName);
     setStoreSearchResults([]);
     setStoreSearchQuery("");
@@ -137,13 +144,21 @@ export function DeliveryFeeSettings() {
         const lng = pos.coords.longitude;
         setStoreLatitude(lat);
         setStoreLongitude(lng);
+        setLatInput(lat.toFixed(6));
+        setLngInput(lng.toFixed(6));
 
         try {
           const res = await fetch(`/api/geocode/reverse?lat=${lat}&lon=${lng}`);
           if (res.ok) {
             const data = await res.json();
-            if (data.displayName) {
-              setStoreAddress(data.displayName);
+            let suggestedAddress = "";
+            if (data.road && data.neighborhood) {
+              suggestedAddress = `${data.road}, ${data.neighborhood}${data.city ? ` - ${data.city}` : ""}`;
+            } else if (data.displayName) {
+              suggestedAddress = data.displayName;
+            }
+            if (suggestedAddress) {
+              setStoreAddress(suggestedAddress);
             }
           }
         } catch (e) {
@@ -159,6 +174,29 @@ export function DeliveryFeeSettings() {
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
+  };
+
+  // Sincronização via interação no mapa (arraste ou clique)
+  const handleLocationSelectFromMap = (
+    coords: { lat: number; lng: number },
+    details?: any
+  ) => {
+    setStoreLatitude(coords.lat);
+    setStoreLongitude(coords.lng);
+    setLatInput(coords.lat.toFixed(6));
+    setLngInput(coords.lng.toFixed(6));
+
+    if (details) {
+      let suggestedAddress = "";
+      if (details.road && details.neighborhood) {
+        suggestedAddress = `${details.road}, ${details.neighborhood}${details.city ? ` - ${details.city}` : ""}`;
+      } else if (details.displayName) {
+        suggestedAddress = details.displayName;
+      }
+      if (suggestedAddress) {
+        setStoreAddress(suggestedAddress);
+      }
+    }
   };
 
   // Estados da Trava de Segurança e Modal de Confirmação
@@ -230,13 +268,18 @@ export function DeliveryFeeSettings() {
         thresholdNum = parseFloat(freeShippingThreshold);
       }
 
+      const parsedLat = parseFloat(latInput.trim().replace(",", "."));
+      const parsedLng = parseFloat(lngInput.trim().replace(",", "."));
+      const finalLat = !isNaN(parsedLat) && parsedLat >= -90 && parsedLat <= 90 ? parsedLat : storeLatitude;
+      const finalLng = !isNaN(parsedLng) && parsedLng >= -180 && parsedLng <= 180 ? parsedLng : storeLongitude;
+
       await storeSettingsService.updateSettings({
         deliveryFee: feeNum,
         freeDeliveryThreshold: thresholdNum,
         whatsappNumber: whatsappNumber.trim(),
         whatsappMessage: whatsappMessage.trim(),
-        storeLatitude,
-        storeLongitude,
+        storeLatitude: finalLat,
+        storeLongitude: finalLng,
         storeAddress: storeAddress.trim(),
       });
 
@@ -636,19 +679,21 @@ export function DeliveryFeeSettings() {
               </span>
             </div>
 
-            <LocationPickerMap
-              initialCoords={{ lat: storeLatitude, lng: storeLongitude }}
-              height="300px"
-              pinEmoji="🍧"
-              pinLabel="Sede Pop Shake"
-              onLocationSelect={(coords, details) => {
-                setStoreLatitude(coords.lat);
-                setStoreLongitude(coords.lng);
-                if (details?.displayName) {
-                  setStoreAddress(details.displayName);
-                }
-              }}
-            />
+            {isStoreSettingsLoaded ? (
+              <LocationPickerMap
+                initialCoords={{ lat: storeLatitude, lng: storeLongitude }}
+                initialAddress={storeAddress}
+                height="300px"
+                pinEmoji="🍧"
+                pinLabel="Sede Pop Shake"
+                onLocationSelect={handleLocationSelectFromMap}
+              />
+            ) : (
+              <div className="w-full h-[300px] rounded-2xl bg-muted/40 border border-border/80 flex flex-col items-center justify-center gap-2 text-muted-foreground animate-pulse">
+                <Loader2 className="w-6 h-6 animate-spin text-[#9306CF]" />
+                <span className="text-xs font-medium font-mono">Carregando coordenadas salvas da sede...</span>
+              </div>
+            )}
           </div>
 
           {/* Campos de Endereço e Coordenadas Detalhadas */}
@@ -676,11 +721,30 @@ export function DeliveryFeeSettings() {
                   Latitude *
                 </Label>
                 <Input
-                  type="number"
-                  step="0.000001"
-                  value={storeLatitude}
-                  onChange={(e) => setStoreLatitude(parseFloat(e.target.value) || 0)}
-                  className="font-mono text-xs h-11 bg-white dark:bg-[#200B22] border-gray-200 dark:border-[#512B54]/40 rounded-xl"
+                  type="text"
+                  inputMode="decimal"
+                  value={latInput}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setLatInput(val);
+                    const normalized = val.trim().replace(",", ".");
+                    const num = parseFloat(normalized);
+                    if (!isNaN(num) && num >= -90 && num <= 90) {
+                      setStoreLatitude(num);
+                    }
+                  }}
+                  onBlur={() => {
+                    const normalized = latInput.trim().replace(",", ".");
+                    const num = parseFloat(normalized);
+                    if (!isNaN(num) && num >= -90 && num <= 90) {
+                      setLatInput(num.toFixed(6));
+                      setStoreLatitude(num);
+                    } else {
+                      setLatInput(storeLatitude.toFixed(6));
+                    }
+                  }}
+                  placeholder="-15.653600"
+                  className="font-mono text-xs h-11 bg-white dark:bg-[#200B22] border-gray-200 dark:border-[#512B54]/40 rounded-xl focus-visible:ring-2 focus-visible:ring-[#9306CF]"
                   required
                 />
               </div>
@@ -690,11 +754,30 @@ export function DeliveryFeeSettings() {
                   Longitude *
                 </Label>
                 <Input
-                  type="number"
-                  step="0.000001"
-                  value={storeLongitude}
-                  onChange={(e) => setStoreLongitude(parseFloat(e.target.value) || 0)}
-                  className="font-mono text-xs h-11 bg-white dark:bg-[#200B22] border-gray-200 dark:border-[#512B54]/40 rounded-xl"
+                  type="text"
+                  inputMode="decimal"
+                  value={lngInput}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setLngInput(val);
+                    const normalized = val.trim().replace(",", ".");
+                    const num = parseFloat(normalized);
+                    if (!isNaN(num) && num >= -180 && num <= 180) {
+                      setStoreLongitude(num);
+                    }
+                  }}
+                  onBlur={() => {
+                    const normalized = lngInput.trim().replace(",", ".");
+                    const num = parseFloat(normalized);
+                    if (!isNaN(num) && num >= -180 && num <= 180) {
+                      setLngInput(num.toFixed(6));
+                      setStoreLongitude(num);
+                    } else {
+                      setLngInput(storeLongitude.toFixed(6));
+                    }
+                  }}
+                  placeholder="-56.132200"
+                  className="font-mono text-xs h-11 bg-white dark:bg-[#200B22] border-gray-200 dark:border-[#512B54]/40 rounded-xl focus-visible:ring-2 focus-visible:ring-[#9306CF]"
                   required
                 />
               </div>

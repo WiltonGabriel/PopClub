@@ -32,6 +32,7 @@ export interface ReverseGeocodeResult {
 
 export interface LocationPickerMapProps {
   initialCoords: { lat: number; lng: number };
+  initialAddress?: string | null;
   onLocationSelect?: (
     coords: { lat: number; lng: number },
     addressDetails?: ReverseGeocodeResult
@@ -59,25 +60,22 @@ function MapClickHandler({
   return null;
 }
 
-// Subcomponente para sincronizar o centro do mapa quando as coordenadas mudam externamente
-function MapCenterController({
-  coords,
-  zoom,
+// Subcomponente para obter a instância do mapa do Leaflet
+function MapController({
+  onMapReady,
 }: {
-  coords: { lat: number; lng: number };
-  zoom: number;
+  onMapReady: (map: L.Map) => void;
 }) {
   const map = useMap();
   useEffect(() => {
-    if (coords && !isNaN(coords.lat) && !isNaN(coords.lng)) {
-      map.flyTo([coords.lat, coords.lng], zoom, { animate: true, duration: 1 });
-    }
-  }, [map, coords.lat, coords.lng, zoom]);
+    onMapReady(map);
+  }, [map, onMapReady]);
   return null;
 }
 
 export default function LocationPickerMap({
   initialCoords,
+  initialAddress,
   onLocationSelect,
   interactive = true,
   height = "250px",
@@ -92,22 +90,39 @@ export default function LocationPickerMap({
   );
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [lastResolvedAddress, setLastResolvedAddress] = useState<string | null>(
-    null
+    initialAddress || null
   );
+  const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
 
-  // Sincroniza se a prop inicial mudar significativamente (ex: usuário digitou novo CEP ou GPS concluiu)
+  // Sincroniza se a prop inicial mudar externamente (ex: usuário digitou nos campos manuais, selecionou busca ou GPS)
   useEffect(() => {
     if (
       initialCoords &&
       !isNaN(initialCoords.lat) &&
-      !isNaN(initialCoords.lng) &&
-      (Math.abs(initialCoords.lat - currentCoords.lat) > 0.0001 ||
-        Math.abs(initialCoords.lng - currentCoords.lng) > 0.0001)
+      !isNaN(initialCoords.lng)
     ) {
-      setCurrentCoords(initialCoords);
+      const latDiff = Math.abs(initialCoords.lat - currentCoords.lat);
+      const lngDiff = Math.abs(initialCoords.lng - currentCoords.lng);
+      if (latDiff > 0.000001 || lngDiff > 0.000001) {
+        const next = { lat: initialCoords.lat, lng: initialCoords.lng };
+        setCurrentCoords(next);
+        if (mapInstance) {
+          mapInstance.flyTo([next.lat, next.lng], mapInstance.getZoom() || zoom, {
+            animate: true,
+            duration: 0.6,
+          });
+        }
+      }
     }
-  }, [initialCoords.lat, initialCoords.lng]);
+  }, [initialCoords?.lat, initialCoords?.lng, mapInstance, zoom]);
+
+  // Sincroniza o endereço de exibição quando alterado externamente
+  useEffect(() => {
+    if (initialAddress) {
+      setLastResolvedAddress(initialAddress);
+    }
+  }, [initialAddress]);
 
   // Função de geocodificação reversa
   const fetchAddressForCoords = useCallback(
@@ -209,7 +224,7 @@ export default function LocationPickerMap({
           maxZoom={19}
         />
 
-        <MapCenterController coords={currentCoords} zoom={zoom} />
+        <MapController onMapReady={setMapInstance} />
         {interactive && <MapClickHandler onMapClick={handleMapClick} />}
 
         <Marker
@@ -251,17 +266,22 @@ export default function LocationPickerMap({
           </span>
         </div>
 
-        {/* Botão para recentralizar o alfinete no mapa */}
+        {/* Botão de Mira / Recentralizar no Alfinete */}
         <button
           type="button"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            setCurrentCoords({ ...currentCoords });
+            if (mapInstance && !isNaN(currentCoords.lat) && !isNaN(currentCoords.lng)) {
+              mapInstance.flyTo([currentCoords.lat, currentCoords.lng], 17, {
+                animate: true,
+                duration: 0.8,
+              });
+            }
           }}
           className="pointer-events-auto w-8 h-8 rounded-xl bg-white dark:bg-[#190B1A] hover:bg-muted border border-border/60 shadow-md text-foreground flex items-center justify-center transition-transform hover:scale-105 active:scale-95 cursor-pointer"
-          title="Centralizar no Alfinete"
-          aria-label="Centralizar no Alfinete"
+          title="Centralizar câmera no Alfinete da Loja (Zoom 17)"
+          aria-label="Centralizar câmera no Alfinete da Loja"
         >
           <Crosshair className="w-4 h-4 text-[#9306CF]" />
         </button>
