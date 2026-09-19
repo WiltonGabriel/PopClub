@@ -223,17 +223,18 @@ export default function LocationPickerMap({
         />
       </MapContainer>
 
-      {/* Overlay Superior: Badge com instruções de toque/arraste */}
+      {/* Overlay Superior Direito: Badge com instruções de toque/arraste (libera 100% dos controles de zoom no topo esquerdo) */}
       {interactive && (
-        <div className="absolute top-2.5 left-2.5 right-2.5 z-20 pointer-events-none flex items-center justify-between gap-2">
-          <div className="pointer-events-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 dark:bg-[#190B1A]/95 backdrop-blur-md shadow-md border border-border/60 text-[11px] font-semibold text-foreground">
-            <span className="w-2 h-2 rounded-full bg-[#9306CF] animate-pulse" />
-            <span>Toque ou arraste o alfinete até o local exato</span>
+        <div className="absolute top-3 right-3 z-[1000] pointer-events-none flex flex-col items-end gap-1.5 max-w-[calc(100%-60px)]">
+          <div className="pointer-events-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 dark:bg-[#190B1A]/95 backdrop-blur-md shadow-md border border-border/60 text-xs font-semibold text-foreground">
+            <span className="w-2 h-2 rounded-full bg-[#9306CF] animate-pulse shrink-0" />
+            <span className="hidden sm:inline">Toque ou arraste o alfinete até o local exato</span>
+            <span className="sm:hidden truncate">Arraste até o local exato</span>
           </div>
 
           {isGeocoding && (
-            <div className="pointer-events-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#9306CF] text-white shadow-md text-[11px] font-bold animate-in fade-in">
-              <Loader2 className="w-3 h-3 animate-spin" />
+            <div className="pointer-events-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#9306CF] text-white shadow-md text-xs font-bold animate-in fade-in">
+              <Loader2 className="w-3 h-3 animate-spin shrink-0" />
               <span>Ajustando...</span>
             </div>
           )}

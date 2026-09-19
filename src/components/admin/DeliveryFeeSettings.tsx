@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import {
   Truck,
@@ -19,6 +19,9 @@ import {
   Navigation,
   Search,
   Crosshair,
+  AlertTriangle,
+  X,
+  ShieldAlert,
 } from "lucide-react";
 import { storeSettingsService, StoreSettings } from "../../services/storeSettingsService";
 import { Button } from "../ui/button";
@@ -158,7 +161,23 @@ export function DeliveryFeeSettings() {
     );
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  // Estados da Trava de Segurança e Modal de Confirmação
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmInputText, setConfirmInputText] = useState("");
+  const confirmInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (isConfirmModalOpen) {
+      const timer = setTimeout(() => {
+        confirmInputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isConfirmModalOpen]);
+
+  const isConfirmed = confirmInputText.trim().toLowerCase() === "sim";
+
+  const handleOpenConfirmModal = (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
 
@@ -180,8 +199,37 @@ export function DeliveryFeeSettings() {
       }
     }
 
+    if (!storeAddress.trim()) {
+      setMessage({ type: "error", text: "Informe o endereço oficial da sede da loja." });
+      return;
+    }
+
+    if (!whatsappNumber.trim()) {
+      setMessage({ type: "error", text: "Informe o número do WhatsApp comercial." });
+      return;
+    }
+
+    setConfirmInputText("");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleCloseConfirmModal = () => {
+    setIsConfirmModalOpen(false);
+    setConfirmInputText("");
+  };
+
+  const handleExecuteSave = async () => {
+    if (!isConfirmed || saving) return;
+
     setSaving(true);
+    setMessage(null);
     try {
+      const feeNum = parseFloat(deliveryFee);
+      let thresholdNum: number | null = null;
+      if (enableFreeShipping) {
+        thresholdNum = parseFloat(freeShippingThreshold);
+      }
+
       await storeSettingsService.updateSettings({
         deliveryFee: feeNum,
         freeDeliveryThreshold: thresholdNum,
@@ -192,6 +240,8 @@ export function DeliveryFeeSettings() {
         storeAddress: storeAddress.trim(),
       });
 
+      setIsConfirmModalOpen(false);
+      setConfirmInputText("");
       setMessage({
         type: "success",
         text: "Configurações da loja (Taxa de Entrega, Sede da Loja e WhatsApp) salvas com sucesso!",
@@ -260,7 +310,7 @@ export function DeliveryFeeSettings() {
         </div>
       )}
 
-      <form onSubmit={handleSave} className="space-y-8">
+      <form onSubmit={handleOpenConfirmModal} className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Card 1: Taxa Fixa Padrão */}
           <div className="bg-gray-50/80 dark:bg-[#1A0B1C]/80 border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 sm:p-6 space-y-4">
@@ -673,6 +723,144 @@ export function DeliveryFeeSettings() {
           </Button>
         </div>
       </form>
+
+      {/* Modal Crítico de Confirmação com Trava de Digitação ("Sim") */}
+      {isConfirmModalOpen && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-modal-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !saving) {
+              handleCloseConfirmModal();
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape" && !saving) {
+              handleCloseConfirmModal();
+            }
+          }}
+        >
+          <div className="bg-white dark:bg-[#1E091B] border border-gray-200 dark:border-[#512B54]/60 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
+            {/* Cabeçalho do Modal */}
+            <div className="flex items-start justify-between gap-3 pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-xs">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3
+                    id="confirm-modal-title"
+                    className="font-heading font-bold text-base sm:text-lg text-[#4C264F] dark:text-[#F9F5F9] leading-snug"
+                  >
+                    Você tem certeza que deseja salvar estas alterações?
+                  </h3>
+                  <span className="text-[11px] font-mono text-amber-600 dark:text-amber-400 uppercase font-semibold">
+                    Ação crítica de configuração
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseConfirmModal}
+                disabled={saving}
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50"
+                aria-label="Fechar modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Texto de Alerta */}
+            <div className="p-3.5 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/40 text-xs text-amber-900 dark:text-amber-200 leading-relaxed flex items-start gap-2.5">
+              <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <span>
+                Alterações na sede da loja, raios de entrega ou canais de atendimento alteram imediatamente os cálculos de frete e rotas dos pedidos ativos.
+              </span>
+            </div>
+
+            {/* Campo de Confirmação com Digitação */}
+            <div className="space-y-2 pt-1">
+              <Label
+                htmlFor="confirm-sim-input"
+                className="text-xs font-bold text-gray-700 dark:text-gray-300 block"
+              >
+                Para confirmar, digite exatamente <strong className="text-[#9306CF] dark:text-[#C7A9C9] font-black underline">Sim</strong> no campo abaixo:
+              </Label>
+              <div className="relative">
+                <Input
+                  ref={confirmInputRef}
+                  id="confirm-sim-input"
+                  type="text"
+                  autoComplete="off"
+                  value={confirmInputText}
+                  onChange={(e) => setConfirmInputText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (isConfirmed && !saving) {
+                        handleExecuteSave();
+                      }
+                    }
+                  }}
+                  placeholder="Digite Sim para confirmar"
+                  className={`text-sm h-11 bg-white dark:bg-[#200B22] border-2 rounded-xl transition-all ${
+                    isConfirmed
+                      ? "border-emerald-500 ring-2 ring-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold"
+                      : "border-gray-300 dark:border-[#512B54]/60 focus-visible:border-[#9306CF]"
+                  }`}
+                  disabled={saving}
+                />
+                {isConfirmed && (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 absolute right-3.5 top-1/2 -translate-y-1/2 animate-in zoom-in-50" />
+                )}
+              </div>
+              <span className="text-[11px] text-muted-foreground block">
+                {isConfirmed
+                  ? "✓ Palavra de confirmação válida. Você já pode salvar."
+                  : "A digitação diferencia a intenção de gravação para evitar cliques acidentais."}
+              </span>
+            </div>
+
+            {/* Ações do Modal */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 dark:border-[#512B54]/30">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCloseConfirmModal}
+                disabled={saving}
+                className="h-11 px-5 rounded-xl text-xs font-bold cursor-pointer"
+              >
+                Cancelar
+              </Button>
+
+              <Button
+                type="button"
+                onClick={handleExecuteSave}
+                disabled={!isConfirmed || saving}
+                className={`h-11 px-6 rounded-xl font-heading text-xs uppercase tracking-wider font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer ${
+                  isConfirmed && !saving
+                    ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white hover:opacity-95 shadow-[#9306CF]/30"
+                    : "bg-gray-200 dark:bg-white/10 text-gray-400 dark:text-gray-500 border border-transparent cursor-not-allowed opacity-60 shadow-none"
+                }`}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Salvando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>Confirmar e Salvar</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
