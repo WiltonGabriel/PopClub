@@ -542,16 +542,66 @@ export default function Storefront() {
               )}
             </button>
 
-            {/* 4. [ Menu de Perfil / Administrador ] */}
+            {/* 4. [ Menu de Perfil / Administrador / Visitante ] */}
             {!user ? (
-              <Link
-                href="/login"
-                className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] border border-border/40 rounded-full p-2 md:px-3.5 md:py-2 hover:bg-muted transition-colors shrink-0"
-                aria-label="Entrar na conta"
-              >
-                <UserIcon className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9] shrink-0" />
-                <span className="hidden md:inline">Entrar</span>
-              </Link>
+              <div className="relative shrink-0" ref={userMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setUserMenuOpen((prev) => !prev)}
+                  className="flex items-center gap-1.5 sm:gap-2 border border-border/50 hover:border-[#9306CF]/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full p-1.5 md:px-3.5 md:py-2 transition-all shrink-0 group shadow-xs cursor-pointer"
+                  aria-expanded={userMenuOpen}
+                  aria-haspopup="true"
+                  aria-label="Menu de perfil e entrada"
+                >
+                  <UserIcon className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9] shrink-0" />
+                  <span className="hidden md:inline text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9]">
+                    Entrar
+                  </span>
+                  <ChevronDown
+                    className={`hidden md:inline-flex w-3.5 h-3.5 text-muted-foreground group-hover:text-[#9306CF] transition-transform duration-200 shrink-0 ${
+                      userMenuOpen ? "rotate-180 text-[#9306CF]" : ""
+                    }`}
+                  />
+                </button>
+
+                {userMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 sm:w-60 rounded-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/50 shadow-2xl py-2 z-[100] animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="px-4 py-2 border-b border-gray-100 dark:border-[#512B54]/30">
+                      <p className="text-xs font-semibold text-[#4C264F] dark:text-[#F9F5F9]">
+                        Bem-vindo ao PopShake
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">Identifique-se para fazer seu pedido</p>
+                    </div>
+
+                    <div className="py-1">
+                      <Link
+                        href="/login"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors"
+                      >
+                        <UserIcon className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                        Entrar na Conta
+                      </Link>
+                    </div>
+
+                    <div className="border-t border-gray-100 dark:border-[#512B54]/30 my-1" />
+
+                    {/* Alterar tema */}
+                    <button
+                      type="button"
+                      onClick={() => toggleTheme()}
+                      className="w-full flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors text-left cursor-pointer"
+                    >
+                      {theme === "dark" ? (
+                        <Sun className="w-4 h-4 text-amber-500 shrink-0" />
+                      ) : (
+                        <Moon className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9] shrink-0" />
+                      )}
+                      <span>Alterar tema</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="relative shrink-0" ref={userMenuRef}>
                 <button
@@ -686,25 +736,20 @@ export default function Storefront() {
 
                     <div className="border-t border-gray-100 dark:border-[#512B54]/30 my-1" />
 
-                    {/* 🌓 Alternar Tema (Claro / Escuro) — Fixo logo acima de Sair */}
+                    {/* 🌓 Alterar tema — Fixo logo acima de Sair */}
                     <button
                       type="button"
                       onClick={() => {
                         toggleTheme();
                       }}
-                      className="w-full flex items-center justify-between px-4 py-2.5 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors text-left cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors text-left cursor-pointer"
                     >
-                      <div className="flex items-center gap-2.5">
-                        {theme === "dark" ? (
-                          <Sun className="w-4 h-4 text-amber-500" />
-                        ) : (
-                          <Moon className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
-                        )}
-                        <span>Alternar Tema (Claro / Escuro)</span>
-                      </div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                        {theme === "dark" ? "Escuro" : "Claro"}
-                      </span>
+                      {theme === "dark" ? (
+                        <Sun className="w-4 h-4 text-amber-500 shrink-0" />
+                      ) : (
+                        <Moon className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9] shrink-0" />
+                      )}
+                      <span>Alterar tema</span>
                     </button>
 
                     <div className="border-t border-gray-100 dark:border-[#512B54]/30 my-1" />
@@ -725,29 +770,6 @@ export default function Storefront() {
                 )}
               </div>
             )}
-
-            {/* 5. [ Alternador de Tema Claro/Escuro ] — Desktop only */}
-            <button
-              type="button"
-              onClick={toggleTheme}
-              aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
-              title={theme === "dark" ? "Modo claro" : "Modo escuro"}
-              className="
-                hidden md:flex items-center justify-center
-                h-10 w-10 rounded-full
-                border border-border/40
-                text-muted-foreground hover:text-foreground
-                hover:bg-muted
-                transition-all duration-200
-                shrink-0 cursor-pointer
-              "
-            >
-              {theme === "dark" ? (
-                <Sun className="w-4 h-4 text-amber-500" />
-              ) : (
-                <Moon className="w-4 h-4 text-[#9306CF]" />
-              )}
-            </button>
           </div>
         </div>
       </header>
