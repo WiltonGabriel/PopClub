@@ -56,17 +56,27 @@ export async function POST(request: Request) {
       role: user.role,
     });
 
-    // Configura cookie httpOnly
-    const cookieStore = await cookies();
-    cookieStore.set("auth_token", token, {
+    // Determina se a requisição atual é HTTPS (direta ou atrás de proxy reverso)
+    const isHttps =
+      request.headers.get("x-forwarded-proto") === "https" ||
+      request.url.startsWith("https://");
+
+    // Cookie seguro somente se realmente estiver em HTTPS, evitando descarte do cookie em conexões HTTP
+    const secure = isHttps;
+
+    const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure,
+      sameSite: "lax" as const,
       maxAge: 60 * 60 * 24 * 7, // 7 dias
       path: "/",
-    });
+    };
 
-    return NextResponse.json({
+    // Configura cookie httpOnly no cookieStore e na resposta
+    const cookieStore = await cookies();
+    cookieStore.set("auth_token", token, cookieOptions);
+
+    const response = NextResponse.json({
       user: {
         id: user.id,
         email: user.email,
@@ -76,6 +86,10 @@ export async function POST(request: Request) {
       },
       token,
     });
+
+    response.cookies.set("auth_token", token, cookieOptions);
+
+    return response;
   } catch (error: any) {
     console.error("Erro no login:", error);
     return NextResponse.json(

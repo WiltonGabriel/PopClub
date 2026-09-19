@@ -65,18 +65,37 @@ export async function getAuthUser(request?: Request): Promise<{
     const payload = verifyToken(token);
     if (!payload?.userId) return null;
 
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        role: true,
-        fullName: true,
-        avatarUrl: true,
-        accessibilitySettings: true,
-      },
-    });
+    let user: any = null;
+    try {
+      user = await prisma.user.findUnique({
+        where: { id: payload.userId },
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          role: true,
+          fullName: true,
+          avatarUrl: true,
+          accessibilitySettings: true,
+        },
+      });
+    } catch (err: any) {
+      console.warn("Aviso: Falha ao carregar campos estendidos do usuário, tentando campos essenciais:", err?.message);
+      try {
+        user = await prisma.user.findUnique({
+          where: { id: payload.userId },
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            role: true,
+          },
+        });
+      } catch (fallbackErr: any) {
+        console.error("Erro crítico ao consultar usuário no banco:", fallbackErr);
+        return null;
+      }
+    }
 
     if (!user) return null;
 
@@ -88,12 +107,13 @@ export async function getAuthUser(request?: Request): Promise<{
       email: user.email,
       username: user.username,
       role: user.role as "client" | "admin",
-      fullName: user.fullName,
+      fullName: user.fullName || null,
       avatarUrl: avatar,
       avatar,
-      accessibilitySettings: user.accessibilitySettings,
+      accessibilitySettings: user.accessibilitySettings || null,
     };
-  } catch {
+  } catch (err: any) {
+    console.error("Erro geral em getAuthUser:", err);
     return null;
   }
 }

@@ -147,7 +147,7 @@ function AuthPageInner() {
     setLoginLoading(true);
     try {
       await authService.signIn(loginId.trim(), loginPassword);
-      window.location.href = "/";
+      window.location.replace("/");
     } catch (err: any) {
       setLoginError(err.message || "Credenciais inválidas.");
     } finally {
