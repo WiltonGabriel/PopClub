@@ -13,18 +13,15 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Crosshair } from "lucide-react";
 
-export interface LatLng {
-  lat: number;
-  lng: number;
-}
+import {
+  LatLng,
+  DeliveryMetrics,
+  calculateHaversineDistanceKm,
+  calculateBearing,
+} from "@/lib/geo";
 
-export interface DeliveryMetrics {
-  distanceKm: number;
-  formattedDistance: string;
-  etaMinutes: number;
-  formattedEta: string;
-  isArriving: boolean;
-}
+export type { LatLng, DeliveryMetrics };
+export { calculateHaversineDistanceKm, calculateBearing };
 
 interface LeafletDeliveryMapProps {
   origin: LatLng;
@@ -38,43 +35,6 @@ interface LeafletDeliveryMapProps {
   className?: string;
 }
 
-// ── Funções de Geometria e Navegação em Tempo Real ──
-export function calculateHaversineDistanceKm(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
-  const R = 6371; // Raio da Terra em km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-export function calculateBearing(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const lat1Rad = (lat1 * Math.PI) / 180;
-  const lat2Rad = (lat2 * Math.PI) / 180;
-  const y = Math.sin(dLon) * Math.cos(lat2Rad);
-  const x =
-    Math.cos(lat1Rad) * Math.sin(lat2Rad) -
-    Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLon);
-  const brng = (Math.atan2(y, x) * 180) / Math.PI;
-  return (brng + 360) % 360;
-}
-
 function MapController({
   bounds,
   isMobile,
@@ -86,8 +46,8 @@ function MapController({
   useEffect(() => {
     if (bounds) {
       map.fitBounds(bounds, {
-        paddingTopLeft: isMobile ? [40, 30] : [70, 70],
-        paddingBottomRight: isMobile ? [30, 260] : [70, 70],
+        paddingTopLeft: isMobile ? [75, 25] : [70, 70],
+        paddingBottomRight: isMobile ? [25, 260] : [70, 70],
         maxZoom: 16,
         animate: true,
       });

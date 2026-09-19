@@ -28,7 +28,10 @@ import {
 import { Order, orderService } from "@/services/orderService";
 import { storeSettingsService, StoreSettings } from "@/services/storeSettingsService";
 import { Button } from "@/components/ui/button";
-import { DeliveryMetrics } from "@/components/logistics/LeafletDeliveryMap";
+import {
+  DeliveryMetrics,
+  calculateHaversineDistanceKm,
+} from "@/lib/geo";
 
 // Carregamento dinâmico estritamente no cliente para evitar erros de SSR do Leaflet
 const LeafletDeliveryMap = dynamic(
@@ -196,14 +199,48 @@ function TrackingContent() {
     `Olá! Gostaria de falar sobre o pedido #${order.id.substring(0, 6)} da Pop Shake Sorveteria.`
   )}`;
 
+  // Métricas de entrega calculadas imediatamente (garante exibição instantânea sem atraso de carregamento)
+  const initialMetrics = useMemo(() => {
+    const activeOrigin = courierCoords || originCoords;
+    const distanceKm = calculateHaversineDistanceKm(
+      activeOrigin.lat,
+      activeOrigin.lng,
+      destCoords.lat,
+      destCoords.lng
+    );
+    const etaMinutes = Math.max(1, Math.round((distanceKm / 26) * 60 + 2));
+    const isArriving = distanceKm <= 0.3;
+    const formattedDistance =
+      distanceKm < 1
+        ? `${Math.round(distanceKm * 1000)} m`
+        : `${distanceKm.toFixed(1).replace(".", ",")} km`;
+    const formattedEta = isArriving ? "Chegando!" : `${etaMinutes} min`;
+
+    return {
+      distanceKm,
+      formattedDistance,
+      etaMinutes,
+      formattedEta,
+      isArriving,
+    };
+  }, [
+    courierCoords?.lat,
+    courierCoords?.lng,
+    originCoords.lat,
+    originCoords.lng,
+    destCoords.lat,
+    destCoords.lng,
+  ]);
+
   // --------------------------------------------------------------------------
   // CASO 1: Pedido "A CAMINHO / SAIU PARA ENTREGA" (delivering)
   // Layout Imersivo Fullscreen Padrão iFood / Uber Eats
   // --------------------------------------------------------------------------
   if (order.status === "delivering") {
-    const isArriving = deliveryMetrics?.isArriving || false;
-    const etaText = deliveryMetrics?.formattedEta || "15 - 25 min";
-    const distanceText = deliveryMetrics?.formattedDistance || "Calculando...";
+    const activeMetrics = deliveryMetrics || initialMetrics;
+    const isArriving = activeMetrics.isArriving;
+    const etaText = activeMetrics.formattedEta;
+    const distanceText = activeMetrics.formattedDistance;
 
     return (
       <main className="fixed inset-0 w-full h-full overflow-hidden bg-background select-none">
@@ -288,7 +325,7 @@ function TrackingContent() {
           )}
 
           {/* Card Principal de Status e ETA */}
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-[#9306CF]/10 via-[#940068]/5 to-transparent border border-[#9306CF]/20 space-y-2.5">
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-[#9306CF]/10 via-[#940068]/5 to-transparent border border-[#9306CF]/20 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] uppercase tracking-wider flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-[#9306CF] animate-ping" />
@@ -299,16 +336,26 @@ function TrackingContent() {
               </span>
             </div>
 
-            <div className="flex items-baseline justify-between">
-              <div>
-                <span className="text-[11px] text-muted-foreground uppercase font-mono block">Tempo Estimado</span>
-                <span className="font-heading font-black text-2xl text-foreground">
-                  {etaText}
-                </span>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-11 h-11 rounded-2xl bg-purple-100 dark:bg-purple-950/70 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center shadow-xs shrink-0">
+                  <Clock className="w-5 h-5 text-purple-600 dark:text-[#C7A9C9]" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[11px] text-muted-foreground uppercase font-mono font-bold block leading-tight">
+                    Previsão de Chegada
+                  </span>
+                  <span className="font-heading font-black text-2xl text-foreground block leading-tight truncate">
+                    {etaText}
+                  </span>
+                </div>
               </div>
-              <div className="text-right">
-                <span className="text-[11px] text-muted-foreground uppercase font-mono block">Distância</span>
-                <span className="font-mono font-bold text-lg text-emerald-600 dark:text-emerald-400">
+
+              <div className="text-right shrink-0">
+                <span className="text-[11px] text-muted-foreground uppercase font-mono font-bold block leading-tight">
+                  Distância
+                </span>
+                <span className="font-mono font-bold text-lg text-emerald-600 dark:text-emerald-400 block leading-tight">
                   {distanceText}
                 </span>
               </div>
@@ -478,10 +525,48 @@ function TrackingContent() {
           </a>
         </aside>
 
+        {/* ── CARD FLUTUANTE SOBREPOSTO AO MAPA NO MOBILE (md:hidden) ── */}
+        <div className="md:hidden fixed top-16 left-3.5 right-3.5 z-10 pointer-events-auto animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="bg-white/95 dark:bg-[#190B1A]/95 backdrop-blur-xl border border-border/80 dark:border-[#512B54]/60 rounded-2xl p-2.5 sm:p-3 shadow-xl flex items-center justify-between gap-2.5">
+            {/* Bloco Tempo Estimado de Entrega */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950/70 flex items-center justify-center text-[#9306CF] dark:text-[#C7A9C9] shrink-0 shadow-xs">
+                <Clock className="w-4 h-4 text-purple-600 dark:text-[#C7A9C9]" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] uppercase font-mono text-muted-foreground font-bold block leading-none">
+                  Previsão de Chegada
+                </span>
+                <strong className="text-xs sm:text-sm font-heading font-black text-foreground truncate block pt-0.5">
+                  {isArriving ? "Chegando!" : etaText}
+                </strong>
+              </div>
+            </div>
+
+            {/* Separador vertical */}
+            <div className="h-7 w-px bg-border/60 shrink-0" />
+
+            {/* Bloco Distância Restante */}
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="text-right">
+                <span className="text-[10px] uppercase font-mono text-muted-foreground font-bold block leading-none">
+                  Distância
+                </span>
+                <strong className="text-xs sm:text-sm font-mono font-bold text-emerald-600 dark:text-emerald-400 block pt-0.5">
+                  {distanceText}
+                </strong>
+              </div>
+              <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/70 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 shadow-xs">
+                <Navigation className="w-3.5 h-3.5" />
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* ── MOBILE: BOTTOM SHEET FLUTUANTE DESLIZANTE (< md) ── */}
         <aside
           className={`md:hidden fixed bottom-0 left-0 right-0 z-20 bg-white/95 dark:bg-[#190B1A]/95 backdrop-blur-xl border-t border-border/70 rounded-t-3xl shadow-2xl transition-all duration-300 ${
-            bottomSheetExpanded ? "max-h-[82vh]" : "max-h-[290px]"
+            bottomSheetExpanded ? "max-h-[82vh]" : "max-h-[310px]"
           } overflow-y-auto p-4 space-y-3`}
         >
           {/* Pílula de Arraste / Clique para Expandir */}
@@ -507,21 +592,53 @@ function TrackingContent() {
             </div>
           )}
 
-          {/* Linha Resumo: ETA + Distância */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 text-white flex items-center justify-center text-lg shadow-sm">
+          {/* Bloco em Destaque no Bottom Sheet: Previsão de Chegada & Distância */}
+          <div className="p-3 rounded-2xl bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-transparent border border-[#9306CF]/20 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/70 flex items-center justify-center text-[#9306CF] dark:text-[#C7A9C9] shrink-0 shadow-xs">
+                <Clock className="w-4 h-4 text-purple-600 dark:text-[#C7A9C9]" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] text-muted-foreground uppercase font-mono font-bold block leading-none">
+                  Previsão de Chegada
+                </span>
+                <strong className="font-heading font-black text-base text-foreground block pt-0.5 leading-tight truncate">
+                  {isArriving ? "Chegando agora!" : etaText}
+                </strong>
+              </div>
+            </div>
+
+            <div className="h-7 w-px bg-border/60 shrink-0" />
+
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="text-right">
+                <span className="text-[10px] text-muted-foreground uppercase font-mono font-bold block leading-none">
+                  Distância
+                </span>
+                <span className="font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400 block pt-0.5 leading-tight">
+                  {distanceText}
+                </span>
+              </div>
+              <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/70 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 shadow-xs">
+                <Navigation className="w-3.5 h-3.5" />
+              </div>
+            </div>
+          </div>
+
+          {/* Status do Entregador e Botão de Detalhes */}
+          <div className="flex items-center justify-between pt-0.5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white flex items-center justify-center text-base shadow-xs shrink-0">
                 🛵
               </div>
-              <div>
-                <span className="font-heading font-black text-lg sm:text-xl text-foreground block leading-tight">
-                  {etaText}
+              <div className="min-w-0">
+                <span className="font-heading font-bold text-xs text-foreground block truncate">
+                  Entregador Pop Shake
                 </span>
-                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                  <span>{distanceText}</span>
-                  <span>•</span>
-                  <span className="text-[#9306CF] dark:text-[#C7A9C9] font-bold">
-                    {isArriving ? "Na sua rua!" : "A Caminho"}
+                <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  <span className="text-[#9306CF] dark:text-[#C7A9C9] font-semibold">
+                    {isArriving ? "Na sua rua!" : "Em trânsito com seu pedido"}
                   </span>
                 </span>
               </div>
@@ -530,7 +647,7 @@ function TrackingContent() {
             <button
               type="button"
               onClick={() => setBottomSheetExpanded(!bottomSheetExpanded)}
-              className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] flex items-center gap-1 p-2 rounded-xl bg-[#9306CF]/10 cursor-pointer"
+              className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#9306CF]/10 hover:bg-[#9306CF]/15 transition-colors cursor-pointer shrink-0"
             >
               <span>{bottomSheetExpanded ? "Menos" : "Detalhes"}</span>
               {bottomSheetExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
