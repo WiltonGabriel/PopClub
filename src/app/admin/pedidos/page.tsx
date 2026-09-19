@@ -62,6 +62,7 @@ import { printThermalReceipt } from "@/lib/thermalPrinter";
 import { OrderTriageBar } from "../../../components/admin/OrderTriageBar";
 import { OrderAcceptDialog } from "../../../components/admin/OrderAcceptDialog";
 import { OrderRejectDialog } from "../../../components/admin/OrderRejectDialog";
+import { OrderDispatchDialog } from "../../../components/admin/OrderDispatchDialog";
 
 export default function AdminPedidosPage() {
   const { theme, toggleTheme } = useTheme();
@@ -126,6 +127,8 @@ export default function AdminPedidosPage() {
   const [selectedOrderForDrawer, setSelectedOrderForDrawer] = useState<Order | null>(null);
   const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [orderToDispatch, setOrderToDispatch] = useState<Order | null>(null);
+  const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
 
   // Controle de Som Operacional & Notificações Nativas
   const [isSoundMuted, setIsSoundMuted] = useState<boolean>(false);
@@ -630,6 +633,14 @@ export default function AdminPedidosPage() {
   const handleUpdateStatus = async (orderId: string, currentStatus: OrderStatus) => {
     const stage = getNextStage(currentStatus);
     if (!stage) return;
+    if (stage.nextStatus === "delivering") {
+      const found = orders.find((o) => o.id === orderId);
+      if (found) {
+        setOrderToDispatch(found);
+        setIsDispatchModalOpen(true);
+        return;
+      }
+    }
     try {
       await orderService.updateOrderStatus(orderId, stage.nextStatus);
       showToast({
@@ -1893,6 +1904,10 @@ export default function AdminPedidosPage() {
         onClose={() => setSelectedOrderForDrawer(null)}
         onAdvance={handleUpdateStatus}
         onRevert={handleRevertStatus}
+        onOpenDispatchModal={(order) => {
+          setOrderToDispatch(order);
+          setIsDispatchModalOpen(true);
+        }}
         onRequestCancel={(order) => {
           setOrderToCancel(order);
           setCancelDialogOpen(true);
@@ -1929,6 +1944,19 @@ export default function AdminPedidosPage() {
         onConfirmReject={handleConfirmReject}
         initialPresets={rejectionPresets}
         onPresetsUpdated={setRejectionPresets}
+      />
+
+      {/* Modal Operacional de Despacho com Link e GPS de Entregador */}
+      <OrderDispatchDialog
+        order={orderToDispatch}
+        isOpen={isDispatchModalOpen}
+        onClose={() => {
+          setIsDispatchModalOpen(false);
+          setOrderToDispatch(null);
+        }}
+        onDispatched={() => {
+          fetchOrders();
+        }}
       />
 
       {/* Modal 1: Iniciar Esteira / Abrir Loja */}

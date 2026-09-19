@@ -299,14 +299,22 @@ export default function PedidosPage() {
                         />
                       </button>
 
-                      <Link href={`/rastreamento?id=${order.id}`}>
-                        <Button
-                          size="sm"
-                          className="h-8 px-3 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs font-bold uppercase tracking-wider shadow-sm shadow-[#9306CF]/20"
-                        >
-                          Rastrear 🛵
-                        </Button>
-                      </Link>
+                      {order.status === "delivering" ? (
+                        <Link href={`/rastreamento?id=${order.id}`}>
+                          <Button
+                            size="sm"
+                            className="h-8 px-3 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs font-bold uppercase tracking-wider shadow-sm shadow-[#9306CF]/20 flex items-center gap-1.5 animate-pulse"
+                          >
+                            <span>Rastrear Entrega</span>
+                            <span>🛵</span>
+                          </Button>
+                        </Link>
+                      ) : (
+                        <span className="text-[11px] font-semibold text-[#9306CF] dark:text-[#C7A9C9] bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1 rounded-xl border border-purple-200/60 dark:border-purple-900/40 inline-flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#9306CF] animate-ping" />
+                          <span>Em Preparo na Cozinha</span>
+                        </span>
+                      )}
                     </div>
 
                     {/* ── CANCELAMENTO CONDICIONAL ── */}

@@ -25,6 +25,8 @@ export interface DeliveryAddress {
   complement?: string | null;
   reference?: string | null;
   zip?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface Order {
@@ -40,6 +42,11 @@ export interface Order {
   delivery_address?: DeliveryAddress;
   shift_id?: string | null;
   is_archived?: boolean;
+  tracking_token?: string | null;
+  is_gps_tracking_active?: boolean;
+  courier_latitude?: number | null;
+  courier_longitude?: number | null;
+  courier_updated_at?: string | null;
   cancellation_reason?: string | null;
   cancelled_at?: string | null;
   created_at: string;
@@ -202,5 +209,36 @@ export const orderService = {
 
   async cancelOrder(orderId: string, cancellationReason: string): Promise<Order> {
     return this.updateOrderStatus(orderId, "cancelled", cancellationReason);
+  },
+
+  async getOrderById(orderId: string): Promise<Order> {
+    const res = await fetch(`/api/orders?id=${encodeURIComponent(orderId)}`, {
+      signal: AbortSignal.timeout(10000),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Pedido não encontrado.");
+    }
+    // Retorna o objeto do pedido caso venha encapsulado ou direto
+    return data.order || data;
+  },
+
+  async dispatchOrder(
+    orderId: string,
+    enableGps: boolean
+  ): Promise<{ order: Order; trackingToken?: string | null; trackingUrl?: string | null }> {
+    const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}/dispatch`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enableGps }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Erro ao despachar pedido.");
+    }
+    if (data.order) {
+      dispatchOrderEvent("order_updated", data.order);
+    }
+    return data;
   },
 };

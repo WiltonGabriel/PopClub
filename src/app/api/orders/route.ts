@@ -4,10 +4,87 @@ import { getAuthUser } from "@/lib/auth";
 import { Prisma, OrderStatus } from "@prisma/client";
 import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
 
+function formatOrder(o: any) {
+  return {
+    id: o.id,
+    user_id: o.userId,
+    status: o.status,
+    subtotal: Number(o.subtotal),
+    discount_amount: Number(o.discountAmount),
+    delivery_fee: Number(o.deliveryFee || 0),
+    total_amount: Number(o.totalAmount),
+    payment_method_type: o.paymentMethodType,
+    payment_change_for: o.paymentChangeFor ? Number(o.paymentChangeFor) : null,
+    shift_id: o.shiftId,
+    is_archived: o.isArchived,
+    tracking_token: o.trackingToken || null,
+    is_gps_tracking_active: Boolean(o.isGpsTrackingActive),
+    courier_latitude: o.courierLatitude ?? null,
+    courier_longitude: o.courierLongitude ?? null,
+    courier_updated_at: o.courierUpdatedAt ? o.courierUpdatedAt.toISOString() : null,
+    delivery_address: {
+      street: o.deliveryStreet,
+      number: o.deliveryNumber,
+      neighborhood: o.deliveryNeighborhood,
+      city: o.deliveryCity,
+      complement: o.deliveryComplement,
+      reference: o.deliveryReference,
+      zip: o.deliveryZip,
+      latitude: o.deliveryLatitude,
+      longitude: o.deliveryLongitude,
+    },
+    cancellation_reason: o.cancellationReason || null,
+    cancelled_at: o.cancelledAt ? o.cancelledAt.toISOString() : null,
+    created_at: o.createdAt.toISOString(),
+    updated_at: o.updatedAt.toISOString(),
+    items: (o.items || []).map((it: any) => ({
+      id: it.id,
+      order_id: it.orderId,
+      product_id: it.productId,
+      quantity: it.quantity,
+      price_at_time: Number(it.priceAtTime),
+      product: it.product
+        ? {
+            id: it.product.id,
+            name: it.product.name,
+            description: it.product.description || "",
+            price: Number(it.product.price),
+            imageUrl: it.product.imageUrl || "",
+          }
+        : undefined,
+    })),
+    user: o.user,
+  };
+}
+
 export async function GET(request: Request) {
   try {
     const authUser = await getAuthUser(request);
     const { searchParams } = new URL(request.url);
+
+    // Consulta individual por ID (utilizada para rastreamento logístico em tempo real)
+    const singleOrderId = searchParams.get("id")?.trim();
+    if (singleOrderId) {
+      const order = await prisma.order.findUnique({
+        where: { id: singleOrderId },
+        include: {
+          items: { include: { product: true } },
+          user: { select: { fullName: true, username: true, email: true, phone: true } },
+        },
+      });
+
+      if (!order) {
+        return apiError("Pedido não encontrado.", 404, "NOT_FOUND");
+      }
+
+      // Se autenticado e não for admin, garante que o pedido pertence ao usuário logado
+      if (authUser && authUser.role !== "admin" && order.userId && order.userId !== authUser.id) {
+        return apiError("Você não tem autorização para visualizar este pedido.", 403, "FORBIDDEN");
+      }
+
+      return apiSuccess(formatOrder(order));
+    }
+
     const all = searchParams.get("all") === "true";
     const includeArchived = searchParams.get("includeArchived") === "true";
     const paginated = searchParams.get("paginated") === "true";
@@ -108,52 +185,8 @@ export async function GET(request: Request) {
       const averageTicket = validOrdersForRevenue.length > 0 ? totalRevenue / validOrdersForRevenue.length : 0;
       const totalPages = Math.ceil(total / limit) || 1;
 
-      const formatted = orders.map((o) => ({
-        id: o.id,
-        user_id: o.userId,
-        status: o.status,
-        subtotal: Number(o.subtotal),
-        discount_amount: Number(o.discountAmount),
-        delivery_fee: Number(o.deliveryFee || 0),
-        total_amount: Number(o.totalAmount),
-        payment_method_type: o.paymentMethodType,
-        payment_change_for: o.paymentChangeFor ? Number(o.paymentChangeFor) : null,
-        shift_id: o.shiftId,
-        is_archived: o.isArchived,
-        delivery_address: {
-          street: o.deliveryStreet,
-          number: o.deliveryNumber,
-          neighborhood: o.deliveryNeighborhood,
-          city: o.deliveryCity,
-          complement: o.deliveryComplement,
-          reference: o.deliveryReference,
-          zip: o.deliveryZip,
-          latitude: o.deliveryLatitude,
-          longitude: o.deliveryLongitude,
-        },
-        cancellation_reason: o.cancellationReason || null,
-        cancelled_at: o.cancelledAt ? o.cancelledAt.toISOString() : null,
-        created_at: o.createdAt.toISOString(),
-        updated_at: o.updatedAt.toISOString(),
-        items: o.items.map((it) => ({
-          id: it.id,
-          order_id: it.orderId,
-          product_id: it.productId,
-          quantity: it.quantity,
-          price_at_time: Number(it.priceAtTime),
-          product: {
-            id: it.product.id,
-            name: it.product.name,
-            description: it.product.description || "",
-            price: Number(it.product.price),
-            imageUrl: it.product.imageUrl || "",
-          },
-        })),
-        user: o.user,
-      }));
-
       return apiSuccess({
-        orders: formatted,
+        orders: orders.map(formatOrder),
         total,
         page,
         limit,
@@ -176,51 +209,7 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    const formatted = orders.map((o) => ({
-      id: o.id,
-      user_id: o.userId,
-      status: o.status,
-      subtotal: Number(o.subtotal),
-      discount_amount: Number(o.discountAmount),
-      delivery_fee: Number(o.deliveryFee || 0),
-      total_amount: Number(o.totalAmount),
-      payment_method_type: o.paymentMethodType,
-      payment_change_for: o.paymentChangeFor ? Number(o.paymentChangeFor) : null,
-      shift_id: o.shiftId,
-      is_archived: o.isArchived,
-      delivery_address: {
-        street: o.deliveryStreet,
-        number: o.deliveryNumber,
-        neighborhood: o.deliveryNeighborhood,
-        city: o.deliveryCity,
-        complement: o.deliveryComplement,
-        reference: o.deliveryReference,
-        zip: o.deliveryZip,
-        latitude: o.deliveryLatitude,
-        longitude: o.deliveryLongitude,
-      },
-      cancellation_reason: o.cancellationReason || null,
-      cancelled_at: o.cancelledAt ? o.cancelledAt.toISOString() : null,
-      created_at: o.createdAt.toISOString(),
-      updated_at: o.updatedAt.toISOString(),
-      items: o.items.map((it) => ({
-        id: it.id,
-        order_id: it.orderId,
-        product_id: it.productId,
-        quantity: it.quantity,
-        price_at_time: Number(it.priceAtTime),
-        product: {
-          id: it.product.id,
-          name: it.product.name,
-          description: it.product.description || "",
-          price: Number(it.product.price),
-          imageUrl: it.product.imageUrl || "",
-        },
-      })),
-      user: o.user,
-    }));
-
-    return apiSuccess(formatted);
+    return apiSuccess(orders.map(formatOrder));
   } catch (error: unknown) {
     return handleApiError(error, "GET /api/orders", "Erro ao listar pedidos.");
   }
@@ -279,47 +268,7 @@ export async function PATCH(request: Request) {
       },
     });
 
-    const formattedUpdated = {
-      id: updated.id,
-      user_id: updated.userId,
-      status: updated.status,
-      subtotal: Number(updated.subtotal),
-      discount_amount: Number(updated.discountAmount),
-      delivery_fee: Number(updated.deliveryFee || 0),
-      total_amount: Number(updated.totalAmount),
-      payment_method_type: updated.paymentMethodType,
-      payment_change_for: updated.paymentChangeFor ? Number(updated.paymentChangeFor) : null,
-      delivery_address: {
-        street: updated.deliveryStreet,
-        number: updated.deliveryNumber,
-        neighborhood: updated.deliveryNeighborhood,
-        city: updated.deliveryCity,
-        complement: updated.deliveryComplement,
-        reference: updated.deliveryReference,
-        zip: updated.deliveryZip,
-      },
-      cancellation_reason: updated.cancellationReason || null,
-      cancelled_at: updated.cancelledAt ? updated.cancelledAt.toISOString() : null,
-      created_at: updated.createdAt.toISOString(),
-      updated_at: updated.updatedAt.toISOString(),
-      items: updated.items.map((it) => ({
-        id: it.id,
-        order_id: it.orderId,
-        product_id: it.productId,
-        quantity: it.quantity,
-        price_at_time: Number(it.priceAtTime),
-        product: {
-          id: it.product.id,
-          name: it.product.name,
-          description: it.product.description || "",
-          price: Number(it.product.price),
-          imageUrl: it.product.imageUrl || "",
-        },
-      })),
-      user: updated.user,
-    };
-
-    return apiSuccess(formattedUpdated);
+    return apiSuccess(formatOrder(updated));
   } catch (error: unknown) {
     return handleApiError(error, "PATCH /api/orders", "Erro ao atualizar pedido.");
   }

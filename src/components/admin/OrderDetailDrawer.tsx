@@ -26,6 +26,7 @@ interface OrderDetailDrawerProps {
   onAdvance?: (orderId: string, status: OrderStatus) => void;
   onRevert?: (orderId: string, status: OrderStatus) => void;
   onRequestCancel?: (order: Order) => void;
+  onOpenDispatchModal?: (order: Order) => void;
   clientRecurrenceText?: string;
 }
 
@@ -36,6 +37,7 @@ export function OrderDetailDrawer({
   onAdvance,
   onRevert,
   onRequestCancel,
+  onOpenDispatchModal,
   clientRecurrenceText,
 }: OrderDetailDrawerProps) {
   // Fecha com ESC
@@ -402,6 +404,18 @@ export function OrderDetailDrawer({
 
           {/* Footer Operacional de Ações */}
           <div className="p-4 border-t border-gray-100 dark:border-[#512B54]/30 bg-gray-50/80 dark:bg-[#1F0B22]/80 space-y-2">
+            {order.status === "delivering" && onOpenDispatchModal && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenDispatchModal(order)}
+                className="w-full text-xs font-bold uppercase tracking-wider rounded-xl border-[#9306CF]/40 text-[#9306CF] dark:text-[#C7A9C9] h-9 hover:bg-[#9306CF]/10 flex items-center justify-center gap-1.5"
+              >
+                <Bike className="w-3.5 h-3.5" />
+                <span>Link / Rastreamento GPS do Entregador</span>
+              </Button>
+            )}
+
             <div className="flex items-center gap-2">
               {prevStage && onRevert && (
                 <Button
