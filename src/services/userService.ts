@@ -1,3 +1,12 @@
+export interface AccessibilitySettings {
+  fontSize: 'normal' | 'large' | 'xlarge';
+  colorBlindMode: 'none' | 'protanopia' | 'deuteranopia' | 'tritanopia' | 'monochrome';
+  highContrast: boolean;
+  reduceMotion: boolean;
+  visualAlerts: boolean;
+  dyslexicFont: boolean;
+}
+
 export interface UserProfile {
   id: string;
   username: string;
@@ -5,6 +14,9 @@ export interface UserProfile {
   role: 'client' | 'admin';
   full_name: string | null;
   avatar_url: string | null;
+  avatar?: string | null;
+  accessibilitySettings?: AccessibilitySettings;
+  accessibility_settings?: AccessibilitySettings;
   phone: string | null;
   created_at: string;
 }

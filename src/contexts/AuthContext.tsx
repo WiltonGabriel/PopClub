@@ -9,6 +9,9 @@ export interface AppUser {
   username: string;
   role: "client" | "admin";
   fullName?: string | null;
+  avatarUrl?: string | null;
+  avatar?: string | null;
+  accessibilitySettings?: any;
   user_metadata?: {
     username?: string;
     full_name?: string;
@@ -39,12 +42,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const current = await authService.getCurrentUser();
       if (current) {
+        const defaultAvatar = "/avatars/avatar-sorvete.svg";
+        const avatar = current.avatar || current.avatarUrl || defaultAvatar;
+
         const appUser: AppUser = {
           id: current.id,
           email: current.email,
           username: current.username,
           role: current.role,
           fullName: current.fullName,
+          avatarUrl: avatar,
+          avatar: avatar,
+          accessibilitySettings: current.accessibilitySettings,
           user_metadata: {
             username: current.username,
             full_name: current.fullName || current.username,

@@ -4,6 +4,9 @@ export interface AuthUser {
   username: string;
   role: "client" | "admin";
   fullName?: string | null;
+  avatarUrl?: string | null;
+  avatar?: string | null;
+  accessibilitySettings?: any;
 }
 
 export const authService = {

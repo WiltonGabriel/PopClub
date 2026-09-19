@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
 import { EditModeProvider } from "@/contexts/EditModeContext";
 import { AddressProvider } from "@/contexts/AddressContext";
 import { ToastProvider } from "@/components/ui/ToastNotification";
@@ -49,7 +50,7 @@ export default function RootLayout({
     >
       {/*
         Inline script — runs synchronously before first paint.
-        Default is strictly Light Mode unless 'dark' is explicitly stored in localStorage.
+        Carrega tema e acessibilidade de forma instantânea sem layout shift.
       */}
       <head>
         <link rel="icon" type="image/png" sizes="192x192" href="/icon.png?v=2" />
@@ -60,7 +61,7 @@ export default function RootLayout({
           id="theme-initializer"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var s=localStorage.getItem('popshake-theme');if(s==='dark'){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}}catch(e){}})();`,
+            __html: `(function(){try{var s=localStorage.getItem('popshake-theme');if(s==='dark'){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}var a=localStorage.getItem('popshake-accessibility');if(a){var cfg=JSON.parse(a);if(cfg.fontSize==='large')document.documentElement.classList.add('font-scale-large');if(cfg.fontSize==='xlarge')document.documentElement.classList.add('font-scale-xlarge');if(cfg.highContrast)document.documentElement.classList.add('high-contrast');if(cfg.dyslexicFont)document.documentElement.classList.add('font-dyslexic');if(cfg.reduceMotion)document.documentElement.classList.add('reduce-motion');if(cfg.colorBlindMode&&cfg.colorBlindMode!=='none')document.documentElement.classList.add('colorblind-'+cfg.colorBlindMode);}}catch(e){}})();`,
           }}
         />
       </head>
@@ -70,17 +71,19 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <AuthProvider>
-            <EditModeProvider>
-              <CartProvider>
-                <AddressProvider>
-                  <ToastProvider>
-                    {children}
-                    <AddressModal />
-                    <WhatsAppFloatingButton />
-                  </ToastProvider>
-                </AddressProvider>
-              </CartProvider>
-            </EditModeProvider>
+            <AccessibilityProvider>
+              <EditModeProvider>
+                <CartProvider>
+                  <AddressProvider>
+                    <ToastProvider>
+                      {children}
+                      <AddressModal />
+                      <WhatsAppFloatingButton />
+                    </ToastProvider>
+                  </AddressProvider>
+                </CartProvider>
+              </EditModeProvider>
+            </AccessibilityProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

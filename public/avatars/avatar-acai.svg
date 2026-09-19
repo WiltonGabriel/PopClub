@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="bg-acai" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4C1D95" />
+      <stop offset="100%" stop-color="#831843" />
+    </linearGradient>
+    <linearGradient id="bowl-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="50" r="48" fill="url(#bg-acai)" />
+  <circle cx="50" cy="50" r="45" fill="#FDF4FF" />
+  <!-- Bowl -->
+  <path d="M22,48 C22,78 78,78 78,48 Z" fill="url(#bowl-grad)" />
+  <ellipse cx="50" cy="48" rx="28" ry="8" fill="#310D36" />
+  <!-- Açaí cream texture -->
+  <ellipse cx="50" cy="47" rx="26" ry="6.5" fill="#4C0542" />
+  <!-- Banana slices -->
+  <circle cx="36" cy="46" r="4.5" fill="#FDE047" stroke="#CA8A04" stroke-width="0.8" />
+  <circle cx="45" cy="44" r="4.5" fill="#FDE047" stroke="#CA8A04" stroke-width="0.8" />
+  <circle cx="54" cy="45" r="4.5" fill="#FDE047" stroke="#CA8A04" stroke-width="0.8" />
+  <circle cx="63" cy="47" r="4.5" fill="#FDE047" stroke="#CA8A04" stroke-width="0.8" />
+  <!-- Granola bits -->
+  <circle cx="41" cy="50" r="1.5" fill="#D97706" />
+  <circle cx="48" cy="51" r="1.8" fill="#B45309" />
+  <circle cx="57" cy="50" r="1.6" fill="#D97706" />
+  <!-- Spoon -->
+  <path d="M68,26 L64,48" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" />
+  <ellipse cx="68" cy="24" rx="4" ry="6" fill="#CBD5E1" transform="rotate(20 68 24)" />
+  <!-- Cute Face on Bowl -->
+  <circle cx="44" cy="62" r="2.5" fill="#FFFFFF" />
+  <circle cx="56" cy="62" r="2.5" fill="#FFFFFF" />
+  <path d="M47,68 Q50,71 53,68" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" />
+</svg>

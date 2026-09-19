@@ -620,7 +620,15 @@ export default function Storefront() {
                         : "ring-1 ring-white/20"
                     }`}
                   >
-                    {userFirstName.charAt(0).toUpperCase() || <UserIcon className="w-3.5 h-3.5" />}
+                    {user.avatar || user.avatarUrl ? (
+                      <img
+                        src={(user.avatar || user.avatarUrl) as string}
+                        alt="Avatar"
+                        className="w-full h-full rounded-full object-cover p-0.5"
+                      />
+                    ) : (
+                      userFirstName.charAt(0).toUpperCase() || <UserIcon className="w-3.5 h-3.5" />
+                    )}
 
                     {/* Micro-tag/badge flutuante para Administrador */}
                     {isAdmin && (

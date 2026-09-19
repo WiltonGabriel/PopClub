@@ -47,11 +47,18 @@ export function initAudioUnlock() {
   window.addEventListener("keydown", unlock, { once: true, passive: true });
 }
 
+function notifySoundPlayed() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("popshake_sound_played"));
+  }
+}
+
 /**
  * 1. Chime / Ding sutil para atualizações de status do cliente (Pedidos / Rastreio)
  */
 export function playDingSound() {
   if (typeof window === "undefined") return;
+  notifySoundPlayed();
 
   // Tenta tocar o arquivo de áudio local
   try {
@@ -74,6 +81,7 @@ export function playDingSound() {
  */
 export function playKitchenBellSound() {
   if (typeof window === "undefined") return;
+  notifySoundPlayed();
 
   // Tenta tocar o arquivo de áudio local
   try {

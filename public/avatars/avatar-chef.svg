@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="bg-chef" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="50" r="48" fill="url(#bg-chef)" />
+  <circle cx="50" cy="50" r="45" fill="#F0FDF4" />
+  <!-- Chef Hat -->
+  <path d="M35,38 C30,28 40,16 50,18 C60,16 70,28 65,38 Z" fill="#FFFFFF" stroke="#047857" stroke-width="1.5" />
+  <rect x="36" y="36" width="28" height="8" rx="2" fill="#F8FAFC" stroke="#047857" stroke-width="1.2" />
+  <!-- Face -->
+  <circle cx="50" cy="54" r="16" fill="#FED7AA" />
+  <!-- Eyes and Cheeks -->
+  <circle cx="44" cy="52" r="2.2" fill="#1E293B" />
+  <circle cx="56" cy="52" r="2.2" fill="#1E293B" />
+  <path d="M47,58 Q50,62 53,58" fill="none" stroke="#1E293B" stroke-width="1.8" stroke-linecap="round" />
+  <circle cx="39" cy="56" r="2" fill="#FB7185" opacity="0.6" />
+  <circle cx="61" cy="56" r="2" fill="#FB7185" opacity="0.6" />
+  <!-- Chef Scarf / Necktie in Brand Purple -->
+  <polygon points="46,68 54,68 50,78" fill="#9306CF" />
+  <circle cx="50" cy="69" r="2.5" fill="#C084FC" />
+  <!-- Chef Uniform Top -->
+  <path d="M32,84 C32,73 40,70 50,70 C60,70 68,73 68,84 Z" fill="#FFFFFF" stroke="#047857" stroke-width="1.5" />
+</svg>

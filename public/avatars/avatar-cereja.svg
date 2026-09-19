@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="bg-cereja" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#BE123C" />
+      <stop offset="100%" stop-color="#881337" />
+    </linearGradient>
+    <linearGradient id="cherry-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F43F5E" />
+      <stop offset="100%" stop-color="#9F1239" />
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="50" r="48" fill="url(#bg-cereja)" />
+  <circle cx="50" cy="50" r="45" fill="#FFF1F2" />
+  <!-- Stems -->
+  <path d="M50,22 Q40,35 38,58" fill="none" stroke="#15803D" stroke-width="2.5" stroke-linecap="round" />
+  <path d="M50,22 Q60,35 62,62" fill="none" stroke="#15803D" stroke-width="2.5" stroke-linecap="round" />
+  <!-- Green leaf at joint -->
+  <ellipse cx="44" cy="22" rx="7" ry="3.5" fill="#22C55E" transform="rotate(-25 44 22)" />
+  <!-- Cherry 1 (Left) -->
+  <circle cx="36" cy="62" r="16" fill="url(#cherry-grad)" />
+  <circle cx="32" cy="58" r="4" fill="#FDA4AF" opacity="0.6" />
+  <circle cx="33" cy="62" r="1.8" fill="#FFFFFF" />
+  <circle cx="41" cy="62" r="1.8" fill="#FFFFFF" />
+  <path d="M35,67 Q37,69 39,67" fill="none" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round" />
+  <!-- Cherry 2 (Right) -->
+  <circle cx="64" cy="66" r="16" fill="url(#cherry-grad)" />
+  <circle cx="60" cy="62" r="4" fill="#FDA4AF" opacity="0.6" />
+  <circle cx="61" cy="66" r="1.8" fill="#FFFFFF" />
+  <circle cx="69" cy="66" r="1.8" fill="#FFFFFF" />
+  <path d="M63,71 Q65,73 67,71" fill="none" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round" />
+</svg>

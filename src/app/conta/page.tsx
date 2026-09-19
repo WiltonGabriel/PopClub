@@ -3,18 +3,75 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, User, MapPin, Package, Star, CreditCard, Settings, LogOut, Loader2, Map, Sun, Moon, Check } from "lucide-react";
+import Image from "next/image";
+import { 
+  ChevronLeft, 
+  User, 
+  MapPin, 
+  Package, 
+  Star, 
+  CreditCard, 
+  Settings, 
+  LogOut, 
+  Loader2, 
+  Map, 
+  Sun, 
+  Moon, 
+  Check, 
+  Camera, 
+  Eye, 
+  Bell, 
+  Type, 
+  Sparkles, 
+  CheckCircle2, 
+  RefreshCw, 
+  X,
+  Volume2,
+  ShieldCheck,
+  Clock,
+  Bike
+} from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../contexts/ThemeContext";
+import { 
+  useAccessibility, 
+  FontSizeOption, 
+  ColorBlindModeOption 
+} from "../../contexts/AccessibilityContext";
+import { useToast } from "../../components/ui/ToastNotification";
 import { authService } from "../../services/authService";
 import { userService, UserProfile, UserLocation } from "../../services/userService";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import { playDingSound } from "../../lib/sound";
+
+const AVATAR_PRESETS = [
+  { id: "sorvete", name: "Sundae Amora", path: "/avatars/avatar-sorvete.svg", desc: "Clássico sundae com calda de amora" },
+  { id: "acai", name: "Tigela de Açaí", path: "/avatars/avatar-acai.svg", desc: "Açaí cremoso com banana e morango" },
+  { id: "shake", name: "Milk Shake", path: "/avatars/avatar-shake.svg", desc: "Milk shake cremoso refrescante" },
+  { id: "picole", name: "Picolé Frutas", path: "/avatars/avatar-picole.svg", desc: "Picolé artesanal de frutas tropicais" },
+  { id: "morango", name: "Morango Pop", path: "/avatars/avatar-morango.svg", desc: "Morango doce e selecionado" },
+  { id: "banana", name: "Banana Split", path: "/avatars/avatar-banana.svg", desc: "Banana ouro com toque especial" },
+  { id: "cookie", name: "Cookie Choco", path: "/avatars/avatar-cookie.svg", desc: "Cookie crocante com gotas de chocolate" },
+  { id: "cereja", name: "Cereja Pop", path: "/avatars/avatar-cereja.svg", desc: "Toque final irresistível" },
+  { id: "casquinha", name: "Casquinha Dupla", path: "/avatars/avatar-casquinha.svg", desc: "Casquinha crocante com dois sabores" },
+  { id: "chef", name: "Mestre Gelateiro", path: "/avatars/avatar-chef.svg", desc: "Toque profissional de confeitaria" },
+];
 
 export default function AccountPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, refreshUser } = useAuth();
   const { theme, toggleTheme, setTheme } = useTheme();
+  const { 
+    previewSettings, 
+    updatePreview, 
+    saveSettings, 
+    isSaving: isSavingAccessibility, 
+    triggerVisualAlert, 
+    resetToDefaults,
+    resetPreview
+  } = useAccessibility();
+  const { showToast } = useToast();
   const router = useRouter();
   
   const [activeSection, setActiveSection] = useState("perfil");
@@ -24,6 +81,12 @@ export default function AccountPage() {
 
   // Edit profile state
   const [fullName, setFullName] = useState("");
+  const [selectedAvatar, setSelectedAvatar] = useState("/avatars/avatar-sorvete.svg");
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+
+  // Modal de Avatar
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [modalAvatarChoice, setModalAvatarChoice] = useState("/avatars/avatar-sorvete.svg");
 
   // Location state
   const [isAddingLocation, setIsAddingLocation] = useState(false);
@@ -40,6 +103,9 @@ export default function AccountPage() {
       if (prof) {
         setProfile(prof);
         setFullName(prof.full_name || "");
+        const userAvatar = prof.avatar || prof.avatar_url || user.avatar || user.avatarUrl || "/avatars/avatar-sorvete.svg";
+        setSelectedAvatar(userAvatar);
+        setModalAvatarChoice(userAvatar);
       }
       setLocations(locs);
     } catch (err) {
@@ -57,19 +123,61 @@ export default function AccountPage() {
     }
   }, [user, loading, router, loadUserData]);
 
+  // Atualizar dados de perfil (Nome e Avatar)
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    setIsUpdatingProfile(true);
     try {
-      const updated = await userService.updateProfile(user.id, { full_name: fullName });
+      const updated = await userService.updateProfile(user.id, { 
+        full_name: fullName,
+        avatar: selectedAvatar,
+        avatar_url: selectedAvatar
+      });
       setProfile(updated);
-      alert("Perfil atualizado com sucesso!");
-    } catch (err) {
-      alert("Erro ao atualizar perfil");
+      await refreshUser();
+      showToast({
+        type: "success",
+        title: "Perfil Atualizado!",
+        message: "Suas informações e avatar foram salvos com sucesso.",
+      });
+    } catch (err: any) {
+      showToast({
+        type: "error",
+        title: "Erro ao atualizar",
+        message: err?.message || "Não foi possível salvar os dados do perfil.",
+      });
+    } finally {
+      setIsUpdatingProfile(false);
+    }
+  };
+
+  // Confirmar escolha de avatar no modal
+  const handleConfirmAvatarModal = () => {
+    setSelectedAvatar(modalAvatarChoice);
+    setIsAvatarModalOpen(false);
+  };
+
+  // Salvar configurações de acessibilidade
+  const handleSaveAccessibility = async () => {
+    try {
+      await saveSettings();
+      showToast({
+        type: "success",
+        title: "Acessibilidade Salva!",
+        message: "Suas preferências foram aplicadas e persistidas na sua conta.",
+      });
+    } catch (err: any) {
+      showToast({
+        type: "error",
+        title: "Erro ao salvar preferências",
+        message: err?.message || "Falha ao salvar preferências de acessibilidade.",
+      });
     }
   };
 
   const handleSignOut = async () => {
+    resetToDefaults();
     await authService.signOut();
     router.push("/");
   };
@@ -97,8 +205,17 @@ export default function AccountPage() {
       setIsAddingLocation(false);
       setLocAddress("");
       loadUserData();
+      showToast({
+        type: "success",
+        title: "Endereço Salvo",
+        message: "Seu endereço foi cadastrado com sucesso.",
+      });
     } catch (err) {
-      alert("Erro ao salvar endereço");
+      showToast({
+        type: "error",
+        title: "Erro ao salvar",
+        message: "Não foi possível cadastrar o endereço.",
+      });
     }
   };
 
@@ -116,7 +233,10 @@ export default function AccountPage() {
     { id: "pagamentos", label: "Pagamentos", icon: <CreditCard className="w-4 h-4" /> },
     { id: "avaliacoes", label: "Avaliações", icon: <Star className="w-4 h-4" /> },
     { id: "preferencias", label: "Preferências", icon: <Settings className="w-4 h-4" /> },
+    { id: "acessibilidade", label: "Acessibilidade", icon: <span className="text-base leading-none">♿</span> },
   ];
+
+  const currentDisplayAvatar = selectedAvatar || profile?.avatar || profile?.avatar_url || user?.avatar || "/avatars/avatar-sorvete.svg";
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#190B1A] text-foreground flex flex-col font-sans transition-colors duration-200">
@@ -158,13 +278,26 @@ export default function AccountPage() {
         {/* Sidebar Menu */}
         <aside className="w-full md:w-64 shrink-0">
           <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-4 mb-6 rounded-2xl shadow-sm">
-            <p className="text-xs uppercase font-bold tracking-widest text-gray-600 dark:text-gray-300 mb-1">Olá,</p>
-            <p className="font-heading font-bold text-lg text-[#4C264F] dark:text-[#F9F5F9] truncate">
-              {profile?.full_name || user?.username || user?.email}
-            </p>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="relative w-12 h-12 rounded-full border-2 border-[#9306CF]/40 overflow-hidden bg-purple-50 dark:bg-[#190B1A] shrink-0">
+                <Image
+                  src={currentDisplayAvatar}
+                  alt="Avatar do usuário"
+                  width={48}
+                  height={48}
+                  className="w-full h-full object-contain p-0.5"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] uppercase font-bold tracking-widest text-gray-500 dark:text-gray-400">Olá,</p>
+                <p className="font-heading font-bold text-base text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                  {profile?.full_name || user?.username || user?.email}
+                </p>
+              </div>
+            </div>
 
             {/* Quick theme switcher on mobile & desktop */}
-            <div className="mt-3 pt-3 border-t border-gray-100 dark:border-[#512B54]/30 flex items-center justify-between">
+            <div className="mt-2 pt-2.5 border-t border-gray-100 dark:border-[#512B54]/30 flex items-center justify-between">
               <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
                 {theme === "dark" ? <Moon className="w-3.5 h-3.5 text-[#9306CF]" /> : <Sun className="w-3.5 h-3.5 text-amber-500" />}
                 Aparência
@@ -184,7 +317,7 @@ export default function AccountPage() {
               <button 
                 key={sec.id}
                 onClick={() => setActiveSection(sec.id)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-colors border ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-colors border cursor-pointer ${
                   activeSection === sec.id 
                     ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white border-transparent shadow-md shadow-[#9306CF]/20" 
                     : "bg-white dark:bg-[#230E26] border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/50 text-gray-600 dark:text-gray-300 hover:text-[#4C264F] dark:hover:text-[#F9F5F9]"
@@ -205,7 +338,7 @@ export default function AccountPage() {
 
             <button 
               onClick={handleSignOut}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-colors border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 mt-6"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-colors border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 mt-6 cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
               Sair
@@ -215,11 +348,71 @@ export default function AccountPage() {
 
         {/* Main Content Area */}
         <div className="flex-1">
+
+          {/* ================= ABA: MEU PERFIL ================= */}
           {activeSection === "perfil" && (
-            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm">
-              <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] mb-6 flex items-center gap-2">
-                <User className="w-6 h-6 text-[#9306CF] dark:text-[#C7A9C9]" /> Editar Perfil
-              </h2>
+            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
+              <div>
+                <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
+                  <User className="w-6 h-6 text-[#9306CF] dark:text-[#C7A9C9]" /> Meu Perfil
+                </h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                  Gerencie sua identidade, avatar oficial e dados cadastrais.
+                </p>
+              </div>
+
+              {/* Seletor de Avatar em Destaque Circular */}
+              <div className="p-6 rounded-2xl bg-gray-50/80 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 flex flex-col sm:flex-row items-center gap-6">
+                <div className="relative group shrink-0">
+                  <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full border-4 border-[#9306CF]/40 p-1.5 bg-white dark:bg-[#230E26] shadow-xl overflow-hidden transition-transform group-hover:scale-105">
+                    <Image
+                      src={selectedAvatar}
+                      alt="Avatar Atual Selecionado"
+                      width={128}
+                      height={128}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                  {/* Botão circular sobreposto com câmera */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalAvatarChoice(selectedAvatar);
+                      setIsAvatarModalOpen(true);
+                    }}
+                    title="Alterar Foto de Avatar"
+                    aria-label="Alterar Foto de Avatar"
+                    className="absolute bottom-1 right-1 w-10 h-10 rounded-full bg-gradient-to-r from-[#9306CF] to-[#940068] text-white flex items-center justify-center shadow-lg border-2 border-white dark:border-[#230E26] hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <Camera className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="flex-1 text-center sm:text-left space-y-2">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] text-xs font-bold uppercase tracking-wider border border-[#9306CF]/20">
+                    <Sparkles className="w-3.5 h-3.5" /> Avatar Exclusivo Pop Shake
+                  </div>
+                  <h3 className="font-heading font-bold text-lg text-gray-900 dark:text-white">
+                    Ilustração do Seu Perfil
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Escolha um dos 10 avatares vetoriais ilustrados da coleção temática Pop Shake para estampar seu perfil e pedidos.
+                  </p>
+                  <div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setModalAvatarChoice(selectedAvatar);
+                        setIsAvatarModalOpen(true);
+                      }}
+                      className="h-9 px-4 rounded-xl border-[#9306CF]/30 text-[#9306CF] dark:text-[#C7A9C9] hover:bg-[#9306CF]/10 text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer"
+                    >
+                      <Camera className="w-3.5 h-3.5" /> Alterar Foto
+                    </Button>
+                  </div>
+                </div>
+              </div>
               
               <form onSubmit={handleUpdateProfile} className="space-y-5">
                 <div className="space-y-2">
@@ -242,18 +435,326 @@ export default function AccountPage() {
                     disabled
                     className="h-12 rounded-xl bg-gray-50 border-gray-200 text-gray-500 dark:bg-[#190B1A]/80 dark:border-[#512B54]/30 dark:text-gray-400 cursor-not-allowed"
                   />
+                  <p className="text-[11px] text-muted-foreground">O e-mail é o identificador de login da sua conta.</p>
                 </div>
 
                 <Button 
                   type="submit" 
-                  className="h-12 rounded-xl font-heading font-bold uppercase tracking-widest text-sm bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white shadow-lg shadow-[#9306CF]/20 transition-opacity"
+                  disabled={isUpdatingProfile}
+                  className="h-12 px-6 rounded-xl font-heading font-bold uppercase tracking-widest text-sm bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white shadow-lg shadow-[#9306CF]/20 transition-opacity cursor-pointer flex items-center gap-2"
                 >
-                  Salvar Alterações
+                  {isUpdatingProfile ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Salvando...
+                    </>
+                  ) : (
+                    <>Salvar Alterações</>
+                  )}
                 </Button>
               </form>
             </div>
           )}
 
+          {/* ================= ABA: ACESSIBILIDADE ================= */}
+          {activeSection === "acessibilidade" && (
+            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-8">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] text-xs font-bold uppercase tracking-wider mb-2 border border-[#9306CF]/20">
+                  <span className="text-base">♿</span> Inclusão e Conforto Visual
+                </div>
+                <h2 className="font-heading text-2xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
+                  Acessibilidade
+                </h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
+                  Ajuste a visualização, contraste, fontes e alertas de notificação. Suas escolhas são sincronizadas com a sua conta e preservadas em qualquer dispositivo.
+                </p>
+              </div>
+
+              {/* 1. MODO PARA DALTÔNICOS */}
+              <div className="space-y-4 p-5 rounded-2xl bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <Label className="text-sm font-heading font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
+                      <Eye className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                      Modo para Daltônicos (Filtros de Cor)
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Aplica filtros de matriz de cores para diferenciar vermelhos, verdes, azuis ou escala de cinza.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <select
+                    value={previewSettings.colorBlindMode}
+                    onChange={(e) => updatePreview({ colorBlindMode: e.target.value as ColorBlindModeOption })}
+                    aria-label="Selecione o filtro para daltonismo"
+                    className="w-full h-12 px-4 rounded-xl border border-gray-300 dark:border-[#512B54]/60 bg-white dark:bg-[#230E26] text-gray-900 dark:text-white font-medium text-sm focus:outline-none focus:ring-2 focus:ring-[#9306CF] transition-colors cursor-pointer"
+                  >
+                    <option value="none">Padrão (Desativado)</option>
+                    <option value="protanopia">Protanopia (Baixa sensibilidade ao vermelho)</option>
+                    <option value="deuteranopia">Deuteranopia (Baixa sensibilidade ao verde)</option>
+                    <option value="tritanopia">Tritanopia (Baixa sensibilidade ao azul/amarelo)</option>
+                    <option value="monochrome">Acromatopsia / Monocromia (Tons de cinza)</option>
+                  </select>
+                </div>
+
+                {/* Semântica Visual Garantida */}
+                <div className="p-4 rounded-xl bg-purple-50/60 dark:bg-[#2A1030]/60 border border-[#9306CF]/20 space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] uppercase tracking-wider">
+                    <ShieldCheck className="w-4 h-4 shrink-0" />
+                    Semântica Visual Garantida (WCAG 2.1)
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Na Pop Shake, nenhum botão crítico ou status de pedido depende unicamente de cor. Ícones e textos descritivos acompanham cada etapa:
+                  </p>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                      <Clock className="w-3.5 h-3.5" /> ⏳ Em preparo
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+                      <Bike className="w-3.5 h-3.5" /> 🛵 Saiu para entrega
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                      <Check className="w-3.5 h-3.5" /> ✔ Entregue
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30">
+                      <X className="w-3.5 h-3.5" /> ✖ Cancelado
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. TAMANHO DO TEXTO (ESCALA DE FONTE) */}
+              <div className="space-y-4 p-5 rounded-2xl bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40">
+                <div>
+                  <Label className="text-sm font-heading font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
+                    <Type className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                    Tamanho do Texto (Escala Tipográfica)
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Ajuste dinâmico das variáveis base de tipografia sem comprometer tabelas ou cards.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {[
+                    { id: "normal", label: "Padrão", pct: "100%", desc: "Tamanho original" },
+                    { id: "large", label: "Grande", pct: "115%", desc: "Mais legibilidade" },
+                    { id: "xlarge", label: "Extra Grande", pct: "130%", desc: "Máxima clareza" },
+                  ].map((option) => {
+                    const isSelected = previewSettings.fontSize === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => updatePreview({ fontSize: option.id as FontSizeOption })}
+                        className={`p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                          isSelected
+                            ? "border-[#9306CF] bg-[#9306CF]/10 dark:bg-[#9306CF]/20 shadow-md shadow-[#9306CF]/10"
+                            : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#230E26]"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-heading font-bold text-sm text-gray-900 dark:text-white">
+                            {option.label}
+                          </span>
+                          <span className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9]">
+                            {option.pct}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{option.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Exemplo dinâmico de texto */}
+                <div className="p-3.5 rounded-xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40">
+                  <p className="text-xs uppercase font-bold tracking-wider text-muted-foreground mb-1">
+                    Exemplo de Leitura:
+                  </p>
+                  <p className="text-foreground leading-relaxed">
+                    Sabor irresistível de açaí artesanal e sorvetes premium preparados com ingredientes frescos.
+                  </p>
+                </div>
+              </div>
+
+              {/* 3. MODO DE ALTO CONTRASTE */}
+              <div className="p-5 rounded-2xl bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 flex items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <Label className="text-sm font-heading font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                    Modo de Alto Contraste (WCAG AAA)
+                  </Label>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Aplica bordas sólidas de 2px em botões, campos e cartões, além de reforço visual para evitar elementos tênues.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={previewSettings.highContrast}
+                  onClick={() => updatePreview({ highContrast: !previewSettings.highContrast })}
+                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#9306CF] ${
+                    previewSettings.highContrast ? "bg-[#9306CF]" : "bg-gray-300 dark:bg-gray-700"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                      previewSettings.highContrast ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* 4. REDUÇÃO DE MOVIMENTO */}
+              <div className="p-5 rounded-2xl bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 flex items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <Label className="text-sm font-heading font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                    Redução de Movimento
+                  </Label>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Desativa animações e transições intensas para evitar desconforto visual e sobrecarga sensorial.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={previewSettings.reduceMotion}
+                  onClick={() => updatePreview({ reduceMotion: !previewSettings.reduceMotion })}
+                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#9306CF] ${
+                    previewSettings.reduceMotion ? "bg-[#9306CF]" : "bg-gray-300 dark:bg-gray-700"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                      previewSettings.reduceMotion ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* 5. ALERTAS VISUAIS PARA NOTIFICAÇÕES */}
+              <div className="space-y-4 p-5 rounded-2xl bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-sm font-heading font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
+                      <Bell className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                      Alertas Visuais para Notificações Sonoras
+                    </Label>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Pisca uma barra luminosa colorida no topo da tela sempre que sons de pedidos ou campainhas tocarem (suporte a pessoas com deficiência auditiva).
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={previewSettings.visualAlerts}
+                    onClick={() => updatePreview({ visualAlerts: !previewSettings.visualAlerts })}
+                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#9306CF] ${
+                      previewSettings.visualAlerts ? "bg-[#9306CF]" : "bg-gray-300 dark:bg-gray-700"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        previewSettings.visualAlerts ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="pt-2 flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      triggerVisualAlert();
+                      playDingSound();
+                    }}
+                    className="h-10 px-4 rounded-xl border-[#9306CF]/30 text-[#9306CF] dark:text-[#C7A9C9] hover:bg-[#9306CF]/10 text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer"
+                  >
+                    <Volume2 className="w-4 h-4 text-amber-500 animate-pulse" />
+                    Testar Alerta Visual no Topo
+                  </Button>
+                  <span className="text-[11px] text-muted-foreground">
+                    Clique para disparar a barra luminosa instantaneamente.
+                  </span>
+                </div>
+              </div>
+
+              {/* 6. FONTE AMIGÁVEL PARA DISLEXIA */}
+              <div className="p-5 rounded-2xl bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 flex items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <Label className="text-sm font-heading font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
+                    <Type className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                    Fonte Amigável para Dislexia
+                  </Label>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Substitui a fonte principal por caracteres com maior peso na base e espaçamento ampliado para evitar inversão ou confusão de letras.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={previewSettings.dyslexicFont}
+                  onClick={() => updatePreview({ dyslexicFont: !previewSettings.dyslexicFont })}
+                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#9306CF] ${
+                    previewSettings.dyslexicFont ? "bg-[#9306CF]" : "bg-gray-300 dark:bg-gray-700"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                      previewSettings.dyslexicFont ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* RODAPÉ DE AÇÃO EXPLÍCITO */}
+              <div className="pt-4 border-t border-gray-200 dark:border-[#512B54]/40 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p className="text-xs text-muted-foreground text-center sm:text-left">
+                  As opções acima estão ativas em pré-visualização. Clique abaixo para salvar na sua conta.
+                </p>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={resetPreview}
+                    className="flex-1 sm:flex-none h-12 px-5 rounded-xl border-gray-300 dark:border-[#512B54]/60 text-xs font-bold uppercase tracking-wider cursor-pointer"
+                  >
+                    Restaurar
+                  </Button>
+
+                  <Button
+                    type="button"
+                    onClick={handleSaveAccessibility}
+                    disabled={isSavingAccessibility}
+                    className="flex-1 sm:flex-none h-12 px-6 rounded-xl font-heading font-bold uppercase tracking-widest text-sm bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white shadow-lg shadow-[#9306CF]/20 transition-opacity cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    {isSavingAccessibility ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        Salvar Preferências de Acessibilidade
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= ABA: ENDEREÇOS ================= */}
           {activeSection === "enderecos" && (
             <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm">
               <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] mb-6 flex items-center gap-2">
@@ -275,7 +776,7 @@ export default function AccountPage() {
                         </div>
                         <button 
                           onClick={() => userService.deleteLocation(loc.id).then(loadUserData)}
-                          className="text-xs text-red-600 dark:text-red-400 hover:underline font-semibold uppercase"
+                          className="text-xs text-red-600 dark:text-red-400 hover:underline font-semibold uppercase cursor-pointer"
                         >
                           Remover
                         </button>
@@ -286,7 +787,7 @@ export default function AccountPage() {
                   </div>
                   <Button 
                     onClick={() => setIsAddingLocation(true)}
-                    className="w-full h-12 rounded-xl border border-dashed border-gray-300 dark:border-[#512B54]/60 bg-transparent text-[#4C264F] dark:text-[#F9F5F9] hover:bg-gray-100 dark:hover:bg-white/5 uppercase text-sm tracking-wider font-semibold"
+                    className="w-full h-12 rounded-xl border border-dashed border-gray-300 dark:border-[#512B54]/60 bg-transparent text-[#4C264F] dark:text-[#F9F5F9] hover:bg-gray-100 dark:hover:bg-white/5 uppercase text-sm tracking-wider font-semibold cursor-pointer"
                   >
                     + Novo Endereço
                   </Button>
@@ -305,7 +806,7 @@ export default function AccountPage() {
                         className="h-12 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#1F0B22] dark:border-[#512B54]/50 dark:text-white focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
                         required
                       />
-                      <Button type="button" onClick={simulateGetLocation} className="h-12 w-12 shrink-0 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white p-0 shadow-sm">
+                      <Button type="button" onClick={simulateGetLocation} className="h-12 w-12 shrink-0 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white p-0 shadow-sm cursor-pointer">
                         <Map className="w-5 h-5" />
                       </Button>
                     </div>
@@ -314,10 +815,10 @@ export default function AccountPage() {
                     </p>
                   </div>
                   <div className="flex gap-4">
-                    <Button type="button" onClick={() => setIsAddingLocation(false)} variant="outline" className="flex-1 h-12 rounded-xl border border-gray-200 dark:border-[#512B54]/40 text-gray-700 dark:text-gray-300 uppercase tracking-widest text-xs font-semibold">
+                    <Button type="button" onClick={() => setIsAddingLocation(false)} variant="outline" className="flex-1 h-12 rounded-xl border border-gray-200 dark:border-[#512B54]/40 text-gray-700 dark:text-gray-300 uppercase tracking-widest text-xs font-semibold cursor-pointer">
                       Cancelar
                     </Button>
-                    <Button type="submit" className="flex-1 h-12 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white font-heading uppercase tracking-widest text-sm shadow-md">
+                    <Button type="submit" className="flex-1 h-12 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white font-heading uppercase tracking-widest text-sm shadow-md cursor-pointer">
                       Salvar Endereço
                     </Button>
                   </div>
@@ -326,6 +827,7 @@ export default function AccountPage() {
             </div>
           )}
 
+          {/* ================= ABA: PREFERÊNCIAS ================= */}
           {activeSection === "preferencias" && (
             <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
               <div>
@@ -409,6 +911,103 @@ export default function AccountPage() {
           )}
         </div>
       </main>
+
+      {/* ================= MODAL DE SELEÇÃO DE AVATARES ================= */}
+      {isAvatarModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setIsAvatarModalOpen(false)}
+        >
+          <div 
+            className="w-full max-w-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/50 rounded-3xl shadow-2xl p-6 sm:p-8 space-y-6 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] text-xs font-bold uppercase tracking-wider border border-[#9306CF]/20 mb-2">
+                  <Sparkles className="w-3.5 h-3.5" /> Coleção Pop Shake
+                </div>
+                <h3 className="font-heading text-xl sm:text-2xl font-bold uppercase tracking-tight text-gray-900 dark:text-white">
+                  Escolha seu Avatar
+                </h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                  Selecione uma das ilustrações oficiais abaixo para o seu perfil e pedidos.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsAvatarModalOpen(false)}
+                className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-white/10 text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                title="Fechar"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Grid dos 10 Avatares Vetorizados */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5 max-h-[55vh] overflow-y-auto pr-1">
+              {AVATAR_PRESETS.map((avatar) => {
+                const isSelected = modalAvatarChoice === avatar.path;
+                return (
+                  <button
+                    key={avatar.id}
+                    type="button"
+                    onClick={() => setModalAvatarChoice(avatar.path)}
+                    className={`relative p-3 rounded-2xl border-2 flex flex-col items-center text-center transition-all cursor-pointer group ${
+                      isSelected
+                        ? "border-[#9306CF] bg-[#9306CF]/10 dark:bg-[#9306CF]/20 ring-2 ring-[#9306CF]/30 shadow-md shadow-[#9306CF]/20 scale-102"
+                        : "border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/50 bg-gray-50/50 dark:bg-[#190B1A]/60 hover:scale-102"
+                    }`}
+                  >
+                    {/* Badge de Selecionado */}
+                    {isSelected && (
+                      <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#9306CF] text-white flex items-center justify-center shadow-xs">
+                        <Check className="w-3 h-3" />
+                      </span>
+                    )}
+
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-white dark:bg-[#2A1030] p-1 shadow-inner border border-gray-100 dark:border-[#512B54]/30 mb-2">
+                      <Image
+                        src={avatar.path}
+                        alt={avatar.name}
+                        width={80}
+                        height={80}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <span className="font-heading font-bold text-xs text-gray-900 dark:text-white leading-tight">
+                      {avatar.name}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
+                      {avatar.desc}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Rodapé do Modal */}
+            <div className="pt-2 border-t border-gray-100 dark:border-[#512B54]/30 flex items-center justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAvatarModalOpen(false)}
+                className="h-11 px-5 rounded-xl border-gray-300 dark:border-[#512B54]/60 text-xs font-bold uppercase tracking-wider cursor-pointer"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={handleConfirmAvatarModal}
+                className="h-11 px-6 rounded-xl font-heading font-bold uppercase tracking-widest text-xs bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white shadow-md shadow-[#9306CF]/20 cursor-pointer flex items-center gap-1.5"
+              >
+                <Check className="w-4 h-4" /> Confirmar Escolha
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

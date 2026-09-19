@@ -387,3 +387,90 @@ a {
     padding-top: env(safe-area-inset-top, 0px);
   }
 }
+
+/* ═══════════════════════════════════════════════
+   Accessibility Tokens & Overrides (WCAG AAA)
+   ═══════════════════════════════════════════════ */
+
+/* 1. Font Size Scaling */
+html.font-scale-large {
+  font-size: 115% !important;
+}
+html.font-scale-xlarge {
+  font-size: 130% !important;
+}
+
+/* 2. Dyslexic-Friendly Font */
+html.font-dyslexic,
+html.font-dyslexic body,
+html.font-dyslexic button,
+html.font-dyslexic input,
+html.font-dyslexic select,
+html.font-dyslexic textarea,
+html.font-dyslexic p,
+html.font-dyslexic span,
+html.font-dyslexic h1,
+html.font-dyslexic h2,
+html.font-dyslexic h3,
+html.font-dyslexic h4,
+html.font-dyslexic h5,
+html.font-dyslexic h6 {
+  font-family: 'OpenDyslexic', 'Comic Sans MS', -apple-system, sans-serif !important;
+  letter-spacing: 0.04em !important;
+  word-spacing: 0.08em !important;
+  line-height: 1.65 !important;
+}
+
+/* 3. High Contrast Mode (WCAG AAA) */
+html.high-contrast {
+  --border: 0 0% 0%;
+}
+html.dark.high-contrast {
+  --border: 0 0% 100%;
+}
+html.high-contrast button,
+html.high-contrast input,
+html.high-contrast select,
+html.high-contrast textarea,
+html.high-contrast [role="button"],
+html.high-contrast .border {
+  border-width: 2px !important;
+  border-style: solid !important;
+}
+html.high-contrast button:focus-visible,
+html.high-contrast input:focus-visible,
+html.high-contrast a:focus-visible {
+  outline: 3px solid #F59E0B !important;
+  outline-offset: 2px !important;
+}
+
+/* 4. Reduce Motion Mode */
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* 5. Colorblind Modes via SVG Filter Matrices */
+html.colorblind-protanopia {
+  filter: url('#filter-protanopia');
+}
+html.colorblind-deuteranopia {
+  filter: url('#filter-deuteranopia');
+}
+html.colorblind-tritanopia {
+  filter: url('#filter-tritanopia');
+}
+html.colorblind-monochrome {
+  filter: grayscale(100%) contrast(115%);
+}
+
+/* Semântica visual reforçada para daltônicos */
+html[class*="colorblind-"]:not(.colorblind-none) .status-badge,
+html[class*="colorblind-"]:not(.colorblind-none) [data-semantic-status] {
+  font-weight: 800 !important;
+  border-width: 2px !important;
+}

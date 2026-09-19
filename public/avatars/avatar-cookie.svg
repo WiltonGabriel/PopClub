@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="bg-cookie" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#854D0E" />
+      <stop offset="100%" stop-color="#451A03" />
+    </linearGradient>
+    <linearGradient id="cookie-body" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FDE68A" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="50" r="48" fill="url(#bg-cookie)" />
+  <circle cx="50" cy="50" r="45" fill="#FFFBEB" />
+  <!-- Cookie Circle (with subtle bite on top right) -->
+  <circle cx="50" cy="50" r="32" fill="url(#cookie-body)" stroke="#B45309" stroke-width="1.5" />
+  <!-- Chocolate chips -->
+  <rect x="36" y="32" width="6" height="5" rx="2" fill="#451A03" transform="rotate(15 36 32)" />
+  <rect x="58" y="30" width="7" height="6" rx="2.5" fill="#451A03" transform="rotate(-20 58 30)" />
+  <rect x="65" y="52" width="6" height="5" rx="2" fill="#451A03" transform="rotate(45 65 52)" />
+  <rect x="30" y="56" width="6" height="6" rx="2.2" fill="#451A03" transform="rotate(30 30 56)" />
+  <rect x="52" y="70" width="7" height="5" rx="2" fill="#451A03" transform="rotate(-10 52 70)" />
+  <!-- Cute Face -->
+  <circle cx="43" cy="48" r="2.8" fill="#1E293B" />
+  <circle cx="57" cy="48" r="2.8" fill="#1E293B" />
+  <path d="M46,55 Q50,59 54,55" fill="none" stroke="#1E293B" stroke-width="2" stroke-linecap="round" />
+  <circle cx="38" cy="52" r="2" fill="#F43F5E" opacity="0.6" />
+  <circle cx="62" cy="52" r="2" fill="#F43F5E" opacity="0.6" />
+</svg>

@@ -41,6 +41,9 @@ export async function getAuthUser(request?: Request): Promise<{
   username: string;
   role: "client" | "admin";
   fullName: string | null;
+  avatarUrl: string | null;
+  avatar: string | null;
+  accessibilitySettings: any;
 } | null> {
   try {
     let token: string | undefined;
@@ -64,10 +67,21 @@ export async function getAuthUser(request?: Request): Promise<{
 
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
-      select: { id: true, email: true, username: true, role: true, fullName: true },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        role: true,
+        fullName: true,
+        avatarUrl: true,
+        accessibilitySettings: true,
+      },
     });
 
     if (!user) return null;
+
+    const defaultAvatar = "/avatars/avatar-sorvete.svg";
+    const avatar = user.avatarUrl || defaultAvatar;
 
     return {
       id: user.id,
@@ -75,6 +89,9 @@ export async function getAuthUser(request?: Request): Promise<{
       username: user.username,
       role: user.role as "client" | "admin",
       fullName: user.fullName,
+      avatarUrl: avatar,
+      avatar,
+      accessibilitySettings: user.accessibilitySettings,
     };
   } catch {
     return null;
