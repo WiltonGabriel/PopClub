@@ -34,6 +34,8 @@ import {
   X,
   Coins,
   CreditCard,
+  SlidersHorizontal,
+  ChevronDown,
 } from "lucide-react";
 import { orderService, Order, OrderStatus } from "../../../services/orderService";
 import { authService } from "../../../services/authService";
@@ -53,12 +55,46 @@ import { useToast } from "../../../components/ui/ToastNotification";
 import { shiftService, ShiftStatusResponse } from "../../../services/shiftService";
 import { storeSettingsService } from "../../../services/storeSettingsService";
 import { printThermalReceipt } from "@/lib/thermalPrinter";
+import { OrderTriageBar } from "../../../components/admin/OrderTriageBar";
+import { OrderAcceptDialog } from "../../../components/admin/OrderAcceptDialog";
+import { OrderRejectDialog } from "../../../components/admin/OrderRejectDialog";
 
 export default function AdminPedidosPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [fetching, setFetching] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isCompact, setIsCompact] = useState(false);
+  
+  // Compactação granular por coluna da esteira (persistido em localStorage)
+  const [compactColumns, setCompactColumns] = useState<Record<string, boolean>>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("popshake_kanban_compact_columns");
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    return { novos: false, preparo: false, entrega: false, concluidos: false, cancelados: false };
+  });
+  const [isCompactDropdownOpen, setIsCompactDropdownOpen] = useState(false);
+
+  // Estados do Fluxo de Triagem (Aceite & Recusa)
+  const [orderToAccept, setOrderToAccept] = useState<Order | null>(null);
+  const [isAcceptModalOpen, setIsAcceptModalOpen] = useState(false);
+  const [orderToReject, setOrderToReject] = useState<Order | null>(null);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+
+  // Presets de Tempo e Recusa persistidos no banco (StoreSettings)
+  const [timePresets, setTimePresets] = useState<string[]>([
+    "20-30 min",
+    "35-50 min",
+    "50-70 min",
+  ]);
+  const [rejectionPresets, setRejectionPresets] = useState<string[]>([
+    "Ingrediente/item do cardápio indisponível no momento",
+    "Endereço fora da área de entrega atendida",
+    "Pico de demanda: cozinha sobrecarregada temporariamente",
+    "Estabelecimento em processo de fechamento de turno",
+  ]);
+
   const [selectedOrderForDrawer, setSelectedOrderForDrawer] = useState<Order | null>(null);
   const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -80,6 +116,21 @@ export default function AdminPedidosPage() {
   const router = useRouter();
   const { showToast } = useToast();
   const previousCountRef = useRef(0);
+
+  // Carrega configurações e presets da loja
+  useEffect(() => {
+    storeSettingsService
+      .getSettings()
+      .then((settings) => {
+        if (settings.estimatedTimePresets && settings.estimatedTimePresets.length > 0) {
+          setTimePresets(settings.estimatedTimePresets);
+        }
+        if (settings.rejectionReasonPresets && settings.rejectionReasonPresets.length > 0) {
+          setRejectionPresets(settings.rejectionReasonPresets);
+        }
+      })
+      .catch((err) => console.error("Erro ao carregar presets da loja:", err));
+  }, []);
 
   // Inicializa desbloqueio de áudio e restaura preferência de mudo
   useEffect(() => {
@@ -469,10 +520,82 @@ export default function AdminPedidosPage() {
         return { prevStatus: "ready", label: "Voltar p/ Pronto" };
       case "completed":
         return { prevStatus: "delivering", label: "Reabrir Entrega" };
-      case "cancelled":
-        return { prevStatus: "pending", label: "Reativar Pedido" };
       default:
         return null;
+    }
+  };
+
+  // Compactação granular por coluna
+  const toggleColumnCompact = (colKey: string) => {
+    setCompactColumns((prev) => {
+      const updated = { ...prev, [colKey]: !prev[colKey] };
+      if (typeof window !== "undefined") {
+        localStorage.setItem("popshake_kanban_compact_columns", JSON.stringify(updated));
+      }
+      return updated;
+    });
+  };
+
+  const setAllColumnsCompact = (compact: boolean) => {
+    const updated = {
+      novos: compact,
+      preparo: compact,
+      entrega: compact,
+      concluidos: compact,
+      cancelados: compact,
+    };
+    setCompactColumns(updated);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("popshake_kanban_compact_columns", JSON.stringify(updated));
+    }
+  };
+
+  // Abertura e confirmação dos modais operacionais de triagem
+  const handleOpenAcceptDialog = (order: Order) => {
+    setOrderToAccept(order);
+    setIsAcceptModalOpen(true);
+  };
+
+  const handleOpenRejectDialog = (order: Order) => {
+    setOrderToReject(order);
+    setIsRejectModalOpen(true);
+  };
+
+  const handleConfirmAccept = async (orderId: string, estimatedTime: string) => {
+    try {
+      await orderService.updateOrderStatus(orderId, "preparing");
+      showToast({
+        title: "Pedido Aceito! 🍧",
+        message: `Pedido #${orderId.substring(0, 6)} movido para Preparo (${estimatedTime}).`,
+        type: "success",
+      });
+      fetchOrders();
+    } catch (err: any) {
+      showToast({
+        title: "Erro ao aceitar pedido",
+        message: err.message || "Não foi possível avançar o pedido para preparo.",
+        type: "error",
+      });
+      throw err;
+    }
+  };
+
+  const handleConfirmReject = async (orderId: string, reason: string) => {
+    try {
+      await orderService.updateOrderStatus(orderId, "cancelled", reason);
+      showToast({
+        title: "Pedido Recusado ✖",
+        message: `Pedido #${orderId.substring(0, 6)} cancelado com sucesso.`,
+        type: "warning",
+      });
+      fetchOrders();
+    } catch (err: any) {
+      showToast({
+        title: "Erro ao recusar pedido",
+        message: err.message || "Não foi possível registrar a recusa do pedido.",
+        type: "error",
+      });
+      throw err;
     }
   };
 
@@ -566,6 +689,7 @@ export default function AdminPedidosPage() {
     return map;
   }, [activeOrders]);
   const cancelledOrders = orders.filter((o) => o.status === "cancelled");
+  const pendingOrders = useMemo(() => orders.filter((o) => o.status === "pending"), [orders]);
 
   // Badge inteligente de tempo decorrido
   const renderOrderTimeBadge = (order: Order) => {
@@ -639,9 +763,11 @@ export default function AdminPedidosPage() {
     title: string,
     statuses: OrderStatus[],
     accentColor: string,
+    columnKey: string,
     isCancelColumn = false
   ) => {
     const colOrders = orders.filter((o) => statuses.includes(o.status));
+    const isColCompact = !!compactColumns[columnKey];
 
     return (
       <div
@@ -665,15 +791,17 @@ export default function AdminPedidosPage() {
               {title}
             </h3>
           </div>
-          <span
-            className={`px-2 py-0.5 rounded-full text-xs font-bold font-mono ${
-              isCancelColumn
-                ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
-                : "bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300"
-            }`}
-          >
-            {colOrders.length}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`px-2 py-0.5 rounded-full text-xs font-bold font-mono ${
+                isCancelColumn
+                  ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
+                  : "bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300"
+              }`}
+            >
+              {colOrders.length}
+            </span>
+          </div>
         </div>
 
         {/* Lista de Cards da Coluna */}
@@ -694,9 +822,224 @@ export default function AdminPedidosPage() {
               const prevStage = getPrevStage(order.status);
               const recurrence = getClientRecurrence(order);
               const whatsAppLink = getWhatsAppLink(order.user?.phone, clientName, order.id);
+              const totalItems = order.items?.reduce((acc, i) => acc + i.quantity, 0) || 0;
+              const firstItemName = order.items?.[0]?.product?.name || "Produto";
 
               // -------------------------------------------------------------
-              // MODO 1: Coluna de Pedidos Cancelados
+              // MODO 1: CARD COMPACTO (Aplica para todas as colunas marcadas como compactas)
+              // -------------------------------------------------------------
+              if (isColCompact) {
+                // Modo Compacto: Pedidos Cancelados (Equalizado com altura padrão e SEM botão de reativar)
+                if (order.status === "cancelled") {
+                  return (
+                    <div
+                      key={order.id}
+                      className="bg-white dark:bg-[#1A0B1C] border border-red-200/90 dark:border-red-900/50 rounded-xl p-3 shadow-xs hover:shadow-md transition-all flex flex-col gap-2 relative group hover:border-red-400"
+                    >
+                      {/* Linha 1: ID, Horário e Badges */}
+                      <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-bold text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-2 py-0.5 rounded-md border border-red-200 dark:border-red-900/40">
+                            #{order.id.substring(0, 6)}
+                          </span>
+                          <span className="text-[11px] font-mono text-gray-500 dark:text-gray-400">
+                            {createdDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-900/40">
+                            <XCircle className="w-2.5 h-2.5" />
+                            <span>Cancelado</span>
+                          </span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300">
+                            {isPickup ? "🛍️" : "🛵"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Linha 2: Cliente + Motivo */}
+                      <div className="flex items-center justify-between gap-1.5">
+                        <div className="min-w-0">
+                          <p className="font-bold text-xs text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                            {clientName}
+                          </p>
+                          <p className="text-[10px] text-red-500 dark:text-red-400 truncate italic mt-0.5">
+                            {order.cancellation_reason || "Cancelado pela administração"}
+                          </p>
+                        </div>
+                        {whatsAppLink && (
+                          <a
+                            href={whatsAppLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40 transition-colors shrink-0"
+                            title="WhatsApp"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                      </div>
+
+                      {/* Linha 3: Resumo dos Itens e Valor */}
+                      <div className="flex items-center justify-between text-xs pt-1 border-t border-gray-100 dark:border-[#512B54]/30">
+                        <span className="text-gray-400 dark:text-gray-500 truncate text-[11px] max-w-[140px]">
+                          {totalItems} item(ns)
+                        </span>
+                        <span className="font-mono font-bold text-gray-500 dark:text-gray-400 shrink-0">
+                          R$ {order.total_amount?.toFixed(2).replace(".", ",")}
+                        </span>
+                      </div>
+
+                      {/* Linha 4: Ações Rápidas - Somente Ver Ficha */}
+                      <div className="flex items-center gap-1.5 pt-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedOrderForDrawer(order)}
+                          className="w-full h-7 text-[10px] font-bold rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center gap-1"
+                        >
+                          <FileText className="w-3 h-3 text-[#9306CF]" />
+                          <span>Ver Ficha</span>
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Modo Compacto: Pedidos Normais
+                return (
+                  <div
+                    key={order.id}
+                    className="bg-white dark:bg-[#1A0B1C] border border-gray-200/90 dark:border-[#512B54]/50 rounded-xl p-3 shadow-xs hover:shadow-md transition-all flex flex-col gap-2 relative group hover:border-[#9306CF]/40"
+                  >
+                    {/* Linha 1: ID, Horário e Badges */}
+                    <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-bold text-xs text-[#9306CF] dark:text-[#C7A9C9] bg-[#9306CF]/10 px-2 py-0.5 rounded-md border border-[#9306CF]/20">
+                          #{order.id.substring(0, 6)}
+                        </span>
+                        <span className="text-[11px] font-mono text-gray-500 dark:text-gray-400">
+                          {createdDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        {renderOrderTimeBadge(order)}
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300">
+                          {isPickup ? "🛍️" : "🛵"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Linha 2: Cliente + Recorrência + WhatsApp */}
+                    <div className="flex items-center justify-between gap-1.5">
+                      <div className="min-w-0">
+                        <p className="font-bold text-xs text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                          {clientName}
+                        </p>
+                        <span className="text-[10px] text-[#9306CF] dark:text-[#C7A9C9] font-medium block">
+                          {recurrence.shortLabel}
+                        </span>
+                      </div>
+
+                      {whatsAppLink && (
+                        <a
+                          href={whatsAppLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40 transition-colors shrink-0"
+                          title="WhatsApp"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
+
+                    {/* Linha 3: Resumo dos Itens e Valor */}
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-gray-100 dark:border-[#512B54]/30">
+                      <span className="text-gray-500 dark:text-gray-400 truncate text-[11px] max-w-[140px]">
+                        {totalItems} item(ns) • {firstItemName}
+                      </span>
+                      <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                        R$ {order.total_amount?.toFixed(2).replace(".", ",")}
+                      </span>
+                    </div>
+
+                    {/* Linha 4: Ações Rápidas Operacionais */}
+                    {order.status === "pending" ? (
+                      <div className="flex items-center gap-1.5 pt-1">
+                        <Button
+                          size="sm"
+                          onClick={() => handleOpenAcceptDialog(order)}
+                          className="flex-1 h-7 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-heading font-bold text-[10px] uppercase tracking-wider shadow-xs flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>Aceitar</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenRejectDialog(order)}
+                          className="h-7 px-2 text-[10px] font-bold rounded-lg border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center cursor-pointer"
+                          title="Recusar pedido"
+                        >
+                          <XCircle className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedOrderForDrawer(order)}
+                          className="h-7 px-2 text-[10px] font-bold rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5"
+                          title="Ver Ficha Completa"
+                        >
+                          <FileText className="w-3 h-3 text-[#9306CF]" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 pt-1">
+                        {prevStage && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRevertStatus(order.id, order.status)}
+                            className="h-7 px-2 text-[10px] font-bold rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5"
+                            title={prevStage.label}
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                          </Button>
+                        )}
+
+                        {nextStage ? (
+                          <Button
+                            size="sm"
+                            onClick={() => handleUpdateStatus(order.id, order.status)}
+                            className="flex-1 h-7 rounded-lg bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading font-bold text-[10px] uppercase tracking-wider shadow-xs"
+                          >
+                            <span>{nextStage.label}</span>
+                          </Button>
+                        ) : (
+                          <span className="flex-1 text-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 py-1 rounded-lg border border-emerald-200 dark:border-emerald-900/30">
+                            ✓ Entregue
+                          </span>
+                        )}
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedOrderForDrawer(order)}
+                          className="h-7 px-2 text-[10px] font-bold rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5"
+                          title="Ver Ficha Completa"
+                        >
+                          <FileText className="w-3 h-3 text-[#9306CF]" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              // -------------------------------------------------------------
+              // MODO 2: CARD DETALHADO - Pedidos Cancelados
               // -------------------------------------------------------------
               if (isCancelColumn) {
                 return (
@@ -732,26 +1075,16 @@ export default function AdminPedidosPage() {
                       </p>
                     </div>
 
-                    {/* Ações da Coluna de Cancelados */}
+                    {/* Ações da Coluna de Cancelados - Somente Ver Ficha (SEM REATIVAR) */}
                     <div className="flex items-center gap-1.5 pt-1 border-t border-red-100 dark:border-red-900/30">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setSelectedOrderForDrawer(order)}
-                        className="flex-1 text-[11px] font-bold h-8 rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5"
+                        className="w-full text-[11px] font-bold h-8 rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5"
                       >
                         <FileText className="w-3 h-3 text-[#9306CF] mr-1" />
-                        <span>Ver Ficha</span>
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        onClick={() => handleRevertStatus(order.id, "cancelled")}
-                        className="flex-1 text-[11px] font-bold h-8 rounded-lg bg-red-600 hover:bg-red-700 text-white"
-                        title="Reabrir este pedido como Novo"
-                      >
-                        <RotateCcw className="w-3 h-3 mr-1" />
-                        <span>Reativar</span>
+                        <span>Ver Ficha Completa</span>
                       </Button>
                     </div>
                   </div>
@@ -759,114 +1092,7 @@ export default function AdminPedidosPage() {
               }
 
               // -------------------------------------------------------------
-              // MODO 2: Card em Modo Compacto
-              // -------------------------------------------------------------
-              if (isCompact) {
-                const totalItems = order.items?.reduce((acc, i) => acc + i.quantity, 0) || 0;
-                const firstItemName = order.items?.[0]?.product?.name || "Produto";
-
-                return (
-                  <div
-                    key={order.id}
-                    className="bg-white dark:bg-[#1A0B1C] border border-gray-200/90 dark:border-[#512B54]/50 rounded-xl p-3 shadow-xs hover:shadow-md transition-all flex flex-col gap-2 relative group hover:border-[#9306CF]/40"
-                  >
-                    {/* Linha 1: ID, Horário e Badges */}
-                    <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono font-bold text-xs text-[#9306CF] dark:text-[#C7A9C9] bg-[#9306CF]/10 px-2 py-0.5 rounded-md border border-[#9306CF]/20">
-                          #{order.id.substring(0, 6)}
-                        </span>
-                        <span className="text-[11px] font-mono text-gray-500 dark:text-gray-400">
-                          {createdDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        {renderOrderTimeBadge(order)}
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300">
-                          {isPickup ? "🛍️" : "🛵"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Linha 2: Cliente + Recorrência */}
-                    <div className="flex items-center justify-between gap-1.5">
-                      <div className="min-w-0">
-                        <p className="font-bold text-xs text-[#4C264F] dark:text-[#F9F5F9] truncate">
-                          {clientName}
-                        </p>
-                        <span className="text-[10px] text-[#9306CF] dark:text-[#C7A9C9] font-medium block">
-                          {recurrence.shortLabel}
-                        </span>
-                      </div>
-
-                      {whatsAppLink && (
-                        <a
-                          href={whatsAppLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40 transition-colors shrink-0"
-                          title="WhatsApp"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                        </a>
-                      )}
-                    </div>
-
-                    {/* Linha 3: Resumo dos Itens e Valor */}
-                    <div className="flex items-center justify-between text-xs pt-1 border-t border-gray-100 dark:border-[#512B54]/30">
-                      <span className="text-gray-500 dark:text-gray-400 truncate text-[11px] max-w-[140px]">
-                        {totalItems} item(ns) • {firstItemName}
-                      </span>
-                      <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
-                        R$ {order.total_amount?.toFixed(2).replace(".", ",")}
-                      </span>
-                    </div>
-
-                    {/* Linha 4: Ações Rápidas */}
-                    <div className="flex items-center gap-1.5 pt-1">
-                      {prevStage && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRevertStatus(order.id, order.status)}
-                          className="h-7 px-2 text-[10px] font-bold rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5"
-                          title={prevStage.label}
-                        >
-                          <RotateCcw className="w-3 h-3" />
-                        </Button>
-                      )}
-
-                      {nextStage ? (
-                        <Button
-                          size="sm"
-                          onClick={() => handleUpdateStatus(order.id, order.status)}
-                          className="flex-1 h-7 rounded-lg bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading font-bold text-[10px] uppercase tracking-wider shadow-xs"
-                        >
-                          <span>{nextStage.label}</span>
-                        </Button>
-                      ) : (
-                        <span className="flex-1 text-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 py-1 rounded-lg border border-emerald-200 dark:border-emerald-900/30">
-                          ✓ Entregue
-                        </span>
-                      )}
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedOrderForDrawer(order)}
-                        className="h-7 px-2 text-[10px] font-bold rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5"
-                        title="Ver Ficha Completa"
-                      >
-                        <FileText className="w-3 h-3 text-[#9306CF]" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              }
-
-              // -------------------------------------------------------------
-              // MODO 3: Card em Modo Detalhado (Padrão Completo)
+              // MODO 3: CARD DETALHADO - Pedidos Normais
               // -------------------------------------------------------------
               return (
                 <div
@@ -888,25 +1114,29 @@ export default function AdminPedidosPage() {
                       {renderOrderTimeBadge(order)}
 
                       {isPickup ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-900/40">
-                          🛍️ Retirada
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-900/40 flex items-center gap-1">
+                          <Store className="w-2.5 h-2.5" />
+                          <span>Balcão</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/40">
-                          🛵 Entrega
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-[#9306CF] dark:bg-purple-950/40 dark:text-[#C7A9C9] border border-purple-200 dark:border-purple-900/40 flex items-center gap-1">
+                          <ShoppingBag className="w-2.5 h-2.5" />
+                          <span>Entrega</span>
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* 2. Dados do Cliente & Recorrência */}
-                  <div className="space-y-1.5 pt-1 border-t border-gray-100 dark:border-[#512B54]/30">
+                  {/* 2. Informações do Cliente */}
+                  <div className="space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <User className="w-3.5 h-3.5 text-[#9306CF] shrink-0" />
-                        <span className="font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-6 h-6 rounded-full bg-[#9306CF]/10 flex items-center justify-center text-[#9306CF] shrink-0">
+                          <User className="w-3.5 h-3.5" />
+                        </div>
+                        <h4 className="font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9] truncate">
                           {clientName}
-                        </span>
+                        </h4>
                       </div>
 
                       {whatsAppLink && (
@@ -914,11 +1144,11 @@ export default function AdminPedidosPage() {
                           href={whatsAppLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40 transition-colors shrink-0"
-                          title={`Abrir WhatsApp de ${clientName}`}
+                          className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-900/40 transition-colors shrink-0"
+                          title="Falar no WhatsApp"
                         >
-                          <MessageCircle className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                          <span>WhatsApp</span>
+                          <MessageCircle className="w-3 h-3" />
+                          <span className="hidden sm:inline">WhatsApp</span>
                         </a>
                       )}
                     </div>
@@ -980,7 +1210,7 @@ export default function AdminPedidosPage() {
                     )}
                   </div>
 
-                  {/* 4. Rodapé do Card (Valor + Pagamento + Ações de Avanço/Recuo) */}
+                  {/* 4. Rodapé do Card (Valor + Pagamento + Ações de Triagem ou Avanço) */}
                   <div className="space-y-2 pt-1 border-t border-gray-100 dark:border-[#512B54]/30">
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col">
@@ -1006,35 +1236,56 @@ export default function AdminPedidosPage() {
                       </div>
                     </div>
 
-                    {/* Botões Operacionais: Avanço + Recuo de Estágio */}
-                    <div className="flex items-center gap-1.5">
-                      {prevStage && (
+                    {/* Botões Operacionais: Triagem (se pending) ou Avanço/Recuo */}
+                    {order.status === "pending" ? (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={() => handleOpenAcceptDialog(order)}
+                          className="flex-1 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-heading font-bold text-xs uppercase tracking-wider shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Aceitar Pedido</span>
+                        </Button>
                         <Button
                           variant="outline"
-                          onClick={() => handleRevertStatus(order.id, order.status)}
-                          className="h-9 px-2.5 rounded-xl border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-xs font-bold"
-                          title={prevStage.label}
+                          onClick={() => handleOpenRejectDialog(order)}
+                          className="h-9 px-3 rounded-xl border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 cursor-pointer"
+                          title="Recusar pedido"
                         >
-                          <RotateCcw className="w-3.5 h-3.5 text-gray-600 dark:text-gray-300" />
+                          <XCircle className="w-3.5 h-3.5" />
+                          <span>Recusar</span>
                         </Button>
-                      )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        {prevStage && (
+                          <Button
+                            variant="outline"
+                            onClick={() => handleRevertStatus(order.id, order.status)}
+                            className="h-9 px-2.5 rounded-xl border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-xs font-bold"
+                            title={prevStage.label}
+                          >
+                            <RotateCcw className="w-3.5 h-3.5 text-gray-600 dark:text-gray-300" />
+                          </Button>
+                        )}
 
-                      {nextStage && (
-                        <Button
-                          onClick={() => handleUpdateStatus(order.id, order.status)}
-                          className="flex-1 h-9 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading font-bold text-xs uppercase tracking-wider shadow-md shadow-[#9306CF]/20 flex items-center justify-center gap-1.5 transition-all"
-                        >
-                          <span>{nextStage.label}</span>
-                        </Button>
-                      )}
+                        {nextStage && (
+                          <Button
+                            onClick={() => handleUpdateStatus(order.id, order.status)}
+                            className="flex-1 h-9 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading font-bold text-xs uppercase tracking-wider shadow-md shadow-[#9306CF]/20 flex items-center justify-center gap-1.5 transition-all"
+                          >
+                            <span>{nextStage.label}</span>
+                          </Button>
+                        )}
 
-                      {order.status === "completed" && (
-                        <div className="flex-1 py-2 text-center text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-900/30 flex items-center justify-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Pedido Entregue</span>
-                        </div>
-                      )}
-                    </div>
+                        {order.status === "completed" && (
+                          <div className="flex-1 py-2 text-center text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-900/30 flex items-center justify-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Pedido Entregue</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Ações Secundárias: Ver Ficha Completa + Cancelar */}
                     <div className="flex items-center justify-between gap-2 pt-1">
@@ -1047,7 +1298,7 @@ export default function AdminPedidosPage() {
                         <span>Ver Ficha Completa ➔</span>
                       </button>
 
-                      {order.status !== "completed" && (
+                      {order.status !== "completed" && order.status !== "pending" && (
                         <button
                           type="button"
                           onClick={() => {
@@ -1238,24 +1489,77 @@ export default function AdminPedidosPage() {
               </Button>
             )}
 
-            {/* Toggle de Modo Compacto vs Detalhado */}
-            <Button
-              variant="outline"
-              onClick={() => setIsCompact(!isCompact)}
-              className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 h-10 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
-            >
-              {isCompact ? (
-                <>
-                  <Maximize2 className="w-3.5 h-3.5 text-[#9306CF]" />
-                  <span className="hidden md:inline">Expandir</span>
-                </>
-              ) : (
-                <>
-                  <Minimize2 className="w-3.5 h-3.5 text-[#9306CF]" />
-                  <span className="hidden md:inline">Compacto</span>
-                </>
+            {/* Menu Dropdown de Compactação Granular por Coluna */}
+            <div className="relative" data-compact-dropdown>
+              <Button
+                variant="outline"
+                onClick={() => setIsCompactDropdownOpen(!isCompactDropdownOpen)}
+                className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 h-10 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                title="Configurar colunas em modo compacto ou expandido"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5 text-[#9306CF]" />
+                <span className="hidden sm:inline">Exibição</span>
+                <ChevronDown className="w-3 h-3 text-gray-400" />
+              </Button>
+
+              {isCompactDropdownOpen && (
+                <div className="absolute right-0 top-12 z-50 w-64 bg-white dark:bg-[#1E0921] border border-gray-200 dark:border-[#512B54]/60 rounded-2xl p-3 shadow-xl space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-gray-100 dark:border-[#512B54]/30">
+                    <span className="text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9]">
+                      Colunas Compactas
+                    </span>
+                    <button
+                      onClick={() => setIsCompactDropdownOpen(false)}
+                      className="text-gray-400 hover:text-gray-600 text-xs p-1"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {[
+                      { key: "novos", label: "Novos" },
+                      { key: "preparo", label: "Em Preparo" },
+                      { key: "entrega", label: "A Caminho / Pronto" },
+                      { key: "concluidos", label: "Concluídos" },
+                      { key: "cancelados", label: "Cancelados" },
+                    ].map((col) => (
+                      <label
+                        key={col.key}
+                        className="flex items-center justify-between p-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer text-xs select-none"
+                      >
+                        <span className="text-gray-700 dark:text-gray-300 font-medium">
+                          {col.label}
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={!!compactColumns[col.key]}
+                          onChange={() => toggleColumnCompact(col.key)}
+                          className="w-4 h-4 rounded text-[#9306CF] focus:ring-[#9306CF] border-gray-300 cursor-pointer"
+                        />
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+                    <button
+                      type="button"
+                      onClick={() => setAllColumnsCompact(true)}
+                      className="flex-1 py-1 text-[11px] font-bold text-[#9306CF] hover:bg-purple-50 dark:hover:bg-purple-950/30 rounded-md transition-colors cursor-pointer"
+                    >
+                      Compactar Todas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAllColumnsCompact(false)}
+                      className="flex-1 py-1 text-[11px] font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 rounded-md transition-colors cursor-pointer"
+                    >
+                      Expandir Todas
+                    </button>
+                  </div>
+                </div>
               )}
-            </Button>
+            </div>
 
             {/* Botão de Atualizar Board Manual com Loading Spinner */}
             <Button
@@ -1295,6 +1599,16 @@ export default function AdminPedidosPage() {
             </Button>
           </div>
         )}
+
+        {/* Barra de Triagem de Novos Pedidos Pendentes */}
+        <OrderTriageBar
+          pendingOrders={pendingOrders}
+          onAcceptOrder={handleOpenAcceptDialog}
+          onRejectOrder={handleOpenRejectDialog}
+          onViewOrderDetails={(order) => setSelectedOrderForDrawer(order)}
+          isSoundMuted={isSoundMuted}
+          onToggleSound={toggleSoundMute}
+        />
 
         {/* Métricas Rápidas Operacionais */}
         <section className="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -1357,11 +1671,11 @@ export default function AdminPedidosPage() {
 
         {/* Grid Principal do Kanban em 5 Colunas */}
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4 overflow-x-auto pb-4 items-start">
-          {renderKanbanColumn("Novos", ["pending", "accepted"], "#9306CF")}
-          {renderKanbanColumn("Em Preparo", ["preparing"], "#EAB308")}
-          {renderKanbanColumn("A Caminho / Pronto", ["ready", "delivering"], "#940068")}
-          {renderKanbanColumn("Concluídos", ["completed"], "#10B981")}
-          {renderKanbanColumn("Cancelados", ["cancelled"], "#EF4444", true)}
+          {renderKanbanColumn("Novos", ["pending", "accepted"], "#9306CF", "novos")}
+          {renderKanbanColumn("Em Preparo", ["preparing"], "#EAB308", "preparo")}
+          {renderKanbanColumn("A Caminho / Pronto", ["ready", "delivering"], "#940068", "entrega")}
+          {renderKanbanColumn("Concluídos", ["completed"], "#10B981", "concluidos")}
+          {renderKanbanColumn("Cancelados", ["cancelled"], "#EF4444", "cancelados", true)}
         </section>
 
         {/* Seção Dedicada: Controle Rápido de Estoque & Itens à Venda */}
@@ -1390,6 +1704,26 @@ export default function AdminPedidosPage() {
         onOpenChange={setCancelDialogOpen}
         order={orderToCancel}
         onConfirmCancel={handleConfirmCancel}
+      />
+
+      {/* Modal Operacional de Aceite (Triagem de Novos Pedidos) */}
+      <OrderAcceptDialog
+        open={isAcceptModalOpen}
+        onOpenChange={setIsAcceptModalOpen}
+        order={orderToAccept}
+        onConfirmAccept={handleConfirmAccept}
+        initialPresets={timePresets}
+        onPresetsUpdated={setTimePresets}
+      />
+
+      {/* Modal Operacional de Recusa (Triagem de Novos Pedidos) */}
+      <OrderRejectDialog
+        open={isRejectModalOpen}
+        onOpenChange={setIsRejectModalOpen}
+        order={orderToReject}
+        onConfirmReject={handleConfirmReject}
+        initialPresets={rejectionPresets}
+        onPresetsUpdated={setRejectionPresets}
       />
 
       {/* Modal 1: Iniciar Esteira / Abrir Loja */}

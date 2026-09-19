@@ -123,7 +123,7 @@ export default function PedidosPage() {
           } else if (newStatus === "completed") {
             notifBody = `Pedido #${shortId} entregue! Bom apetite! 🎉`;
           } else if (newStatus === "cancelled") {
-            notifBody = `Seu pedido #${shortId} foi cancelado pela loja.`;
+            notifBody = `Seu pedido #${shortId} foi cancelado. Motivo: ${updated.cancellation_reason || "Informado pela loja"}`;
           }
 
           sendWebNotification("Pop Shake Sorveteria", {

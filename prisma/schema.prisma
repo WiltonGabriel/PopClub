@@ -211,10 +211,12 @@ model StoreSettings {
   whatsappMessage       String?   @default("Olá! Gostaria de tirar uma dúvida sobre os pedidos da Pop Shake Sorveteria.") @map("whatsapp_message")
   isOpen                Boolean   @default(true) @map("is_open")
   currentShiftId        String?   @map("current_shift_id")
-  estimatedDeliveryTime String    @default("30-50 min") @map("estimated_delivery_time")
-  openedAt              DateTime? @map("opened_at")
-  closedAt              DateTime? @map("closed_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
+  estimatedDeliveryTime  String    @default("30-50 min") @map("estimated_delivery_time")
+  estimatedTimePresets   String[]  @default(["20-30 min", "35-50 min", "50-70 min"]) @map("estimated_time_presets")
+  rejectionReasonPresets String[]  @default(["Ingrediente/item do cardápio indisponível no momento", "Endereço fora da área de entrega atendida", "Pico de demanda: cozinha sobrecarregada temporariamente", "Estabelecimento em processo de fechamento de turno"]) @map("rejection_reason_presets")
+  openedAt               DateTime? @map("opened_at")
+  closedAt               DateTime? @map("closed_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
 
   @@map("store_settings")
 }

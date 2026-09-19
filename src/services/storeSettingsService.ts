@@ -7,6 +7,8 @@ export interface StoreSettings {
   isOpen: boolean;
   currentShiftId?: string | null;
   estimatedDeliveryTime: string;
+  estimatedTimePresets?: string[];
+  rejectionReasonPresets?: string[];
   openedAt?: string | null;
   closedAt?: string | null;
   updatedAt?: string;
@@ -34,6 +36,13 @@ export const storeSettingsService = {
         isOpen: true,
         currentShiftId: null,
         estimatedDeliveryTime: "30-50 min",
+        estimatedTimePresets: ["20-30 min", "35-50 min", "50-70 min"],
+        rejectionReasonPresets: [
+          "Ingrediente/item do cardápio indisponível no momento",
+          "Endereço fora da área de entrega atendida",
+          "Pico de demanda: cozinha sobrecarregada temporariamente",
+          "Estabelecimento em processo de fechamento de turno",
+        ],
       };
     }
   },
@@ -46,6 +55,8 @@ export const storeSettingsService = {
     isOpen?: boolean;
     currentShiftId?: string | null;
     estimatedDeliveryTime?: string;
+    estimatedTimePresets?: string[];
+    rejectionReasonPresets?: string[];
     openedAt?: string | null;
     closedAt?: string | null;
   }): Promise<StoreSettings> {

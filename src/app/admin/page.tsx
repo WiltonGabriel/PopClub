@@ -41,6 +41,7 @@ import { CouponManagement } from "../../components/admin/CouponManagement";
 import { AnalyticsDashboard } from "../../components/admin/AnalyticsDashboard";
 import { DeliveryFeeSettings } from "../../components/admin/DeliveryFeeSettings";
 import { CardBadgesSection } from "../../components/admin/CardBadgesSection";
+import { OrderFlowSettings } from "../../components/admin/OrderFlowSettings";
 
 export default function AdminDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -961,10 +962,11 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {/* CONTEÚDO DA ABA 6: TAXA DE ENTREGA */}
+              {/* CONTEÚDO DA ABA 6: TAXA DE ENTREGA & ESTEIRA */}
               {activeTab === "delivery" && (
-                <div className="animate-in fade-in duration-150">
+                <div className="space-y-6 animate-in fade-in duration-150">
                   <DeliveryFeeSettings />
+                  <OrderFlowSettings />
                 </div>
               )}
             </div>

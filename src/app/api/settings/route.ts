@@ -12,6 +12,13 @@ const DEFAULT_SETTINGS = {
   isOpen: true,
   currentShiftId: null,
   estimatedDeliveryTime: "30-50 min",
+  estimatedTimePresets: ["20-30 min", "35-50 min", "50-70 min"],
+  rejectionReasonPresets: [
+    "Ingrediente/item do cardápio indisponível no momento",
+    "Endereço fora da área de entrega atendida",
+    "Pico de demanda: cozinha sobrecarregada temporariamente",
+    "Estabelecimento em processo de fechamento de turno",
+  ],
 };
 
 const settingsUpdateSchema = z.object({
@@ -22,6 +29,8 @@ const settingsUpdateSchema = z.object({
   isOpen: z.boolean().optional(),
   currentShiftId: z.string().nullable().optional(),
   estimatedDeliveryTime: z.string().optional(),
+  estimatedTimePresets: z.array(z.string()).optional(),
+  rejectionReasonPresets: z.array(z.string()).optional(),
   openedAt: z.string().nullable().optional(),
   closedAt: z.string().nullable().optional(),
 });
@@ -55,6 +64,8 @@ export async function GET() {
       isOpen: settings.isOpen,
       currentShiftId: settings.currentShiftId,
       estimatedDeliveryTime: settings.estimatedDeliveryTime || DEFAULT_SETTINGS.estimatedDeliveryTime,
+      estimatedTimePresets: settings.estimatedTimePresets?.length ? settings.estimatedTimePresets : DEFAULT_SETTINGS.estimatedTimePresets,
+      rejectionReasonPresets: settings.rejectionReasonPresets?.length ? settings.rejectionReasonPresets : DEFAULT_SETTINGS.rejectionReasonPresets,
       openedAt: settings.openedAt ? settings.openedAt.toISOString() : null,
       closedAt: settings.closedAt ? settings.closedAt.toISOString() : null,
       updatedAt: settings.updatedAt.toISOString(),
@@ -71,6 +82,8 @@ export async function GET() {
         isOpen: true,
         currentShiftId: null,
         estimatedDeliveryTime: DEFAULT_SETTINGS.estimatedDeliveryTime,
+        estimatedTimePresets: DEFAULT_SETTINGS.estimatedTimePresets,
+        rejectionReasonPresets: DEFAULT_SETTINGS.rejectionReasonPresets,
         openedAt: null,
         closedAt: null,
         updatedAt: new Date().toISOString(),
@@ -116,6 +129,8 @@ export async function PUT(request: Request) {
       isOpen,
       currentShiftId,
       estimatedDeliveryTime,
+      estimatedTimePresets,
+      rejectionReasonPresets,
       openedAt,
       closedAt,
     } = parsed.data;
@@ -128,6 +143,8 @@ export async function PUT(request: Request) {
     if (isOpen !== undefined) dataToUpdate.isOpen = isOpen;
     if (currentShiftId !== undefined) dataToUpdate.currentShiftId = currentShiftId;
     if (estimatedDeliveryTime !== undefined) dataToUpdate.estimatedDeliveryTime = estimatedDeliveryTime;
+    if (estimatedTimePresets !== undefined) dataToUpdate.estimatedTimePresets = estimatedTimePresets;
+    if (rejectionReasonPresets !== undefined) dataToUpdate.rejectionReasonPresets = rejectionReasonPresets;
     if (openedAt !== undefined) dataToUpdate.openedAt = openedAt ? new Date(openedAt) : null;
     if (closedAt !== undefined) dataToUpdate.closedAt = closedAt ? new Date(closedAt) : null;
 
@@ -143,6 +160,8 @@ export async function PUT(request: Request) {
         isOpen: isOpen !== undefined ? isOpen : DEFAULT_SETTINGS.isOpen,
         currentShiftId: currentShiftId || null,
         estimatedDeliveryTime: estimatedDeliveryTime || DEFAULT_SETTINGS.estimatedDeliveryTime,
+        estimatedTimePresets: estimatedTimePresets || DEFAULT_SETTINGS.estimatedTimePresets,
+        rejectionReasonPresets: rejectionReasonPresets || DEFAULT_SETTINGS.rejectionReasonPresets,
         openedAt: openedAt ? new Date(openedAt) : null,
         closedAt: closedAt ? new Date(closedAt) : null,
       },
@@ -159,6 +178,8 @@ export async function PUT(request: Request) {
         isOpen: settings.isOpen,
         currentShiftId: settings.currentShiftId,
         estimatedDeliveryTime: settings.estimatedDeliveryTime,
+        estimatedTimePresets: settings.estimatedTimePresets,
+        rejectionReasonPresets: settings.rejectionReasonPresets,
         openedAt: settings.openedAt ? settings.openedAt.toISOString() : null,
         closedAt: settings.closedAt ? settings.closedAt.toISOString() : null,
         updatedAt: settings.updatedAt.toISOString(),
