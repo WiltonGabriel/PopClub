@@ -230,6 +230,7 @@ model StoreSettings {
   rejectionReasonPresets String[]  @default(["Ingrediente/item do cardápio indisponível no momento", "Endereço fora da área de entrega atendida", "Pico de demanda: cozinha sobrecarregada temporariamente", "Estabelecimento em processo de fechamento de turno"]) @map("rejection_reason_presets")
   storeLatitude         Float?    @default(-15.6536) @map("store_latitude")
   storeLongitude        Float?    @default(-56.1322) @map("store_longitude")
+  storeAddress          String?   @default("Várzea Grande, MT") @map("store_address")
   openedAt               DateTime? @map("opened_at")
   closedAt               DateTime? @map("closed_at")
   updatedAt              DateTime  @updatedAt @map("updated_at")

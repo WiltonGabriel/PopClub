@@ -21,6 +21,9 @@ const DEFAULT_SETTINGS = {
     "Pico de demanda: cozinha sobrecarregada temporariamente",
     "Estabelecimento em processo de fechamento de turno",
   ],
+  storeLatitude: -15.6536,
+  storeLongitude: -56.1322,
+  storeAddress: "Várzea Grande, MT",
 };
 
 const settingsUpdateSchema = z.object({
@@ -33,6 +36,9 @@ const settingsUpdateSchema = z.object({
   estimatedDeliveryTime: z.string().optional(),
   estimatedTimePresets: z.array(z.string().trim().max(15, "Preset de tempo deve ter no máximo 15 caracteres")).max(4, "Máximo de 4 presets de tempo permitidos").optional(),
   rejectionReasonPresets: z.array(z.string().trim().max(60, "Motivo deve ter no máximo 60 caracteres")).max(6, "Máximo de 6 presets de motivo permitidos").optional(),
+  storeLatitude: z.number().nullable().optional(),
+  storeLongitude: z.number().nullable().optional(),
+  storeAddress: z.string().nullable().optional(),
   openedAt: z.string().nullable().optional(),
   closedAt: z.string().nullable().optional(),
 });
@@ -68,6 +74,9 @@ export async function GET() {
       estimatedDeliveryTime: settings.estimatedDeliveryTime || DEFAULT_SETTINGS.estimatedDeliveryTime,
       estimatedTimePresets: settings.estimatedTimePresets?.length ? settings.estimatedTimePresets : DEFAULT_SETTINGS.estimatedTimePresets,
       rejectionReasonPresets: settings.rejectionReasonPresets?.length ? settings.rejectionReasonPresets : DEFAULT_SETTINGS.rejectionReasonPresets,
+      storeLatitude: settings.storeLatitude ?? DEFAULT_SETTINGS.storeLatitude,
+      storeLongitude: settings.storeLongitude ?? DEFAULT_SETTINGS.storeLongitude,
+      storeAddress: settings.storeAddress || DEFAULT_SETTINGS.storeAddress,
       openedAt: settings.openedAt ? settings.openedAt.toISOString() : null,
       closedAt: settings.closedAt ? settings.closedAt.toISOString() : null,
       updatedAt: settings.updatedAt.toISOString(),
@@ -85,6 +94,9 @@ export async function GET() {
       estimatedDeliveryTime: DEFAULT_SETTINGS.estimatedDeliveryTime,
       estimatedTimePresets: DEFAULT_SETTINGS.estimatedTimePresets,
       rejectionReasonPresets: DEFAULT_SETTINGS.rejectionReasonPresets,
+      storeLatitude: DEFAULT_SETTINGS.storeLatitude,
+      storeLongitude: DEFAULT_SETTINGS.storeLongitude,
+      storeAddress: DEFAULT_SETTINGS.storeAddress,
       openedAt: null,
       closedAt: null,
       updatedAt: new Date().toISOString(),
@@ -121,6 +133,9 @@ export async function PUT(request: Request) {
       estimatedDeliveryTime,
       estimatedTimePresets,
       rejectionReasonPresets,
+      storeLatitude,
+      storeLongitude,
+      storeAddress,
       openedAt,
       closedAt,
     } = parsed.data;
@@ -135,6 +150,9 @@ export async function PUT(request: Request) {
     if (estimatedDeliveryTime !== undefined) dataToUpdate.estimatedDeliveryTime = estimatedDeliveryTime;
     if (estimatedTimePresets !== undefined) dataToUpdate.estimatedTimePresets = estimatedTimePresets;
     if (rejectionReasonPresets !== undefined) dataToUpdate.rejectionReasonPresets = rejectionReasonPresets;
+    if (storeLatitude !== undefined) dataToUpdate.storeLatitude = storeLatitude;
+    if (storeLongitude !== undefined) dataToUpdate.storeLongitude = storeLongitude;
+    if (storeAddress !== undefined) dataToUpdate.storeAddress = storeAddress;
     if (openedAt !== undefined) dataToUpdate.openedAt = openedAt ? new Date(openedAt) : null;
     if (closedAt !== undefined) dataToUpdate.closedAt = closedAt ? new Date(closedAt) : null;
 
@@ -152,6 +170,9 @@ export async function PUT(request: Request) {
         estimatedDeliveryTime: estimatedDeliveryTime || DEFAULT_SETTINGS.estimatedDeliveryTime,
         estimatedTimePresets: estimatedTimePresets || DEFAULT_SETTINGS.estimatedTimePresets,
         rejectionReasonPresets: rejectionReasonPresets || DEFAULT_SETTINGS.rejectionReasonPresets,
+        storeLatitude: storeLatitude ?? DEFAULT_SETTINGS.storeLatitude,
+        storeLongitude: storeLongitude ?? DEFAULT_SETTINGS.storeLongitude,
+        storeAddress: storeAddress || DEFAULT_SETTINGS.storeAddress,
         openedAt: openedAt ? new Date(openedAt) : null,
         closedAt: closedAt ? new Date(closedAt) : null,
       },
@@ -170,6 +191,9 @@ export async function PUT(request: Request) {
         estimatedDeliveryTime: settings.estimatedDeliveryTime,
         estimatedTimePresets: settings.estimatedTimePresets,
         rejectionReasonPresets: settings.rejectionReasonPresets,
+        storeLatitude: settings.storeLatitude ?? DEFAULT_SETTINGS.storeLatitude,
+        storeLongitude: settings.storeLongitude ?? DEFAULT_SETTINGS.storeLongitude,
+        storeAddress: settings.storeAddress || DEFAULT_SETTINGS.storeAddress,
         openedAt: settings.openedAt ? settings.openedAt.toISOString() : null,
         closedAt: settings.closedAt ? settings.closedAt.toISOString() : null,
         updatedAt: settings.updatedAt.toISOString(),

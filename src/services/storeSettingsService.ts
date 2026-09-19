@@ -9,6 +9,9 @@ export interface StoreSettings {
   estimatedDeliveryTime: string;
   estimatedTimePresets?: string[];
   rejectionReasonPresets?: string[];
+  storeLatitude?: number | null;
+  storeLongitude?: number | null;
+  storeAddress?: string | null;
   openedAt?: string | null;
   closedAt?: string | null;
   updatedAt?: string;
@@ -43,6 +46,9 @@ export const storeSettingsService = {
           "Pico de demanda: cozinha sobrecarregada temporariamente",
           "Estabelecimento em processo de fechamento de turno",
         ],
+        storeLatitude: -15.6536,
+        storeLongitude: -56.1322,
+        storeAddress: "Várzea Grande, MT",
       };
     }
   },
@@ -57,6 +63,9 @@ export const storeSettingsService = {
     estimatedDeliveryTime?: string;
     estimatedTimePresets?: string[];
     rejectionReasonPresets?: string[];
+    storeLatitude?: number | null;
+    storeLongitude?: number | null;
+    storeAddress?: string | null;
     openedAt?: string | null;
     closedAt?: string | null;
   }): Promise<StoreSettings> {

@@ -20,6 +20,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Order, orderService } from "@/services/orderService";
+import { storeSettingsService } from "@/services/storeSettingsService";
 import { Button } from "@/components/ui/button";
 
 // Carregamento dinâmico estritamente no cliente para evitar erros de SSR do Leaflet
@@ -52,9 +53,25 @@ function TrackingContent() {
   const orderId = searchParams.get("id");
 
   const [order, setOrder] = useState<Order | null>(null);
+  const [storeCoords, setStoreCoords] = useState<{ lat: number; lng: number }>(POP_SHAKE_DEFAULT_COORDS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastPollTime, setLastPollTime] = useState<Date>(new Date());
+
+  // Busca coordenadas oficiais da loja das configurações
+  useEffect(() => {
+    storeSettingsService
+      .getSettings()
+      .then((settings) => {
+        if (settings.storeLatitude && settings.storeLongitude) {
+          setStoreCoords({
+            lat: settings.storeLatitude,
+            lng: settings.storeLongitude,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Busca inicial do pedido
   useEffect(() => {
@@ -202,7 +219,7 @@ function TrackingContent() {
         <div className="flex-1 w-full p-2 sm:p-4 max-w-7xl mx-auto flex flex-col">
           <div className="flex-1 w-full h-[calc(100vh-140px)] min-h-[480px]">
             <LeafletDeliveryMap
-              origin={POP_SHAKE_DEFAULT_COORDS}
+              origin={storeCoords}
               destination={destCoords}
               courier={courierCoords}
               isGpsActive={order.is_gps_tracking_active}

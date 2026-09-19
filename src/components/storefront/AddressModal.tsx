@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import {
   MapPin,
   Navigation,
@@ -17,6 +18,19 @@ import {
   Crosshair,
 } from "lucide-react";
 import { useAddress } from "@/contexts/AddressContext";
+
+const LocationPickerMap = dynamic(
+  () => import("@/components/logistics/LocationPickerMap"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-[190px] rounded-2xl bg-muted/40 border border-border/80 flex flex-col items-center justify-center gap-2 text-muted-foreground animate-pulse">
+        <Loader2 className="w-5 h-5 animate-spin text-[#9306CF]" />
+        <span className="text-[11px] font-medium">Carregando mapa interativo...</span>
+      </div>
+    ),
+  }
+);
 
 export function AddressModal() {
   const {
@@ -43,6 +57,7 @@ export function AddressModal() {
   const [zip, setZip] = useState("");
   const [label, setLabel] = useState<string>("Casa");
   const [coords, setCoords] = useState<{ lat?: number; lon?: number }>({});
+  const [showManualMap, setShowManualMap] = useState(false);
 
   // Loading & feedback states
   const [isLocating, setIsLocating] = useState(false);
@@ -76,6 +91,7 @@ export function AddressModal() {
     setZip("");
     setLabel("Casa");
     setCoords({});
+    setShowManualMap(false);
     setErrorMessage(null);
     setGpsAccuracyInfo(null);
   };
@@ -163,6 +179,24 @@ export function AddressModal() {
       if (data.bairro) setNeighborhood(data.bairro);
       if (data.localidade && data.uf) {
         setCity(`${data.localidade} - ${data.uf}`);
+      }
+
+      // Tenta geocodificar o logradouro retornado pelo CEP para centralizar o mapa
+      try {
+        const queryTerm = `${data.logradouro || ""} ${data.bairro || ""} ${data.localidade || "Várzea Grande"} MT`;
+        const searchRes = await fetch(`/api/geocode/search?q=${encodeURIComponent(queryTerm)}`);
+        if (searchRes.ok) {
+          const searchData = await searchRes.json();
+          if (searchData.results && searchData.results.length > 0) {
+            setCoords({
+              lat: searchData.results[0].latitude,
+              lon: searchData.results[0].longitude,
+            });
+            setShowManualMap(true);
+          }
+        }
+      } catch (geoErr) {
+        console.warn("Aviso ao buscar coordenadas para o CEP:", geoErr);
       }
 
       // Foca automaticamente no campo de número
@@ -473,6 +507,33 @@ export function AddressModal() {
                 </div>
               </div>
 
+              {/* Mapa com Alfinete Interativo para Ajuste Fino */}
+              {coords.lat && coords.lon && (
+                <div className="space-y-1.5 animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-[#9306CF]" />
+                      <span>Ajuste Fino da Localização (Alfinete Interativo)</span>
+                    </label>
+                    <span className="text-[10px] text-muted-foreground font-medium">
+                      Arraste até a sua porta
+                    </span>
+                  </div>
+                  <LocationPickerMap
+                    initialCoords={{ lat: coords.lat, lng: coords.lon }}
+                    height="190px"
+                    pinEmoji="📍"
+                    onLocationSelect={(newCoords, details) => {
+                      setCoords({ lat: newCoords.lat, lon: newCoords.lng });
+                      if (details?.road) setStreet(details.road);
+                      if (details?.neighborhood) setNeighborhood(details.neighborhood);
+                      if (details?.city) setCity(details.city);
+                      if (details?.postcode) setZip(details.postcode);
+                    }}
+                  />
+                </div>
+              )}
+
               {/* Campos principais de confirmação */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2 space-y-1">
@@ -710,6 +771,42 @@ export function AddressModal() {
                     className="w-full px-3 py-2 text-sm bg-background border border-border rounded-xl focus:border-[#9306CF] outline-hidden"
                   />
                 </div>
+              </div>
+
+              {/* Ajuste Fino via Mapa Interativo com Alfinete */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-[#9306CF]" />
+                    <span>Ponto Exato no Mapa (Ajuste Fino)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowManualMap(!showManualMap)}
+                    className="text-[11px] font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>{showManualMap ? "Ocultar Mapa ▲" : "Ajustar Alfinete no Mapa 📍"}</span>
+                  </button>
+                </div>
+
+                {showManualMap && (
+                  <div className="animate-in fade-in duration-200">
+                    <LocationPickerMap
+                      initialCoords={{
+                        lat: coords.lat ?? -15.6536,
+                        lng: coords.lon ?? -56.1322,
+                      }}
+                      height="190px"
+                      pinEmoji="📍"
+                      onLocationSelect={(newCoords, details) => {
+                        setCoords({ lat: newCoords.lat, lon: newCoords.lng });
+                        if (details?.road && !street) setStreet(details.road);
+                        if (details?.neighborhood && !neighborhood) setNeighborhood(details.neighborhood);
+                        if (details?.city && city === "Local") setCity(details.city);
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Rótulo de Local */}
