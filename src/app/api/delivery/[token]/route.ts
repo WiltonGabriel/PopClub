@@ -31,8 +31,8 @@ export async function GET(
     });
 
     const storeOrigin = {
-      lat: storeSettings?.storeLatitude ?? -15.6536,
-      lng: storeSettings?.storeLongitude ?? -56.1322,
+      lat: order.originLatitude ?? storeSettings?.storeLatitude ?? -15.6536,
+      lng: order.originLongitude ?? storeSettings?.storeLongitude ?? -56.1322,
     };
 
     const clientName =

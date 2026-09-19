@@ -47,6 +47,10 @@ export interface Order {
   courier_latitude?: number | null;
   courier_longitude?: number | null;
   courier_updated_at?: string | null;
+  origin_latitude?: number | null;
+  origin_longitude?: number | null;
+  origin_address?: string | null;
+  branch_id?: string | null;
   cancellation_reason?: string | null;
   cancelled_at?: string | null;
   created_at: string;

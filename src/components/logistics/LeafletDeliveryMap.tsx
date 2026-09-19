@@ -1,14 +1,29 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap } from "react-leaflet";
+import { useEffect, useState, useMemo, useRef } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Polyline,
+  Popup,
+  useMap,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Bike, Home, Store, Clock, Navigation2, ShieldCheck, Sparkles, RefreshCw } from "lucide-react";
+import { Crosshair } from "lucide-react";
 
-interface LatLng {
+export interface LatLng {
   lat: number;
   lng: number;
+}
+
+export interface DeliveryMetrics {
+  distanceKm: number;
+  formattedDistance: string;
+  etaMinutes: number;
+  formattedEta: string;
+  isArriving: boolean;
 }
 
 interface LeafletDeliveryMapProps {
@@ -19,19 +34,65 @@ interface LeafletDeliveryMapProps {
   clientAddress?: string;
   clientName?: string;
   orderId?: string;
+  onMetricsUpdate?: (metrics: DeliveryMetrics) => void;
+  className?: string;
 }
 
-function MapController({ bounds }: { bounds: L.LatLngBoundsExpression }) {
+// ── Funções de Geometria e Navegação em Tempo Real ──
+export function calculateHaversineDistanceKm(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371; // Raio da Terra em km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+export function calculateBearing(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const lat1Rad = (lat1 * Math.PI) / 180;
+  const lat2Rad = (lat2 * Math.PI) / 180;
+  const y = Math.sin(dLon) * Math.cos(lat2Rad);
+  const x =
+    Math.cos(lat1Rad) * Math.sin(lat2Rad) -
+    Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLon);
+  const brng = (Math.atan2(y, x) * 180) / Math.PI;
+  return (brng + 360) % 360;
+}
+
+function MapController({
+  bounds,
+  isMobile,
+}: {
+  bounds: L.LatLngBoundsExpression;
+  isMobile: boolean;
+}) {
   const map = useMap();
   useEffect(() => {
     if (bounds) {
       map.fitBounds(bounds, {
-        padding: [60, 60],
+        paddingTopLeft: isMobile ? [40, 30] : [70, 70],
+        paddingBottomRight: isMobile ? [30, 260] : [70, 70],
         maxZoom: 16,
         animate: true,
       });
     }
-  }, [map, bounds]);
+  }, [map, bounds, isMobile]);
   return null;
 }
 
@@ -43,10 +104,23 @@ export default function LeafletDeliveryMap({
   clientAddress = "Endereço de Entrega",
   clientName = "Cliente",
   orderId,
+  onMetricsUpdate,
+  className = "",
 }: LeafletDeliveryMapProps) {
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([]);
-  const [routeInfo, setRouteInfo] = useState<{ distanceKm: string; durationMin: string } | null>(null);
-  const [loadingRoute, setLoadingRoute] = useState(true);
+  const [prevCourier, setPrevCourier] = useState<LatLng | null>(null);
+  const [courierHeading, setCourierHeading] = useState<number>(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detecta se a tela é mobile para ajustar o padding da visualização do mapa
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Calcula bounds para enquadrar perfeitamente origem, destino e entregador
   const bounds = useMemo<L.LatLngBoundsExpression>(() => {
@@ -58,9 +132,96 @@ export default function LeafletDeliveryMap({
       points.push([courier.lat, courier.lng]);
     }
     return points;
-  }, [origin, destination, courier]);
+  }, [origin.lat, origin.lng, destination.lat, destination.lng, courier?.lat, courier?.lng]);
 
-  // Ícones customizados do Leaflet estilizados com a identidade Pop Shake
+  // Atualiza ângulo/direção da moto quando o entregador se desloca
+  useEffect(() => {
+    if (courier) {
+      if (prevCourier) {
+        const delta = calculateHaversineDistanceKm(
+          prevCourier.lat,
+          prevCourier.lng,
+          courier.lat,
+          courier.lng
+        );
+        // Se deslocou mais de 2 metros, recalcula o ângulo da rotação
+        if (delta > 0.002) {
+          const bearing = calculateBearing(
+            prevCourier.lat,
+            prevCourier.lng,
+            courier.lat,
+            courier.lng
+          );
+          setCourierHeading(bearing);
+        }
+      }
+      setPrevCourier(courier);
+    }
+  }, [courier?.lat, courier?.lng]);
+
+  // Busca traçado da rota via OSRM e calcula distância e ETA dinâmicos
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchRoute() {
+      try {
+        const routeOrigin = courier || origin;
+        const res = await fetch("/api/routes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            origin: routeOrigin,
+            destination,
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && data.coordinates && data.coordinates.length > 0) {
+            setRouteCoordinates(data.coordinates);
+          }
+        }
+      } catch (err) {
+        console.warn("Aviso: Falha ao buscar traçado da rota OSRM:", err);
+      }
+    }
+
+    fetchRoute();
+    return () => {
+      isMounted = false;
+    };
+  }, [origin.lat, origin.lng, destination.lat, destination.lng, courier?.lat, courier?.lng]);
+
+  // Recalcula métricas dinâmicas em tempo real (distância, ETA e alerta de chegada)
+  useEffect(() => {
+    const activeOrigin = courier || origin;
+    const distanceKm = calculateHaversineDistanceKm(
+      activeOrigin.lat,
+      activeOrigin.lng,
+      destination.lat,
+      destination.lng
+    );
+
+    // Velocidade média urbana em trânsito de motocicleta (~26 km/h) + 2 min margem de parada
+    const etaMinutes = Math.max(1, Math.round((distanceKm / 26) * 60 + 2));
+    const isArriving = distanceKm <= 0.3; // Menos de 300 metros
+
+    const formattedDistance =
+      distanceKm < 1
+        ? `${Math.round(distanceKm * 1000)} m`
+        : `${distanceKm.toFixed(1).replace(".", ",")} km`;
+
+    const formattedEta = isArriving ? "Chegando!" : `${etaMinutes} min`;
+
+    onMetricsUpdate?.({
+      distanceKm,
+      formattedDistance,
+      etaMinutes,
+      formattedEta,
+      isArriving,
+    });
+  }, [courier?.lat, courier?.lng, origin.lat, origin.lng, destination.lat, destination.lng, onMetricsUpdate]);
+
+  // Ícone estilizado da Loja física
   const storeIcon = useMemo(() => {
     return L.divIcon({
       className: "custom-store-pin",
@@ -78,6 +239,7 @@ export default function LeafletDeliveryMap({
     });
   }, []);
 
+  // Ícone estilizado do Destino (Residência do cliente)
   const destinationIcon = useMemo(() => {
     return L.divIcon({
       className: "custom-destination-pin",
@@ -95,163 +257,86 @@ export default function LeafletDeliveryMap({
     });
   }, []);
 
+  // Ícone estilizado do Entregador com rotação de ângulo suave
   const courierIcon = useMemo(() => {
     return L.divIcon({
       className: "custom-courier-pin",
       html: `
-        <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 52px; height: 52px;">
-          <div style="position: absolute; inset: 0; border-radius: 9999px; background: rgba(245, 158, 11, 0.45); animation: ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
-          <div style="position: relative; width: 42px; height: 42px; border-radius: 9999px; background: linear-gradient(135deg, #F59E0B, #D97706); display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 6px 20px rgba(245, 158, 11, 0.7); border: 3px solid #ffffff; font-size: 21px; cursor: pointer;">
+        <div style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 56px; height: 56px; transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);">
+          <!-- Pulso de radar do GPS -->
+          <div style="position: absolute; inset: 2px; border-radius: 9999px; background: rgba(245, 158, 11, 0.4); animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+          
+          <!-- Círculo da Moto com Rotação de Direção -->
+          <div style="position: relative; width: 44px; height: 44px; border-radius: 9999px; background: linear-gradient(135deg, #F59E0B, #D97706); display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 8px 24px rgba(245, 158, 11, 0.7); border: 3px solid #ffffff; font-size: 22px; cursor: pointer; transform: rotate(${courierHeading}deg); transition: transform 0.5s ease-out;">
             🛵
           </div>
-          <div style="position: absolute; bottom: -8px; background: #190B1A; color: #FDE68A; font-size: 9px; font-weight: 900; padding: 2px 7px; border-radius: 9999px; border: 1.5px solid #F59E0B; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.4);">
+
+          <!-- Badge flutuante 'AO VIVO' -->
+          <div style="position: absolute; bottom: -6px; background: #190B1A; color: #FDE68A; font-size: 9px; font-weight: 900; padding: 1.5px 7px; border-radius: 9999px; border: 1.5px solid #F59E0B; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; box-shadow: 0 3px 8px rgba(0,0,0,0.45);">
             Ao Vivo
           </div>
         </div>
       `,
-      iconSize: [52, 52],
-      iconAnchor: [26, 26],
-      popupAnchor: [0, -26],
+      iconSize: [56, 56],
+      iconAnchor: [28, 28],
+      popupAnchor: [0, -28],
     });
-  }, []);
-
-  // Busca traçado de rota gratuito (OSRM)
-  useEffect(() => {
-    let isMounted = true;
-    async function fetchRoute() {
-      setLoadingRoute(true);
-      try {
-        // Se o entregador estiver transmitindo GPS, a rota liga o entregador ao destino
-        const routeOrigin = courier || origin;
-        const res = await fetch("/api/routes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            origin: routeOrigin,
-            destination,
-          }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          if (isMounted && data.coordinates && data.coordinates.length > 0) {
-            setRouteCoordinates(data.coordinates);
-            setRouteInfo({
-              distanceKm: data.distanceKm || "Calculando...",
-              durationMin: data.durationMin || "Calculando...",
-            });
-          }
-        }
-      } catch (err) {
-        console.warn("Falha ao buscar traçado da rota:", err);
-      } finally {
-        if (isMounted) setLoadingRoute(false);
-      }
-    }
-
-    fetchRoute();
-    return () => {
-      isMounted = false;
-    };
-  }, [origin.lat, origin.lng, destination.lat, destination.lng, courier?.lat, courier?.lng]);
+  }, [courierHeading]);
 
   const centerLat = (origin.lat + destination.lat) / 2;
   const centerLng = (origin.lng + destination.lng) / 2;
 
   return (
-    <div className="relative w-full h-full min-h-[420px] rounded-3xl overflow-hidden shadow-2xl border border-[#512B54]/20 bg-muted/40">
-      {/* Painel Flutuante de Status e Rastreamento */}
-      <div className="absolute top-4 left-4 right-4 sm:right-auto sm:w-96 z-[1000] pointer-events-auto">
-        <div className="bg-white/95 dark:bg-[#190B1A]/95 backdrop-blur-xl border border-gray-200/80 dark:border-[#512B54]/60 rounded-2xl p-4 shadow-xl space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="font-heading font-black text-xs uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-[#9306CF] to-[#940068]">
-                {isGpsActive ? "Rastreamento GPS Ativo" : "Pedido a Caminho"}
-              </span>
-            </div>
-            {orderId && (
-              <span className="font-mono text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
-                #{orderId.substring(0, 6)}
-              </span>
-            )}
-          </div>
-
-          <p className="text-xs text-foreground/90 font-medium leading-relaxed">
-            {isGpsActive
-              ? "Nosso entregador está a caminho com sua entrega! A posição no mapa é atualizada ao vivo via satélite."
-              : "Pedido a caminho! Nosso entregador está se deslocando até o seu endereço com todo o cuidado."}
-          </p>
-
-          {/* Dados de Distância e Tempo */}
-          {routeInfo && (
-            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-gray-100 dark:border-[#512B54]/30 text-xs">
-              <div className="bg-purple-50/80 dark:bg-[#230E26]/60 p-2.5 rounded-xl flex items-center gap-2">
-                <Navigation2 className="w-4 h-4 text-[#9306CF] shrink-0" />
-                <div>
-                  <span className="text-[10px] text-muted-foreground block uppercase font-mono">Distância</span>
-                  <strong className="font-bold text-foreground">{routeInfo.distanceKm}</strong>
-                </div>
-              </div>
-              <div className="bg-pink-50/80 dark:bg-[#230E26]/60 p-2.5 rounded-xl flex items-center gap-2">
-                <Clock className="w-4 h-4 text-[#940068] shrink-0" />
-                <div>
-                  <span className="text-[10px] text-muted-foreground block uppercase font-mono">Tempo Est.</span>
-                  <strong className="font-bold text-foreground">{routeInfo.durationMin}</strong>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 pt-0.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span className="truncate">{clientAddress}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Mapa Leaflet com OpenStreetMap 100% Gratuito */}
+    <div className={`relative w-full h-full bg-muted/40 overflow-hidden ${className}`}>
+      {/* Mapa Leaflet Full Viewport */}
       <MapContainer
         center={[centerLat, centerLng]}
         zoom={14}
         scrollWheelZoom={true}
-        style={{ width: "100%", height: "100%", minHeight: "420px" }}
-        className="z-0"
+        style={{ width: "100%", height: "100%", zIndex: 0 }}
+        attributionControl={false}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maxZoom={19}
         />
 
-        <MapController bounds={bounds} />
+        <MapController bounds={bounds} isMobile={isMobile} />
 
-        {/* Marcador da Loja Pop Shake */}
+        {/* Marcador da Loja */}
         <Marker position={[origin.lat, origin.lng]} icon={storeIcon}>
           <Popup>
             <div className="text-xs p-1 font-sans">
-              <strong className="font-heading text-sm text-[#9306CF] block">🍧 Pop Shake Sorveteria</strong>
+              <strong className="font-heading text-sm text-[#9306CF] block">
+                🍧 Pop Shake Sorveteria
+              </strong>
               <span>Ponto de partida do seu pedido</span>
             </div>
           </Popup>
         </Marker>
 
-        {/* Marcador da Casa / Destino */}
+        {/* Marcador da Residência */}
         <Marker position={[destination.lat, destination.lng]} icon={destinationIcon}>
           <Popup>
             <div className="text-xs p-1 font-sans">
-              <strong className="font-heading text-sm text-emerald-600 block">🏠 Endereço de Entrega</strong>
+              <strong className="font-heading text-sm text-emerald-600 block">
+                🏠 Endereço de Entrega
+              </strong>
               <span>{clientName}</span>
               <p className="text-muted-foreground mt-1 text-[11px]">{clientAddress}</p>
             </div>
           </Popup>
         </Marker>
 
-        {/* Marcador do Entregador (quando transmitindo GPS ao vivo) */}
+        {/* Marcador do Entregador com GPS ao Vivo */}
         {courier && (
           <Marker position={[courier.lat, courier.lng]} icon={courierIcon}>
             <Popup>
               <div className="text-xs p-1 font-sans">
-                <strong className="font-heading text-sm text-amber-600 block">🛵 Entregador Pop Shake</strong>
+                <strong className="font-heading text-sm text-amber-600 block">
+                  🛵 Entregador Pop Shake
+                </strong>
                 <span>Deslocando-se até você em tempo real</span>
               </div>
             </Popup>

@@ -613,21 +613,24 @@ export default function Storefront() {
             <div className="flex md:hidden items-center min-w-0">
               <HeaderAddressButton
                 isMobile
-                className="max-w-[110px] truncate text-xs px-2 py-1 rounded-full border-border/40"
+                className="max-w-[100px] xs:max-w-[115px] truncate text-xs px-2 py-1 rounded-full border-border/40"
               />
             </div>
           </div>
 
-          {/* ── 2. CENTRO: Busca Centralizada no Mobile (< md) ── */}
-          <div className="flex md:hidden flex-1 justify-center max-w-[160px] mx-2">
+          {/* ── 2. CENTRO: Barra de Busca Centralizada no Mobile (< md) ── */}
+          <div className="flex md:hidden flex-1 justify-center max-w-[200px] mx-1.5 xs:mx-2 min-w-0">
             <button
               type="button"
               onClick={() => setMobileSearchOpen(true)}
-              className="flex items-center justify-center w-8 h-8 rounded-full border border-border/50 hover:border-[#9306CF]/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 text-foreground transition-all shadow-xs active:scale-95 cursor-pointer"
+              className="w-full h-9 px-2.5 xs:px-3 rounded-full bg-muted/60 border border-border/50 hover:border-[#9306CF]/50 hover:bg-muted/80 flex items-center gap-2 text-muted-foreground text-xs transition-all shadow-xs active:scale-[0.98] cursor-pointer min-w-0"
               aria-label="Buscar produtos no cardápio"
               title="Buscar produtos"
             >
-              <Search className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+              <Search className="w-3.5 h-3.5 text-[#9306CF] dark:text-[#C7A9C9] shrink-0" />
+              <span className="truncate select-none text-left font-medium text-[11px] xs:text-xs">
+                O que vai pedir hoje?
+              </span>
             </button>
           </div>
 

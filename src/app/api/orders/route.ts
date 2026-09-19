@@ -22,6 +22,10 @@ function formatOrder(o: any) {
     courier_latitude: o.courierLatitude ?? null,
     courier_longitude: o.courierLongitude ?? null,
     courier_updated_at: o.courierUpdatedAt ? o.courierUpdatedAt.toISOString() : null,
+    origin_latitude: o.originLatitude ?? -15.6536,
+    origin_longitude: o.originLongitude ?? -56.1322,
+    origin_address: o.originAddress || "Várzea Grande, MT",
+    branch_id: o.branchId || "store_config",
     delivery_address: {
       street: o.deliveryStreet,
       number: o.deliveryNumber,

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -18,10 +18,17 @@ import {
   RefreshCw,
   Store,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  MessageCircle,
+  PackageCheck,
+  Check,
+  Navigation,
 } from "lucide-react";
 import { Order, orderService } from "@/services/orderService";
-import { storeSettingsService } from "@/services/storeSettingsService";
+import { storeSettingsService, StoreSettings } from "@/services/storeSettingsService";
 import { Button } from "@/components/ui/button";
+import { DeliveryMetrics } from "@/components/logistics/LeafletDeliveryMap";
 
 // Carregamento dinâmico estritamente no cliente para evitar erros de SSR do Leaflet
 const LeafletDeliveryMap = dynamic(
@@ -29,7 +36,7 @@ const LeafletDeliveryMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full min-h-[420px] rounded-3xl bg-muted/40 animate-pulse flex flex-col items-center justify-center p-6 space-y-3 text-muted-foreground border border-border/40">
+      <div className="w-full h-full min-h-[420px] bg-muted/40 animate-pulse flex flex-col items-center justify-center p-6 space-y-3 text-muted-foreground">
         <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center text-[#9306CF]">
           <RefreshCw className="w-6 h-6 animate-spin" />
         </div>
@@ -53,16 +60,20 @@ function TrackingContent() {
   const orderId = searchParams.get("id");
 
   const [order, setOrder] = useState<Order | null>(null);
+  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
   const [storeCoords, setStoreCoords] = useState<{ lat: number; lng: number }>(POP_SHAKE_DEFAULT_COORDS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastPollTime, setLastPollTime] = useState<Date>(new Date());
+  const [deliveryMetrics, setDeliveryMetrics] = useState<DeliveryMetrics | null>(null);
+  const [bottomSheetExpanded, setBottomSheetExpanded] = useState(false);
 
-  // Busca coordenadas oficiais da loja das configurações
+  // Busca configurações da loja (coordenadas e WhatsApp comercial)
   useEffect(() => {
     storeSettingsService
       .getSettings()
       .then((settings) => {
+        setStoreSettings(settings);
         if (settings.storeLatitude && settings.storeLongitude) {
           setStoreCoords({
             lat: settings.storeLatitude,
@@ -104,7 +115,7 @@ function TrackingContent() {
     };
   }, [orderId]);
 
-  // Polling a cada 10s para atualizar posição do entregador e status do pedido
+  // Polling a cada 8s para atualizar posição do entregador e status do pedido
   useEffect(() => {
     if (!orderId || !order || order.status !== "delivering") return;
 
@@ -116,7 +127,7 @@ function TrackingContent() {
       } catch (e) {
         // Silencioso em caso de oscilação momentânea de rede
       }
-    }, 10000);
+    }, 8000);
 
     return () => clearInterval(interval);
   }, [orderId, order?.status]);
@@ -148,7 +159,7 @@ function TrackingContent() {
           Selecione um pedido em andamento na tela de pedidos para acompanhar a entrega ao vivo.
         </p>
         <Link href="/pedidos">
-          <Button className="h-10 px-6 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] text-white text-xs font-bold uppercase tracking-wider">
+          <Button className="h-10 px-6 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] text-white text-xs font-bold uppercase tracking-wider cursor-pointer">
             Ver Meus Pedidos
           </Button>
         </Link>
@@ -162,10 +173,16 @@ function TrackingContent() {
 
   const clientName = order.user?.fullName || order.user?.username || "Cliente";
 
-  // Coordenadas de destino gravadas no pedido ou fallback para a região
+  // Origem do despacho: prioriza a origem gravada no próprio pedido (multilojas/filiais)
+  const originCoords = {
+    lat: order.origin_latitude ?? storeCoords.lat,
+    lng: order.origin_longitude ?? storeCoords.lng,
+  };
+
+  // Coordenadas de destino gravadas no pedido
   const destCoords = {
-    lat: order.delivery_address?.latitude || POP_SHAKE_DEFAULT_COORDS.lat + 0.008,
-    lng: order.delivery_address?.longitude || POP_SHAKE_DEFAULT_COORDS.lng + 0.008,
+    lat: order.delivery_address?.latitude || originCoords.lat + 0.008,
+    lng: order.delivery_address?.longitude || originCoords.lng + 0.008,
   };
 
   const courierCoords =
@@ -173,28 +190,39 @@ function TrackingContent() {
       ? { lat: order.courier_latitude, lng: order.courier_longitude }
       : null;
 
+  // Link para contato via WhatsApp
+  const rawWhatsapp = (storeSettings?.whatsappNumber || "5565999999999").replace(/\D/g, "");
+  const whatsappUrl = `https://wa.me/${rawWhatsapp}?text=${encodeURIComponent(
+    `Olá! Gostaria de falar sobre o pedido #${order.id.substring(0, 6)} da Pop Shake Sorveteria.`
+  )}`;
+
   // --------------------------------------------------------------------------
   // CASO 1: Pedido "A CAMINHO / SAIU PARA ENTREGA" (delivering)
-  // Exibe o mapa Leaflet + OpenStreetMap 100% gratuito com rastreamento
+  // Layout Imersivo Fullscreen Padrão iFood / Uber Eats
   // --------------------------------------------------------------------------
   if (order.status === "delivering") {
+    const isArriving = deliveryMetrics?.isArriving || false;
+    const etaText = deliveryMetrics?.formattedEta || "15 - 25 min";
+    const distanceText = deliveryMetrics?.formattedDistance || "Calculando...";
+
     return (
-      <main className="min-h-screen bg-background flex flex-col">
-        {/* Topbar do Rastreamento */}
-        <header className="w-full bg-white/90 dark:bg-[#190B1A]/90 backdrop-blur-md border-b border-border/50 px-4 py-3 sticky top-0 z-30 flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-3">
+      <main className="fixed inset-0 w-full h-full overflow-hidden bg-background select-none">
+        {/* Topbar Flutuante Imersiva */}
+        <header className="fixed top-0 left-0 right-0 z-30 h-14 bg-white/90 dark:bg-[#190B1A]/90 backdrop-blur-md border-b border-border/50 px-4 flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2.5">
             <Link
               href="/pedidos"
               className="w-9 h-9 rounded-xl bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
+              title="Voltar para Meus Pedidos"
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                <span className="font-heading font-black text-sm uppercase tracking-tight text-foreground">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                <h1 className="font-heading font-black text-sm uppercase tracking-tight text-foreground">
                   Rastreamento ao Vivo
-                </span>
+                </h1>
               </div>
               <span className="font-mono text-[10px] text-muted-foreground block">
                 Pedido #{order.id.substring(0, 6)} · {order.items?.length || 1} itens
@@ -203,32 +231,399 @@ function TrackingContent() {
           </div>
 
           <div className="flex items-center gap-2">
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-all shadow-xs"
+              title="Suporte da Loja no WhatsApp"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline">WhatsApp</span>
+            </a>
+
             <Link href="/pedidos">
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 px-3 rounded-xl text-xs font-bold"
+                className="h-8 px-3 rounded-xl text-xs font-bold cursor-pointer"
               >
-                Detalhes
+                Pedidos
               </Button>
             </Link>
           </div>
         </header>
 
-        {/* Área do Mapa Fullscreen / Responsivo */}
-        <div className="flex-1 w-full p-2 sm:p-4 max-w-7xl mx-auto flex flex-col">
-          <div className="flex-1 w-full h-[calc(100vh-140px)] min-h-[480px]">
-            <LeafletDeliveryMap
-              origin={storeCoords}
-              destination={destCoords}
-              courier={courierCoords}
-              isGpsActive={order.is_gps_tracking_active}
-              clientAddress={clientAddress}
-              clientName={clientName}
-              orderId={order.id}
-            />
-          </div>
+        {/* ── MAPA LEAFLET EM TELA CHEIA (100% VIEWPORT) ── */}
+        <div className="fixed inset-0 top-14 w-full h-[calc(100vh-56px)] z-0">
+          <LeafletDeliveryMap
+            origin={originCoords}
+            destination={destCoords}
+            courier={courierCoords}
+            isGpsActive={order.is_gps_tracking_active}
+            clientAddress={clientAddress}
+            clientName={clientName}
+            orderId={order.id}
+            onMetricsUpdate={setDeliveryMetrics}
+          />
         </div>
+
+        {/* ── DESKTOP: PAINEL LATERAL FLUTUANTE ESTILO UBER EATS / RAPPI (md+) ── */}
+        <aside className="hidden md:flex flex-col fixed top-18 left-6 bottom-6 w-[410px] z-20 bg-white/95 dark:bg-[#190B1A]/95 backdrop-blur-xl border border-border/70 rounded-3xl shadow-2xl p-5 overflow-y-auto space-y-4 animate-in slide-in-from-left duration-300">
+          {/* Alerta de Chegada Iminente (< 300m) */}
+          {isArriving && (
+            <div className="p-3.5 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border-2 border-emerald-500/50 rounded-2xl flex items-center gap-3 animate-pulse">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-emerald-500/30 shrink-0">
+                🛵
+              </div>
+              <div className="text-xs">
+                <strong className="block font-heading font-black text-sm text-emerald-950 dark:text-emerald-200 uppercase tracking-tight">
+                  Entregador chegando!
+                </strong>
+                <span className="text-emerald-800 dark:text-emerald-300 text-[11px]">
+                  Fique atento à campainha, portão ou portaria.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Card Principal de Status e ETA */}
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-[#9306CF]/10 via-[#940068]/5 to-transparent border border-[#9306CF]/20 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#9306CF] animate-ping" />
+                <span>{isArriving ? "Aproximação Final" : "Em Deslocamento"}</span>
+              </span>
+              <span className="font-mono text-xs font-bold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md">
+                #{order.id.substring(0, 6)}
+              </span>
+            </div>
+
+            <div className="flex items-baseline justify-between">
+              <div>
+                <span className="text-[11px] text-muted-foreground uppercase font-mono block">Tempo Estimado</span>
+                <span className="font-heading font-black text-2xl text-foreground">
+                  {etaText}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-[11px] text-muted-foreground uppercase font-mono block">Distância</span>
+                <span className="font-mono font-bold text-lg text-emerald-600 dark:text-emerald-400">
+                  {distanceText}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Stepper Visual (Confirmado ➔ Preparando ➔ A Caminho ➔ Chegando) */}
+          <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/50 space-y-2">
+            <span className="font-mono text-[10px] uppercase font-bold text-muted-foreground tracking-wider block text-center">
+              Progresso da Entrega
+            </span>
+            <div className="grid grid-cols-4 gap-1 text-center text-[10px]">
+              {/* Etapa 1: Confirmado */}
+              <div className="space-y-1">
+                <div className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto font-bold text-xs shadow-xs">
+                  ✓
+                </div>
+                <span className="font-bold text-foreground block text-[10px] leading-tight">Confirmado</span>
+              </div>
+
+              {/* Etapa 2: Preparando */}
+              <div className="space-y-1">
+                <div className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto font-bold text-xs shadow-xs">
+                  ✓
+                </div>
+                <span className="font-bold text-foreground block text-[10px] leading-tight">Pronto</span>
+              </div>
+
+              {/* Etapa 3: A Caminho */}
+              <div className="space-y-1">
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center mx-auto font-bold text-xs shadow-xs ${
+                    isArriving
+                      ? "bg-emerald-500 text-white"
+                      : "bg-[#9306CF] text-white animate-pulse"
+                  }`}
+                >
+                  🛵
+                </div>
+                <span className="font-bold text-[#9306CF] dark:text-[#C7A9C9] block text-[10px] leading-tight">
+                  A Caminho
+                </span>
+              </div>
+
+              {/* Etapa 4: Chegando */}
+              <div className="space-y-1">
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center mx-auto font-bold text-xs shadow-xs ${
+                    isArriving
+                      ? "bg-emerald-500 text-white animate-bounce shadow-md shadow-emerald-500/40"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  📍
+                </div>
+                <span
+                  className={`font-bold block text-[10px] leading-tight ${
+                    isArriving ? "text-emerald-600 dark:text-emerald-400 font-black" : "text-muted-foreground"
+                  }`}
+                >
+                  Chegando
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card do Entregador */}
+          <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/50 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 text-white flex items-center justify-center shadow-md shadow-amber-500/20 text-xl shrink-0">
+                🛵
+              </div>
+              <div className="min-w-0">
+                <h4 className="font-heading font-bold text-sm text-foreground truncate">
+                  Entregador Pop Shake
+                </h4>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  <span>{order.is_gps_tracking_active ? "GPS Ativo em Tempo Real" : "Em Trânsito"}</span>
+                </p>
+              </div>
+            </div>
+
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white transition-colors shrink-0 shadow-xs"
+              title="Falar no WhatsApp"
+            >
+              <MessageCircle className="w-4 h-4" />
+            </a>
+          </div>
+
+          {/* Acordeão de Itens e Endereço */}
+          <div className="border border-border/60 rounded-2xl overflow-hidden bg-muted/20">
+            <button
+              type="button"
+              onClick={() => setBottomSheetExpanded(!bottomSheetExpanded)}
+              className="w-full p-3.5 flex items-center justify-between text-xs font-bold text-foreground hover:bg-muted/40 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4 text-[#9306CF]" />
+                <span>Itens do Pedido ({order.items?.length || 1})</span>
+              </div>
+              {bottomSheetExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+
+            {bottomSheetExpanded && (
+              <div className="p-3.5 pt-0 space-y-3 text-xs border-t border-border/40">
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {order.items?.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between py-1 border-b border-border/20 last:border-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="w-5 h-5 rounded-md bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center font-bold text-[10px] shrink-0">
+                          {item.quantity}x
+                        </span>
+                        <span className="truncate font-medium text-foreground">
+                          {item.product?.name || "Produto Pop Shake"}
+                        </span>
+                      </div>
+                      <span className="font-mono font-bold text-foreground shrink-0 pl-2">
+                        R$ {(item.price_at_time * item.quantity).toFixed(2).replace(".", ",")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-2 border-t border-border/40 space-y-1 text-[11px]">
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Taxa de Entrega:</span>
+                    <span>R$ {(order.delivery_fee || 0).toFixed(2).replace(".", ",")}</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-sm text-foreground pt-1">
+                    <span>Total Pago:</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-mono">
+                      R$ {order.total_amount.toFixed(2).replace(".", ",")}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-border/40 space-y-1">
+                  <div className="flex items-start gap-1.5 text-muted-foreground text-[11px]">
+                    <MapPin className="w-3.5 h-3.5 text-[#9306CF] shrink-0 mt-0.5" />
+                    <span>{clientAddress}</span>
+                  </div>
+                  {order.origin_address && (
+                    <div className="flex items-start gap-1.5 text-muted-foreground text-[10px]">
+                      <Store className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                      <span>Origem: {order.origin_address}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Botão de Suporte WhatsApp */}
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full h-11 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:opacity-95 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-500/20 cursor-pointer"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>Falar no WhatsApp com a Loja</span>
+          </a>
+        </aside>
+
+        {/* ── MOBILE: BOTTOM SHEET FLUTUANTE DESLIZANTE (< md) ── */}
+        <aside
+          className={`md:hidden fixed bottom-0 left-0 right-0 z-20 bg-white/95 dark:bg-[#190B1A]/95 backdrop-blur-xl border-t border-border/70 rounded-t-3xl shadow-2xl transition-all duration-300 ${
+            bottomSheetExpanded ? "max-h-[82vh]" : "max-h-[290px]"
+          } overflow-y-auto p-4 space-y-3`}
+        >
+          {/* Pílula de Arraste / Clique para Expandir */}
+          <div
+            onClick={() => setBottomSheetExpanded(!bottomSheetExpanded)}
+            className="w-full flex flex-col items-center cursor-pointer py-1 -mt-1"
+          >
+            <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full" />
+          </div>
+
+          {/* Alerta de Chegada Iminente (< 300m) */}
+          {isArriving && (
+            <div className="p-2.5 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/50 rounded-xl flex items-center gap-2.5 animate-pulse">
+              <span className="text-xl">🛵</span>
+              <div className="text-xs">
+                <strong className="block font-bold text-emerald-950 dark:text-emerald-200">
+                  Entregador chegando!
+                </strong>
+                <span className="text-emerald-800 dark:text-emerald-300 text-[10px]">
+                  Fique atento à campainha ou interfone.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Linha Resumo: ETA + Distância */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 text-white flex items-center justify-center text-lg shadow-sm">
+                🛵
+              </div>
+              <div>
+                <span className="font-heading font-black text-lg sm:text-xl text-foreground block leading-tight">
+                  {etaText}
+                </span>
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <span>{distanceText}</span>
+                  <span>•</span>
+                  <span className="text-[#9306CF] dark:text-[#C7A9C9] font-bold">
+                    {isArriving ? "Na sua rua!" : "A Caminho"}
+                  </span>
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setBottomSheetExpanded(!bottomSheetExpanded)}
+              className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] flex items-center gap-1 p-2 rounded-xl bg-[#9306CF]/10 cursor-pointer"
+            >
+              <span>{bottomSheetExpanded ? "Menos" : "Detalhes"}</span>
+              {bottomSheetExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+
+          {/* Stepper Visual Compacto */}
+          <div className="grid grid-cols-4 gap-1 text-center text-[9px] pt-1 border-t border-border/40">
+            <div className="space-y-1">
+              <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto font-bold text-[10px]">
+                ✓
+              </div>
+              <span className="font-bold text-foreground">Confirmado</span>
+            </div>
+            <div className="space-y-1">
+              <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto font-bold text-[10px]">
+                ✓
+              </div>
+              <span className="font-bold text-foreground">Pronto</span>
+            </div>
+            <div className="space-y-1">
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center mx-auto font-bold text-[10px] ${
+                  isArriving ? "bg-emerald-500 text-white" : "bg-[#9306CF] text-white animate-pulse"
+                }`}
+              >
+                🛵
+              </div>
+              <span className="font-bold text-[#9306CF] dark:text-[#C7A9C9]">A Caminho</span>
+            </div>
+            <div className="space-y-1">
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center mx-auto font-bold text-[10px] ${
+                  isArriving ? "bg-emerald-500 text-white animate-bounce" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                📍
+              </div>
+              <span className={`font-bold ${isArriving ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
+                Chegando
+              </span>
+            </div>
+          </div>
+
+          {/* Detalhes Expandidos no Mobile */}
+          {bottomSheetExpanded && (
+            <div className="space-y-3 pt-2 border-t border-border/40 animate-in fade-in duration-200">
+              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                {order.items?.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between text-xs py-1 border-b border-border/20 last:border-0">
+                    <span className="truncate text-foreground">
+                      <strong className="text-[#9306CF]">{item.quantity}x</strong> {item.product?.name}
+                    </span>
+                    <span className="font-mono font-bold text-foreground shrink-0 pl-2">
+                      R$ {(item.price_at_time * item.quantity).toFixed(2).replace(".", ",")}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-between items-center text-xs pt-1 font-bold">
+                <span className="text-muted-foreground">Total do Pedido:</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-mono text-sm">
+                  R$ {order.total_amount.toFixed(2).replace(".", ",")}
+                </span>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-muted/40 text-[11px] text-muted-foreground space-y-1">
+                <div className="flex items-start gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-[#9306CF] shrink-0 mt-0.5" />
+                  <span className="truncate">{clientAddress}</span>
+                </div>
+                {order.origin_address && (
+                  <div className="flex items-start gap-1.5 text-[10px]">
+                    <Store className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                    <span className="truncate">Sede: {order.origin_address}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Botão de WhatsApp */}
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:opacity-95 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-500/20"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>Falar no WhatsApp</span>
+          </a>
+        </aside>
       </main>
     );
   }
@@ -358,6 +753,12 @@ function TrackingContent() {
               <span className="text-muted-foreground shrink-0">Entrega em:</span>
               <span className="text-right text-foreground font-medium">{clientAddress}</span>
             </div>
+            {order.origin_address && (
+              <div className="flex justify-between items-center text-[11px] text-muted-foreground">
+                <span>Filial/Origem:</span>
+                <span className="font-medium">{order.origin_address}</span>
+              </div>
+            )}
             <div className="flex justify-between items-center pt-1 border-t border-border/40">
               <span className="text-muted-foreground">Total:</span>
               <strong className="text-emerald-600 dark:text-emerald-400 font-mono text-sm">
@@ -371,14 +772,14 @@ function TrackingContent() {
             <Link href="/pedidos" className="w-full">
               <Button
                 variant="outline"
-                className="w-full h-11 rounded-2xl text-xs font-bold uppercase tracking-wider"
+                className="w-full h-11 rounded-2xl text-xs font-bold uppercase tracking-wider cursor-pointer"
               >
                 Ver Lista de Pedidos
               </Button>
             </Link>
 
             <Link href="/" className="w-full">
-              <Button className="w-full h-11 rounded-2xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white text-xs font-bold uppercase tracking-wider shadow-md shadow-[#9306CF]/20">
+              <Button className="w-full h-11 rounded-2xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white text-xs font-bold uppercase tracking-wider shadow-md shadow-[#9306CF]/20 cursor-pointer">
                 Ir para o Cardápio
               </Button>
             </Link>
@@ -398,7 +799,7 @@ export default function RastreamentoPage() {
             <RefreshCw className="w-6 h-6" />
           </div>
           <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground font-bold">
-            Carregando Rastreamento...
+            Carregando sistema de rastreamento...
           </p>
         </div>
       }

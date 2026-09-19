@@ -195,26 +195,19 @@ export async function POST(request: Request) {
       }
     }
 
-    // 2.1. Cálculo da Taxa de Entrega com Regra de Frete Grátis
+    // 2.1. Cálculo da Taxa de Entrega com Regra de Frete Grátis e Origem do Estabelecimento
     let calculatedDeliveryFee = 5.0;
-    try {
-      const storeSettings = await prisma.storeSettings.findUnique({
-        where: { id: "store_config" },
-      });
-      if (storeSettings) {
-        const fee = Number(storeSettings.deliveryFee);
-        const threshold =
-          storeSettings.freeDeliveryThreshold !== null
-            ? Number(storeSettings.freeDeliveryThreshold)
-            : null;
-        if (threshold !== null && calculatedSubtotal >= threshold) {
-          calculatedDeliveryFee = 0;
-        } else {
-          calculatedDeliveryFee = fee;
-        }
+    if (storeSettings) {
+      const fee = Number(storeSettings.deliveryFee);
+      const threshold =
+        storeSettings.freeDeliveryThreshold !== null
+          ? Number(storeSettings.freeDeliveryThreshold)
+          : null;
+      if (threshold !== null && calculatedSubtotal >= threshold) {
+        calculatedDeliveryFee = 0;
+      } else {
+        calculatedDeliveryFee = fee;
       }
-    } catch (err) {
-      console.warn("Aviso: Falha ao consultar storeSettings, aplicando taxa padrão:", err);
     }
 
     const totalDiscount = Number((promoDiscountTotal + couponDiscount).toFixed(2));
@@ -247,6 +240,10 @@ export async function POST(request: Request) {
           deliveryZip: deliveryAddress.zip || null,
           deliveryLatitude: deliveryAddress.latitude || null,
           deliveryLongitude: deliveryAddress.longitude || null,
+          originLatitude: storeSettings?.storeLatitude ?? -15.6536,
+          originLongitude: storeSettings?.storeLongitude ?? -56.1322,
+          originAddress: storeSettings?.storeAddress ?? "Várzea Grande, MT",
+          branchId: storeSettings?.id ?? "store_config",
           items: {
             create: validatedOrderItems.map((oi) => ({
               productId: oi.productId,
