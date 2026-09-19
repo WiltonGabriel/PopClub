@@ -225,4 +225,4 @@ npm run build
 
 Copyright © 2026 **Pop Shake Sorveteria** & **Wilton Gabriel (Equipe ADP)**. Todos os direitos reservados.
 
-Este projeto é um software comercial privado e confidencial. Nenhuma parte desta aplicação pode ser reproduzida, copiada, distribuída ou transmitida sem a prévia autorização por escrito dos detentores dos direitos autorais. Para os termos legais completos, consulte o arquivo [LICENSE](./LICENSE).
+Este projeto é um software comercial estritamente privado e confidencial (Closed-Source / All Rights Reserved). Nenhuma parte desta aplicação pode ser reproduzida, copiada, clonada, distribuída ou transmitida sem a expressa e prévia autorização por escrito dos detentores dos direitos autorais.
