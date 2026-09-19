@@ -461,10 +461,10 @@ export default function Storefront() {
       ───────────────────────────────────────── */}
       {/* ─────────────────────────────────────────
           HEADER COMPACTO & PROFISSIONAL
-          Mobile: Logo + Endereço + Menu/Avatar (Sem cortes, sem barra duplicada)
-          Desktop: Logo + Endereço + Busca + Carrinho + Pedidos + AdminToggle + Menu + Tema
+          Mobile: Logo + Endereço + Menu/Avatar (Sem cortes)
+          Desktop: Logo + Endereço + Busca + Pedidos + AdminToggle + Carrinho + Perfil + Tema
       ───────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 w-full max-w-full overflow-x-hidden glass-header">
+      <header className="sticky top-0 z-50 w-full glass-header">
         {/* Single contained row — max-w-7xl keeps it from stretching */}
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-4 w-full">
 
@@ -508,28 +508,13 @@ export default function Storefront() {
             </div>
           </div>
 
-          {/* ── RIGHT: Actions ── */}
+          {/* ── RIGHT: Actions na ordem exata solicitada ── */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
 
-            {/* Cart button — Desktop only (already present in BottomNav on mobile) */}
-            <button
-              onClick={() => setCartDrawerOpen(true)}
-              className="hidden md:flex relative items-center justify-center gap-2 bg-brand-folha-acai hover:bg-brand-folha-acai-dk text-white font-semibold text-xs sm:text-sm px-4 py-2.5 rounded-full transition-colors shadow-sm shrink-0 cursor-pointer"
-              aria-label={`Carrinho com ${totalItems} itens`}
-            >
-              <ShoppingBag className="w-4 h-4 shrink-0" />
-              <span>Carrinho</span>
-              {totalItems > 0 && (
-                <span className="bg-white text-brand-folha-acai text-xs font-black rounded-full px-1.5 py-0.5 min-w-[20px] text-center leading-none">
-                  {totalItems}
-                </span>
-              )}
-            </button>
-
-            {/* Meus Pedidos — Desktop only (already present in BottomNav on mobile) */}
+            {/* 1. [ Meus Pedidos ] — Desktop only */}
             <Link
               href="/pedidos"
-              className="hidden md:flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] border border-border/50 hover:border-[#9306CF]/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full px-3 sm:px-3.5 py-1.5 sm:py-2 transition-all shrink-0 shadow-sm group"
+              className="hidden md:flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] border border-border/50 hover:border-[#9306CF]/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full px-3 sm:px-3.5 py-2 transition-all shrink-0 shadow-xs group cursor-pointer"
               title="Acompanhar Meus Pedidos"
               aria-label="Ver meus pedidos"
             >
@@ -537,14 +522,30 @@ export default function Storefront() {
               <span>Meus Pedidos</span>
             </Link>
 
-            {/* Switch de Modo Edição — exclusivo para Administrador no Desktop */}
+            {/* 2. [ Modo de Edição / Visualizar ] — exclusivo para Administrador no Desktop */}
             {isAdmin && <AdminEditModeToggle />}
 
-            {/* Account / User Menu */}
+            {/* 3. [ Ícone do Carrinho ] — Compacto (apenas ícone), imediatamente à esquerda do Perfil */}
+            <button
+              type="button"
+              onClick={() => setCartDrawerOpen(true)}
+              className="hidden md:flex relative h-10 w-10 p-2.5 rounded-full items-center justify-center bg-brand-folha-acai hover:bg-brand-folha-acai-dk text-white transition-colors shadow-xs shrink-0 cursor-pointer"
+              aria-label={`Carrinho com ${totalItems} itens`}
+              title={totalItems > 0 ? `Carrinho (${totalItems} ${totalItems === 1 ? "item" : "itens"})` : "Carrinho vazio"}
+            >
+              <ShoppingBag className="w-5 h-5 shrink-0" />
+              {totalItems > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 h-5 min-w-[20px] px-1 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center leading-none shadow-xs border-2 border-background">
+                  {totalItems > 99 ? "99+" : totalItems}
+                </span>
+              )}
+            </button>
+
+            {/* 4. [ Menu de Perfil / Administrador ] */}
             {!user ? (
               <Link
                 href="/login"
-                className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] border border-border/40 rounded-full px-2.5 sm:px-3.5 py-1.5 hover:bg-muted transition-colors shrink-0"
+                className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] border border-border/40 rounded-full px-2.5 sm:px-3.5 py-2 hover:bg-muted transition-colors shrink-0"
                 aria-label="Entrar na conta"
               >
                 <UserIcon className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9] shrink-0" />
@@ -553,14 +554,15 @@ export default function Storefront() {
             ) : (
               <div className="relative shrink-0" ref={userMenuRef}>
                 <button
+                  type="button"
                   onClick={() => setUserMenuOpen((prev) => !prev)}
-                  className="flex items-center gap-1.5 sm:gap-2 border border-border/50 hover:border-[#9306CF]/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full pl-1.5 pr-2 sm:pr-3 py-1 transition-all shrink-0 group shadow-sm"
+                  className="flex items-center gap-1.5 sm:gap-2 border border-border/50 hover:border-[#9306CF]/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full pl-1.5 pr-2 sm:pr-3 py-1 transition-all shrink-0 group shadow-xs cursor-pointer"
                   aria-expanded={userMenuOpen}
                   aria-haspopup="true"
                   aria-label={`Menu do usuário: ${userFirstName}`}
                 >
                   {/* Avatar circular */}
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-tr from-[#9306CF] to-[#940068] text-white flex items-center justify-center font-bold text-xs shadow-sm ring-1 ring-white/20 shrink-0">
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-tr from-[#9306CF] to-[#940068] text-white flex items-center justify-center font-bold text-xs shadow-xs ring-1 ring-white/20 shrink-0">
                     {userFirstName.charAt(0).toUpperCase() || <UserIcon className="w-3.5 h-3.5" />}
                   </div>
 
@@ -576,9 +578,9 @@ export default function Storefront() {
                   />
                 </button>
 
-                {/* Dropdown Menu */}
+                {/* Dropdown Menu com z-[100] garantido acima de qualquer barra */}
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 sm:w-60 rounded-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/50 shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="absolute right-0 mt-2 w-56 sm:w-60 rounded-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/50 shadow-2xl py-2 z-[100] animate-in fade-in slide-in-from-top-2 duration-150">
                     {/* Cabeçalho do Dropdown */}
                     <div className="px-4 py-2 border-b border-gray-100 dark:border-[#512B54]/30">
                       <p className="text-xs font-semibold text-[#4C264F] dark:text-[#F9F5F9] truncate">
@@ -672,7 +674,7 @@ export default function Storefront() {
                       onClick={() => {
                         toggleTheme();
                       }}
-                      className="w-full flex items-center justify-between px-4 py-2.5 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors text-left"
+                      className="w-full flex items-center justify-between px-4 py-2.5 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors text-left cursor-pointer"
                     >
                       <div className="flex items-center gap-2.5">
                         {theme === "dark" ? (
@@ -696,7 +698,7 @@ export default function Storefront() {
                         await authService.signOut();
                         await refreshUser();
                       }}
-                      className="w-full flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors text-left"
+                      className="w-full flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors text-left cursor-pointer"
                     >
                       <LogOut className="w-4 h-4" />
                       Sair
@@ -706,25 +708,26 @@ export default function Storefront() {
               </div>
             )}
 
-            {/* Theme toggle — Sun / Moon (Desktop only, mobile has it in user dropdown and /conta) */}
+            {/* 5. [ Alternador de Tema Claro/Escuro ] — Desktop only */}
             <button
+              type="button"
               onClick={toggleTheme}
               aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
               title={theme === "dark" ? "Modo claro" : "Modo escuro"}
               className="
                 hidden md:flex items-center justify-center
-                w-9 h-9 rounded-full
+                h-10 w-10 rounded-full
                 border border-border/40
                 text-muted-foreground hover:text-foreground
                 hover:bg-muted
                 transition-all duration-200
-                shrink-0
+                shrink-0 cursor-pointer
               "
             >
               {theme === "dark" ? (
-                <Sun className="w-4 h-4" />
+                <Sun className="w-4 h-4 text-amber-500" />
               ) : (
-                <Moon className="w-4 h-4" />
+                <Moon className="w-4 h-4 text-[#9306CF]" />
               )}
             </button>
           </div>
