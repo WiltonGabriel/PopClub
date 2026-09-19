@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { handleApiError, apiError, apiSuccess } from "@/lib/apiResponse";
 
 export async function GET() {
   try {
@@ -28,10 +29,9 @@ export async function GET() {
       cardBadge: p.cardBadge,
     }));
 
-    return NextResponse.json(formatted);
-  } catch (error: any) {
-    console.error("Erro ao listar produtos:", error);
-    return NextResponse.json({ error: "Erro ao buscar produtos." }, { status: 500 });
+    return apiSuccess(formatted);
+  } catch (error: unknown) {
+    return handleApiError(error, "API:products:GET", "Não foi possível carregar os produtos.");
   }
 }
 
@@ -39,19 +39,19 @@ export async function POST(request: Request) {
   try {
     const user = await getAuthUser(request);
     if (user?.role !== "admin") {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+      return apiError("Acesso negado. Apenas administradores podem cadastrar produtos.", 403, "FORBIDDEN");
     }
 
     let body: any;
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
+      return apiError("Formato de requisição inválido ou corpo vazio.", 400, "BAD_REQUEST");
     }
     const { name, description, price, categoryId, category, imageUrl, stock, isAvailable, cardBadgeId } = body || {};
 
     if (!name || price === undefined) {
-      return NextResponse.json({ error: "Nome e preço são obrigatórios." }, { status: 400 });
+      return apiError("Nome e preço do produto são obrigatórios.", 400, "VALIDATION_ERROR");
     }
 
     const parsedStock = stock !== undefined && stock !== null && stock !== "" ? Number(stock) : null;
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({
+    return apiSuccess({
       id: product.id,
       name: product.name,
       description: product.description || "",
@@ -86,9 +86,8 @@ export async function POST(request: Request) {
       isAvailable: product.isAvailable,
       cardBadgeId: product.cardBadgeId,
       cardBadge: product.cardBadge,
-    });
-  } catch (error: any) {
-    console.error("Erro ao criar produto:", error);
-    return NextResponse.json({ error: "Erro ao criar produto." }, { status: 500 });
+    }, 201);
+  } catch (error: unknown) {
+    return handleApiError(error, "API:products:POST", "Não foi possível cadastrar o produto.");
   }
 }

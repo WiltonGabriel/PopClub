@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { z } from "zod";
+import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
+import { logger } from "@/lib/logger";
 
 const DEFAULT_SETTINGS = {
   id: "store_config",
@@ -55,7 +57,7 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({
+    return apiSuccess({
       id: settings.id,
       deliveryFee: Number(settings.deliveryFee),
       freeDeliveryThreshold: settings.freeDeliveryThreshold ? Number(settings.freeDeliveryThreshold) : null,
@@ -70,26 +72,23 @@ export async function GET() {
       closedAt: settings.closedAt ? settings.closedAt.toISOString() : null,
       updatedAt: settings.updatedAt.toISOString(),
     });
-  } catch (error: any) {
-    console.error("Erro ao buscar configurações da loja:", error);
-    return NextResponse.json(
-      {
-        id: "store_config",
-        deliveryFee: DEFAULT_SETTINGS.deliveryFee,
-        freeDeliveryThreshold: DEFAULT_SETTINGS.freeDeliveryThreshold,
-        whatsappNumber: DEFAULT_SETTINGS.whatsappNumber,
-        whatsappMessage: DEFAULT_SETTINGS.whatsappMessage,
-        isOpen: true,
-        currentShiftId: null,
-        estimatedDeliveryTime: DEFAULT_SETTINGS.estimatedDeliveryTime,
-        estimatedTimePresets: DEFAULT_SETTINGS.estimatedTimePresets,
-        rejectionReasonPresets: DEFAULT_SETTINGS.rejectionReasonPresets,
-        openedAt: null,
-        closedAt: null,
-        updatedAt: new Date().toISOString(),
-      },
-      { status: 200 }
-    );
+  } catch (error: unknown) {
+    logger.warn("GET /api/settings", "Falha ao consultar configurações, retornando fallback seguro.", error);
+    return apiSuccess({
+      id: "store_config",
+      deliveryFee: DEFAULT_SETTINGS.deliveryFee,
+      freeDeliveryThreshold: DEFAULT_SETTINGS.freeDeliveryThreshold,
+      whatsappNumber: DEFAULT_SETTINGS.whatsappNumber,
+      whatsappMessage: DEFAULT_SETTINGS.whatsappMessage,
+      isOpen: true,
+      currentShiftId: null,
+      estimatedDeliveryTime: DEFAULT_SETTINGS.estimatedDeliveryTime,
+      estimatedTimePresets: DEFAULT_SETTINGS.estimatedTimePresets,
+      rejectionReasonPresets: DEFAULT_SETTINGS.rejectionReasonPresets,
+      openedAt: null,
+      closedAt: null,
+      updatedAt: new Date().toISOString(),
+    });
   }
 }
 
@@ -97,28 +96,19 @@ export async function PUT(request: Request) {
   try {
     const user = await getAuthUser(request);
     if (!user || user.role !== "admin") {
-      return NextResponse.json(
-        { error: "Acesso negado. Apenas administradores podem alterar configurações da loja." },
-        { status: 403 }
-      );
+      return apiError("Acesso negado. Apenas administradores podem alterar configurações da loja.", 403, "FORBIDDEN");
     }
 
     let body: any;
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json(
-        { error: "Formato de requisição inválido ou corpo vazio." },
-        { status: 400 }
-      );
+      return apiError("Formato de requisição inválido ou corpo vazio.", 400);
     }
 
     const parsed = settingsUpdateSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.issues.map((i) => i.message).join(", ") },
-        { status: 400 }
-      );
+      return apiError(parsed.error.issues.map((i) => i.message).join(", "), 400, "VALIDATION_ERROR");
     }
 
     const {
@@ -167,7 +157,7 @@ export async function PUT(request: Request) {
       },
     });
 
-    return NextResponse.json({
+    return apiSuccess({
       success: true,
       settings: {
         id: settings.id,
@@ -185,12 +175,8 @@ export async function PUT(request: Request) {
         updatedAt: settings.updatedAt.toISOString(),
       },
     });
-  } catch (error: any) {
-    console.error("Erro ao atualizar configurações da loja:", error);
-    return NextResponse.json(
-      { error: error.message || "Erro interno ao atualizar configurações." },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    return handleApiError(error, "PUT /api/settings", "Erro ao atualizar configurações da loja.");
   }
 }
 

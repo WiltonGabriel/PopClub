@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
 
 export async function GET(request: Request) {
   try {
@@ -76,7 +77,7 @@ export async function GET(request: Request) {
       take: limit,
     });
 
-    return NextResponse.json({
+    return apiSuccess({
       isOpen: settings?.isOpen ?? true,
       currentShiftId: settings?.currentShiftId || null,
       estimatedDeliveryTime: settings?.estimatedDeliveryTime || "30-50 min",
@@ -99,12 +100,8 @@ export async function GET(request: Request) {
         notes: s.notes,
       })),
     });
-  } catch (error: any) {
-    console.error("Erro ao consultar turnos:", error);
-    return NextResponse.json(
-      { error: error.message || "Erro interno ao consultar turnos." },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    return handleApiError(error, "GET /api/shifts", "Erro ao consultar turnos da esteira.");
   }
 }
 
@@ -112,15 +109,17 @@ export async function POST(request: Request) {
   try {
     const user = await getAuthUser(request);
     if (!user || user.role !== "admin") {
-      return NextResponse.json(
-        { error: "Acesso negado. Apenas administradores podem gerenciar turnos da esteira." },
-        { status: 403 }
-      );
+      return apiError("Acesso negado. Apenas administradores podem gerenciar turnos da esteira.", 403, "FORBIDDEN");
     }
 
-    const body = await request.json();
-    const { action, estimatedDeliveryTime, notes, force } = body;
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return apiError("Formato de requisição inválido ou corpo vazio.", 400);
+    }
 
+    const { action, estimatedDeliveryTime, notes } = body;
     const now = new Date();
 
     if (action === "open") {
@@ -158,7 +157,7 @@ export async function POST(request: Request) {
         },
       });
 
-      return NextResponse.json({
+      return apiSuccess({
         success: true,
         message: "Esteira e loja abertas com sucesso!",
         shift: {
@@ -177,7 +176,7 @@ export async function POST(request: Request) {
     }
 
     if (action === "close") {
-      // Valida se há pedidos em aberto
+      // TRAVA DE SEGURANÇA: Valida se há pedidos em aberto na esteira
       const pendingOrders = await prisma.order.findMany({
         where: {
           isArchived: false,
@@ -192,10 +191,12 @@ export async function POST(request: Request) {
         },
       });
 
-      if (pendingOrders.length > 0 && !force) {
+      // BLOQUEIO TERMINANTE: Sem bypass acidental
+      if (pendingOrders.length > 0) {
         return NextResponse.json(
           {
             error: `Existem ${pendingOrders.length} pedido(s) em aberto na esteira. Conclua ou cancele todos os pedidos antes de fechar a loja.`,
+            code: "PENDING_ORDERS_ACTIVE",
             pendingCount: pendingOrders.length,
             pendingOrders: pendingOrders.map((p) => ({
               id: p.id,
@@ -298,7 +299,7 @@ export async function POST(request: Request) {
         },
       });
 
-      return NextResponse.json({
+      return apiSuccess({
         success: true,
         message: "Turno encerrado e loja fechada com sucesso!",
         summary: {
@@ -317,12 +318,8 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json({ error: "Ação de turno desconhecida." }, { status: 400 });
-  } catch (error: any) {
-    console.error("Erro na operação de turno:", error);
-    return NextResponse.json(
-      { error: error.message || "Erro interno ao processar turno." },
-      { status: 500 }
-    );
+    return apiError("Ação de turno desconhecida.", 400);
+  } catch (error: unknown) {
+    return handleApiError(error, "POST /api/shifts", "Erro ao processar turno.");
   }
 }

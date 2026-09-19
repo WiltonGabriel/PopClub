@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { handleApiError, apiError, apiSuccess } from "@/lib/apiResponse";
 
 export async function GET() {
   try {
     const categories = await prisma.category.findMany({
       orderBy: { name: "asc" },
     });
-    return NextResponse.json(categories);
-  } catch (error: any) {
-    console.error("Erro ao listar categorias:", error);
-    return NextResponse.json({ error: "Erro ao buscar categorias." }, { status: 500 });
+    return apiSuccess(categories);
+  } catch (error: unknown) {
+    return handleApiError(error, "API:categories:GET", "Não foi possível carregar as categorias.");
   }
 }
 
@@ -18,19 +18,19 @@ export async function POST(request: Request) {
   try {
     const user = await getAuthUser(request);
     if (user?.role !== "admin") {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+      return apiError("Acesso negado. Apenas administradores podem gerenciar categorias.", 403, "FORBIDDEN");
     }
 
     let body: any;
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
+      return apiError("Formato de requisição inválido ou corpo vazio.", 400, "BAD_REQUEST");
     }
 
     const { name, slug } = body || {};
     if (!name) {
-      return NextResponse.json({ error: "O nome da categoria é obrigatório." }, { status: 400 });
+      return apiError("O nome da categoria é obrigatório.", 400, "MISSING_NAME");
     }
 
     const autoSlug = slug || name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -42,9 +42,8 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(category);
-  } catch (error: any) {
-    console.error("Erro ao criar categoria:", error);
-    return NextResponse.json({ error: "Erro ao criar categoria." }, { status: 500 });
+    return apiSuccess(category, 201);
+  } catch (error: unknown) {
+    return handleApiError(error, "API:categories:POST", "Não foi possível criar a categoria.");
   }
 }

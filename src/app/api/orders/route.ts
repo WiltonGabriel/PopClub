@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { Prisma, OrderStatus } from "@prisma/client";
+import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
 
 export async function GET(request: Request) {
   try {
@@ -14,6 +15,7 @@ export async function GET(request: Request) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const search = searchParams.get("search")?.trim();
+    const guestOrderIdsParam = searchParams.get("guestOrderIds")?.trim();
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
     const limit = Math.max(1, Math.min(100, parseInt(searchParams.get("limit") || "15", 10)));
 
@@ -26,9 +28,26 @@ export async function GET(request: Request) {
       }
     } else if (authUser?.id) {
       whereClause = { userId: authUser.id };
+    } else if (guestOrderIdsParam) {
+      // Visitante anônimo consultando pedidos que ele mesmo acabou de gerar nesta sessão
+      const cleanIds = guestOrderIdsParam
+        .split(",")
+        .map((id) => id.trim())
+        .filter((id) => id.length > 0)
+        .slice(0, 20);
+
+      if (cleanIds.length === 0) {
+        return apiSuccess(paginated ? { orders: [], total: 0, page: 1, limit, totalPages: 0, totalRevenue: 0, averageTicket: 0 } : []);
+      }
+
+      // ISOLAMENTO ESTRITO: visitantes só podem ver pedidos sem usuário vinculado (userId: null)
+      whereClause = {
+        id: { in: cleanIds },
+        userId: null,
+      };
     } else {
-      // Retorna vazio para usuário não autenticado
-      return NextResponse.json(paginated ? { orders: [], total: 0, page: 1, limit, totalPages: 0, totalRevenue: 0, averageTicket: 0 } : []);
+      // Retorna vazio para usuário não autenticado sem pedidos de visitante informados
+      return apiSuccess(paginated ? { orders: [], total: 0, page: 1, limit, totalPages: 0, totalRevenue: 0, averageTicket: 0 } : []);
     }
 
     // Filtro por status
@@ -133,7 +152,7 @@ export async function GET(request: Request) {
         user: o.user,
       }));
 
-      return NextResponse.json({
+      return apiSuccess({
         orders: formatted,
         total,
         page,
@@ -201,36 +220,53 @@ export async function GET(request: Request) {
       user: o.user,
     }));
 
-    return NextResponse.json(formatted);
+    return apiSuccess(formatted);
   } catch (error: unknown) {
-    console.error("Erro ao listar pedidos:", error);
-    return NextResponse.json({ error: "Erro ao buscar pedidos." }, { status: 500 });
+    return handleApiError(error, "GET /api/orders", "Erro ao listar pedidos.");
   }
 }
 
 export async function PATCH(request: Request) {
   try {
     const authUser = await getAuthUser(request);
-    if (authUser?.role !== "admin") {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
-    }
 
     let body: Record<string, unknown> | null = null;
     try {
       body = (await request.json()) as Record<string, unknown>;
     } catch {
-      return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
+      return apiError("Formato de requisição inválido ou corpo vazio.", 400);
     }
 
     const { orderId, status, cancellationReason } = (body as Record<string, string>) || {};
 
     if (!orderId || !status) {
-      return NextResponse.json({ error: "orderId e status são obrigatórios." }, { status: 400 });
+      return apiError("orderId e status são obrigatórios.", 400);
+    }
+
+    // Busca o pedido existente para validar autorização e integridade
+    const existingOrder = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { id: true, userId: true, status: true },
+    });
+
+    if (!existingOrder) {
+      return apiError("Pedido não encontrado.", 404, "NOT_FOUND");
+    }
+
+    const isAdmin = authUser?.role === "admin";
+    const isOwner = Boolean(authUser?.id && existingOrder.userId === authUser.id);
+
+    // Se não for admin, só tem permissão para cancelar caso seja o dono E o pedido ainda esteja "pending"
+    if (!isAdmin) {
+      if (!isOwner || status !== "cancelled" || existingOrder.status !== "pending") {
+        return apiError("Você não tem permissão para alterar o status deste pedido.", 403, "FORBIDDEN");
+      }
     }
 
     const dataToUpdate: Prisma.OrderUpdateInput = { status: status as OrderStatus };
     if (status === "cancelled") {
-      dataToUpdate.cancellationReason = cancellationReason || "Cancelado pela administração";
+      dataToUpdate.cancellationReason =
+        cancellationReason || (isAdmin ? "Cancelado pela administração" : "Cancelado pelo cliente");
       dataToUpdate.cancelledAt = new Date();
     }
 
@@ -249,6 +285,7 @@ export async function PATCH(request: Request) {
       status: updated.status,
       subtotal: Number(updated.subtotal),
       discount_amount: Number(updated.discountAmount),
+      delivery_fee: Number(updated.deliveryFee || 0),
       total_amount: Number(updated.totalAmount),
       payment_method_type: updated.paymentMethodType,
       payment_change_for: updated.paymentChangeFor ? Number(updated.paymentChangeFor) : null,
@@ -282,12 +319,8 @@ export async function PATCH(request: Request) {
       user: updated.user,
     };
 
-    return NextResponse.json(formattedUpdated);
+    return apiSuccess(formattedUpdated);
   } catch (error: unknown) {
-    console.error("Erro ao atualizar status do pedido:", error);
-    if ((error as { code?: string })?.code === "P2025") {
-      return NextResponse.json({ error: "Pedido não encontrado." }, { status: 404 });
-    }
-    return NextResponse.json({ error: "Erro ao atualizar pedido." }, { status: 500 });
+    return handleApiError(error, "PATCH /api/orders", "Erro ao atualizar pedido.");
   }
 }

@@ -19,12 +19,11 @@ import {
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { useAuth } from "../../hooks/useAuth";
-import { orderService, Order, OrderStatus } from "../../services/orderService";
-import { subscribeToOrderEvents } from "../../lib/orderEvents";
+import { useOrders } from "../../contexts/OrderContext";
+import { Order, OrderStatus } from "../../services/orderService";
 import { useToast } from "../../components/ui/ToastNotification";
 import { Footer } from "../../components/storefront/Footer";
-import { playDingSound, initAudioUnlock } from "../../lib/sound";
-import { sendWebNotification } from "../../lib/notifications";
+import { initAudioUnlock } from "../../lib/sound";
 import { NotificationPermissionBanner } from "../../components/storefront/NotificationPermissionBanner";
 
 const STORE_WHATSAPP = process.env.NEXT_PUBLIC_STORE_WHATSAPP || "5584999999999";
@@ -78,16 +77,22 @@ const STATUS_CONFIG: Record<
 };
 
 export default function PedidosPage() {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { showToast } = useToast();
+  const {
+    orders,
+    activeOrders,
+    historyOrders,
+    loading: ordersLoading,
+    refreshOrders,
+    cancelOrder,
+    guestOrderIds,
+  } = useOrders();
 
   const [activeTab, setActiveTab] = useState<"ativos" | "historico">("ativos");
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [fetching, setFetching] = useState(true);
   const [expandedOrderIds, setExpandedOrderIds] = useState<Record<string, boolean>>({});
   const [cancellingId, setCancellingId] = useState<string | null>(null);
-  const previousStatusMap = useRef<Record<string, OrderStatus>>({});
 
   const toggleOrderExpanded = (id: string) => {
     setExpandedOrderIds((prev) => ({
@@ -96,146 +101,48 @@ export default function PedidosPage() {
     }));
   };
 
-
-  const fetchOrders = useCallback(async (isSilent = false) => {
-    if (!isSilent) setFetching(true);
-    try {
-      const data = await orderService.getOrdersByUser();
-      
-      // Notifica o cliente se houve transição de status em algum pedido ativo
-      data.forEach((updated) => {
-        const oldStatus = previousStatusMap.current[updated.id];
-        const newStatus = updated.status;
-
-        if (oldStatus && oldStatus !== newStatus) {
-          const shortId = updated.id.substring(0, 6);
-          const config = STATUS_CONFIG[newStatus];
-
-          // 1. Feedback sonoro sutil (chime/ding)
-          playDingSound();
-
-          // 2. Disparo de Web Notification nativa (mesmo com a aba em segundo plano ou celular bloqueado)
-          let notifBody = `Atualização no pedido #${shortId}: ${config?.label || newStatus}`;
-          if (newStatus === "delivering") {
-            notifBody = `Seu pedido #${shortId} saiu para entrega! 🛵💨`;
-          } else if (newStatus === "preparing") {
-            notifBody = `Seu pedido #${shortId} começou a ser preparado! 🍧`;
-          } else if (newStatus === "ready") {
-            notifBody = `Seu pedido #${shortId} está pronto para envio/retirada! 📦`;
-          } else if (newStatus === "completed") {
-            notifBody = `Pedido #${shortId} entregue! Bom apetite! 🎉`;
-          } else if (newStatus === "cancelled") {
-            notifBody = `Seu pedido #${shortId} foi cancelado. Motivo: ${updated.cancellation_reason || "Informado pela loja"}`;
-          }
-
-          sendWebNotification("Pop Shake Sorveteria", {
-            body: notifBody,
-            icon: "/icon.png",
-          });
-
-          // 3. Feedback visual em Toast imediato
-          if (newStatus === "delivering") {
-            showToast({
-              title: `Seu pedido #${shortId} saiu para entrega! 🛵`,
-              message: "O motoboy está a caminho do seu endereço.",
-              type: "info",
-              duration: 9000,
-            });
-          } else if (newStatus === "completed") {
-            showToast({
-              title: `Pedido #${shortId} Entregue! 🎉`,
-              message: "Pedido entregue. Bom apetite!",
-              type: "success",
-              duration: 8000,
-            });
-          } else if (newStatus === "cancelled") {
-            showToast({
-              title: `Pedido #${shortId} Cancelado`,
-              message: `Motivo: ${updated.cancellation_reason || "Informado pela loja"}`,
-              type: "error",
-              duration: 10000,
-            });
-          } else if (config) {
-            showToast({
-              title: `Atualização no Pedido #${shortId}`,
-              message: config.description,
-              type: "info",
-              duration: 6000,
-            });
-          }
-        }
-
-        previousStatusMap.current[updated.id] = newStatus;
-      });
-
-      setOrders(data);
-    } catch (err) {
-      console.error("Erro ao buscar pedidos:", err);
-    } finally {
-      if (!isSilent) setFetching(false);
-    }
-  }, [showToast]);
-
   const handleCancelOrder = async (orderId: string) => {
     if (!confirm("Tem certeza que deseja cancelar este pedido? Esta ação não pode ser desfeita.")) return;
     setCancellingId(orderId);
     try {
-      await orderService.cancelOrder(orderId, "Cancelado pelo cliente");
-      showToast({ type: "info", title: "Pedido cancelado", message: "Seu pedido foi cancelado com sucesso.", duration: 6000 });
-      fetchOrders(true);
+      await cancelOrder(orderId, "Cancelado pelo cliente");
+      showToast({
+        type: "info",
+        title: "Pedido cancelado",
+        message: "Seu pedido foi cancelado com sucesso.",
+        duration: 6000,
+      });
     } catch (err: any) {
-      showToast({ type: "error", title: "Erro ao cancelar", message: err.message || "Não foi possível cancelar o pedido.", duration: 7000 });
+      showToast({
+        type: "error",
+        title: "Erro ao cancelar",
+        message: err.message || "Não foi possível cancelar o pedido.",
+        duration: 7000,
+      });
     } finally {
       setCancellingId(null);
     }
   };
-
 
   // Desbloqueia áudio na primeira interação do usuário
   useEffect(() => {
     initAudioUnlock();
   }, []);
 
+  // Redireciona caso não haja sessão nem pedidos anônimos
   useEffect(() => {
-    if (!loading && !user) {
+    if (!authLoading && !user && guestOrderIds.length === 0) {
       router.push("/login");
-    } else if (user) {
-      fetchOrders();
     }
-  }, [user, loading, router, fetchOrders]);
+  }, [user, authLoading, guestOrderIds, router]);
 
-  // Sincronização por polling inteligente e eventos locais entre abas
-  useEffect(() => {
-    if (!user) return;
-
-    // Polling regular a cada 12 segundos
-    const pollTimer = setInterval(() => {
-      fetchOrders(true);
-    }, 12000);
-
-    // Eventos locais em tempo real entre abas do mesmo navegador
-    const unsubscribe = subscribeToOrderEvents(() => {
-      fetchOrders(true);
-    });
-
-    return () => {
-      clearInterval(pollTimer);
-      unsubscribe();
-    };
-  }, [user, fetchOrders]);
-
-  if (loading || fetching) {
+  if (authLoading || (ordersLoading && orders.length === 0)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-[#9306CF]" />
       </div>
     );
   }
-
-  const isOrderActive = (status: string) => !["completed", "cancelled"].includes(status);
-
-  const activeOrders = orders.filter((o) => isOrderActive(o.status));
-  const historyOrders = orders.filter((o) => !isOrderActive(o.status));
 
   const getStoreWhatsAppUrl = (orderId: string, reason?: string | null) => {
     const cleanNumber = STORE_WHATSAPP.replace(/\D/g, "");
@@ -273,7 +180,7 @@ export default function PedidosPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => fetchOrders(false)}
+            onClick={() => refreshOrders(false)}
             className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold gap-1.5 h-9"
           >
             <RefreshCw className="w-3.5 h-3.5 text-[#9306CF]" />

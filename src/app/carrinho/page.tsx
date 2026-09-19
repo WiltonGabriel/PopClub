@@ -30,6 +30,7 @@ import { orderService } from "../../services/orderService";
 import { userService, UserLocation } from "../../services/userService";
 import { storeSettingsService, StoreSettings } from "../../services/storeSettingsService";
 import { useAddress } from "@/contexts/AddressContext";
+import { useOrders } from "@/contexts/OrderContext";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -39,6 +40,7 @@ import { NotificationPermissionBanner } from "../../components/storefront/Notifi
 export default function CarrinhoPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { trackGuestOrder } = useOrders();
   const {
     items,
     removeItem,
@@ -385,6 +387,9 @@ export default function CarrinhoPage() {
 
       const result = await orderService.createCheckoutOrder(payload);
       playDingSound();
+      if (!user && result.order?.id) {
+        trackGuestOrder(result.order.id);
+      }
       setOrderSuccessId(result.order.id);
       clearCart();
     } catch (err: any) {

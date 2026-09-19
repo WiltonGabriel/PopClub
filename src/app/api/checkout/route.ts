@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { z } from "zod";
+import { handleApiError } from "@/lib/apiResponse";
 
 const checkoutSchema = z.object({
   items: z.array(
@@ -285,11 +286,11 @@ export async function POST(request: Request) {
         createdAt: order.createdAt.toISOString(),
       },
     });
-  } catch (error: any) {
-    console.error("Erro no checkout:", error);
-    return NextResponse.json(
-      { error: error.message || "Erro interno ao processar o pedido." },
-      { status: 500 }
+  } catch (error: unknown) {
+    return handleApiError(
+      error,
+      "API:checkout:POST",
+      "Não foi possível processar o pedido. Por favor, tente novamente."
     );
   }
 }

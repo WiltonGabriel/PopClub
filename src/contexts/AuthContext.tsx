@@ -24,6 +24,7 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   refreshUser: () => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -32,6 +33,7 @@ export const AuthContext = createContext<AuthContextType>({
   loading: true,
   isAdmin: false,
   refreshUser: async () => {},
+  signOut: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -71,15 +73,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  const signOut = useCallback(async () => {
+    setUser(null);
+    await authService.signOut();
+  }, []);
+
   useEffect(() => {
     refreshUser();
+
+    const handleSignOutEvent = () => {
+      setUser(null);
+    };
+
+    window.addEventListener("popshake:signout", handleSignOutEvent);
+    return () => {
+      window.removeEventListener("popshake:signout", handleSignOutEvent);
+    };
   }, [refreshUser]);
 
   const isAdmin = user?.role === "admin";
   const session = user ? { user } : null;
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, refreshUser }}>
+    <AuthContext.Provider value={{ user, session, loading, isAdmin, refreshUser, signOut }}>
       {children}
     </AuthContext.Provider>
   );

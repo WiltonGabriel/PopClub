@@ -288,10 +288,10 @@ export default function AdminPedidosPage() {
   };
 
   // Encerramento de Turno / Fechar Loja
-  const handleCloseShift = async (force = false) => {
+  const handleCloseShift = async () => {
     setShiftActionLoading(true);
     try {
-      await shiftService.closeShift(force);
+      await shiftService.closeShift();
       setIsCloseShiftModalOpen(false);
       await fetchOrders(false);
       showToast({
@@ -2049,23 +2049,39 @@ export default function AdminPedidosPage() {
             </div>
 
             <div className="space-y-4">
-              {/* Alerta de Segurança se houver pedidos em aberto */}
-              {pendingOrdersInBoard.length > 0 && (
-                <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-2xl p-4 space-y-2 text-xs text-amber-900 dark:text-amber-300">
-                  <div className="flex items-center gap-2 font-bold text-sm">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span>Atenção: Há {pendingOrdersInBoard.length} pedido(s) em aberto na esteira!</span>
+              {/* Alerta de Segurança e Trava Operacional se houver pedidos em aberto */}
+              {pendingOrdersInBoard.length > 0 ? (
+                <div className="bg-red-50 dark:bg-red-950/40 border-2 border-red-300 dark:border-red-800 rounded-2xl p-4 space-y-3 text-xs text-red-900 dark:text-red-200">
+                  <div className="flex items-center gap-2 font-bold text-sm text-red-700 dark:text-red-300">
+                    <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+                    <span>Bloqueio de Segurança: {pendingOrdersInBoard.length} pedido(s) em aberto na esteira!</span>
                   </div>
-                  <p className="leading-relaxed">
-                    Para uma conferência de caixa precisa, finalize ou cancele os pedidos em andamento antes de encerrar o turno:
+                  <p className="leading-relaxed text-[11px] text-red-800 dark:text-red-300">
+                    Por integridade de caixa e atendimento, o encerramento do turno é <strong>terminantemente bloqueado</strong> enquanto houver pedidos pendentes, em preparo ou em rota. Finalize ou cancele todos os pedidos da lista abaixo para liberar o fechamento:
                   </p>
-                  <div className="space-y-1 max-h-28 overflow-y-auto pl-2 border-l-2 border-amber-400">
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto pl-2 border-l-2 border-red-400 dark:border-red-600">
                     {pendingOrdersInBoard.map((p) => (
-                      <div key={p.id} className="flex items-center justify-between text-[11px] font-mono">
-                        <span>#{p.id.substring(0, 6)} - {p.user?.fullName || p.user?.username || "Cliente"}</span>
-                        <span className="font-bold uppercase text-amber-700 dark:text-amber-400">({p.status})</span>
+                      <div key={p.id} className="flex items-center justify-between text-[11px] font-mono bg-white/70 dark:bg-black/30 p-2 rounded-xl border border-red-100 dark:border-red-900/30">
+                        <span className="font-bold text-[#4C264F] dark:text-[#F9F5F9]">
+                          #{p.id.substring(0, 6)} - {p.user?.fullName || p.user?.username || "Cliente"}
+                        </span>
+                        <span className="font-bold uppercase text-[10px] px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                          {p.status}
+                        </span>
                       </div>
                     ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-2xl p-3.5 flex items-center gap-3 text-xs text-emerald-900 dark:text-emerald-200">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <div>
+                    <span className="font-bold text-sm block text-emerald-700 dark:text-emerald-300">
+                      Esteira 100% Limpa e Pronta para Fechamento
+                    </span>
+                    <span className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80">
+                      Nenhum pedido pendente em aberto. A conferência de caixa pode ser salva com segurança no histórico.
+                    </span>
                   </div>
                 </div>
               )}
@@ -2128,20 +2144,31 @@ export default function AdminPedidosPage() {
                 onClick={() => setIsCloseShiftModalOpen(false)}
                 className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider"
               >
-                Voltar à Esteira
+                {pendingOrdersInBoard.length > 0 ? "Voltar à Esteira para Finalizar Pedidos" : "Cancelar"}
               </Button>
-              <Button
-                onClick={() => handleCloseShift(pendingOrdersInBoard.length > 0)}
-                disabled={shiftActionLoading}
-                className="rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wider px-5 shadow-md flex items-center gap-2"
-              >
-                {shiftActionLoading ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
+              {pendingOrdersInBoard.length === 0 ? (
+                <Button
+                  onClick={handleCloseShift}
+                  disabled={shiftActionLoading}
+                  className="rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wider px-5 shadow-md flex items-center gap-2"
+                >
+                  {shiftActionLoading ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Power className="w-4 h-4" />
+                  )}
+                  <span>Encerrar e Fechar Loja</span>
+                </Button>
+              ) : (
+                <Button
+                  disabled
+                  className="rounded-xl bg-gray-200 dark:bg-white/10 text-gray-400 dark:text-gray-500 text-xs font-bold uppercase tracking-wider px-5 cursor-not-allowed flex items-center gap-2"
+                  title="Conclua ou cancele todos os pedidos para liberar o encerramento"
+                >
                   <Power className="w-4 h-4" />
-                )}
-                <span>Encerrar e Fechar Loja</span>
-              </Button>
+                  <span>Fechamento Bloqueado ({pendingOrdersInBoard.length})</span>
+                </Button>
+              )}
             </div>
           </div>
         </div>

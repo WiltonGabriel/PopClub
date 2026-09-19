@@ -54,20 +54,27 @@ export const authService = {
         localStorage.removeItem("popshake_active_address");
         localStorage.removeItem("popshake_guest_addresses");
         localStorage.removeItem("popshake_guest_active_address");
+        localStorage.removeItem("popshake_guest_order_ids");
+        localStorage.removeItem("popclub-admin-edit-mode");
+        localStorage.removeItem("popshake_kanban_compact_columns");
 
-        // Remove todas as chaves de endereços cacheadas por usuário
+        // Remove todas as chaves dinâmicas vinculadas a usuários
         const keysToRemove: string[] = [];
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i);
           if (
             k &&
             (k.startsWith("popshake_addresses_") ||
-              k.startsWith("popshake_active_address_"))
+              k.startsWith("popshake_active_address_") ||
+              k.startsWith("popshake_user_"))
           ) {
             keysToRemove.push(k);
           }
         }
         keysToRemove.forEach((k) => localStorage.removeItem(k));
+
+        // Limpa qualquer dado efêmero em sessionStorage
+        sessionStorage.clear();
       } catch (err) {
         console.warn("Erro ao higienizar storage no logout:", err);
       }

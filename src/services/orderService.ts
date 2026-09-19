@@ -88,8 +88,12 @@ export interface CheckoutPayload {
 }
 
 export const orderService = {
-  async getMyOrders(): Promise<Order[]> {
-    const res = await fetch("/api/orders", {
+  async getMyOrders(guestOrderIds?: string[]): Promise<Order[]> {
+    let url = "/api/orders";
+    if (guestOrderIds && guestOrderIds.length > 0) {
+      url += `?guestOrderIds=${encodeURIComponent(guestOrderIds.join(","))}`;
+    }
+    const res = await fetch(url, {
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) {
@@ -99,8 +103,22 @@ export const orderService = {
     return await res.json();
   },
 
-  async getOrdersByUser(): Promise<Order[]> {
-    return this.getMyOrders();
+  async getOrdersByUser(guestOrderIds?: string[]): Promise<Order[]> {
+    return this.getMyOrders(guestOrderIds);
+  },
+
+  async claimGuestOrders(orderIds: string[]): Promise<{ claimedCount: number; claimedOrderIds: string[] }> {
+    const res = await fetch("/api/orders/claim", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderIds }),
+      signal: AbortSignal.timeout(10000),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || "Erro ao vincular pedidos.");
+    }
+    return data;
   },
 
   async getAllOrders(includeArchived = false): Promise<Order[]> {

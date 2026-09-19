@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
 import { EditModeProvider } from "@/contexts/EditModeContext";
 import { AddressProvider } from "@/contexts/AddressContext";
+import { OrderProvider } from "@/contexts/OrderContext";
 import { ToastProvider } from "@/components/ui/ToastNotification";
 import { AddressModal } from "@/components/storefront/AddressModal";
 import { WhatsAppFloatingButton } from "@/components/storefront/WhatsAppFloatingButton";
@@ -71,19 +72,21 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <AuthProvider>
-            <AccessibilityProvider>
-              <EditModeProvider>
-                <CartProvider>
-                  <AddressProvider>
-                    <ToastProvider>
-                      {children}
-                      <AddressModal />
-                      <WhatsAppFloatingButton />
-                    </ToastProvider>
-                  </AddressProvider>
-                </CartProvider>
-              </EditModeProvider>
-            </AccessibilityProvider>
+            <ToastProvider>
+              <AccessibilityProvider>
+                <EditModeProvider>
+                  <CartProvider>
+                    <AddressProvider>
+                      <OrderProvider>
+                        {children}
+                        <AddressModal />
+                        <WhatsAppFloatingButton />
+                      </OrderProvider>
+                    </AddressProvider>
+                  </CartProvider>
+                </EditModeProvider>
+              </AccessibilityProvider>
+            </ToastProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

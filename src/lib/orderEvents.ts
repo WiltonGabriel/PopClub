@@ -1,11 +1,14 @@
 /**
  * Sincronização e notificações locais entre abas para pedidos
+ * com isolamento estrito por usuário/sessão.
  */
-export type OrderEventType = "order_created" | "order_updated";
+export type OrderEventType = "order_created" | "order_updated" | "order_cancelled" | "orders_reset";
 
-interface OrderEventPayload {
+export interface OrderEventPayload {
   type: OrderEventType;
   order?: any;
+  targetUserId?: string | null;
+  guestOrderId?: string | null;
 }
 
 type OrderEventCallback = (payload: OrderEventPayload) => void;
@@ -19,7 +22,7 @@ const localChannel =
 
 if (localChannel) {
   localChannel.onmessage = (e) => {
-    if (e.data && (e.data.type === "order_created" || e.data.type === "order_updated")) {
+    if (e.data && typeof e.data === "object" && "type" in e.data) {
       listeners.forEach((cb) => {
         try {
           cb(e.data);
@@ -31,8 +34,15 @@ if (localChannel) {
   };
 }
 
-export function dispatchOrderEvent(type: OrderEventType, order?: any) {
-  const payload: OrderEventPayload = { type, order };
+export function dispatchOrderEvent(type: OrderEventType, order?: any, targetUserId?: string | null) {
+  const resolvedUserId = targetUserId !== undefined ? targetUserId : (order?.user_id ?? order?.userId ?? null);
+  const payload: OrderEventPayload = {
+    type,
+    order,
+    targetUserId: resolvedUserId,
+    guestOrderId: !resolvedUserId && order?.id ? order.id : null,
+  };
+
   listeners.forEach((cb) => {
     try {
       cb(payload);

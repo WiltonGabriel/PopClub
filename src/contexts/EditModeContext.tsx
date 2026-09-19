@@ -44,8 +44,18 @@ export function EditModeProvider({ children }: { children: React.ReactNode }) {
       console.error("Erro ao ler modo de edição do localStorage:", e);
     }
 
+    const handleSignOut = () => {
+      setIsEditModeState(false);
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch {}
+    };
+
+    window.addEventListener("popshake:signout", handleSignOut);
+
     return () => {
       window.removeEventListener("resize", checkViewport);
+      window.removeEventListener("popshake:signout", handleSignOut);
     };
   }, []);
 

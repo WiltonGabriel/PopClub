@@ -69,13 +69,12 @@ export const shiftService = {
     return body;
   },
 
-  async closeShift(force = false, notes?: string) {
+  async closeShift(notes?: string) {
     const res = await fetch("/api/shifts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         action: "close",
-        force,
         notes,
       }),
       signal: AbortSignal.timeout(10000),
