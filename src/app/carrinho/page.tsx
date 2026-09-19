@@ -465,170 +465,269 @@ export default function CarrinhoPage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans pb-32">
       {/* Header */}
-      <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-background/90 border-b-2 border-border px-4 py-3 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-2">
+      <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-background/90 border-b border-border/40 px-4 py-3.5 flex items-center justify-between shadow-xs">
+        <div className="flex items-center gap-3">
           <Link
             href="/"
-            className="p-1.5 hover:bg-muted border-2 border-transparent hover:border-border transition-colors"
+            className="p-2 rounded-xl bg-muted/60 hover:bg-muted text-foreground border border-border/40 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+            aria-label="Voltar para o cardápio"
           >
-            <ChevronLeft className="w-6 h-6 text-primary" />
+            <ChevronLeft className="w-5 h-5 text-[#9306CF] dark:text-[#C7A9C9]" />
           </Link>
-          <h1 className="text-lg font-heading font-black tracking-tighter uppercase text-foreground">
-            Meu Carrinho & Checkout
-          </h1>
+          <div>
+            <h1 className="text-base sm:text-lg font-heading font-black tracking-tight uppercase text-foreground flex items-center gap-2">
+              <span>Meu Carrinho</span>
+              {items.length > 0 && (
+                <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20">
+                  {items.reduce((s, i) => s + i.quantity, 0)} {items.reduce((s, i) => s + i.quantity, 0) === 1 ? "item" : "itens"}
+                </span>
+              )}
+            </h1>
+            <p className="text-[11px] text-muted-foreground">Pop Shake Sorveteria & Açaí</p>
+          </div>
         </div>
 
         {items.length > 0 && (
           <button
             onClick={clearCart}
-            className="text-xs font-mono uppercase text-destructive hover:underline flex items-center gap-1"
+            className="text-xs font-semibold text-red-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 px-2.5 py-1.5 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
           >
-            <Trash2 className="w-3.5 h-3.5" /> Limpar
+            <Trash2 className="w-3.5 h-3.5" />
+            <span className="hidden xs:inline">Limpar sacola</span>
           </button>
         )}
       </header>
 
       <main className="flex-1 w-full max-w-4xl mx-auto px-4 py-6 space-y-8">
         {checkoutError && (
-          <div className="p-4 bg-destructive/10 border-l-4 border-destructive text-destructive font-mono text-xs">
+          <div className="p-4 bg-destructive/10 border-l-4 border-destructive text-destructive font-mono text-xs rounded-r-xl">
             {checkoutError}
           </div>
         )}
 
         {items.length === 0 ? (
-          <div className="bg-card border-2 border-border p-12 text-center space-y-4">
-            <ShoppingBag className="w-16 h-16 mx-auto text-muted-foreground/40" />
-            <h2 className="font-heading text-2xl font-bold uppercase">Seu carrinho está vazio</h2>
-            <p className="text-sm font-sans text-muted-foreground max-w-sm mx-auto">
-              Que tal experimentar um dos nossos açaís especiais ou nossos combos em promoção?
-            </p>
-            <Link
-              href="/"
-              className="inline-block mt-4 bg-primary text-primary-foreground px-6 py-3 font-mono text-xs uppercase tracking-widest font-bold"
-            >
-              Explorar Cardápio
-            </Link>
+          <div className="bg-white/80 dark:bg-[#230E26]/80 backdrop-blur-md border border-gray-200/80 dark:border-[#512B54]/50 rounded-3xl p-8 sm:p-14 text-center space-y-6 shadow-xl shadow-[#9306CF]/5 animate-in fade-in duration-300">
+            <div className="relative mx-auto w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#9306CF]/20 via-[#940068]/15 to-transparent blur-xl animate-pulse" />
+              <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800/60 flex items-center justify-center text-4xl sm:text-5xl shadow-inner">
+                🥣
+                <span className="absolute -top-1 -right-1 text-xl animate-bounce-subtle">✨</span>
+                <span className="absolute -bottom-1 -left-1 text-base">🍧</span>
+              </div>
+            </div>
+
+            <div className="space-y-2 max-w-md mx-auto">
+              <h2 className="font-heading text-xl sm:text-2xl font-black uppercase tracking-tight text-foreground">
+                Sua sacola está com saudade de um açaí!
+              </h2>
+              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                Nenhum item adicionado ainda. Que tal escolher seu açaí artesanal bem cremoso, sorvetes especiais ou montar uma taça personalizada agora mesmo?
+              </p>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                href="/"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-[#9306CF] via-[#940068] to-[#9306CF] bg-[length:200%_auto] hover:bg-right text-white font-heading font-bold text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-[#9306CF]/25 active:scale-95 transition-all cursor-pointer border border-white/20"
+              >
+                <span>Explorar Cardápio Pop Shake</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            {/* Atalhos rápidos de categorias populares */}
+            <div className="pt-4 border-t border-gray-100 dark:border-[#512B54]/30 flex flex-wrap items-center justify-center gap-2">
+              <span className="text-[11px] font-semibold text-muted-foreground mr-1">Sugestões rápidas:</span>
+              <Link
+                href="/?categoria=acai"
+                className="text-xs px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-800/40 text-[#9306CF] dark:text-[#C7A9C9] font-medium hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
+              >
+                🍧 Açaí no Copo
+              </Link>
+              <Link
+                href="/?categoria=sorvete"
+                className="text-xs px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-800/40 text-[#9306CF] dark:text-[#C7A9C9] font-medium hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
+              >
+                🍦 Sorvetes Especiais
+              </Link>
+              <Link
+                href="/?categoria=combos"
+                className="text-xs px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-800/40 text-[#9306CF] dark:text-[#C7A9C9] font-medium hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
+              >
+                🔥 Promoções & Combos
+              </Link>
+            </div>
           </div>
         ) : (
           <>
             {/* 1. Lista de Itens */}
-            <section className="bg-card border-2 border-border p-6 shadow-sm">
-              <h2 className="font-heading text-lg font-bold uppercase tracking-wide mb-4 flex items-center gap-2">
-                <ShoppingBag className="w-5 h-5 text-primary" />
-                Itens Selecionados ({items.reduce((s, i) => s + i.quantity, 0)})
-              </h2>
-
-              <div className="divide-y divide-border/60">
-                {items.map((item) => (
-                  <div key={item.id} className="py-4 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-14 h-14 bg-muted border border-border shrink-0 overflow-hidden relative flex items-center justify-center">
-                        {item.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-[10px] font-mono text-muted-foreground">ITEM</span>
-                        )}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-heading font-bold text-base truncate">{item.name}</h4>
-                          {item.promotionId && (
-                            <span className="bg-primary text-primary-foreground text-[9px] font-mono uppercase px-1.5 py-0.5 font-bold shrink-0">
-                              PROMO
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Adicionais & Opções */}
-                        {item.selectedOptions && item.selectedOptions.length > 0 && (
-                          <div className="mt-1 space-y-0.5">
-                            {item.selectedOptions.map((opt, idx) => (
-                              <p key={idx} className="text-[11px] text-muted-foreground flex items-center gap-1 leading-tight">
-                                <span className="w-1 h-1 rounded-full bg-primary shrink-0" />
-                                <span className="truncate">{opt.name}</span>
-                                {opt.price > 0 && (
-                                  <span className="text-primary font-mono text-[10px] shrink-0 font-semibold">
-                                    (+R$ {opt.price.toFixed(2).replace(".", ",")})
-                                  </span>
-                                )}
-                              </p>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Observações do Pedido */}
-                        {item.notes && (
-                          <p className="text-[11px] italic text-muted-foreground mt-1 bg-muted/60 px-2 py-0.5 rounded">
-                            &ldquo;{item.notes}&rdquo;
-                          </p>
-                        )}
-
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <span className="font-mono font-bold text-primary text-sm">
-                            R$ {item.price.toFixed(2).replace(".", ",")}
-                          </span>
-                          {item.originalPrice > item.price && (
-                            <span className="font-mono text-xs text-muted-foreground line-through">
-                              R$ {item.originalPrice.toFixed(2).replace(".", ",")}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Controles de Quantidade */}
-                    <div className="flex items-center gap-3 shrink-0">
-                      <div className="flex items-center border-2 border-border bg-background">
-                        <button
-                          onClick={() => updateQuantity(item.id, -1)}
-                          className="p-1.5 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                          title="Diminuir quantidade"
-                        >
-                          <Minus className="w-3.5 h-3.5" />
-                        </button>
-                        <span className="px-3 font-mono font-bold text-xs">{item.quantity}</span>
-                        <button
-                          onClick={() => updateQuantity(item.id, 1)}
-                          className="p-1.5 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                          title="Aumentar quantidade"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-
-                      <span className="font-mono font-bold text-sm min-w-[70px] text-right">
-                        R$ {(item.price * item.quantity).toFixed(2).replace(".", ",")}
-                      </span>
-
-                      <button
-                        onClick={() => removeItem(item.id)}
-                        className="text-muted-foreground hover:text-destructive p-1 transition-colors"
-                        title="Remover item"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+            <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-[#512B54]/40 rounded-3xl p-4 sm:p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+                <h2 className="font-heading text-base sm:text-lg font-bold uppercase tracking-wide flex items-center gap-2 text-foreground">
+                  <div className="w-8 h-8 rounded-xl bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
+                    <ShoppingBag className="w-4 h-4" />
                   </div>
-                ))}
+                  <span>Itens Selecionados</span>
+                </h2>
+                <span className="text-xs font-mono font-bold text-muted-foreground">
+                  {items.reduce((s, i) => s + i.quantity, 0)} {items.reduce((s, i) => s + i.quantity, 0) === 1 ? "item" : "itens"}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {items.map((item) => {
+                  const lineTotal = item.price * item.quantity;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200/70 dark:border-[#512B54]/40 rounded-2xl p-3.5 sm:p-4 shadow-xs transition-all hover:border-[#9306CF]/30 space-y-3"
+                    >
+                      {/* Top Row: Imagem + Título + Preço unitário + Botão Remover */}
+                      <div className="flex items-start gap-3 justify-between">
+                        <div className="flex items-start gap-3 min-w-0 flex-1">
+                          {/* Miniatura do Produto */}
+                          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-purple-50 dark:bg-purple-950/60 border border-purple-100 dark:border-purple-900/30 overflow-hidden shrink-0 relative flex items-center justify-center shadow-xs">
+                            {item.imageUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="font-heading font-black text-xl gradient-text-brand">
+                                {item.name[0]}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Nome e Tags */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <h4 className="font-heading font-bold text-sm sm:text-base text-foreground leading-snug truncate">
+                                {item.name}
+                              </h4>
+                              {item.promotionId && (
+                                <span className="bg-gradient-to-r from-[#9306CF] to-[#940068] text-white text-[9px] font-heading font-bold uppercase px-2 py-0.5 rounded-full shadow-xs shrink-0">
+                                  PROMO
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Preço unitário */}
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="font-mono text-xs font-semibold text-muted-foreground">
+                                Unitário: R$ {item.price.toFixed(2).replace(".", ",")}
+                              </span>
+                              {item.originalPrice > item.price && (
+                                <span className="font-mono text-[11px] text-muted-foreground line-through">
+                                  R$ {item.originalPrice.toFixed(2).replace(".", ",")}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Botão de Remover Item */}
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.id)}
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer shrink-0"
+                          title="Remover item da sacola"
+                          aria-label={`Remover ${item.name}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Middle Row: Adicionais, Caldas e Observações */}
+                      {((item.selectedOptions && item.selectedOptions.length > 0) || item.notes) && (
+                        <div className="pt-2 border-t border-gray-200/60 dark:border-[#512B54]/30 space-y-2">
+                          {item.selectedOptions && item.selectedOptions.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {item.selectedOptions.map((opt, idx) => (
+                                <span
+                                  key={idx}
+                                  className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg bg-purple-50/80 dark:bg-purple-950/50 border border-purple-200/50 dark:border-purple-900/40 text-[#9306CF] dark:text-[#C7A9C9] font-medium"
+                                >
+                                  <span>{opt.name}</span>
+                                  {opt.price > 0 && (
+                                    <strong className="font-mono font-bold text-[10px]">
+                                      (+R$ {opt.price.toFixed(2).replace(".", ",")})
+                                    </strong>
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {item.notes && (
+                            <div className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40 rounded-xl px-3 py-1.5 flex items-start gap-1.5">
+                              <span className="font-semibold">Obs:</span>
+                              <span className="italic">&ldquo;{item.notes}&rdquo;</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Bottom Row: Stepper Touch-Friendly de Quantidade e Total da Linha */}
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-200/60 dark:border-[#512B54]/30">
+                        {/* Stepper com alta ergonomia para mobile */}
+                        <div className="flex items-center gap-1 bg-white dark:bg-[#230E26] border border-gray-300 dark:border-[#512B54]/60 rounded-xl p-1 shadow-xs">
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(item.id, -1)}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted active:scale-90 transition-all cursor-pointer"
+                            title="Diminuir quantidade"
+                            aria-label="Diminuir quantidade"
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="px-3 font-mono font-black text-sm text-foreground min-w-[28px] text-center">
+                            {item.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(item.id, 1)}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground hover:bg-muted active:scale-90 transition-all cursor-pointer"
+                            title="Aumentar quantidade"
+                            aria-label="Aumentar quantidade"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Subtotal da Linha em Destaque */}
+                        <div className="text-right">
+                          <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                            Subtotal
+                          </span>
+                          <span className="font-mono font-black text-base sm:text-lg text-[#9306CF] dark:text-[#C7A9C9]">
+                            R$ {lineTotal.toFixed(2).replace(".", ",")}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </section>
 
             {/* 2. Cupom de Desconto */}
-            <section className="bg-card border-2 border-border p-6 shadow-sm">
-              <h3 className="font-heading text-lg font-bold uppercase tracking-wide mb-3 flex items-center gap-2">
-                <Tag className="w-5 h-5 text-secondary" />
-                Cupom de Desconto
+            <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-[#512B54]/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+              <h3 className="font-heading text-base sm:text-lg font-bold uppercase tracking-wide flex items-center gap-2.5 text-foreground">
+                <div className="w-8 h-8 rounded-xl bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
+                  <Tag className="w-4 h-4" />
+                </div>
+                <span>Cupom de Desconto</span>
               </h3>
 
               {appliedCoupon ? (
-                <div className="flex items-center justify-between bg-success/15 border-2 border-success p-3">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-success" />
+                <div className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl p-4 shadow-xs">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
                     <div>
-                      <span className="font-mono text-xs uppercase font-bold text-success">
-                        Cupom {appliedCoupon.code} aplicado com sucesso!
+                      <span className="font-heading font-bold text-xs uppercase text-emerald-700 dark:text-emerald-300 block">
+                        Cupom {appliedCoupon.code} aplicado!
                       </span>
                       <p className="text-xs text-muted-foreground font-mono">
                         Desconto: - R$ {appliedCoupon.discountAmount.toFixed(2).replace(".", ",")}
@@ -637,7 +736,7 @@ export default function CarrinhoPage() {
                   </div>
                   <button
                     onClick={handleRemoveCoupon}
-                    className="text-xs font-mono uppercase text-destructive hover:underline"
+                    className="text-xs font-semibold text-red-500 hover:text-red-600 dark:hover:text-red-400 hover:underline px-2 py-1 cursor-pointer"
                   >
                     Remover
                   </button>
@@ -649,12 +748,12 @@ export default function CarrinhoPage() {
                     value={couponInput}
                     onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                     placeholder="Ex: BEMVINDO10"
-                    className="rounded-xl border border-input font-mono text-base md:text-sm uppercase flex-1 h-11 px-3"
+                    className="rounded-xl border-gray-300 dark:border-[#512B54]/60 bg-white dark:bg-[#190B1A] font-mono text-base md:text-sm uppercase flex-1 h-11 px-3.5"
                   />
                   <Button
                     type="submit"
                     disabled={validatingCoupon || !couponInput.trim()}
-                    className="rounded-xl bg-secondary hover:bg-secondary/90 text-white font-mono text-sm uppercase tracking-wider font-bold px-5 h-11"
+                    className="rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider font-bold px-6 h-11 shadow-sm shadow-[#9306CF]/20 cursor-pointer"
                   >
                     {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
                   </Button>
@@ -662,16 +761,18 @@ export default function CarrinhoPage() {
               )}
 
               {couponError && (
-                <p className="text-destructive font-mono text-xs mt-2">{couponError}</p>
+                <p className="text-destructive font-mono text-xs">{couponError}</p>
               )}
             </section>
 
-            {/* 3. Endereço de Entrega Estruturado (Compatível com Google Maps & Geocodificação) */}
-            <section className="bg-card border-2 border-border p-6 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/60">
-                <h3 className="font-heading text-lg font-bold uppercase tracking-wide flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-primary" />
-                  Endereço de Entrega
+            {/* 3. Endereço de Entrega */}
+            <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-[#512B54]/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+                <h3 className="font-heading text-base sm:text-lg font-bold uppercase tracking-wide flex items-center gap-2.5 text-foreground">
+                  <div className="w-8 h-8 rounded-xl bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <span>Endereço de Entrega</span>
                 </h3>
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -938,103 +1039,165 @@ export default function CarrinhoPage() {
             </section>
 
             {/* 4. Forma de Pagamento & AVISO VISUAL DESTACADO */}
-            <section className="bg-card border-2 border-border p-6 shadow-sm space-y-4">
-              <h3 className="font-heading text-lg font-bold uppercase tracking-wide flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-primary" />
-                Forma de Pagamento
+            <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-[#512B54]/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+              <h3 className="font-heading text-base sm:text-lg font-bold uppercase tracking-wide flex items-center gap-2.5 text-foreground">
+                <div className="w-8 h-8 rounded-xl bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
+                  <CreditCard className="w-4 h-4" />
+                </div>
+                <span>Forma de Pagamento na Entrega</span>
               </h3>
 
               {/* CRITICAL: AVISO VISUAL DESTACADO DE PAGAMENTO NA ENTREGA */}
-              <div className="bg-amber-500/15 border-2 border-amber-500 p-4 flex items-start gap-3 shadow-md">
-                <AlertTriangle className="w-6 h-6 text-amber-400 shrink-0 mt-0.5" />
+              <div className="bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-2xl p-4 flex items-start gap-3 shadow-xs">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="font-heading font-black text-sm uppercase tracking-wide text-amber-300">
-                    AVISO IMPORTANTE: Pagamento Exclusivo na Entrega
+                  <h4 className="font-heading font-black text-xs sm:text-sm uppercase tracking-wide text-amber-800 dark:text-amber-300">
+                    Pagamento Exclusivo no Momento da Entrega
                   </h4>
-                  <p className="text-xs font-sans text-foreground/90 mt-1 leading-relaxed">
-                    Nenhum valor é cobrado online neste momento. O pagamento deve ser feito
-                    <strong> diretamente ao entregador</strong> na chegada do pedido via dinheiro,
-                    cartão na maquininha ou Pix.
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                    Nenhum valor é cobrado online agora. O pagamento é realizado diretamente ao entregador na chegada do seu pedido via Pix, Cartão ou Dinheiro.
                   </p>
                 </div>
               </div>
 
               {/* Seleção do Método */}
-              <div className="flex flex-col gap-2.5 w-full pt-2">
-                <button
-                  type="button"
-                  onClick={() => setPaymentType("dinheiro")}
-                  className={`p-4 border-2 flex items-center gap-3 text-left transition-all w-full ${
-                    paymentType === "dinheiro"
-                      ? "border-primary bg-primary/10 shadow-[4px_4px_0px_0px_rgba(147,6,207,0.3)]"
-                      : "border-border hover:bg-muted"
-                  }`}
-                >
-                  <Banknote className="w-6 h-6 text-primary shrink-0" />
-                  <div>
-                    <span className="font-heading font-bold uppercase text-xs block">Dinheiro</span>
-                    <span className="text-[10px] text-muted-foreground font-mono">Pague na entrega</span>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPaymentType("cartao_maquininha")}
-                  className={`p-4 border-2 flex items-center gap-3 text-left transition-all w-full ${
-                    paymentType === "cartao_maquininha"
-                      ? "border-primary bg-primary/10 shadow-[4px_4px_0px_0px_rgba(147,6,207,0.3)]"
-                      : "border-border hover:bg-muted"
-                  }`}
-                >
-                  <CreditCard className="w-6 h-6 text-secondary shrink-0" />
-                  <div>
-                    <span className="font-heading font-bold uppercase text-xs block">Cartão (Maquininha)</span>
-                    <span className="text-[10px] text-muted-foreground font-mono">Débito ou Crédito</span>
-                  </div>
-                </button>
-
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                {/* Pix na Entrega */}
                 <button
                   type="button"
                   onClick={() => setPaymentType("pix_entrega")}
-                  className={`p-4 border-2 flex items-center gap-3 text-left transition-all w-full ${
+                  className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
                     paymentType === "pix_entrega"
-                      ? "border-primary bg-primary/10 shadow-[4px_4px_0px_0px_rgba(147,6,207,0.3)]"
-                      : "border-border hover:bg-muted"
+                      ? "border-[#9306CF] bg-purple-50/70 dark:bg-[#9306CF]/20 shadow-sm ring-1 ring-[#9306CF]/30"
+                      : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#190B1A]/60"
                   }`}
                 >
-                  <QrCode className="w-6 h-6 text-success shrink-0" />
+                  <div className="flex items-start justify-between w-full mb-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center shrink-0">
+                      <QrCode className="w-4 h-4" />
+                    </div>
+                    {paymentType === "pix_entrega" && (
+                      <span className="w-5 h-5 rounded-full bg-[#9306CF] text-white flex items-center justify-center shadow-xs">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      </span>
+                    )}
+                  </div>
                   <div>
-                    <span className="font-heading font-bold uppercase text-xs block">Pix na Entrega</span>
-                    <span className="text-[10px] text-muted-foreground font-mono">QR Code com entregador</span>
+                    <span className="font-heading font-bold text-xs sm:text-sm text-foreground block">
+                      Pix na Entrega
+                    </span>
+                    <span className="text-[11px] text-muted-foreground leading-tight mt-0.5 block">
+                      QR Code gerado na hora
+                    </span>
+                  </div>
+                </button>
+
+                {/* Cartão Maquininha */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentType("cartao_maquininha")}
+                  className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    paymentType === "cartao_maquininha"
+                      ? "border-[#9306CF] bg-purple-50/70 dark:bg-[#9306CF]/20 shadow-sm ring-1 ring-[#9306CF]/30"
+                      : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#190B1A]/60"
+                  }`}
+                >
+                  <div className="flex items-start justify-between w-full mb-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center shrink-0">
+                      <CreditCard className="w-4 h-4" />
+                    </div>
+                    {paymentType === "cartao_maquininha" && (
+                      <span className="w-5 h-5 rounded-full bg-[#9306CF] text-white flex items-center justify-center shadow-xs">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="font-heading font-bold text-xs sm:text-sm text-foreground block">
+                      Cartão (Maquininha)
+                    </span>
+                    <span className="text-[11px] text-muted-foreground leading-tight mt-0.5 block">
+                      Débito ou crédito
+                    </span>
+                  </div>
+                </button>
+
+                {/* Dinheiro */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentType("dinheiro")}
+                  className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    paymentType === "dinheiro"
+                      ? "border-[#9306CF] bg-purple-50/70 dark:bg-[#9306CF]/20 shadow-sm ring-1 ring-[#9306CF]/30"
+                      : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#190B1A]/60"
+                  }`}
+                >
+                  <div className="flex items-start justify-between w-full mb-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                      <Banknote className="w-4 h-4" />
+                    </div>
+                    {paymentType === "dinheiro" && (
+                      <span className="w-5 h-5 rounded-full bg-[#9306CF] text-white flex items-center justify-center shadow-xs">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="font-heading font-bold text-xs sm:text-sm text-foreground block">
+                      Dinheiro em Espécie
+                    </span>
+                    <span className="text-[11px] text-muted-foreground leading-tight mt-0.5 block">
+                      Pague com cédulas
+                    </span>
                   </div>
                 </button>
               </div>
 
               {/* Campo de Troco se Dinheiro */}
               {paymentType === "dinheiro" && (
-                <div className="pt-2 border-t border-border mt-3 space-y-1">
-                  <Label className="font-mono text-xs uppercase text-muted-foreground">
+                <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 mt-3 space-y-2 animate-in fade-in-50 duration-200">
+                  <Label htmlFor="input-change-for" className="font-heading text-xs uppercase font-bold text-foreground">
                     Precisa de troco para quanto? (Opcional)
                   </Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    placeholder={`Ex: ${(Math.ceil(finalTotal / 10) * 10 + 10).toFixed(2)}`}
-                    value={changeFor}
-                    onChange={(e) => setChangeFor(e.target.value)}
-                    className="rounded-xl border border-input text-base md:text-sm font-mono max-w-xs h-11 px-3"
-                  />
+                  <div className="flex items-center gap-2 max-w-xs">
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">R$</span>
+                      <Input
+                        id="input-change-for"
+                        type="number"
+                        step="0.01"
+                        placeholder={`Ex: ${(Math.ceil(finalTotal / 10) * 10 + 10).toFixed(2)}`}
+                        value={changeFor}
+                        onChange={(e) => setChangeFor(e.target.value)}
+                        className="pl-9 rounded-xl border-gray-300 dark:border-[#512B54]/60 bg-white dark:bg-[#190B1A] text-sm font-mono h-10"
+                      />
+                    </div>
+                    {changeFor && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setChangeFor("")}
+                        className="text-xs text-muted-foreground hover:text-foreground h-9 px-2"
+                      >
+                        Limpar
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
             </section>
 
             {/* 5. Resumo de Valores e Envio */}
-            <section className="bg-card border-2 border-border p-6 shadow-sm space-y-4">
-              <h3 className="font-heading text-lg font-bold uppercase tracking-wide mb-3">
-                Resumo do Pedido
+            <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-[#512B54]/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+              <h3 className="font-heading text-base sm:text-lg font-bold uppercase tracking-wide flex items-center gap-2.5 text-foreground">
+                <div className="w-8 h-8 rounded-xl bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
+                  <ShoppingBag className="w-4 h-4" />
+                </div>
+                <span>Resumo do Pedido</span>
               </h3>
 
-              <div className="space-y-2.5 font-mono text-xs border-b border-border pb-3">
+              <div className="space-y-2.5 font-mono text-xs border-b border-gray-100 dark:border-[#512B54]/30 pb-3">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Subtotal dos Itens:</span>
                   <span className="font-bold text-foreground">R$ {subtotal.toFixed(2).replace(".", ",")}</span>
@@ -1077,11 +1240,11 @@ export default function CarrinhoPage() {
                 )}
               </div>
 
-              <div className="flex justify-between items-baseline pt-1">
-                <span className="font-mono text-sm uppercase tracking-wider font-bold">
+              <div className="flex justify-between items-baseline pt-2">
+                <span className="font-heading font-black text-xs sm:text-sm uppercase tracking-wider text-muted-foreground">
                   Total a Pagar na Entrega:
                 </span>
-                <span className="font-heading text-3xl font-black text-primary">
+                <span className="font-heading text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#9306CF] to-[#940068]">
                   R$ {finalTotal.toFixed(2).replace(".", ",")}
                 </span>
               </div>
@@ -1092,10 +1255,10 @@ export default function CarrinhoPage() {
 
       {/* Barra de Ação Fixa Inferior */}
       {items.length > 0 && (
-        <div className="fixed bottom-0 left-0 w-full bg-card border-t-2 border-border p-4 z-40 shadow-2xl">
+        <div className="fixed bottom-0 left-0 w-full bg-white/95 dark:bg-[#190B1A]/95 backdrop-blur-md border-t border-border/40 p-4 z-40 shadow-2xl pb-safe">
           <div className="max-w-4xl mx-auto space-y-2">
             {storeSettings && !storeSettings.isOpen && (
-              <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/40 rounded-xl p-3 text-xs text-red-700 dark:text-red-300 flex items-center gap-2">
+              <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/40 rounded-2xl p-3 text-xs text-red-700 dark:text-red-300 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
                 <span>Nossa esteira de pedidos está fechada neste momento. Você pode montar seu carrinho e finalizar assim que o atendimento abrir!</span>
               </div>
@@ -1103,9 +1266,9 @@ export default function CarrinhoPage() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <span className="text-[10px] font-mono uppercase text-muted-foreground block">
-                  Total (Pagamento na Entrega)
+                  Total (Pague na Entrega)
                 </span>
-                <span className="font-heading text-2xl font-black text-primary">
+                <span className="font-heading text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#9306CF] to-[#940068]">
                   R$ {finalTotal.toFixed(2).replace(".", ",")}
                 </span>
               </div>
@@ -1132,15 +1295,15 @@ export default function CarrinhoPage() {
                   setShowReviewModal(true);
                 }}
                 disabled={submitting || (storeSettings ? !storeSettings.isOpen : false)}
-                className={`h-12 rounded-none font-heading text-base uppercase tracking-wider font-bold px-8 shadow-lg flex items-center gap-2 ${
+                className={`h-12 px-6 sm:px-8 rounded-2xl font-heading text-sm uppercase tracking-wider font-black shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 transition-all ${
                   storeSettings && !storeSettings.isOpen
                     ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed text-white dark:bg-gray-700"
-                    : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                    : "bg-gradient-to-r from-[#9306CF] via-[#940068] to-[#9306CF] bg-[length:200%_auto] hover:bg-right text-white shadow-[#9306CF]/25 border border-white/20"
                 }`}
               >
                 {submitting ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    <Loader2 className="w-5 h-5 animate-spin" />
                     Processando Pedido...
                   </>
                 ) : storeSettings && !storeSettings.isOpen ? (

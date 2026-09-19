@@ -20,6 +20,7 @@ import { Footer } from "../components/storefront/Footer";
 import { ProductDetailModal } from "../components/storefront/ProductDetailModal";
 import { HeaderAddressButton } from "../components/storefront/HeaderAddressButton";
 import { CategoriesDrawer } from "../components/storefront/CategoriesDrawer";
+import { PopShakeLoading } from "../components/ui/PopShakeLoading";
 
 // Admin components (unchanged)
 import { CategoryFormDialog } from "../components/admin/CategoryFormDialog";
@@ -568,6 +569,11 @@ export default function Storefront() {
     : products;
 
   const formattedTotal = itemsTotal.toFixed(2).replace(".", ",");
+
+  const isCategoryMode = Boolean(
+    mobileCategoryView ||
+    (activeCategory && activeCategory !== "all" && activeCategory !== "todas")
+  );
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans pb-20 md:pb-0">
@@ -1251,19 +1257,7 @@ export default function Storefront() {
                 {/* Product sections by category */}
                 <div className="space-y-10">
                   {loading && products.length === 0 ? (
-                    /* Skeleton Loading Grid */
-                    <div className="space-y-8" aria-label="Carregando cardápio">
-                      {[1, 2].map((sec) => (
-                        <div key={sec} className="space-y-4">
-                          <div className="h-6 w-48 rounded-md skeleton-light" />
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {[1, 2, 3, 4].map((i) => (
-                              <div key={i} className="h-64 rounded-2xl skeleton-light" />
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <PopShakeLoading />
                   ) : fetchError && products.length === 0 ? (
                     /* Error Fallback with Retry Button */
                     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
@@ -1455,10 +1449,10 @@ export default function Storefront() {
 
       {/* ─────────────────────────────────────────
           MOBILE — Floating cart bar (when items > 0)
-          Shows above BottomNav
+          Shows above BottomNav (apenas quando não estiver no modo de categoria)
       ───────────────────────────────────────── */}
-      {totalItems > 0 && (
-        <div className="fixed bottom-16 left-0 right-0 md:hidden z-40 px-4 pb-2">
+      {totalItems > 0 && !isCategoryMode && (
+        <div className="fixed bottom-16 left-0 right-0 md:hidden z-40 px-4 pb-2 animate-in fade-in duration-200">
           <Link href="/carrinho">
             <button className="
               btn-clay w-full
@@ -1494,6 +1488,9 @@ export default function Storefront() {
           mobileCategoryView ||
           categoriesDrawerOpen
         )}
+        categoryMode={isCategoryMode}
+        categoryName={mobileCategoryView?.name || categories.find((c) => c.id === activeCategory)?.name}
+        onBackToAll={() => handleSelectCategory(null)}
         onCategoriesClick={() => setCategoriesDrawerOpen(true)}
         onHomeClick={() => {
           handleSelectCategory(null);
