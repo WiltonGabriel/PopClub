@@ -45,6 +45,7 @@ import { AnalyticsDashboard } from "../../components/admin/AnalyticsDashboard";
 import { DeliveryFeeSettings } from "../../components/admin/DeliveryFeeSettings";
 import { CardBadgesSection } from "../../components/admin/CardBadgesSection";
 import { OrderFlowSettings } from "../../components/admin/OrderFlowSettings";
+import { AvatarPresetManager } from "../../components/admin/AvatarPresetManager";
 
 export default function AdminDashboard() {
   const { theme, toggleTheme } = useTheme();
@@ -57,7 +58,7 @@ export default function AdminDashboard() {
     badge: "Refrescância Artesanal",
   });
   const [fetching, setFetching] = useState(true);
-  const [activeTab, setActiveTab] = useState<"metrics" | "combos" | "promotions" | "banners" | "coupons" | "delivery">("metrics");
+  const [activeTab, setActiveTab] = useState<"metrics" | "combos" | "promotions" | "banners" | "coupons" | "delivery" | "avatars">("metrics");
   const [promoDialogOpen, setPromoDialogOpen] = useState(false);
   const [promoToEdit, setPromoToEdit] = useState<Promotion | null>(null);
   const [comboDialogOpen, setComboDialogOpen] = useState(false);
@@ -508,6 +509,19 @@ export default function AdminDashboard() {
                 >
                   <Truck className="w-4 h-4" />
                   <span>🛵 Entrega & WhatsApp</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("avatars")}
+                  className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
+                    activeTab === "avatars"
+                      ? "bg-[#9306CF] text-white shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>✨ Avatares Oficiais</span>
                 </button>
               </div>
 
@@ -978,6 +992,13 @@ export default function AdminDashboard() {
                 <div className="space-y-6 animate-in fade-in duration-150">
                   <DeliveryFeeSettings />
                   <OrderFlowSettings />
+                </div>
+              )}
+
+              {/* CONTEÚDO DA ABA 7: GESTÃO DO CATÁLOGO DE AVATARES */}
+              {activeTab === "avatars" && (
+                <div className="animate-in fade-in duration-150">
+                  <AvatarPresetManager />
                 </div>
               )}
             </div>

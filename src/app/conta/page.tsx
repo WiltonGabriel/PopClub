@@ -18,7 +18,6 @@ import {
   Sun, 
   Moon, 
   Check, 
-  Camera, 
   Eye, 
   Bell, 
   Type, 
@@ -29,7 +28,8 @@ import {
   Volume2,
   ShieldCheck,
   Clock,
-  Bike
+  Bike,
+  Accessibility
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -47,17 +47,26 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { playDingSound } from "../../lib/sound";
 
-const AVATAR_PRESETS = [
-  { id: "sorvete", name: "Sundae Amora", path: "/avatars/avatar-sorvete.svg", desc: "Clássico sundae com calda de amora" },
-  { id: "acai", name: "Tigela de Açaí", path: "/avatars/avatar-acai.svg", desc: "Açaí cremoso com banana e morango" },
-  { id: "shake", name: "Milk Shake", path: "/avatars/avatar-shake.svg", desc: "Milk shake cremoso refrescante" },
-  { id: "picole", name: "Picolé Frutas", path: "/avatars/avatar-picole.svg", desc: "Picolé artesanal de frutas tropicais" },
-  { id: "morango", name: "Morango Pop", path: "/avatars/avatar-morango.svg", desc: "Morango doce e selecionado" },
-  { id: "banana", name: "Banana Split", path: "/avatars/avatar-banana.svg", desc: "Banana ouro com toque especial" },
-  { id: "cookie", name: "Cookie Choco", path: "/avatars/avatar-cookie.svg", desc: "Cookie crocante com gotas de chocolate" },
-  { id: "cereja", name: "Cereja Pop", path: "/avatars/avatar-cereja.svg", desc: "Toque final irresistível" },
-  { id: "casquinha", name: "Casquinha Dupla", path: "/avatars/avatar-casquinha.svg", desc: "Casquinha crocante com dois sabores" },
-  { id: "chef", name: "Mestre Gelateiro", path: "/avatars/avatar-chef.svg", desc: "Toque profissional de confeitaria" },
+interface AvatarPresetItem {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  category?: string | null;
+  order?: number;
+}
+
+const DEFAULT_AVATAR_PRESETS: AvatarPresetItem[] = [
+  { id: "sorvete", name: "Sundae Amora", imageUrl: "/avatars/avatar-sorvete.svg", description: "Clássico sundae com calda de amora" },
+  { id: "acai", name: "Tigela de Açaí", imageUrl: "/avatars/avatar-acai.svg", description: "Açaí cremoso com banana e morango" },
+  { id: "shake", name: "Milk Shake", imageUrl: "/avatars/avatar-shake.svg", description: "Milk shake cremoso refrescante" },
+  { id: "picole", name: "Picolé Frutas", imageUrl: "/avatars/avatar-picole.svg", description: "Picolé artesanal de frutas tropicais" },
+  { id: "morango", name: "Morango Pop", imageUrl: "/avatars/avatar-morango.svg", description: "Morango doce e selecionado" },
+  { id: "banana", name: "Banana Split", imageUrl: "/avatars/avatar-banana.svg", description: "Banana ouro com toque especial" },
+  { id: "cookie", name: "Cookie Choco", imageUrl: "/avatars/avatar-cookie.svg", description: "Cookie crocante com gotas de chocolate" },
+  { id: "cereja", name: "Cereja Pop", imageUrl: "/avatars/avatar-cereja.svg", description: "Toque final irresistível" },
+  { id: "casquinha", name: "Casquinha Dupla", imageUrl: "/avatars/avatar-casquinha.svg", description: "Casquinha crocante com dois sabores" },
+  { id: "chef", name: "Mestre Gelateiro", imageUrl: "/avatars/avatar-chef.svg", description: "Toque profissional de confeitaria" },
 ];
 
 export default function AccountPage() {
@@ -94,8 +103,22 @@ export default function AccountPage() {
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
   // Modal de Avatar
+  const [avatarPresets, setAvatarPresets] = useState<AvatarPresetItem[]>(DEFAULT_AVATAR_PRESETS);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [modalAvatarChoice, setModalAvatarChoice] = useState("/avatars/avatar-sorvete.svg");
+
+  useEffect(() => {
+    fetch("/api/avatars")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setAvatarPresets(data);
+        }
+      })
+      .catch((err) => {
+        console.error("Erro ao carregar avatares oficiais:", err);
+      });
+  }, []);
 
   // Location state
   const [isAddingLocation, setIsAddingLocation] = useState(false);
@@ -242,7 +265,7 @@ export default function AccountPage() {
     { id: "pagamentos", label: "Pagamentos", icon: <CreditCard className="w-4 h-4" /> },
     { id: "avaliacoes", label: "Avaliações", icon: <Star className="w-4 h-4" /> },
     { id: "preferencias", label: "Preferências", icon: <Settings className="w-4 h-4" /> },
-    { id: "acessibilidade", label: "Acessibilidade", icon: <span className="text-base leading-none">♿</span> },
+    { id: "acessibilidade", label: "Acessibilidade", icon: <Accessibility className="w-4 h-4" /> },
   ];
 
   const currentDisplayAvatar = selectedAvatar || profile?.avatar || profile?.avatar_url || user?.avatar || "/avatars/avatar-sorvete.svg";
@@ -382,18 +405,18 @@ export default function AccountPage() {
                       className="w-full h-full object-contain"
                     />
                   </div>
-                  {/* Botão circular sobreposto com câmera */}
+                  {/* Botão circular sobreposto com sparkles */}
                   <button
                     type="button"
                     onClick={() => {
                       setModalAvatarChoice(selectedAvatar);
                       setIsAvatarModalOpen(true);
                     }}
-                    title="Alterar Foto de Avatar"
-                    aria-label="Alterar Foto de Avatar"
+                    title="Escolher Avatar"
+                    aria-label="Escolher Avatar"
                     className="absolute bottom-1 right-1 w-10 h-10 rounded-full bg-gradient-to-r from-[#9306CF] to-[#940068] text-white flex items-center justify-center shadow-lg border-2 border-white dark:border-[#230E26] hover:scale-110 active:scale-95 transition-all cursor-pointer"
                   >
-                    <Camera className="w-4 h-4" />
+                    <Sparkles className="w-4 h-4" />
                   </button>
                 </div>
 
@@ -405,7 +428,7 @@ export default function AccountPage() {
                     Ilustração do Seu Perfil
                   </h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Escolha um dos 10 avatares vetoriais ilustrados da coleção temática Pop Shake para estampar seu perfil e pedidos.
+                    Escolha um dos avatares oficiais disponíveis para personalizar sua conta e pedidos.
                   </p>
                   <div>
                     <Button
@@ -417,7 +440,7 @@ export default function AccountPage() {
                       }}
                       className="h-9 px-4 rounded-xl border-[#9306CF]/30 text-[#9306CF] dark:text-[#C7A9C9] hover:bg-[#9306CF]/10 text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer"
                     >
-                      <Camera className="w-3.5 h-3.5" /> Alterar Foto
+                      <Sparkles className="w-3.5 h-3.5" /> Escolher Avatar
                     </Button>
                   </div>
                 </div>
@@ -994,15 +1017,16 @@ export default function AccountPage() {
               </button>
             </div>
 
-            {/* Grid dos 10 Avatares Vetorizados */}
+            {/* Grid dos Avatares Oficiais */}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5 max-h-[55vh] overflow-y-auto pr-1">
-              {AVATAR_PRESETS.map((avatar) => {
-                const isSelected = modalAvatarChoice === avatar.path;
+              {avatarPresets.map((avatar) => {
+                const avatarPath = avatar.imageUrl || (avatar as any).path;
+                const isSelected = modalAvatarChoice === avatarPath;
                 return (
                   <button
                     key={avatar.id}
                     type="button"
-                    onClick={() => setModalAvatarChoice(avatar.path)}
+                    onClick={() => setModalAvatarChoice(avatarPath)}
                     className={`relative p-3 rounded-2xl border-2 flex flex-col items-center text-center transition-all cursor-pointer group ${
                       isSelected
                         ? "border-[#9306CF] bg-[#9306CF]/10 dark:bg-[#9306CF]/20 ring-2 ring-[#9306CF]/30 shadow-md shadow-[#9306CF]/20 scale-102"
@@ -1018,7 +1042,7 @@ export default function AccountPage() {
 
                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-white dark:bg-[#2A1030] p-1 shadow-inner border border-gray-100 dark:border-[#512B54]/30 mb-2">
                       <Image
-                        src={avatar.path}
+                        src={avatarPath}
                         alt={avatar.name}
                         width={80}
                         height={80}
@@ -1029,7 +1053,7 @@ export default function AccountPage() {
                       {avatar.name}
                     </span>
                     <span className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
-                      {avatar.desc}
+                      {avatar.description || (avatar as any).desc}
                     </span>
                   </button>
                 );

@@ -369,6 +369,45 @@ async function main() {
 
   console.log("✅ Selos criados e vinculados a produtos com sucesso!");
 
+  // 6.8 Avatares Pré-definidos Oficiais
+  console.log("🎨 Cadastrando avatares oficiais...");
+  const avatarPresetsData = [
+    { name: "Sundae Amora", description: "Clássico sundae com calda de amora", imageUrl: "/avatars/avatar-sorvete.svg", category: "Sobremesas", order: 1 },
+    { name: "Tigela de Açaí", description: "Açaí cremoso com banana e morango", imageUrl: "/avatars/avatar-acai.svg", category: "Açaí", order: 2 },
+    { name: "Milk Shake", description: "Milk shake cremoso refrescante", imageUrl: "/avatars/avatar-shake.svg", category: "Bebidas", order: 3 },
+    { name: "Picolé Frutas", description: "Picolé artesanal de frutas tropicais", imageUrl: "/avatars/avatar-picole.svg", category: "Picolés", order: 4 },
+    { name: "Morango Pop", description: "Morango doce e selecionado", imageUrl: "/avatars/avatar-morango.svg", category: "Frutas", order: 5 },
+    { name: "Banana Split", description: "Banana ouro com toque especial", imageUrl: "/avatars/avatar-banana.svg", category: "Frutas", order: 6 },
+    { name: "Cookie Choco", description: "Cookie crocante com gotas de chocolate", imageUrl: "/avatars/avatar-cookie.svg", category: "Gourmet", order: 7 },
+    { name: "Cereja Pop", description: "Toque final irresistível", imageUrl: "/avatars/avatar-cereja.svg", category: "Frutas", order: 8 },
+    { name: "Casquinha Dupla", description: "Casquinha crocante com dois sabores", imageUrl: "/avatars/avatar-casquinha.svg", category: "Sorvetes", order: 9 },
+    { name: "Mestre Gelateiro", description: "Toque profissional de confeitaria", imageUrl: "/avatars/avatar-chef.svg", category: "Especiais", order: 10 },
+  ];
+
+  for (const av of avatarPresetsData) {
+    await prisma.avatarPreset.upsert({
+      where: { id: `preset_${av.order}` },
+      update: {
+        name: av.name,
+        description: av.description,
+        imageUrl: av.imageUrl,
+        category: av.category,
+        order: av.order,
+        isActive: true,
+      },
+      create: {
+        id: `preset_${av.order}`,
+        name: av.name,
+        description: av.description,
+        imageUrl: av.imageUrl,
+        category: av.category,
+        order: av.order,
+        isActive: true,
+      },
+    });
+  }
+  console.log("✅ Avatares oficiais cadastrados com sucesso!");
+
   // 7. Cupons Promocionais
   console.log("🎟️ Cadastrando cupons...");
   await prisma.coupon.createMany({
