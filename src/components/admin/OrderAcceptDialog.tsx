@@ -76,14 +76,6 @@ export function OrderAcceptDialog({
     }
   }, [open, presets, storeDefaultTime]);
 
-  if (!open || !order) return null;
-
-  const clientName = order.user?.fullName || order.user?.username || "Cliente";
-  const isPickup =
-    !order.delivery_address?.street ||
-    order.delivery_address?.street.toLowerCase().includes("retirada");
-  const totalItemsCount = order.items?.reduce((acc, i) => acc + i.quantity, 0) || 0;
-
   const handleSelectPreset = (preset: string) => {
     setSelectedTime(preset);
     setCustomTime("");
@@ -192,6 +184,15 @@ export function OrderAcceptDialog({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, isManagingPresets, handleConfirm, onOpenChange]);
+
+  // Retorno antecipado APENAS após todos os Hooks terem sido invocados incondicionalmente
+  if (!open || !order) return null;
+
+  const clientName = order.user?.fullName || order.user?.username || "Cliente";
+  const isPickup =
+    !order.delivery_address?.street ||
+    order.delivery_address?.street.toLowerCase().includes("retirada");
+  const totalItemsCount = order.items?.reduce((acc, i) => acc + i.quantity, 0) || 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
