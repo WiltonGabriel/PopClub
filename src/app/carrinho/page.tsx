@@ -146,6 +146,7 @@ export default function CarrinhoPage() {
   const [submitting, setSubmitting] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
   const [orderSuccessId, setOrderSuccessId] = useState<string | null>(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
 
   // Carrega configurações da loja e inicializa desbloqueio de áudio
   useEffect(() => {
@@ -1091,7 +1092,26 @@ export default function CarrinhoPage() {
               </div>
 
               <Button
-                onClick={handleFinishOrder}
+                onClick={() => {
+                  // Validações rápidas antes de abrir o modal
+                  setCheckoutError("");
+                  if (storeSettings && !storeSettings.isOpen) {
+                    setCheckoutError("A loja está fechada no momento.");
+                    return;
+                  }
+                  if (!street.trim() || !number.trim() || !neighborhood.trim()) {
+                    setCheckoutError("Preencha todos os campos obrigatórios de endereço (Rua, Número e Bairro).");
+                    return;
+                  }
+                  if (paymentType === "dinheiro" && changeFor) {
+                    const changeNum = parseFloat(changeFor);
+                    if (isNaN(changeNum) || changeNum < finalTotal) {
+                      setCheckoutError(`O valor para troco deve ser maior ou igual ao total (R$ ${finalTotal.toFixed(2).replace(".", ",")}).`);
+                      return;
+                    }
+                  }
+                  setShowReviewModal(true);
+                }}
                 disabled={submitting || (storeSettings ? !storeSettings.isOpen : false)}
                 className={`h-12 rounded-none font-heading text-base uppercase tracking-wider font-bold px-8 shadow-lg flex items-center gap-2 ${
                   storeSettings && !storeSettings.isOpen
@@ -1108,9 +1128,104 @@ export default function CarrinhoPage() {
                   <>Loja Fechada no Momento</>
                 ) : (
                   <>
-                    Confirmar e Fazer Pedido
+                    Revisar e Confirmar Pedido
                     <ArrowRight className="w-5 h-5" />
                   </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== MODAL DE REVISÃO DO PEDIDO ===== */}
+      {showReviewModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 p-0 sm:p-4"
+          onClick={() => setShowReviewModal(false)}
+        >
+          <div
+            className="w-full sm:max-w-lg bg-card border-2 border-border rounded-t-3xl sm:rounded-2xl shadow-2xl p-6 space-y-5 animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header do Modal */}
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">Confirme antes de enviar</span>
+                <h2 className="font-heading text-xl font-black uppercase tracking-tight">Revisão do Pedido</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowReviewModal(false)}
+                className="w-9 h-9 rounded-xl bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <ArrowRight className="w-5 h-5 rotate-180" />
+              </button>
+            </div>
+
+            {/* Itens */}
+            <div className="space-y-2 border border-border rounded-xl p-4">
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Itens do Pedido</p>
+              {items.map((item, idx) => (
+                <div key={idx} className="flex justify-between items-center text-sm gap-2">
+                  <span className="font-semibold text-foreground">
+                    <span className="text-primary font-black">{item.quantity}x</span> {item.name}
+                  </span>
+                  <span className="font-mono text-muted-foreground shrink-0">
+                    R$ {(item.price * item.quantity).toFixed(2).replace(".", ",")}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Endereço */}
+            <div className="border border-border rounded-xl p-4 space-y-0.5">
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1">Endereço de Entrega</p>
+              <p className="text-sm font-semibold">{street}, {number}{complement ? `, ${complement}` : ""}</p>
+              <p className="text-xs text-muted-foreground">{neighborhood} &bull; {city}{reference ? ` — Ref: ${reference}` : ""}</p>
+            </div>
+
+            {/* Pagamento */}
+            <div className="border border-border rounded-xl p-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-0.5">Forma de Pagamento</p>
+                <p className="text-sm font-bold">
+                  {paymentType === "dinheiro" ? "Dinheiro" : paymentType === "cartao_maquininha" ? "Cartão (Maquininha)" : "Pix na Entrega"}
+                  {paymentType === "dinheiro" && changeFor ? ` — Troco para R$ ${parseFloat(changeFor).toFixed(2).replace(".", ",")}` : ""}
+                </p>
+              </div>
+              <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-lg">Na Entrega</span>
+            </div>
+
+            {/* Total */}
+            <div className="flex justify-between items-baseline border-t border-border pt-3">
+              <span className="font-mono text-sm uppercase tracking-wider font-bold">Total a Pagar:</span>
+              <span className="font-heading text-3xl font-black text-primary">
+                R$ {finalTotal.toFixed(2).replace(".", ",")}
+              </span>
+            </div>
+
+            {/* Ações */}
+            <div className="flex gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowReviewModal(false)}
+                className="flex-1 h-12 border-2 border-border font-mono text-xs uppercase tracking-widest font-bold hover:bg-muted transition-colors cursor-pointer rounded-none"
+              >
+                Editar Pedido
+              </button>
+              <Button
+                onClick={async () => {
+                  setShowReviewModal(false);
+                  await handleFinishOrder();
+                }}
+                disabled={submitting}
+                className="flex-1 h-12 rounded-none font-heading text-sm uppercase tracking-widest font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg flex items-center justify-center gap-2"
+              >
+                {submitting ? (
+                  <><Loader2 className="w-5 h-5 animate-spin" /> Processando...</>
+                ) : (
+                  <>Confirmar Pedido <CheckCircle2 className="w-5 h-5" /></>
                 )}
               </Button>
             </div>

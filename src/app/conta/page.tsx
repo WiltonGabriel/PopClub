@@ -15,8 +15,6 @@ import {
   LogOut, 
   Loader2, 
   Map, 
-  Sun, 
-  Moon, 
   Check, 
   Eye, 
   Bell, 
@@ -29,7 +27,9 @@ import {
   ShieldCheck,
   Clock,
   Bike,
-  Accessibility
+  Accessibility,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -71,7 +71,7 @@ const DEFAULT_AVATAR_PRESETS: AvatarPresetItem[] = [
 
 export default function AccountPage() {
   const { user, loading, refreshUser } = useAuth();
-  const { theme, toggleTheme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const { 
     addresses, 
     activeAddressId, 
@@ -285,24 +285,6 @@ export default function AccountPage() {
           </span>
         </Link>
 
-        {/* Botão de Alternância Rápida de Tema */}
-        <button
-          type="button"
-          onClick={toggleTheme}
-          aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
-          title={theme === "dark" ? "Modo claro" : "Modo escuro"}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-[#512B54]/40 bg-white/70 dark:bg-[#230E26]/70 hover:bg-gray-100 dark:hover:bg-white/5 text-xs font-semibold text-[#4C264F] dark:text-[#F9F5F9] transition-all shadow-xs active:scale-95 cursor-pointer"
-        >
-          {theme === "dark" ? (
-            <Sun className="w-4 h-4 text-amber-500 shrink-0" />
-          ) : (
-            <Moon className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9] shrink-0" />
-          )}
-          <span className="hidden xs:inline">Tema:</span>
-          <span className="font-bold text-[#9306CF] dark:text-[#C7A9C9]">
-            {theme === "dark" ? "Escuro" : "Claro"}
-          </span>
-        </button>
       </header>
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-8 flex flex-col md:flex-row gap-8">
@@ -328,20 +310,7 @@ export default function AccountPage() {
               </div>
             </div>
 
-            {/* Quick theme switcher on mobile & desktop */}
-            <div className="mt-2 pt-2.5 border-t border-gray-100 dark:border-[#512B54]/30 flex items-center justify-between">
-              <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                {theme === "dark" ? <Moon className="w-3.5 h-3.5 text-[#9306CF]" /> : <Sun className="w-3.5 h-3.5 text-amber-500" />}
-                Aparência
-              </span>
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="text-xs font-bold px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-[#9306CF]/10 hover:text-[#9306CF] transition-colors border border-border/40 cursor-pointer"
-              >
-                {theme === "dark" ? "🌙 Escuro" : "☀️ Claro"}
-              </button>
-            </div>
+
           </div>
 
           <nav className="flex flex-col gap-2">
@@ -492,7 +461,7 @@ export default function AccountPage() {
             <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-8">
               <div>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] text-xs font-bold uppercase tracking-wider mb-2 border border-[#9306CF]/20">
-                  <span className="text-base">♿</span> Inclusão e Conforto Visual
+                  <Accessibility className="w-3.5 h-3.5" /> Inclusão e Conforto Visual
                 </div>
                 <h2 className="font-heading text-2xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
                   Acessibilidade
@@ -965,6 +934,77 @@ export default function AccountPage() {
                     </div>
                   </button>
                 </div>
+              </div>
+
+              {/* Seção de Notificações */}
+              <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-[#512B54]/40">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                  Notificações de Pedido
+                </Label>
+
+                {/* Push Notifications */}
+                <div className="p-4 rounded-2xl bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 flex items-center justify-between gap-4">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-heading font-bold text-gray-900 dark:text-white">Notificações Push</p>
+                    <p className="text-xs text-muted-foreground">
+                      Receba alertas do navegador mesmo com a aba em segundo plano sobre status do seu pedido.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={async () => {
+                      if (!("Notification" in window)) {
+                        showToast({ type: "error", title: "Sem suporte", message: "Seu navegador não suporta notificações push." });
+                        return;
+                      }
+                      const perm = await Notification.requestPermission();
+                      if (perm === "granted") {
+                        showToast({ type: "success", title: "Notificações ativadas!", message: "Você receberá alertas de atualização dos seus pedidos." });
+                      } else {
+                        showToast({ type: "error", title: "Permissão negada", message: "Ative as notificações nas configurações do navegador." });
+                      }
+                    }}
+                    className="h-9 px-4 rounded-xl border-[#9306CF]/30 text-[#9306CF] dark:text-[#C7A9C9] hover:bg-[#9306CF]/10 text-xs font-bold uppercase tracking-wider shrink-0 cursor-pointer"
+                  >
+                    <Bell className="w-3.5 h-3.5 mr-1.5" />
+                    Ativar
+                  </Button>
+                </div>
+
+                {/* Som de Alerta */}
+                <div className="p-4 rounded-2xl bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 flex items-center justify-between gap-4">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-heading font-bold text-gray-900 dark:text-white">Som de Chegada de Pedido</p>
+                    <p className="text-xs text-muted-foreground">
+                      Toca um sinal sonoro suave quando o status do seu pedido for atualizado.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => { playDingSound(); }}
+                    className="h-9 px-4 rounded-xl border-[#9306CF]/30 text-[#9306CF] dark:text-[#C7A9C9] hover:bg-[#9306CF]/10 text-xs font-bold uppercase tracking-wider shrink-0 cursor-pointer"
+                  >
+                    <Volume2 className="w-3.5 h-3.5 mr-1.5" />
+                    Testar
+                  </Button>
+                </div>
+              </div>
+
+              {/* Rodapé com Salvar */}
+              <div className="pt-4 border-t border-gray-200 dark:border-[#512B54]/40 flex items-center justify-end">
+                <Button
+                  type="button"
+                  onClick={() => {
+                    showToast({ type: "success", title: "Preferências salvas!", message: "Suas configurações de tema e notificações foram atualizadas." });
+                  }}
+                  className="h-11 px-6 rounded-xl font-heading font-bold uppercase tracking-widest text-xs bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white shadow-md shadow-[#9306CF]/20 cursor-pointer flex items-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Salvar Preferências
+                </Button>
               </div>
             </div>
           )}

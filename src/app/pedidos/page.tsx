@@ -86,6 +86,7 @@ export default function PedidosPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [fetching, setFetching] = useState(true);
   const [expandedOrderIds, setExpandedOrderIds] = useState<Record<string, boolean>>({});
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const previousStatusMap = useRef<Record<string, OrderStatus>>({});
 
   const toggleOrderExpanded = (id: string) => {
@@ -94,6 +95,7 @@ export default function PedidosPage() {
       [id]: !prev[id],
     }));
   };
+
 
   const fetchOrders = useCallback(async (isSilent = false) => {
     if (!isSilent) setFetching(true);
@@ -173,6 +175,21 @@ export default function PedidosPage() {
       if (!isSilent) setFetching(false);
     }
   }, [showToast]);
+
+  const handleCancelOrder = async (orderId: string) => {
+    if (!confirm("Tem certeza que deseja cancelar este pedido? Esta ação não pode ser desfeita.")) return;
+    setCancellingId(orderId);
+    try {
+      await orderService.cancelOrder(orderId, "Cancelado pelo cliente");
+      showToast({ type: "info", title: "Pedido cancelado", message: "Seu pedido foi cancelado com sucesso.", duration: 6000 });
+      fetchOrders(true);
+    } catch (err: any) {
+      showToast({ type: "error", title: "Erro ao cancelar", message: err.message || "Não foi possível cancelar o pedido.", duration: 7000 });
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
 
   // Desbloqueia áudio na primeira interação do usuário
   useEffect(() => {
@@ -384,6 +401,47 @@ export default function PedidosPage() {
                         </Button>
                       </Link>
                     </div>
+
+                    {/* ── CANCELAMENTO CONDICIONAL ── */}
+                    {order.status === "pending" && (
+                      <div className="pt-2 border-t border-gray-100 dark:border-[#512B54]/30 flex items-center justify-between gap-3">
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                          Ainda não confirmado pela loja. Você ainda pode cancelar.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => handleCancelOrder(order.id)}
+                          disabled={cancellingId === order.id}
+                          className="flex items-center gap-1.5 text-xs font-bold text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 border border-red-300 dark:border-red-900/50 px-3 py-1.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors disabled:opacity-50 cursor-pointer shrink-0"
+                        >
+                          {cancellingId === order.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                          )}
+                          Cancelar Pedido
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Aviso de contato via WhatsApp quando não é mais possível cancelar */}
+                    {["accepted", "preparing", "ready", "delivering"].includes(order.status) && (
+                      <div className="pt-2 border-t border-gray-100 dark:border-[#512B54]/30 flex items-start gap-2">
+                        <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
+                          Pedido já em preparo. Para cancelar, entre em contato diretamente com a loja:
+                          {" "}
+                          <a
+                            href={`https://wa.me/${STORE_WHATSAPP.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá! Preciso cancelar meu pedido #${order.id.substring(0, 6)}.`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-bold text-emerald-600 hover:underline"
+                          >
+                            Falar no WhatsApp
+                          </a>
+                        </p>
+                      </div>
+                    )}
 
                     {/* ── DETALHES DO PEDIDO EXPANDÍVEIS (ACCORDION) ── */}
                     {isExpanded && (
