@@ -70,6 +70,7 @@ function TrackingContent() {
   const [lastPollTime, setLastPollTime] = useState<Date>(new Date());
   const [deliveryMetrics, setDeliveryMetrics] = useState<DeliveryMetrics | null>(null);
   const [bottomSheetExpanded, setBottomSheetExpanded] = useState(false);
+  const [showPreviewMap, setShowPreviewMap] = useState(false);
 
   // Busca configurações da loja (coordenadas e WhatsApp comercial)
   useEffect(() => {
@@ -87,20 +88,32 @@ function TrackingContent() {
       .catch(() => {});
   }, []);
 
-  // Busca inicial do pedido
+  // Busca inicial do pedido (com auto-resolução do último pedido ativo caso a rota seja chamada sem ?id=)
   useEffect(() => {
-    if (!orderId) {
-      setLoading(false);
-      return;
-    }
-
     let isMounted = true;
     async function loadOrder() {
       try {
-        const data = await orderService.getOrderById(orderId!);
-        if (isMounted) {
-          setOrder(data);
-          setError(null);
+        let targetId = orderId;
+        if (!targetId) {
+          const myOrders = await orderService.getMyOrders();
+          const activeOrder =
+            myOrders.find((o) =>
+              ["delivering", "ready", "preparing", "accepted", "pending"].includes(o.status)
+            ) || myOrders[0];
+
+          if (activeOrder && isMounted) {
+            router.replace(`/rastreamento?id=${activeOrder.id}`);
+            setOrder(activeOrder);
+            setError(null);
+            setLoading(false);
+            return;
+          }
+        } else {
+          const data = await orderService.getOrderById(targetId);
+          if (isMounted) {
+            setOrder(data);
+            setError(null);
+          }
         }
       } catch (err: any) {
         if (isMounted) {
@@ -116,7 +129,7 @@ function TrackingContent() {
     return () => {
       isMounted = false;
     };
-  }, [orderId]);
+  }, [orderId, router]);
 
   // Polling a cada 8s para atualizar posição do entregador e status do pedido
   useEffect(() => {
@@ -893,6 +906,49 @@ function TrackingContent() {
               </strong>
             </div>
           </div>
+
+          {/* Visualização Opcional do Mapa da Rota durante a fase de preparo */}
+          {!isCancelled && (
+            <div className="space-y-3 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowPreviewMap(!showPreviewMap)}
+                className="w-full h-11 rounded-2xl border-purple-200 dark:border-purple-900/50 bg-purple-50/50 dark:bg-purple-950/20 text-[#9306CF] dark:text-[#C7A9C9] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-purple-100 dark:hover:bg-purple-950/40 transition-colors cursor-pointer"
+              >
+                <Navigation className="w-4 h-4" />
+                <span>{showPreviewMap ? "Ocultar Mapa do Trajeto" : "🗺️ Visualizar Rota de Entrega"}</span>
+              </Button>
+
+              {showPreviewMap && (
+                <div className="rounded-2xl overflow-hidden border border-border/70 shadow-inner bg-muted/20 space-y-2 p-2 animate-in fade-in duration-300">
+                  <div className="w-full h-[280px] rounded-xl overflow-hidden relative">
+                    <LeafletDeliveryMap
+                      origin={originCoords}
+                      destination={destCoords}
+                      courier={courierCoords}
+                      isGpsActive={order.is_gps_tracking_active}
+                      clientAddress={clientAddress}
+                      clientName={clientName}
+                      orderId={order.id}
+                      onMetricsUpdate={setDeliveryMetrics}
+                    />
+                  </div>
+                  <div className="p-2 text-[11px] text-muted-foreground flex items-center justify-between">
+                    <span>
+                      Distância estimada: <strong className="text-foreground">{initialMetrics.formattedDistance}</strong>
+                    </span>
+                    <span>
+                      Previsão: <strong className="text-foreground">{initialMetrics.formattedEta}</strong>
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-center text-muted-foreground pb-1">
+                    🛵 O rastreamento em tempo real com GPS da moto será iniciado assim que o pedido for despachado.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Botões de Ação */}
           <div className="flex flex-col sm:flex-row items-center gap-2 pt-2">

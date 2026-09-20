@@ -42,8 +42,19 @@ function MapController({
   isMobile: boolean;
 }) {
   const map = useMap();
+
+  // Força o recálculo do tamanho dos tiles quando o contêiner termina de montar ou alterar dimensões
+  useEffect(() => {
+    map.invalidateSize();
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [map]);
+
   useEffect(() => {
     if (bounds) {
+      map.invalidateSize();
       map.fitBounds(bounds, {
         paddingTopLeft: isMobile ? [75, 25] : [70, 70],
         paddingBottomRight: isMobile ? [25, 260] : [70, 70],
@@ -52,6 +63,7 @@ function MapController({
       });
     }
   }, [map, bounds, isMobile]);
+
   return null;
 }
 

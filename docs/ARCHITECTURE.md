@@ -36,18 +36,18 @@ flowchart TD
     end
 
     %% Conexões de Produção
-    User -->|HTTPS :443| CF_WAF
+    User -->|"HTTPS :443"| CF_WAF
     CF_WAF --> CF_SSL
-    CF_SSL -->|HTTPS :443| Traefik
-    Traefik -->|Roteador Público (Priority 100)| App
-    Traefik -->|Roteador Privado (Priority 1)| Authelia
-    Authelia -->|Sessão Validada| App
+    CF_SSL -->|"HTTPS :443"| Traefik
+    Traefik -->|"Roteador Público (Prioridade 100)"| App
+    Traefik -->|"Roteador Privado (Authelia - Prioridade 1)"| Authelia
+    Authelia -->|"Sessão Validada"| App
 
     %% Conexões Internas
-    App -->|pg_isready & Querys| DB
+    App -->|"pg_isready e Queries"| DB
 
     %% Conexão de Desenvolvimento via Tailscale
-    Dev -->|IP Seguro 100.127.79.49:5432| DB
+    Dev -->|"Tailscale 100.127.79.49:5432"| DB
 ```
 
 ---

@@ -68,15 +68,15 @@ flowchart TD
     end
 
     %% Roteamento de Produção
-    Client -->|HTTPS :443| CF
-    CF -->|Proxy Seguro| Traefik
-    Traefik -->|Roteador Público :100 (Estáticos/Manifest)| App
-    Traefik -->|Roteador Protegido :1 (Authelia)| Authelia
-    Authelia -->|Sessão Validada| App
-    App -->|Rede Interna Bridge| DB
+    Client -->|"HTTPS :443"| CF
+    CF -->|"Proxy Seguro"| Traefik
+    Traefik -->|"Roteador Público (Prioridade 100 - Estáticos/Manifest)"| App
+    Traefik -->|"Roteador Protegido (Authelia - Prioridade 1)"| Authelia
+    Authelia -->|"Sessão Validada"| App
+    App -->|"Rede Interna Bridge"| DB
 
     %% Desenvolvimento Conectado Diretamente
-    Dev -->|IP Seguro 100.127.79.49:5432| DB
+    Dev -->|"Tailscale 100.127.79.49:5432"| DB
 ```
 
 Para uma análise aprofundada dos roteadores, regras de WAF e isolamento de rede, consulte o documento técnico [docs/ARCHITECTURE.md](file:///home/wiltongx/Projetos/PastePopClub/PopClub/docs/ARCHITECTURE.md).
@@ -92,7 +92,7 @@ Para uma análise aprofundada dos roteadores, regras de WAF e isolamento de rede
 | **Backend & APIs** | Next.js Route Handlers RESTful, Server Actions, [Zod](https://zod.dev/) |
 | **Banco de Dados & ORM** | [PostgreSQL 16](https://www.postgresql.org/) (Alpine), [Prisma ORM 6](https://www.prisma.io/) com modelagem relacional estrita |
 | **Segurança & Auth** | JWT (`jsonwebtoken`), Criptografia com `bcryptjs`, Cookies `HttpOnly` com validação de papéis (`admin` vs `client`) |
-| **Geolocalização** | Google Maps Platform API (`@vis.gl/react-google-maps`) com Geocodificação Reversa |
+| **Geolocalização & Mapas** | [Leaflet](https://leafletjs.com/) (`leaflet` + `react-leaflet`), [OpenStreetMap](https://www.openstreetmap.org/), [OSRM Routing](https://project-osrm.org/) e Nominatim Geocoding (100% Soberano & Gratuito) |
 | **Infraestrutura & GitOps** | Docker (Multi-stage Debian bookworm-slim), Docker Compose, Portainer CE, Traefik v3, Authelia, Cloudflare, Tailscale |
 
 ---
@@ -109,9 +109,6 @@ O desenvolvimento local adota o princípio de **Paridade Absoluta**: a estação
 Crie ou ajuste o arquivo `.env` na raiz do projeto conforme o modelo abaixo:
 
 ```env
-# Google Maps Platform (Geocodificação Reversa e Autocompletação de Endereços)
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=sua_chave_google_maps_aqui
-
 # Conexão com o PostgreSQL Remoto Centralizado (via Tailscale)
 DATABASE_URL="postgresql://postgres:SUA_SENHA_AQUI@100.127.79.49:5432/popclub?schema=public"
 

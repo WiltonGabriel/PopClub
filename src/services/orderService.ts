@@ -220,8 +220,8 @@ export const orderService = {
     if (!res.ok) {
       throw new Error(data.error || "Pedido não encontrado.");
     }
-    // Retorna o objeto do pedido caso venha encapsulado ou direto
-    return data.order || data;
+    // Retorna o objeto do pedido caso venha encapsulado (data.data, data.order) ou direto
+    return data.data || data.order || data;
   },
 
   async dispatchOrder(
