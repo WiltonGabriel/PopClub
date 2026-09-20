@@ -1,4 +1,5 @@
 import { dispatchOrderEvent } from "../lib/orderEvents";
+import { fetchClient } from "../lib/fetchClient";
 
 export type OrderStatus = 'pending' | 'accepted' | 'preparing' | 'ready' | 'delivering' | 'completed' | 'cancelled';
 
@@ -176,17 +177,9 @@ export const orderService = {
   },
 
   async createCheckoutOrder(payload: CheckoutPayload): Promise<{ success: boolean; order: any }> {
-    const res = await fetch("/api/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(15000),
+    const data = await fetchClient.post<{ success: boolean; order: any }>("/api/checkout", payload, {
+      timeoutMs: 15000,
     });
-
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(data.error || "Erro ao finalizar pedido.");
-    }
 
     if (data.order) {
       dispatchOrderEvent("order_created", data.order);

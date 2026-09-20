@@ -36,6 +36,8 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { playDingSound, initAudioUnlock } from "../../lib/sound";
 import { NotificationPermissionBanner } from "../../components/storefront/NotificationPermissionBanner";
+import { ResilientErrorAlert } from "../../components/ui/ResilientErrorAlert";
+import { AppApiError } from "@/lib/fetchClient";
 
 export default function CarrinhoPage() {
   const router = useRouter();
@@ -147,8 +149,13 @@ export default function CarrinhoPage() {
   // Submissão do pedido
   const [submitting, setSubmitting] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
+  const [checkoutErrorObj, setCheckoutErrorObj] = useState<AppApiError | Error | null>(null);
   const [orderSuccessId, setOrderSuccessId] = useState<string | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
+
+  // Referências para feedback e navegação contextual resiliente
+  const addressSectionRef = useRef<HTMLElement>(null);
+  const errorAlertRef = useRef<HTMLDivElement>(null);
 
   // Carrega configurações da loja e inicializa desbloqueio de áudio
   useEffect(() => {
@@ -247,6 +254,37 @@ export default function CarrinhoPage() {
   const couponDiscount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const totalDiscount = Number((promoDiscount + couponDiscount).toFixed(2));
   const finalTotal = Math.max(0, Number((itemsTotal - couponDiscount + deliveryFee).toFixed(2)));
+
+  // Resumo do carrinho para contingência via WhatsApp
+  const cartSummary = useMemo(() => {
+    if (!items.length) return "";
+    const itemsList = items
+      .map(
+        (item) =>
+          `• ${item.quantity}x ${item.name} - R$ ${(item.price * item.quantity).toFixed(2).replace(".", ",")}`
+      )
+      .join("\n");
+    const addressStr = street
+      ? `${street}, ${number || "S/N"} - ${neighborhood || ""}${city ? `, ${city}` : ""}${complement ? ` (${complement})` : ""}`
+      : "A combinar";
+    const paymentStr =
+      paymentType === "dinheiro"
+        ? `Dinheiro${changeFor ? ` (Troco para R$ ${parseFloat(changeFor).toFixed(2).replace(".", ",")})` : ""}`
+        : paymentType === "cartao_maquininha"
+        ? "Cartão na Maquininha"
+        : "Pix na Entrega";
+    return `*Novo Pedido PopClub*\n\n*Itens:*\n${itemsList}\n\n*Entrega:* ${addressStr}\n*Forma de Pagamento:* ${paymentStr}\n*Total:* R$ ${finalTotal.toFixed(2).replace(".", ",")}`;
+  }, [items, street, number, neighborhood, city, complement, paymentType, changeFor, finalTotal]);
+
+  const handleReviewAddress = () => {
+    if (addressSectionRef.current) {
+      addressSectionRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      const input = addressSectionRef.current.querySelector<HTMLInputElement>("input");
+      if (input) {
+        input.focus();
+      }
+    }
+  };
 
   // Funções de Geolocalização Reversa e GPS
   const fetchAddressFromCoords = async (lat: number, lon: number) => {
@@ -348,26 +386,40 @@ export default function CarrinhoPage() {
 
   const handleFinishOrder = async () => {
     setCheckoutError("");
+    setCheckoutErrorObj(null);
 
     if (storeSettings && !storeSettings.isOpen) {
-      setCheckoutError("A loja está fechada no momento e não está aceitando novos pedidos. Nosso atendimento abrirá em breve!");
+      const msg = "A loja está fechada no momento e não está aceitando novos pedidos. Nosso atendimento abrirá em breve!";
+      setCheckoutError(msg);
+      setCheckoutErrorObj(new AppApiError(msg, "STORE_CLOSED", 400));
       return;
     }
 
     if (items.length === 0) {
-      setCheckoutError("Adicione itens ao carrinho antes de continuar.");
+      const msg = "Adicione itens ao carrinho antes de continuar.";
+      setCheckoutError(msg);
+      setCheckoutErrorObj(new AppApiError(msg, "VALIDATION_ERROR", 400));
       return;
     }
 
     if (!street.trim() || !number.trim() || !neighborhood.trim()) {
-      setCheckoutError("Preencha todos os campos obrigatórios de endereço (Rua, Número e Bairro).");
+      const msg = "Preencha todos os campos obrigatórios de endereço (Rua, Número e Bairro).";
+      setCheckoutError(msg);
+      setCheckoutErrorObj(
+        new AppApiError(msg, "VALIDATION_ERROR", 400, [
+          { field: "Endereço", message: "Rua, Número e Bairro são obrigatórios" },
+        ])
+      );
+      handleReviewAddress();
       return;
     }
 
     if (paymentType === "dinheiro" && changeFor) {
       const changeNum = parseFloat(changeFor);
       if (isNaN(changeNum) || changeNum < finalTotal) {
-        setCheckoutError(`O valor para troco deve ser maior ou igual ao total do pedido (R$ ${finalTotal.toFixed(2).replace(".", ",")}).`);
+        const msg = `O valor para troco deve ser maior ou igual ao total do pedido (R$ ${finalTotal.toFixed(2).replace(".", ",")}).`;
+        setCheckoutError(msg);
+        setCheckoutErrorObj(new AppApiError(msg, "VALIDATION_ERROR", 400));
         return;
       }
     }
@@ -408,6 +460,10 @@ export default function CarrinhoPage() {
       clearCart();
     } catch (err: any) {
       setCheckoutError(err.message || "Erro ao processar pedido no servidor.");
+      setCheckoutErrorObj(err);
+      setTimeout(() => {
+        errorAlertRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
     } finally {
       setSubmitting(false);
     }
@@ -499,9 +555,20 @@ export default function CarrinhoPage() {
       </header>
 
       <main className="flex-1 w-full max-w-4xl mx-auto px-4 py-6 space-y-8">
-        {checkoutError && (
-          <div className="p-4 bg-destructive/10 border-l-4 border-destructive text-destructive font-mono text-xs rounded-r-xl">
-            {checkoutError}
+        {(checkoutErrorObj || checkoutError) && (
+          <div ref={errorAlertRef} className="animate-in fade-in duration-300">
+            <ResilientErrorAlert
+              error={checkoutErrorObj || checkoutError}
+              onRetry={handleFinishOrder}
+              onReviewAddress={handleReviewAddress}
+              onDismiss={() => {
+                setCheckoutError("");
+                setCheckoutErrorObj(null);
+              }}
+              whatsappNumber={storeSettings?.whatsappNumber}
+              cartSummary={cartSummary}
+              isRetrying={submitting}
+            />
           </div>
         )}
 
@@ -766,7 +833,7 @@ export default function CarrinhoPage() {
             </section>
 
             {/* 3. Endereço de Entrega */}
-            <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-[#512B54]/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+            <section ref={addressSectionRef} className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-[#512B54]/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
                 <h3 className="font-heading text-base sm:text-lg font-bold uppercase tracking-wide flex items-center gap-2.5 text-foreground">
                   <div className="w-8 h-8 rounded-xl bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
@@ -1277,18 +1344,30 @@ export default function CarrinhoPage() {
                 onClick={() => {
                   // Validações rápidas antes de abrir o modal
                   setCheckoutError("");
+                  setCheckoutErrorObj(null);
                   if (storeSettings && !storeSettings.isOpen) {
-                    setCheckoutError("A loja está fechada no momento.");
+                    const msg = "A loja está fechada no momento.";
+                    setCheckoutError(msg);
+                    setCheckoutErrorObj(new AppApiError(msg, "STORE_CLOSED", 400));
                     return;
                   }
                   if (!street.trim() || !number.trim() || !neighborhood.trim()) {
-                    setCheckoutError("Preencha todos os campos obrigatórios de endereço (Rua, Número e Bairro).");
+                    const msg = "Preencha todos os campos obrigatórios de endereço (Rua, Número e Bairro).";
+                    setCheckoutError(msg);
+                    setCheckoutErrorObj(
+                      new AppApiError(msg, "VALIDATION_ERROR", 400, [
+                        { field: "Endereço", message: "Rua, Número e Bairro são obrigatórios" },
+                      ])
+                    );
+                    handleReviewAddress();
                     return;
                   }
                   if (paymentType === "dinheiro" && changeFor) {
                     const changeNum = parseFloat(changeFor);
                     if (isNaN(changeNum) || changeNum < finalTotal) {
-                      setCheckoutError(`O valor para troco deve ser maior ou igual ao total (R$ ${finalTotal.toFixed(2).replace(".", ",")}).`);
+                      const msg = `O valor para troco deve ser maior ou igual ao total (R$ ${finalTotal.toFixed(2).replace(".", ",")}).`;
+                      setCheckoutError(msg);
+                      setCheckoutErrorObj(new AppApiError(msg, "VALIDATION_ERROR", 400));
                       return;
                     }
                   }
