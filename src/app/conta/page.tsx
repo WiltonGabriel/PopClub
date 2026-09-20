@@ -48,6 +48,7 @@ import {
   FontSizeOption, 
   ColorBlindModeOption 
 } from "../../contexts/AccessibilityContext";
+import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 import { useToast } from "../../components/ui/ToastNotification";
 import { authService } from "../../services/authService";
 import { userService, UserProfile, UserLocation } from "../../services/userService";
@@ -139,6 +140,9 @@ export default function AccountPage() {
   const router = useRouter();
   
   type AccountView = "menu" | "perfil" | "notificacoes" | "enderecos" | "avaliacoes" | "preferencias" | "acessibilidade";
+
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const [activeSection, setActiveSection] = useState("perfil");
   const [currentView, setCurrentView] = useState<AccountView>("menu");
@@ -442,9 +446,15 @@ export default function AccountPage() {
   };
 
   const handleSignOut = async () => {
-    resetToDefaults();
-    await authService.signOut();
-    router.push("/");
+    setIsLoggingOut(true);
+    try {
+      resetToDefaults();
+      await authService.signOut();
+      router.push("/");
+    } finally {
+      setIsLoggingOut(false);
+      setIsLogoutModalOpen(false);
+    }
   };
 
   const simulateGetLocation = () => {
@@ -688,7 +698,7 @@ export default function AccountPage() {
 
             <button 
               type="button"
-              onClick={handleSignOut}
+              onClick={() => setIsLogoutModalOpen(true)}
               className="flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-colors border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 mt-4 cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
@@ -1804,6 +1814,13 @@ export default function AccountPage() {
           </div>
         </div>
       )}
+
+      <LogoutConfirmModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={handleSignOut}
+        isLoggingOut={isLoggingOut}
+      />
     </div>
   );
 }

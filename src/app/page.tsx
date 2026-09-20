@@ -28,6 +28,7 @@ import {
   resolveBackgroundCss,
   LOADING_UPDATED_EVENT,
 } from "../services/loadingSettingsService";
+import { LogoutConfirmModal } from "../components/ui/LogoutConfirmModal";
 
 // Admin components (unchanged)
 import { CategoryFormDialog } from "../components/admin/CategoryFormDialog";
@@ -158,6 +159,9 @@ export default function Storefront() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
+
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Identidade Visual Dinâmica (Fundo e Loading)
   const [visualSettings, setVisualSettings] = useState<LoadingSettingsData>(() =>
@@ -948,10 +952,9 @@ export default function Storefront() {
 
                     {/* Sair */}
                     <button
-                      onClick={async () => {
+                      onClick={() => {
                         setUserMenuOpen(false);
-                        await authService.signOut();
-                        await refreshUser();
+                        setIsLogoutModalOpen(true);
                       }}
                       className="w-full flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors text-left cursor-pointer"
                     >
@@ -1591,6 +1594,23 @@ export default function Storefront() {
         product={selectedProductForModal}
         isOpen={productModalOpen}
         onClose={() => setProductModalOpen(false)}
+      />
+
+      {/* Confirmação de Logout */}
+      <LogoutConfirmModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={async () => {
+          setIsLoggingOut(true);
+          try {
+            await authService.signOut();
+            await refreshUser();
+          } finally {
+            setIsLoggingOut(false);
+            setIsLogoutModalOpen(false);
+          }
+        }}
+        isLoggingOut={isLoggingOut}
       />
     </div>
   );
