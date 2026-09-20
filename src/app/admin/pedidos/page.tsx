@@ -49,6 +49,8 @@ import {
   LayoutGrid,
   Ban,
   ArrowRight,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { orderService, Order, OrderStatus } from "../../../services/orderService";
@@ -321,6 +323,30 @@ export default function AdminPedidosPage() {
         title: "Som Silenciado 🔕",
         message: "Alertas sonoros operacionais desativados.",
         type: "warning",
+      });
+    }
+  };
+
+  // Alterna som do alerta de novo pedido com diálogo contextual de confirmação
+  const handleSoundToggleClick = () => {
+    if (!isSoundMuted) {
+      setConfirmDialog({
+        open: true,
+        title: "Você tem certeza?",
+        message:
+          "Deseja realmente silenciar os alertas sonoros de novos pedidos da esteira? Você precisará acompanhar a tela visualmente para não perder novas chegadas.",
+        confirmText: "Sim, Confirmar",
+        isDestructive: true,
+        onConfirm: () => toggleSoundMute(),
+      });
+    } else {
+      setConfirmDialog({
+        open: true,
+        title: "Você tem certeza?",
+        message: "Deseja reativar os alertas sonoros de novos pedidos da esteira?",
+        confirmText: "Sim, Confirmar",
+        isDestructive: false,
+        onConfirm: () => toggleSoundMute(),
       });
     }
   };
@@ -1846,27 +1872,25 @@ export default function AdminPedidosPage() {
               </Button>
             )}
 
-            {/* Botão de Alternância de Som Operacional (🔔 Som Ativado / 🔕 Mudo) */}
+            {/* Botão de Alternância de Som Operacional (Compacto: Apenas Ícone) */}
             <Button
               variant="outline"
-              onClick={toggleSoundMute}
-              className={`rounded-xl border text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 h-10 transition-colors cursor-pointer ${
+              onClick={handleSoundToggleClick}
+              className={`rounded-xl border w-10 h-10 p-0 flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
                 isSoundMuted
                   ? "border-red-300 dark:border-red-900/50 bg-red-50/70 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:bg-red-100"
                   : "border-emerald-300 dark:border-emerald-900/50 bg-emerald-50/70 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100"
               }`}
-              title={isSoundMuted ? "Clique para ativar som da cozinha" : "Clique para silenciar avisos sonoros"}
+              title={
+                isSoundMuted
+                  ? "Alertas sonoros silenciados. Clique para ativar som da esteira."
+                  : "Alertas sonoros ativos. Clique para silenciar avisos sonoros."
+              }
             >
               {isSoundMuted ? (
-                <>
-                  <BellOff className="w-3.5 h-3.5 text-red-500" />
-                  <span className="hidden md:inline">🔕 Mudo</span>
-                </>
+                <VolumeX className="w-4 h-4 text-red-500" />
               ) : (
-                <>
-                  <Bell className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
-                  <span className="hidden md:inline">🔔 Som Ativado</span>
-                </>
+                <Volume2 className="w-4 h-4 text-emerald-600 animate-pulse" />
               )}
             </Button>
 
@@ -2013,10 +2037,11 @@ export default function AdminPedidosPage() {
             <Button
               onClick={() => fetchOrders(true)}
               disabled={isRefreshing}
-              className="rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-2 h-10 px-4 shadow-md shadow-[#9306CF]/20 transition-all cursor-pointer"
+              className="rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-2 h-10 px-4 shadow-md shadow-[#9306CF]/20 transition-all cursor-pointer ml-auto lg:ml-0 shrink-0"
+              title="Atualizar esteira de pedidos"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
-              <span className="hidden sm:inline">{isRefreshing ? "Sincronizando..." : "Atualizar"}</span>
+              <span>{isRefreshing ? "Sincronizando..." : "Atualizar"}</span>
             </Button>
           </div>
         </div>
@@ -2055,7 +2080,7 @@ export default function AdminPedidosPage() {
           onRejectOrder={handleOpenRejectDialog}
           onViewOrderDetails={(order) => setSelectedOrderForDrawer(order)}
           isSoundMuted={isSoundMuted}
-          onToggleSound={toggleSoundMute}
+          onToggleSound={handleSoundToggleClick}
         />
 
         {/* Métricas Rápidas Operacionais */}

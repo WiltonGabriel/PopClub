@@ -485,7 +485,7 @@ export default function AccountPage() {
   return (
     <div className="min-h-screen bg-transparent text-foreground flex flex-col font-sans transition-colors duration-200">
       {/* Header com contraste dinâmico */}
-      <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-white/80 dark:bg-[#190B1A]/80 border-b border-gray-200 dark:border-[#512B54]/40 px-4 py-3 sm:py-4 flex items-center justify-between gap-3">
+      <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-background/80 border-b border-border/40 px-4 py-3 sm:py-4 flex items-center justify-between gap-3">
         <Link 
           href="/" 
           className="flex items-center gap-1.5 p-2 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-[#4C264F] dark:text-[#F9F5F9] font-medium text-sm transition-colors group"

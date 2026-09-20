@@ -5,8 +5,16 @@ import crypto from "crypto";
 import sharp from "sharp";
 import { getAuthUser } from "@/lib/auth";
 
-const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp"];
+const ALLOWED_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/x-icon",
+  "image/vnd.microsoft.icon",
+  "image/svg+xml",
+  "image/gif",
+];
+const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".ico", ".svg", ".gif"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 export async function POST(request: Request) {
@@ -22,28 +30,28 @@ export async function POST(request: Request) {
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
-    const targetType = (formData.get("type") as string) || "general"; // 'product' | 'banner' | 'general'
+    const targetType = (formData.get("type") as string) || "general"; // 'product' | 'banner' | 'favicon' | 'general'
 
     if (!file) {
       return NextResponse.json({ error: "Nenhum arquivo enviado." }, { status: 400 });
     }
 
-    // 1. Validação estrita de extensão do arquivo (bloqueia scripts, .svg com XSS, .html, .php, etc.)
+    // 1. Validação estrita de extensão do arquivo
     const originalExtension = path.extname(file.name || "").toLowerCase();
     if (!ALLOWED_EXTENSIONS.includes(originalExtension)) {
       return NextResponse.json(
         {
-          error: `Extensão de arquivo não permitida (${originalExtension || "desconhecida"}). Apenas .jpg, .jpeg, .png e .webp são aceitos.`,
+          error: `Extensão de arquivo não permitida (${originalExtension || "desconhecida"}). Formatos aceitos: ICO, PNG, SVG, JPG, GIF e WebP.`,
         },
         { status: 400 }
       );
     }
 
     // 2. Validação estrita de formato MIME
-    if (!ALLOWED_MIME_TYPES.includes(file.type.toLowerCase())) {
+    if (!ALLOWED_MIME_TYPES.includes(file.type.toLowerCase()) && file.type !== "") {
       return NextResponse.json(
         {
-          error: `Formato de arquivo não suportado (${file.type}). Apenas imagens nos formatos JPEG, PNG ou WebP são permitidas.`,
+          error: `Formato de arquivo não suportado (${file.type}). Permitidos: ICO, PNG, SVG, JPG, GIF e WebP.`,
         },
         { status: 400 }
       );
@@ -65,7 +73,44 @@ export async function POST(request: Request) {
     // Garante que o diretório public/uploads existe
     await fs.mkdir(uploadDir, { recursive: true });
 
-    // 3. Otimização e Conversão Compulsória para WebP via Sharp
+    // 4. Tratamento Especial para Favicon (.ico e .svg gravados diretamente; outros convertidos/redimensionados)
+    if (targetType === "favicon") {
+      if (originalExtension === ".ico" || originalExtension === ".svg") {
+        const filename = `favicon-${crypto.randomUUID()}${originalExtension}`;
+        const filePath = path.join(uploadDir, filename);
+        await fs.writeFile(filePath, buffer);
+
+        return NextResponse.json({
+          url: `/uploads/${filename}`,
+          size: buffer.length,
+          format: originalExtension.replace(".", ""),
+        });
+      }
+
+      // Imagens raster (PNG, JPG, WebP, GIF) para favicon: redimensiona 64x64 PNG de alta qualidade
+      const filename = `favicon-${crypto.randomUUID()}.png`;
+      const filePath = path.join(uploadDir, filename);
+
+      const pngBuffer = await sharp(buffer)
+        .resize({
+          width: 64,
+          height: 64,
+          fit: "contain",
+          background: { r: 0, g: 0, b: 0, alpha: 0 },
+        })
+        .png({ quality: 95 })
+        .toBuffer();
+
+      await fs.writeFile(filePath, pngBuffer);
+
+      return NextResponse.json({
+        url: `/uploads/${filename}`,
+        size: pngBuffer.length,
+        format: "png",
+      });
+    }
+
+    // 5. Otimização e Conversão Compulsória para WebP via Sharp para produtos e banners
     const filename = `${crypto.randomUUID()}.webp`;
     const filePath = path.join(uploadDir, filename);
 

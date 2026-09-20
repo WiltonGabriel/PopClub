@@ -16,6 +16,11 @@ import {
   Eye,
   Sliders,
   CheckCircle2,
+  Globe,
+  Upload,
+  Lock,
+  Info,
+  Image as ImageIcon,
 } from "lucide-react";
 import {
   loadingSettingsService,
@@ -23,6 +28,7 @@ import {
   LoadingTheme,
   BackgroundType,
   DEFAULT_LOADING_SETTINGS,
+  LOADING_UPDATED_EVENT,
   LIGHT_GRADIENT_PRESETS,
   DARK_GRADIENT_PRESETS,
   LIGHT_PATTERN_PRESETS,
@@ -71,6 +77,86 @@ export function VisualIdentitySection() {
 
   // Estado para inserção de nova frase
   const [newPhraseInput, setNewPhraseInput] = useState("");
+
+  // Estados e controle de upload do Favicon
+  const faviconInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
+  const [isFaviconDragging, setIsFaviconDragging] = useState(false);
+
+  // Upload de Favicon para o servidor
+  const handleUploadFavicon = async (file: File) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast({
+        title: "Arquivo Muito Grande",
+        message: "O ícone deve ter até 5MB.",
+        type: "error",
+      });
+      return;
+    }
+
+    setUploadingFavicon(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", "favicon");
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Falha ao processar o favicon no servidor.");
+      }
+
+      const uploadResult = await res.json();
+      const newFaviconUrl = uploadResult.url;
+
+      setSettings((prev) => {
+        const nextSettings = { ...prev, faviconUrl: newFaviconUrl };
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent(LOADING_UPDATED_EVENT, { detail: nextSettings })
+          );
+        }
+        return nextSettings;
+      });
+
+      showToast({
+        title: "Favicon Carregado!",
+        message: "O ícone da aba do navegador foi atualizado com sucesso. Salve as alterações para fixar.",
+        type: "success",
+      });
+    } catch (err: any) {
+      showToast({
+        title: "Erro no Upload",
+        message: err.message || "Não foi possível carregar o favicon.",
+        type: "error",
+      });
+    } finally {
+      setUploadingFavicon(false);
+    }
+  };
+
+  // Restaurar Favicon Padrão
+  const handleResetFavicon = () => {
+    setSettings((prev) => {
+      const nextSettings = { ...prev, faviconUrl: "/favicon.ico" };
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent(LOADING_UPDATED_EVENT, { detail: nextSettings })
+        );
+      }
+      return nextSettings;
+    });
+    showToast({
+      title: "Favicon Restaurado",
+      message: "O ícone padrão da loja foi redefinido. Salve para confirmar.",
+      type: "info",
+    });
+  };
 
   // Busca inicial das preferências
   useEffect(() => {
@@ -490,7 +576,161 @@ export function VisualIdentitySection() {
           </div>
 
           {/* ══════════════════════════════════════════
-              CARD 2: GESTÃO DA TELA DE CARREGAMENTO (LOADING)
+              CARD 2: ÍCONE DO NAVEGADOR (FAVICON)
+              ══════════════════════════════════════════ */}
+          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2 border-b border-gray-100 dark:border-[#512B54]/30 pb-3">
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-[#9306CF]" />
+                <h3 className="font-heading font-bold text-sm uppercase tracking-wide text-[#4C264F] dark:text-[#F9F5F9]">
+                  Ícone do Navegador (Favicon)
+                </h3>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 font-mono">
+                Aba do Navegador
+              </span>
+            </div>
+
+            {/* Aviso e Requisitos Visuais */}
+            <div className="p-3 rounded-xl bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200/70 dark:border-purple-900/40 flex items-start gap-2.5 text-xs text-purple-950 dark:text-purple-200">
+              <Info className="w-4 h-4 text-[#9306CF] shrink-0 mt-0.5" />
+              <p className="leading-relaxed">
+                Formatos aceitos: <strong>ICO, PNG, SVG, JPG e GIF</strong>. Recomendado: proporção 1:1 (quadrado), tamanho sugerido 32x32px ou 64x64px.
+              </p>
+            </div>
+
+            {/* Área de Upload com Drag & Drop */}
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsFaviconDragging(true);
+              }}
+              onDragLeave={() => setIsFaviconDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsFaviconDragging(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file) handleUploadFavicon(file);
+              }}
+              className={`p-4 rounded-2xl border-2 border-dashed transition-all flex flex-col sm:flex-row items-center gap-4 ${
+                isFaviconDragging
+                  ? "border-[#9306CF] bg-purple-50/80 dark:bg-purple-950/40 scale-[1.01]"
+                  : "border-gray-200 dark:border-[#512B54]/40 bg-gray-50/50 dark:bg-[#1A0A1C]/50 hover:bg-gray-50 dark:hover:bg-[#1A0A1C]"
+              }`}
+            >
+              <input
+                ref={faviconInputRef}
+                type="file"
+                accept=".ico,.png,.svg,.jpg,.jpeg,.gif,.webp,image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleUploadFavicon(file);
+                }}
+              />
+
+              {/* Miniatura do Favicon Atual */}
+              <div className="w-14 h-14 rounded-2xl bg-white dark:bg-[#2A0E2E] border border-gray-200 dark:border-[#512B54]/60 p-2 flex items-center justify-center shrink-0 shadow-sm relative group">
+                <img
+                  src={settings.faviconUrl || "/favicon.ico"}
+                  alt="Favicon Atual"
+                  className="w-8 h-8 object-contain"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = "/favicon.ico";
+                  }}
+                />
+                {uploadingFavicon && (
+                  <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center">
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  </div>
+                )}
+              </div>
+
+              {/* Ações e Texto */}
+              <div className="flex-1 text-center sm:text-left space-y-1">
+                <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                  {uploadingFavicon ? "Processando imagem..." : "Personalize o ícone que identifica a sua loja"}
+                </p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  Arraste e solte o arquivo aqui ou clique no botão abaixo para selecionar.
+                </p>
+
+                <div className="flex items-center gap-2 pt-1 flex-wrap justify-center sm:justify-start">
+                  <button
+                    type="button"
+                    onClick={() => faviconInputRef.current?.click()}
+                    disabled={uploadingFavicon}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#9306CF] hover:bg-[#8005b5] text-white text-xs font-bold shadow-xs cursor-pointer transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{uploadingFavicon ? "Enviando..." : "Escolher Imagem"}</span>
+                  </button>
+
+                  {settings.faviconUrl && settings.faviconUrl !== "/favicon.ico" && (
+                    <button
+                      type="button"
+                      onClick={handleResetFavicon}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 text-xs font-medium cursor-pointer transition-all"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 text-gray-400" />
+                      <span>Restaurar Padrão</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Mockup de Aba de Navegador Simulada com Preview Imediato */}
+            <div className="space-y-1.5 pt-1">
+              <span className="text-[11px] font-semibold text-gray-600 dark:text-gray-300 block">
+                Pré-visualização na Aba do Navegador:
+              </span>
+
+              <div className="rounded-xl border border-gray-200 dark:border-[#512B54]/60 bg-gray-100 dark:bg-[#120514] overflow-hidden shadow-xs">
+                {/* Barra superior com abas do browser */}
+                <div className="flex items-center gap-2 px-3 pt-2 bg-gray-200/90 dark:bg-[#0D030E] border-b border-gray-300/60 dark:border-[#512B54]/40">
+                  {/* Bolinhas estilo janela (Fechar, Minimizar, Expandir) */}
+                  <div className="flex items-center gap-1.5 shrink-0 mr-1">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-400/90 inline-block" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400/90 inline-block" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/90 inline-block" />
+                  </div>
+
+                  {/* Aba Ativa Simulada */}
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-t-lg bg-white dark:bg-[#1E0921] border-t border-x border-gray-300/80 dark:border-[#512B54]/60 text-xs shadow-xs min-w-0 max-w-[260px] sm:max-w-[320px]">
+                    <img
+                      src={settings.faviconUrl || "/favicon.ico"}
+                      alt="Favicon da Loja"
+                      className="w-4 h-4 object-contain shrink-0 rounded-xs"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = "/favicon.ico";
+                      }}
+                    />
+                    <span className="truncate font-semibold text-[11px] text-gray-800 dark:text-gray-200">
+                      Pop Shake Sorveteria - Cardápio Digital
+                    </span>
+                    <span className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs font-bold leading-none cursor-default ml-auto">
+                      ×
+                    </span>
+                  </div>
+
+                  <span className="text-gray-400 text-xs px-1 select-none font-bold">+</span>
+                </div>
+
+                {/* Barra de Endereço URL com Cadeado */}
+                <div className="px-3 py-2 bg-white dark:bg-[#18081B] flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gray-50 dark:bg-[#120514] border border-gray-200 dark:border-[#512B54]/40 text-gray-600 dark:text-gray-300 font-mono text-[11px]">
+                    <Lock className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="text-emerald-700 dark:text-emerald-400 font-bold">https://</span>
+                    <span className="text-gray-800 dark:text-gray-200 font-medium">popshakesorveteria.com.br</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ══════════════════════════════════════════
+              CARD 3: GESTÃO DA TELA DE CARREGAMENTO (LOADING)
               ══════════════════════════════════════════ */}
           <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 shadow-xs space-y-4">
             <div className="flex items-center gap-2 border-b border-gray-100 dark:border-[#512B54]/30 pb-3">

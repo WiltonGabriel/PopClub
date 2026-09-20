@@ -221,7 +221,7 @@ export default function PedidosPage() {
   return (
     <div className="min-h-screen bg-transparent text-foreground flex flex-col font-sans transition-colors duration-200">
       {/* Header */}
-      <header className="sticky top-0 z-40 w-full max-w-full overflow-x-hidden backdrop-blur-xl bg-white/85 dark:bg-[#1F0B22]/90 border-b border-gray-200 dark:border-[#512B54]/40 px-4 py-4 flex items-center justify-between shadow-sm">
+      <header className="sticky top-0 z-40 w-full max-w-full overflow-x-hidden backdrop-blur-md bg-background/80 border-b border-border/40 px-4 py-4 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-3">
           <Link
             href="/"

@@ -520,8 +520,7 @@ export default function CarrinhoPage() {
 
   return (
     <div className="min-h-screen bg-transparent text-foreground flex flex-col font-sans pb-32">
-      {/* Header */}
-      <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-background/90 border-b border-border/40 px-4 py-3.5 flex items-center justify-between shadow-xs">
+      <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-background/80 border-b border-border/40 px-4 py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-3">
           <Link
             href="/"

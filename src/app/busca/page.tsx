@@ -200,7 +200,7 @@ function SearchContent() {
   return (
     <div className="min-h-screen flex flex-col font-sans pb-16 bg-transparent text-foreground transition-colors duration-200">
       {/* Header da Busca */}
-      <header className="bg-white/85 dark:bg-[#1F0B22]/90 backdrop-blur-xl border-b border-gray-200 dark:border-[#512B54]/40 px-4 sm:px-6 py-3.5 sticky top-0 z-50 shadow-sm w-full">
+      <header className="bg-background/80 backdrop-blur-md border-b border-border/40 px-4 sm:px-6 py-3.5 sticky top-0 z-50 shadow-sm w-full">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           {/* Logo e Botão Voltar */}
           <div className="flex items-center gap-3 shrink-0">

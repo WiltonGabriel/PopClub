@@ -242,6 +242,9 @@ model LoadingSettings {
   bgValueDark      String   @default("preset_dark_violet") @map("bg_value_dark")
   bgCustomDark     String?  @default("#190B1A") @map("bg_custom_dark")
 
+  // Favicon Customizado
+  faviconUrl       String?  @default("/favicon.ico") @map("favicon_url")
+
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("loading_settings")
@@ -261,6 +264,7 @@ model StoreSettings {
   storeLatitude         Float?    @default(-15.6536) @map("store_latitude")
   storeLongitude        Float?    @default(-56.1322) @map("store_longitude")
   storeAddress          String?   @default("Várzea Grande, MT") @map("store_address")
+  faviconUrl            String?   @default("/favicon.ico") @map("favicon_url")
   openedAt               DateTime? @map("opened_at")
   closedAt               DateTime? @map("closed_at")
   updatedAt              DateTime  @updatedAt @map("updated_at")

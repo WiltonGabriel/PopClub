@@ -18,6 +18,8 @@ export interface LoadingSettingsData {
   bgValueDark: string;
   bgCustomDark?: string | null;
 
+  faviconUrl?: string | null;
+
   updatedAt?: string;
 }
 
@@ -138,22 +140,30 @@ export const LIGHT_PATTERN_PRESETS: BackgroundPreset[] = [
 
 export const DARK_PATTERN_PRESETS: BackgroundPreset[] = [
   {
-    id: "pattern_dots",
-    label: "Constelação Estelar",
-    description: "Partículas estelares translúcidas que iluminam o fundo escuro",
-    css: "radial-gradient(#C7A9C924 1.5px, transparent 1.5px) 0 0 / 20px 20px, #140715",
-    previewBg: "radial-gradient(#C7A9C930 1.5px, transparent 1.5px) 0 0 / 12px 12px, #140715",
+    id: "pattern_dots_dark",
+    label: "Constelação Noturna (Dots)",
+    description: "Pontos suaves iluminados em roxo sobre fundo açaí profundo.",
+    css: "radial-gradient(#E899FF22 1.5px, transparent 1.5px), linear-gradient(180deg, #190B1A 0%, #120514 100%)",
+    previewBg: "radial-gradient(#E899FF50 1.5px, #190B1A 1.5px)",
   },
   {
-    id: "pattern_grid",
-    label: "Grade Cyber Pop",
-    description: "Linhas geométricas de neon com contraste de baixa intensidade",
-    css: "linear-gradient(to right, #C7A9C910 1px, transparent 1px) 0 0 / 24px 24px, linear-gradient(to bottom, #C7A9C910 1px, transparent 1px) 0 0 / 24px 24px, #120713",
-    previewBg: "linear-gradient(to right, #C7A9C918 1px, transparent 1px) 0 0 / 12px 12px, linear-gradient(to bottom, #C7A9C918 1px, transparent 1px) 0 0 / 12px 12px, #120713",
+    id: "pattern_grid_dark",
+    label: "Cyber Açai (Grid)",
+    description: "Malha sutil com iluminação suave nas interseções.",
+    css: "linear-gradient(to right, #9306CF22 1px, transparent 1px), linear-gradient(to bottom, #9306CF22 1px, transparent 1px), #170719",
+    previewBg: "linear-gradient(to right, #9306CF40 1px, transparent 1px), linear-gradient(to bottom, #9306CF40 1px, #170719 1px)",
+  },
+  {
+    id: "pattern_waves_dark",
+    label: "Ondas Noturnas",
+    description: "Textura diagonal sutil de alto contraste para o tema noturno.",
+    css: "repeating-linear-gradient(45deg, #9306CF15, #9306CF15 12px, transparent 12px, transparent 24px), #150617",
+    previewBg: "repeating-linear-gradient(45deg, #9306CF30, #9306CF30 6px, #150617 6px, #150617 12px)",
   },
 ];
 
 export const DEFAULT_LOADING_SETTINGS: LoadingSettingsData = {
+  id: "global_loading",
   theme: "liquid_cream",
   centerIcon: "🥣",
   phrases: [
@@ -172,26 +182,28 @@ export const DEFAULT_LOADING_SETTINGS: LoadingSettingsData = {
   bgTypeDark: "gradient",
   bgValueDark: "preset_dark_violet",
   bgCustomDark: "#190B1A",
+
+  faviconUrl: "/favicon.ico",
 };
 
 const STORAGE_KEY = "popshake_loading_settings";
 export const LOADING_UPDATED_EVENT = "popshake_loading_settings_updated";
 
 /**
- * Resolve a string CSS final para o background baseada no modo de cor (light ou dark)
+ * Resolve o CSS final de background (cor sólida, gradiente ou padrão) a ser aplicado
  */
-export function resolveBackgroundCss(settings: Partial<LoadingSettingsData>, isDark: boolean): string {
+export function resolveBackgroundCss(settings: LoadingSettingsData, isDark: boolean): string {
   const type = isDark ? (settings.bgTypeDark || "gradient") : (settings.bgTypeLight || "gradient");
   const value = isDark ? (settings.bgValueDark || "preset_dark_violet") : (settings.bgValueLight || "preset_cream");
   const custom = isDark ? (settings.bgCustomDark || "#190B1A") : (settings.bgCustomLight || "#FBF8FD");
 
-  if (type === "dynamic") {
-    const found = DYNAMIC_CANVAS_PRESETS.find((p) => p.id === value) || DYNAMIC_CANVAS_PRESETS[0];
-    return isDark ? found.previewBgDark : found.previewBgLight;
+  if (type === "solid") {
+    return custom;
   }
 
-  if (type === "solid") {
-    return custom || (isDark ? "#190B1A" : "#FFFFFF");
+  if (type === "dynamic") {
+    // Retorna a cor base de fundo por trás do canvas interativo
+    return isDark ? "#170719" : "#FAF6FC";
   }
 
   if (type === "pattern") {
@@ -218,6 +230,7 @@ export const loadingSettingsService = {
             ...DEFAULT_LOADING_SETTINGS,
             ...parsed,
             phrases: Array.isArray(parsed.phrases) && parsed.phrases.length > 0 ? parsed.phrases : DEFAULT_LOADING_SETTINGS.phrases,
+            faviconUrl: parsed.faviconUrl || DEFAULT_LOADING_SETTINGS.faviconUrl,
           };
         }
       }
@@ -235,19 +248,22 @@ export const loadingSettingsService = {
       }
       const data = await res.json();
       const sanitized: LoadingSettingsData = {
+        id: data.id || DEFAULT_LOADING_SETTINGS.id,
         theme: ["liquid_cream", "playful_bounce", "minimal_pulse"].includes(data.theme) ? data.theme : DEFAULT_LOADING_SETTINGS.theme,
         centerIcon: data.centerIcon || DEFAULT_LOADING_SETTINGS.centerIcon,
         phrases: Array.isArray(data.phrases) && data.phrases.length > 0 ? data.phrases : DEFAULT_LOADING_SETTINGS.phrases,
         rotationInterval: Number(data.rotationInterval) || DEFAULT_LOADING_SETTINGS.rotationInterval,
         minDuration: Number(data.minDuration) || DEFAULT_LOADING_SETTINGS.minDuration,
 
-        bgTypeLight: ["gradient", "solid", "pattern"].includes(data.bgTypeLight) ? data.bgTypeLight : DEFAULT_LOADING_SETTINGS.bgTypeLight,
+        bgTypeLight: ["gradient", "solid", "pattern", "dynamic"].includes(data.bgTypeLight) ? data.bgTypeLight : DEFAULT_LOADING_SETTINGS.bgTypeLight,
         bgValueLight: data.bgValueLight || DEFAULT_LOADING_SETTINGS.bgValueLight,
         bgCustomLight: data.bgCustomLight || DEFAULT_LOADING_SETTINGS.bgCustomLight,
 
-        bgTypeDark: ["gradient", "solid", "pattern"].includes(data.bgTypeDark) ? data.bgTypeDark : DEFAULT_LOADING_SETTINGS.bgTypeDark,
+        bgTypeDark: ["gradient", "solid", "pattern", "dynamic"].includes(data.bgTypeDark) ? data.bgTypeDark : DEFAULT_LOADING_SETTINGS.bgTypeDark,
         bgValueDark: data.bgValueDark || DEFAULT_LOADING_SETTINGS.bgValueDark,
         bgCustomDark: data.bgCustomDark || DEFAULT_LOADING_SETTINGS.bgCustomDark,
+
+        faviconUrl: data.faviconUrl || DEFAULT_LOADING_SETTINGS.faviconUrl,
 
         updatedAt: data.updatedAt,
       };

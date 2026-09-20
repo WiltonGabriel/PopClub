@@ -43,7 +43,7 @@ export function Footer() {
   }, []);
 
   return (
-    <footer className="w-full bg-white dark:bg-[#160618] border-t border-gray-200 dark:border-[#512B54]/40 text-foreground transition-colors duration-200 mt-auto">
+    <footer className="w-full bg-background/80 backdrop-blur-md border-t border-border/40 text-foreground transition-colors duration-200 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {/* Coluna 1: Marca & Propósito */}

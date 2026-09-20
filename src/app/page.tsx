@@ -626,7 +626,7 @@ export default function Storefront() {
           Mobile: Logo + Endereço + Menu/Avatar (Sem cortes)
           Desktop: Logo + Endereço + Busca + Pedidos + AdminToggle + Carrinho + Perfil + Tema
       ───────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 w-full glass-header">
+      <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-md border-b border-border/40 transition-colors duration-200">
         {/* Single contained row — max-w-7xl keeps it from stretching */}
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-4 w-full">
 

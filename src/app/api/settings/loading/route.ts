@@ -23,6 +23,8 @@ const DEFAULT_LOADING = {
   bgTypeDark: "gradient",
   bgValueDark: "preset_dark_violet",
   bgCustomDark: "#190B1A",
+
+  faviconUrl: "/favicon.ico",
 };
 
 const loadingSchema = z.object({
@@ -33,13 +35,16 @@ const loadingSchema = z.object({
   minDuration: z.number().int().min(0, "Duração mínima não pode ser negativa").max(5000, "Duração máxima de 5s").default(800),
 
   // Fundo
-  bgTypeLight: z.enum(["gradient", "solid", "pattern"]).default("gradient"),
+  bgTypeLight: z.enum(["gradient", "solid", "pattern", "dynamic"]).default("gradient"),
   bgValueLight: z.string().trim().default("preset_cream"),
   bgCustomLight: z.string().trim().nullable().optional(),
 
-  bgTypeDark: z.enum(["gradient", "solid", "pattern"]).default("gradient"),
+  bgTypeDark: z.enum(["gradient", "solid", "pattern", "dynamic"]).default("gradient"),
   bgValueDark: z.string().trim().default("preset_dark_violet"),
   bgCustomDark: z.string().trim().nullable().optional(),
+
+  // Favicon Customizado
+  faviconUrl: z.string().trim().nullable().optional(),
 });
 
 export async function GET() {
@@ -71,6 +76,8 @@ export async function GET() {
       bgTypeDark: settings.bgTypeDark || DEFAULT_LOADING.bgTypeDark,
       bgValueDark: settings.bgValueDark || DEFAULT_LOADING.bgValueDark,
       bgCustomDark: settings.bgCustomDark ?? DEFAULT_LOADING.bgCustomDark,
+
+      faviconUrl: settings.faviconUrl || DEFAULT_LOADING.faviconUrl,
 
       updatedAt: settings.updatedAt,
     });
@@ -121,6 +128,7 @@ export async function PUT(request: Request) {
       bgTypeDark,
       bgValueDark,
       bgCustomDark,
+      faviconUrl,
     } = validation.data;
 
     const updated = await prisma.loadingSettings.upsert({
@@ -138,6 +146,7 @@ export async function PUT(request: Request) {
         bgTypeDark,
         bgValueDark,
         bgCustomDark: bgCustomDark || null,
+        faviconUrl: faviconUrl || "/favicon.ico",
       },
       update: {
         theme,
@@ -151,8 +160,27 @@ export async function PUT(request: Request) {
         bgTypeDark,
         bgValueDark,
         bgCustomDark: bgCustomDark || null,
+        faviconUrl: faviconUrl || "/favicon.ico",
       },
     });
+
+    // Se existir StoreSettings, atualiza também para sincronismo
+    if (prisma.storeSettings) {
+      try {
+        await prisma.storeSettings.upsert({
+          where: { id: "store_config" },
+          create: {
+            id: "store_config",
+            faviconUrl: faviconUrl || "/favicon.ico",
+          },
+          update: {
+            faviconUrl: faviconUrl || "/favicon.ico",
+          },
+        });
+      } catch (errSync) {
+        console.warn("Aviso ao sincronizar favicon com StoreSettings:", errSync);
+      }
+    }
 
     return NextResponse.json({
       success: true,

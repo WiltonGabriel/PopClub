@@ -49,6 +49,24 @@ export function GlobalBackgroundSync() {
     document.body.style.backgroundAttachment = "fixed";
   }, [settings, isDark]);
 
+  // Sincroniza o favicon dinâmico no <head> do navegador
+  useEffect(() => {
+    if (typeof document === "undefined" || !settings.faviconUrl) return;
+
+    const faviconHref = settings.faviconUrl;
+    const iconLinks = document.querySelectorAll<HTMLLinkElement>("link[rel*='icon']");
+    if (iconLinks.length > 0) {
+      iconLinks.forEach((link) => {
+        link.href = faviconHref;
+      });
+    } else {
+      const newLink = document.createElement("link");
+      newLink.rel = "icon";
+      newLink.href = faviconHref;
+      document.head.appendChild(newLink);
+    }
+  }, [settings.faviconUrl]);
+
   if (bgType === "dynamic") {
     return (
       <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden" aria-hidden="true">
