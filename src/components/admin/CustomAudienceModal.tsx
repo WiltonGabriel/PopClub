@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -45,13 +45,7 @@ export function CustomAudienceModal({
   // Novo nome de lista
   const [newListName, setNewListName] = useState("");
 
-  useEffect(() => {
-    if (open) {
-      fetchData();
-    }
-  }, [open]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/audience");
@@ -59,12 +53,19 @@ export function CustomAudienceModal({
       if (!res.ok) throw new Error(data.error);
       setUsers(data.users || []);
       setLists(data.lists || []);
-    } catch (err: any) {
-      showToast("Erro ao carregar clientes: " + err.message, "error");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro desconhecido";
+      showToast("Erro ao carregar clientes: " + message, "error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
+
+  useEffect(() => {
+    if (open) {
+      fetchData();
+    }
+  }, [open, fetchData]);
 
   const filteredUsers = useMemo(() => {
     const s = search.toLowerCase();
@@ -107,8 +108,9 @@ export function CustomAudienceModal({
       if (!res.ok) throw new Error("Erro ao excluir lista.");
       setLists((prev) => prev.filter((l) => l.id !== id));
       showToast("Lista removida.", "info");
-    } catch (err: any) {
-      showToast(err.message, "error");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro desconhecido";
+      showToast(message, "error");
     }
   };
 
@@ -137,8 +139,9 @@ export function CustomAudienceModal({
       setLists([data, ...lists]);
       setNewListName("");
       showToast("Lista salva com sucesso!", "success");
-    } catch (err: any) {
-      showToast(err.message, "error");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro desconhecido";
+      showToast(message, "error");
     } finally {
       setSaving(false);
     }
