@@ -44,7 +44,6 @@ import { Button } from "../components/ui/button";
 import {
   Search,
   ShoppingBag,
-  MapPin,
   ChevronDown,
   Plus,
   User as UserIcon,
@@ -54,15 +53,12 @@ import {
   ChevronRight,
   ChevronLeft,
   LogOut,
-  ShieldCheck,
   Crown,
   Pencil,
   Trash2,
   ReceiptText,
-  BookOpen,
   LayoutDashboard,
   ClipboardList,
-  Sparkles,
   AlertCircle,
   RefreshCw,
   ArrowUp,
@@ -187,10 +183,6 @@ export default function Storefront() {
       window.removeEventListener(LOADING_UPDATED_EVENT, handleUpdated);
     };
   }, []);
-
-  const dynamicStoreBackground = useMemo(() => {
-    return resolveBackgroundCss(visualSettings, theme === "dark");
-  }, [visualSettings, theme]);
 
   // Modal de Detalhes e Personalização do Produto (estilo iFood)
   const [selectedProductForModal, setSelectedProductForModal] = useState<Product | null>(null);
@@ -364,8 +356,8 @@ export default function Storefront() {
     setProducts((prev) =>
       prev.map((p) => {
         if (
-          (p as any).categoryId === savedCat.id ||
-          (p as any).category_id === savedCat.id ||
+          (p as Product & { categoryId?: string; category_id?: string }).categoryId === savedCat.id ||
+          (p as Product & { categoryId?: string; category_id?: string }).category_id === savedCat.id ||
           (editingCategory && p.category === editingCategory.name)
         ) {
           return { ...p, category: savedCat.name, categoryId: savedCat.id, category_id: savedCat.id };
@@ -459,25 +451,6 @@ export default function Storefront() {
     }
   };
 
-  const handleAddToCart = useCallback(
-    (product: Product) => {
-      if (
-        product.isAvailable === false ||
-        (product.stock !== undefined && product.stock !== null && product.stock <= 0)
-      ) {
-        return;
-      }
-      addItem({
-        productId: product.id,
-        name: product.name,
-        price: product.price,
-        originalPrice: product.price,
-        quantity: 1,
-        imageUrl: product.imageUrl,
-      });
-    },
-    [addItem]
-  );
 
   // Salva posição de scroll da vitrine para restaurar ao voltar da categoria dedicada no mobile
   const savedScrollYRef = useRef<number>(0);
@@ -595,7 +568,7 @@ export default function Storefront() {
     return products.filter(
       (p) =>
         p.category_id === mobileCategoryView.id ||
-        (p as any).categoryId === mobileCategoryView.id ||
+        (p as Product & { categoryId?: string }).categoryId === mobileCategoryView.id ||
         p.category === mobileCategoryView.name
     );
   }, [products, mobileCategoryView]);
@@ -809,6 +782,7 @@ export default function Storefront() {
                     }`}
                   >
                     {user.avatar || user.avatarUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
                       <img
                         src={(user.avatar || user.avatarUrl) as string}
                         alt="Avatar"
@@ -1344,7 +1318,6 @@ export default function Storefront() {
                       // Modo Prévia (na Home) vs Modo Completo
                       const isPreview = !activeCategory && !search;
                       const displayProducts = isPreview ? catProducts.slice(0, 4) : catProducts;
-                      const hasMore = catProducts.length > 4;
 
                       // First category gets a featured (wide) card for the first product
                       const hasFeatured = catIndex === 0 && !activeCategory && !search;
