@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { 
   ChevronLeft, 
+  ChevronRight,
   User, 
   MapPin, 
   Package, 
@@ -137,10 +138,32 @@ export default function AccountPage() {
   const { showToast } = useToast();
   const router = useRouter();
   
+  type AccountView = "menu" | "perfil" | "notificacoes" | "enderecos" | "avaliacoes" | "preferencias" | "acessibilidade";
+
   const [activeSection, setActiveSection] = useState("perfil");
+  const [currentView, setCurrentView] = useState<AccountView>("menu");
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [locations, setLocations] = useState<UserLocation[]>([]);
   const [fetching, setFetching] = useState(true);
+
+  // Navegação Drill-down reativa
+  const handleSelectSection = (sectionId: string) => {
+    setActiveSection(sectionId);
+    setCurrentView(sectionId as AccountView);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
+  };
+
+  const handleHeaderBack = () => {
+    // No mobile dentro de qualquer sub-tela, volta imediatamente para o menu
+    if (typeof window !== "undefined" && window.innerWidth < 768 && currentView !== "menu") {
+      setCurrentView("menu");
+      window.scrollTo({ top: 0, behavior: "instant" });
+    } else {
+      router.push("/");
+    }
+  };
 
   // Edit profile state
   const [fullName, setFullName] = useState("");
@@ -179,12 +202,15 @@ export default function AccountPage() {
     }
   }, []);
 
-  // Detecta ?tab=notificacoes na URL
+  // Detecta ?tab=... ou ?section=... na URL
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      if (params.get("tab") === "notificacoes") {
-        setActiveSection("notificacoes");
+      const tabParam = params.get("tab") || params.get("section");
+      const validSections = ["perfil", "notificacoes", "enderecos", "avaliacoes", "preferencias", "acessibilidade"];
+      if (tabParam && validSections.includes(tabParam)) {
+        setActiveSection(tabParam);
+        setCurrentView(tabParam as AccountView);
       }
     }
   }, []);
@@ -467,50 +493,122 @@ export default function AccountPage() {
   }
 
   const sections = [
-    { id: "perfil", label: "Meu Perfil", icon: <User className="w-4 h-4" /> },
+    { 
+      id: "perfil", 
+      label: "Meu Perfil", 
+      desc: "Nome, avatar e dados cadastrais",
+      icon: <User className="w-4 h-4" /> 
+    },
     { 
       id: "notificacoes", 
       label: "Notificações", 
+      desc: "Histórico de avisos, cupons e preferências",
       icon: <Bell className="w-4 h-4" />,
       badge: unreadNotificationsCount > 0 ? unreadNotificationsCount : undefined,
     },
-    { id: "enderecos", label: "Endereços", icon: <MapPin className="w-4 h-4" /> },
-    { id: "avaliacoes", label: "Avaliações", icon: <Star className="w-4 h-4" /> },
-    { id: "preferencias", label: "Preferências", icon: <Settings className="w-4 h-4" /> },
-    { id: "acessibilidade", label: "Acessibilidade", icon: <Accessibility className="w-4 h-4" /> },
+    { 
+      id: "enderecos", 
+      label: "Endereços", 
+      desc: "Locais salvos para entrega rápida",
+      icon: <MapPin className="w-4 h-4" /> 
+    },
+    { 
+      id: "avaliacoes", 
+      label: "Avaliações", 
+      desc: "Suas avaliações e opiniões dos pedidos",
+      icon: <Star className="w-4 h-4" /> 
+    },
+    { 
+      id: "preferencias", 
+      label: "Preferências", 
+      desc: "Forma de pagamento e troco na entrega",
+      icon: <Settings className="w-4 h-4" /> 
+    },
+    { 
+      id: "acessibilidade", 
+      label: "Acessibilidade", 
+      desc: "Tamanho de fontes, cores e contraste",
+      icon: <Accessibility className="w-4 h-4" /> 
+    },
   ];
+
+  const currentSectionConfig = sections.find(
+    (s) => s.id === (currentView !== "menu" ? currentView : activeSection)
+  );
 
   const currentDisplayAvatar = selectedAvatar || profile?.avatar || profile?.avatar_url || user?.avatar || "/avatars/avatar-sorvete.svg";
 
   return (
     <div className="min-h-screen bg-transparent text-foreground flex flex-col font-sans transition-colors duration-200">
-      {/* Header com contraste dinâmico */}
+      {/* Header com navegação reativa e suporte a Drill-Down */}
       <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-background/80 border-b border-border/40 px-4 py-3 sm:py-4 flex items-center justify-between gap-3">
-        <Link 
-          href="/" 
-          className="flex items-center gap-1.5 p-2 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-[#4C264F] dark:text-[#F9F5F9] font-medium text-sm transition-colors group"
-          aria-label="Voltar para a loja"
-        >
-          <ChevronLeft className="w-5 h-5 text-[#9306CF] dark:text-[#C7A9C9] group-hover:-translate-x-0.5 transition-transform" />
-          <span className="font-heading font-bold uppercase tracking-wider text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9]">
-            Minha Conta
-          </span>
-        </Link>
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <button 
+            type="button"
+            onClick={handleHeaderBack}
+            className="flex items-center gap-1.5 p-2 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-[#4C264F] dark:text-[#F9F5F9] font-medium text-sm transition-colors group cursor-pointer shrink-0 active:scale-98"
+            aria-label={currentView !== "menu" ? "Voltar para o menu principal" : "Voltar para a loja"}
+          >
+            <ChevronLeft className="w-5 h-5 text-[#9306CF] dark:text-[#C7A9C9] group-hover:-translate-x-0.5 transition-transform" />
+            <span className="font-heading font-bold uppercase tracking-wider text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9]">
+              {currentView !== "menu" ? (
+                <>
+                  <span className="md:hidden">Voltar</span>
+                  <span className="hidden md:inline">Minha Conta</span>
+                </>
+              ) : (
+                "Minha Conta"
+              )}
+            </span>
+          </button>
 
+          {/* Breadcrumb da sub-tela ativa */}
+          <div 
+            className={`items-center gap-1.5 min-w-0 text-xs sm:text-sm font-semibold animate-in fade-in duration-200 ${
+              currentView !== "menu" ? "flex" : "hidden md:flex"
+            }`}
+          >
+            <span className="text-gray-300 dark:text-gray-600 select-none">/</span>
+            <div className="font-heading font-bold uppercase tracking-wider text-[#9306CF] dark:text-[#C7A9C9] truncate flex items-center gap-1.5">
+              <span className="shrink-0">{currentSectionConfig?.icon}</span>
+              <span className="truncate">{currentSectionConfig?.label}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Atalho para notificações pendentes */}
+        {unreadNotificationsCount > 0 && currentView !== "notificacoes" && (
+          <button
+            type="button"
+            onClick={() => handleSelectSection("notificacoes")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-900/40 text-pink-600 dark:text-pink-400 text-xs font-bold transition-all hover:scale-102 active:scale-98 cursor-pointer shrink-0 shadow-xs"
+            title="Você tem notificações não lidas"
+          >
+            <Bell className="w-3.5 h-3.5" />
+            <span className="font-sans">{unreadNotificationsCount} {unreadNotificationsCount === 1 ? "nova" : "novas"}</span>
+          </button>
+        )}
       </header>
 
-      <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-8 flex flex-col md:flex-row gap-8">
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-6 sm:py-8 flex flex-col md:flex-row gap-6 md:gap-8">
         
-        {/* Sidebar Menu */}
-        <aside className="w-full md:w-64 shrink-0">
-          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-4 mb-6 rounded-2xl shadow-sm">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="relative w-12 h-12 rounded-full border-2 border-[#9306CF]/40 overflow-hidden bg-purple-50 dark:bg-[#190B1A] shrink-0">
+        {/* ================= ESTADO 1: VISÃO DO MENU PRINCIPAL ================= */}
+        {/* No mobile: visível exclusivamente quando currentView === 'menu' */}
+        {/* No desktop: sempre visível como sidebar na coluna esquerda */}
+        <aside 
+          className={`w-full md:w-72 lg:w-80 shrink-0 ${
+            currentView === "menu" ? "block" : "hidden md:block"
+          }`}
+        >
+          {/* Card com Avatar e Saudação */}
+          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-4 mb-4 rounded-2xl shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="relative w-14 h-14 rounded-full border-2 border-[#9306CF]/40 overflow-hidden bg-purple-50 dark:bg-[#190B1A] shrink-0">
                 <Image
                   src={currentDisplayAvatar}
                   alt="Avatar do usuário"
-                  width={48}
-                  height={48}
+                  width={56}
+                  height={56}
                   className="w-full h-full object-contain p-0.5"
                 />
               </div>
@@ -519,53 +617,96 @@ export default function AccountPage() {
                 <p className="font-heading font-bold text-base text-[#4C264F] dark:text-[#F9F5F9] truncate">
                   {profile?.full_name || user?.username || user?.email}
                 </p>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {user?.email}
+                </p>
               </div>
             </div>
-
-
           </div>
 
+          {/* Lista de Opções do Menu */}
           <nav className="flex flex-col gap-2">
-            {sections.map(sec => (
-              <button 
-                key={sec.id}
-                onClick={() => setActiveSection(sec.id)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-colors border cursor-pointer ${
-                  activeSection === sec.id 
-                    ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white border-transparent shadow-md shadow-[#9306CF]/20" 
-                    : "bg-white dark:bg-[#230E26] border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/50 text-gray-600 dark:text-gray-300 hover:text-[#4C264F] dark:hover:text-[#F9F5F9]"
-                }`}
-              >
-                {sec.icon}
-                <span className="flex-1 truncate">{sec.label}</span>
-                {sec.badge !== undefined && (
-                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-pink-600 text-white leading-none">
-                    {sec.badge}
+            {sections.map((sec) => {
+              const isSelectedOnDesktop = activeSection === sec.id;
+              return (
+                <button 
+                  key={sec.id}
+                  type="button"
+                  onClick={() => handleSelectSection(sec.id)}
+                  className={`group flex items-center gap-3 px-4 py-3.5 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-all border cursor-pointer active:scale-98 ${
+                    isSelectedOnDesktop 
+                      ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white border-transparent shadow-md shadow-[#9306CF]/20" 
+                      : "bg-white dark:bg-[#230E26] border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/50 text-gray-700 dark:text-gray-300 hover:text-[#4C264F] dark:hover:text-[#F9F5F9] hover:bg-gray-50/80 dark:hover:bg-white/5"
+                  }`}
+                >
+                  <span className={`p-2 rounded-lg transition-transform duration-200 group-hover:scale-110 shrink-0 ${
+                    isSelectedOnDesktop 
+                      ? "bg-white/20 text-white" 
+                      : "bg-purple-50 dark:bg-[#190B1A] text-[#9306CF] dark:text-[#C7A9C9]"
+                  }`}>
+                    {sec.icon}
                   </span>
-                )}
-              </button>
-            ))}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-heading font-bold text-sm truncate">{sec.label}</span>
+                      {sec.badge !== undefined && (
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black leading-none ${
+                          isSelectedOnDesktop ? "bg-white text-[#9306CF]" : "bg-pink-600 text-white"
+                        }`}>
+                          {sec.badge}
+                        </span>
+                      )}
+                    </div>
+                    <p className={`text-xs mt-0.5 line-clamp-1 ${
+                      isSelectedOnDesktop ? "text-white/80" : "text-muted-foreground"
+                    }`}>
+                      {sec.desc}
+                    </p>
+                  </div>
+                  <ChevronRight className={`w-4 h-4 transition-transform group-hover:translate-x-0.5 md:hidden shrink-0 ${
+                    isSelectedOnDesktop ? "text-white/80" : "text-gray-400 dark:text-gray-500"
+                  }`} />
+                </button>
+              );
+            })}
 
-            <Link 
-              href="/pedidos" 
-              className="flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-colors border bg-white dark:bg-[#230E26] border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/50 text-gray-600 dark:text-gray-300 hover:text-[#4C264F] dark:hover:text-[#F9F5F9] mt-2 shadow-sm"
-            >
-              <Package className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
-              Ver Meus Pedidos
-            </Link>
+            <div className="pt-2">
+              <Link 
+                href="/pedidos" 
+                className="group flex items-center gap-3 px-4 py-3.5 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-all border bg-white dark:bg-[#230E26] border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/50 text-gray-700 dark:text-gray-300 hover:text-[#4C264F] dark:hover:text-[#F9F5F9] shadow-sm hover:bg-gray-50/80 dark:hover:bg-white/5"
+              >
+                <span className="p-2 rounded-lg bg-purple-50 dark:bg-[#190B1A] text-[#9306CF] dark:text-[#C7A9C9] group-hover:scale-110 transition-transform shrink-0">
+                  <Package className="w-4 h-4" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <span className="font-heading font-bold text-sm truncate block text-[#4C264F] dark:text-[#F9F5F9]">Ver Meus Pedidos</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">Acompanhe entregas e pedidos anteriores</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500 group-hover:translate-x-0.5 transition-transform shrink-0" />
+              </Link>
+            </div>
 
             <button 
+              type="button"
               onClick={handleSignOut}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-colors border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 mt-6 cursor-pointer"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-colors border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 mt-4 cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
-              Sair
+              <span>Sair da Conta</span>
             </button>
           </nav>
         </aside>
 
-        {/* Main Content Area */}
-        <div className="flex-1">
+        {/* ================= ESTADO 2: VISÃO DA CONFIGURAÇÃO SELECIONADA ================= */}
+        {/* No mobile: renderiza exclusivamente a sub-tela selecionada com 100% de largura */}
+        {/* No desktop: renderiza no painel direito ao lado do menu lateral */}
+        <div 
+          className={`flex-1 min-w-0 ${
+            currentView === "menu" ? "hidden md:block" : "block"
+          }`}
+        >
+          {/* Sub-tela com animação suave de entrada */}
+          <div key={activeSection} className="animate-in fade-in-50 slide-in-from-right-2 duration-200">
 
           {/* ================= ABA: MEU PERFIL ================= */}
           {activeSection === "perfil" && (
@@ -1562,6 +1703,7 @@ export default function AccountPage() {
               </p>
             </div>
           )}
+          </div>
         </div>
       </main>
 
