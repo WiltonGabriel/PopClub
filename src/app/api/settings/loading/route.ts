@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { z } from "zod";
-import { handleApiError } from "@/lib/apiResponse";
 
 const DEFAULT_LOADING = {
   id: "global_loading",
@@ -16,6 +15,14 @@ const DEFAULT_LOADING = {
   ],
   rotationInterval: 2400,
   minDuration: 800,
+
+  bgTypeLight: "gradient",
+  bgValueLight: "preset_cream",
+  bgCustomLight: "#FBF8FD",
+
+  bgTypeDark: "gradient",
+  bgValueDark: "preset_dark_violet",
+  bgCustomDark: "#190B1A",
 };
 
 const loadingSchema = z.object({
@@ -24,6 +31,15 @@ const loadingSchema = z.object({
   phrases: z.array(z.string().trim().min(1)).min(1, "Insira ao menos uma mensagem de carregamento").max(30),
   rotationInterval: z.number().int().min(1000, "Intervalo mínimo de 1.0s").max(10000, "Intervalo máximo de 10s").default(2400),
   minDuration: z.number().int().min(0, "Duração mínima não pode ser negativa").max(5000, "Duração máxima de 5s").default(800),
+
+  // Fundo
+  bgTypeLight: z.enum(["gradient", "solid", "pattern"]).default("gradient"),
+  bgValueLight: z.string().trim().default("preset_cream"),
+  bgCustomLight: z.string().trim().nullable().optional(),
+
+  bgTypeDark: z.enum(["gradient", "solid", "pattern"]).default("gradient"),
+  bgValueDark: z.string().trim().default("preset_dark_violet"),
+  bgCustomDark: z.string().trim().nullable().optional(),
 });
 
 export async function GET() {
@@ -47,10 +63,19 @@ export async function GET() {
       phrases: Array.isArray(settings.phrases) && settings.phrases.length > 0 ? settings.phrases : DEFAULT_LOADING.phrases,
       rotationInterval: settings.rotationInterval || DEFAULT_LOADING.rotationInterval,
       minDuration: settings.minDuration ?? DEFAULT_LOADING.minDuration,
+
+      bgTypeLight: settings.bgTypeLight || DEFAULT_LOADING.bgTypeLight,
+      bgValueLight: settings.bgValueLight || DEFAULT_LOADING.bgValueLight,
+      bgCustomLight: settings.bgCustomLight ?? DEFAULT_LOADING.bgCustomLight,
+
+      bgTypeDark: settings.bgTypeDark || DEFAULT_LOADING.bgTypeDark,
+      bgValueDark: settings.bgValueDark || DEFAULT_LOADING.bgValueDark,
+      bgCustomDark: settings.bgCustomDark ?? DEFAULT_LOADING.bgCustomDark,
+
       updatedAt: settings.updatedAt,
     });
   } catch (error) {
-    console.warn("Erro ao buscar configurações de loading, usando padrão:", error);
+    console.warn("Erro ao buscar configurações de visual/loading, usando padrão:", error);
     return NextResponse.json(DEFAULT_LOADING);
   }
 }
@@ -60,7 +85,7 @@ export async function PUT(request: Request) {
     const user = await getAuthUser(request);
     if (!user || user.role !== "admin") {
       return NextResponse.json(
-        { error: "Acesso negado. Apenas administradores podem personalizar o loading." },
+        { error: "Acesso negado. Apenas administradores podem personalizar a identidade visual." },
         { status: 403 }
       );
     }
@@ -84,7 +109,19 @@ export async function PUT(request: Request) {
       );
     }
 
-    const { theme, centerIcon, phrases, rotationInterval, minDuration } = validation.data;
+    const {
+      theme,
+      centerIcon,
+      phrases,
+      rotationInterval,
+      minDuration,
+      bgTypeLight,
+      bgValueLight,
+      bgCustomLight,
+      bgTypeDark,
+      bgValueDark,
+      bgCustomDark,
+    } = validation.data;
 
     const updated = await prisma.loadingSettings.upsert({
       where: { id: "global_loading" },
@@ -95,6 +132,12 @@ export async function PUT(request: Request) {
         phrases,
         rotationInterval,
         minDuration,
+        bgTypeLight,
+        bgValueLight,
+        bgCustomLight: bgCustomLight || null,
+        bgTypeDark,
+        bgValueDark,
+        bgCustomDark: bgCustomDark || null,
       },
       update: {
         theme,
@@ -102,19 +145,25 @@ export async function PUT(request: Request) {
         phrases,
         rotationInterval,
         minDuration,
+        bgTypeLight,
+        bgValueLight,
+        bgCustomLight: bgCustomLight || null,
+        bgTypeDark,
+        bgValueDark,
+        bgCustomDark: bgCustomDark || null,
       },
     });
 
     return NextResponse.json({
-      id: updated.id,
-      theme: updated.theme,
-      centerIcon: updated.centerIcon,
-      phrases: updated.phrases,
-      rotationInterval: updated.rotationInterval,
-      minDuration: updated.minDuration,
-      updatedAt: updated.updatedAt,
+      success: true,
+      message: "Identidade visual atualizada com sucesso.",
+      data: updated,
     });
-  } catch (error) {
-    return handleApiError(error, "Falha ao salvar personalização da tela de loading");
+  } catch (error: any) {
+    console.error("Erro ao atualizar identidade visual:", error);
+    return NextResponse.json(
+      { error: error.message || "Erro interno ao atualizar configurações visuais." },
+      { status: 500 }
+    );
   }
 }

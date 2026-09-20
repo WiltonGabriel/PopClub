@@ -228,6 +228,16 @@ model LoadingSettings {
   phrases          String[] @default(["Batendo o açaí artesanal na cremosidade perfeita...", "Separando os acompanhamentos mais fresquinhos...", "Preparando as receitas mais deliciosas do cardápio...", "Quase pronto! Seu momento doce está chegando..."])
   rotationInterval Int      @default(2400) @map("rotation_interval")
   minDuration      Int      @default(800) @map("min_duration")
+
+  // Personalização de Fundo (Background da Aplicação)
+  bgTypeLight      String   @default("gradient") @map("bg_type_light")
+  bgValueLight     String   @default("preset_cream") @map("bg_value_light")
+  bgCustomLight    String?  @default("#FBF8FD") @map("bg_custom_light")
+
+  bgTypeDark       String   @default("gradient") @map("bg_type_dark")
+  bgValueDark      String   @default("preset_dark_violet") @map("bg_value_dark")
+  bgCustomDark     String?  @default("#190B1A") @map("bg_custom_dark")
+
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("loading_settings")

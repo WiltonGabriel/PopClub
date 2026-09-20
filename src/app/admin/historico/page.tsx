@@ -32,6 +32,7 @@ import { Input } from "../../../components/ui/input";
 import { OrderDetailDrawer } from "../../../components/admin/OrderDetailDrawer";
 import { printThermalReceipt } from "@/lib/thermalPrinter";
 import { useToast } from "../../../components/ui/ToastNotification";
+import { MobileOrientationBanner } from "@/components/admin/MobileOrientationBanner";
 
 type DateRangeOption = "today" | "yesterday" | "last7days" | "last30days" | "custom" | "all";
 
@@ -191,6 +192,9 @@ export default function AdminHistoricoPage() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans pb-16 bg-[#F8F9FA] dark:bg-[#190B1A] text-foreground transition-colors duration-200">
+      {/* Alerta Não-Bloqueante de Orientação Mobile */}
+      <MobileOrientationBanner />
+
       {/* Header */}
       <header className="bg-white/85 dark:bg-[#1F0B22]/90 backdrop-blur-xl border-b border-gray-200 dark:border-[#512B54]/40 px-6 py-4 flex justify-between items-center sticky top-0 z-40 shadow-sm">
         <div className="flex items-center gap-3">

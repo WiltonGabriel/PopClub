@@ -73,6 +73,7 @@ import { OrderTriageBar } from "../../../components/admin/OrderTriageBar";
 import { OrderAcceptDialog } from "../../../components/admin/OrderAcceptDialog";
 import { OrderRejectDialog } from "../../../components/admin/OrderRejectDialog";
 import { OrderDispatchDialog } from "../../../components/admin/OrderDispatchDialog";
+import { MobileOrientationBanner } from "@/components/admin/MobileOrientationBanner";
 
 export default function AdminPedidosPage() {
   const { theme, toggleTheme } = useTheme();
@@ -1657,6 +1658,9 @@ export default function AdminPedidosPage() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans pb-16 bg-[#F8F9FA] dark:bg-[#190B1A] text-foreground transition-colors duration-200">
+      {/* Alerta Não-Bloqueante de Orientação Mobile */}
+      <MobileOrientationBanner />
+
       {/* Header Dedicado de Gestão de Pedidos */}
       <header className="bg-white/85 dark:bg-[#1F0B22]/90 backdrop-blur-xl border-b border-gray-200 dark:border-[#512B54]/40 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center sticky top-0 z-40 shadow-sm">
         <div className="flex items-center gap-2 sm:gap-3">
@@ -1790,15 +1794,16 @@ export default function AdminPedidosPage() {
               <h1 className="font-heading text-xl sm:text-2xl font-bold uppercase tracking-wide flex items-center gap-2 text-[#4C264F] dark:text-[#F9F5F9]">
                 <LayoutDashboard className="w-6 h-6 text-[#9306CF]" /> Central Operacional da Cozinha e Despacho
               </h1>
+              {/* Bloco 1: Badge de Status da Loja Exclusivo */}
               {shiftData?.isOpen ? (
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                  Esteira Live
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800/60 shadow-xs">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>LOJA ABERTA</span>
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-900/40">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-xl bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-300 dark:border-red-800/60 shadow-xs">
                   <span className="w-2 h-2 rounded-full bg-red-500" />
-                  Esteira Pausada
+                  <span>LOJA FECHADA</span>
                 </span>
               )}
             </div>
@@ -1808,30 +1813,29 @@ export default function AdminPedidosPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap pb-1 pt-0.5 max-w-full">
-            {/* Interruptor Mestre de Turno / Sessão da Loja */}
-            {shiftData?.isOpen ? (
-              <div className="flex items-center gap-2">
-                {/* Previsão de Entrega */}
-                <button
-                  onClick={() => setIsAdjustDeliveryModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
-                  title="Ajustar tempo estimado de entrega"
-                >
-                  <Clock className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                  <span>{shiftData.estimatedDeliveryTime || "30-50 min"}</span>
-                  <span className="text-[10px] text-purple-500 underline">Ajustar</span>
-                </button>
+            {/* Bloco 2: Card de Tempo Médio Independente com Botão Ajustar Separado */}
+            <div className="inline-flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-xl bg-purple-50 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-xs">
+              <Clock className="w-3.5 h-3.5 text-[#9306CF] dark:text-[#E899FF]" />
+              <span>Tempo Médio: <strong className="font-mono text-purple-900 dark:text-purple-200">{shiftData?.estimatedDeliveryTime || "30-50 min"}</strong></span>
+              <button
+                onClick={() => setIsAdjustDeliveryModalOpen(true)}
+                className="text-[10px] uppercase font-bold text-[#9306CF] dark:text-[#E899FF] hover:underline bg-purple-100 dark:bg-purple-900/40 px-2 py-0.5 rounded-lg transition-colors border border-purple-200/60 dark:border-purple-800/60 cursor-pointer ml-0.5"
+                title="Ajustar tempo estimado de entrega"
+              >
+                Ajustar
+              </button>
+            </div>
 
-                {/* Botão Encerrar Turno */}
-                <Button
-                  onClick={() => setIsCloseShiftModalOpen(true)}
-                  variant="destructive"
-                  className="rounded-xl h-10 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 px-3.5 shadow-sm bg-red-600 hover:bg-red-700 text-white cursor-pointer"
-                >
-                  <Power className="w-3.5 h-3.5" />
-                  <span>Encerrar Turno</span>
-                </Button>
-              </div>
+            {/* Controle de Turno / Sessão da Loja */}
+            {shiftData?.isOpen ? (
+              <Button
+                onClick={() => setIsCloseShiftModalOpen(true)}
+                variant="destructive"
+                className="rounded-xl h-10 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 px-3.5 shadow-sm bg-red-600 hover:bg-red-700 text-white cursor-pointer"
+              >
+                <Power className="w-3.5 h-3.5" />
+                <span>Encerrar Turno</span>
+              </Button>
             ) : (
               <Button
                 onClick={() => setIsOpenStoreModalOpen(true)}

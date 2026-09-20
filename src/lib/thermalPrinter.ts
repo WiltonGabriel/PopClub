@@ -221,7 +221,6 @@ export function printOrderReceipt(order: Order, storeName = "Pop Shake Sorveteri
 
       <div style="font-size: 12px; line-height: 1.4;">
         <div><strong>Pagamento:</strong> ${paymentText}</div>
-        <div style="font-size: 11px; margin-top: 3px;">Status: <strong>${order.status.toUpperCase()}</strong></div>
       </div>
 
       <div class="divider"></div>

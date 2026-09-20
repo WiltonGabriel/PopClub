@@ -21,6 +21,7 @@ export interface PopShakeLoadingProps {
   phrasesOverride?: string[];
   rotationIntervalOverride?: number;
   previewColorMode?: "light" | "dark";
+  overrideSettings?: Partial<LoadingSettingsData>;
 }
 
 const STEPS = ["Conectando", "Sincronizando", "Finalizando"];
@@ -35,6 +36,7 @@ export function PopShakeLoading({
   phrasesOverride,
   rotationIntervalOverride,
   previewColorMode,
+  overrideSettings,
 }: PopShakeLoadingProps) {
   const [settings, setSettings] = useState<LoadingSettingsData>(() =>
     loadingSettingsService.getCachedLoadingSettings()
@@ -65,16 +67,16 @@ export function PopShakeLoading({
   }, []);
 
   // Determina os valores efetivos (prioriza props de override caso fornecidos)
-  const activeTheme: LoadingTheme = themeOverride || settings.theme || "liquid_cream";
-  const activeIcon: string = centerIconOverride || settings.centerIcon || "🥣";
+  const effectiveSettings = overrideSettings ? { ...settings, ...overrideSettings } : settings;
+  const activeTheme: LoadingTheme = themeOverride || effectiveSettings.theme || "liquid_cream";
+  const activeIcon: string = centerIconOverride || effectiveSettings.centerIcon || "🥣";
   const activePhrases: string[] = useMemo(() => {
     if (phrasesOverride && phrasesOverride.length > 0) return phrasesOverride;
-    if (settings.phrases && settings.phrases.length > 0) return settings.phrases;
+    if (effectiveSettings.phrases && effectiveSettings.phrases.length > 0) return effectiveSettings.phrases;
     return DEFAULT_LOADING_SETTINGS.phrases;
-  }, [phrasesOverride, settings.phrases]);
-
+  }, [phrasesOverride, effectiveSettings.phrases]);
   const activeInterval: number =
-    rotationIntervalOverride || settings.rotationInterval || DEFAULT_LOADING_SETTINGS.rotationInterval;
+    rotationIntervalOverride || effectiveSettings.rotationInterval || DEFAULT_LOADING_SETTINGS.rotationInterval;
 
   // Rotação suave de frases
   useEffect(() => {

@@ -26,6 +26,7 @@ import {
   History,
   Sun,
   Moon,
+  Palette,
 } from "lucide-react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { orderService, Order } from "../../services/orderService";
@@ -46,7 +47,8 @@ import { DeliveryFeeSettings } from "../../components/admin/DeliveryFeeSettings"
 import { CardBadgesSection } from "../../components/admin/CardBadgesSection";
 import { OrderFlowSettings } from "../../components/admin/OrderFlowSettings";
 import { AvatarPresetManager } from "../../components/admin/AvatarPresetManager";
-import { LoadingCustomizationSection } from "../../components/admin/LoadingCustomizationSection";
+import { VisualIdentitySection } from "../../components/admin/VisualIdentitySection";
+import { MobileOrientationBanner } from "../../components/admin/MobileOrientationBanner";
 
 export default function AdminDashboard() {
   const { theme, toggleTheme } = useTheme();
@@ -59,7 +61,9 @@ export default function AdminDashboard() {
     badge: "Refrescância Artesanal",
   });
   const [fetching, setFetching] = useState(true);
-  const [activeTab, setActiveTab] = useState<"metrics" | "combos" | "promotions" | "banners" | "coupons" | "delivery" | "avatars">("metrics");
+  const [activeTab, setActiveTab] = useState<
+    "metrics" | "combos" | "promotions" | "banners" | "appearance" | "coupons" | "delivery" | "avatars"
+  >("metrics");
   const [promoDialogOpen, setPromoDialogOpen] = useState(false);
   const [promoToEdit, setPromoToEdit] = useState<Promotion | null>(null);
   const [comboDialogOpen, setComboDialogOpen] = useState(false);
@@ -167,6 +171,9 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans pb-16 bg-[#F8F9FA] dark:bg-[#190B1A] text-foreground transition-colors duration-200">
+      {/* Alerta Não-Bloqueante de Orientação Mobile */}
+      <MobileOrientationBanner />
+
       {/* Header do Painel */}
       <header className="bg-white/80 dark:bg-[#1F0B22]/90 backdrop-blur-xl border-b border-gray-200 dark:border-[#512B54]/40 px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
         <div className="flex items-center gap-3">
@@ -294,15 +301,31 @@ export default function AdminDashboard() {
                       ({activeOrders.length} {activeOrders.length === 1 ? "pedido em andamento" : "pedidos em andamento"})
                     </span>
                   </h3>
+                  {/* Bloco 1: Badge de Status da Loja */}
                   {storeSettings?.isOpen ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200">
-                      🟢 Loja Aberta ({storeSettings.estimatedDeliveryTime || "30-50 min"})
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 shadow-xs">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>LOJA ABERTA</span>
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 border border-red-200">
-                      🔴 Loja Fechada
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-xl bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 border border-red-300 dark:border-red-800 shadow-xs">
+                      <span className="w-2 h-2 rounded-full bg-red-500" />
+                      <span>LOJA FECHADA</span>
                     </span>
                   )}
+
+                  {/* Bloco 2: Card de Tempo Médio Independente com Botão Ajustar */}
+                  <div className="inline-flex items-center gap-2 text-xs font-bold px-3 py-1 rounded-xl bg-purple-50 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-xs">
+                    <Clock className="w-3.5 h-3.5 text-[#9306CF] dark:text-[#E899FF]" />
+                    <span>Tempo Médio: <strong className="font-mono text-purple-900 dark:text-purple-200">{storeSettings?.estimatedDeliveryTime || "30-50 min"}</strong></span>
+                    <Link
+                      href="/admin/pedidos"
+                      className="text-[10px] uppercase font-bold text-[#9306CF] dark:text-[#E899FF] hover:underline bg-purple-100 dark:bg-purple-900/40 px-2 py-0.5 rounded-lg transition-colors border border-purple-200/60 dark:border-purple-800/60"
+                      title="Ajustar tempo médio na central de pedidos"
+                    >
+                      Ajustar
+                    </Link>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -474,7 +497,7 @@ export default function AdminDashboard() {
                   }`}
                 >
                   <ImageIcon className="w-4 h-4" />
-                  <span>🖼️ Banners, Selos & Loading</span>
+                  <span>🖼️ Banners & Selos</span>
                   <span
                     className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
                       activeTab === "banners"
@@ -484,6 +507,19 @@ export default function AdminDashboard() {
                   >
                     {bannerPromos.length + 1}
                   </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("appearance")}
+                  className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
+                    activeTab === "appearance"
+                      ? "bg-[#9306CF] text-white shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                  }`}
+                >
+                  <Palette className="w-4 h-4" />
+                  <span>🎨 Identidade Visual</span>
                 </button>
 
                 <button
@@ -978,10 +1014,14 @@ export default function AdminDashboard() {
 
                   {/* SEÇÃO 3: Gestão de Selos / Badges Flutuantes dos Cards */}
                   <CardBadgesSection onBadgesUpdated={fetchPromos} />
-
-                  {/* SEÇÃO 4: Personalização da Tela de Carregamento (Loading) */}
-                  <LoadingCustomizationSection />
                 </section>
+              )}
+
+              {/* CONTEÚDO DA ABA: APARÊNCIA & IDENTIDADE VISUAL */}
+              {activeTab === "appearance" && (
+                <div className="animate-in fade-in duration-150">
+                  <VisualIdentitySection />
+                </div>
               )}
 
               {/* CONTEÚDO DA ABA 5: CUPONS */}

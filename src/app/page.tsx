@@ -21,6 +21,12 @@ import { ProductDetailModal } from "../components/storefront/ProductDetailModal"
 import { HeaderAddressButton } from "../components/storefront/HeaderAddressButton";
 import { CategoriesDrawer } from "../components/storefront/CategoriesDrawer";
 import { PopShakeLoading } from "../components/ui/PopShakeLoading";
+import {
+  loadingSettingsService,
+  LoadingSettingsData,
+  resolveBackgroundCss,
+  LOADING_UPDATED_EVENT,
+} from "../services/loadingSettingsService";
 
 // Admin components (unchanged)
 import { CategoryFormDialog } from "../components/admin/CategoryFormDialog";
@@ -151,6 +157,35 @@ export default function Storefront() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
+
+  // Identidade Visual Dinâmica (Fundo e Loading)
+  const [visualSettings, setVisualSettings] = useState<LoadingSettingsData>(() =>
+    loadingSettingsService.getCachedLoadingSettings()
+  );
+
+  useEffect(() => {
+    let mounted = true;
+    loadingSettingsService.getLoadingSettings().then((res) => {
+      if (mounted) setVisualSettings(res);
+    });
+
+    const handleUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent<LoadingSettingsData>;
+      if (customEvent.detail) {
+        setVisualSettings(customEvent.detail);
+      }
+    };
+
+    window.addEventListener(LOADING_UPDATED_EVENT, handleUpdated);
+    return () => {
+      mounted = false;
+      window.removeEventListener(LOADING_UPDATED_EVENT, handleUpdated);
+    };
+  }, []);
+
+  const dynamicStoreBackground = useMemo(() => {
+    return resolveBackgroundCss(visualSettings, theme === "dark");
+  }, [visualSettings, theme]);
 
   // Modal de Detalhes e Personalização do Produto (estilo iFood)
   const [selectedProductForModal, setSelectedProductForModal] = useState<Product | null>(null);
@@ -576,7 +611,10 @@ export default function Storefront() {
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans pb-20 md:pb-0">
+    <div
+      className="min-h-screen text-foreground flex flex-col font-sans pb-20 md:pb-0 transition-colors duration-200"
+      style={{ background: dynamicStoreBackground }}
+    >
 
       {/* ─────────────────────────────────────────
           HEADER — light/dark glassmorphism
