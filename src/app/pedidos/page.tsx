@@ -263,7 +263,7 @@ export default function PedidosPage() {
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-3xl mx-auto px-4 py-6 space-y-6">
+      <main className="flex-1 w-full max-w-3xl mx-auto px-4 pt-6 pb-32 sm:pb-36 space-y-6">
         {/* Banner para Solicitação Amigável de Permissão de Notificação */}
         <NotificationPermissionBanner />
 

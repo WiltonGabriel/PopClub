@@ -21,6 +21,7 @@ import { ProductDetailModal } from "../components/storefront/ProductDetailModal"
 import { HeaderAddressButton } from "../components/storefront/HeaderAddressButton";
 import { CategoriesDrawer } from "../components/storefront/CategoriesDrawer";
 import { NotificationBell } from "../components/storefront/NotificationBell";
+import { DraggableWhatsAppButton } from "../components/storefront/DraggableWhatsAppButton";
 import { PopShakeLoading } from "../components/ui/PopShakeLoading";
 import {
   loadingSettingsService,
@@ -1586,6 +1587,9 @@ export default function Storefront() {
         }}
         isLoggingOut={isLoggingOut}
       />
+
+      {/* Botão flutuante do WhatsApp arrastável exclusivo da Home */}
+      <DraggableWhatsAppButton />
     </div>
   );
 }

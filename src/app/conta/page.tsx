@@ -601,7 +601,7 @@ export default function AccountPage() {
         )}
       </header>
 
-      <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-6 sm:py-8 flex flex-col md:flex-row gap-6 md:gap-8">
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 pt-6 sm:pt-8 pb-32 sm:pb-36 flex flex-col md:flex-row gap-6 md:gap-8">
         
         {/* ================= ESTADO 1: VISÃO DO MENU PRINCIPAL ================= */}
         {/* No mobile: visível exclusivamente quando currentView === 'menu' */}
