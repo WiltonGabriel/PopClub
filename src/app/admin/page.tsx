@@ -15,9 +15,7 @@ import {
   ChevronRight,
   Clock,
   Sparkles,
-  UtensilsCrossed,
   Ticket,
-  Percent,
   BarChart3,
   Image as ImageIcon,
   Zap,
@@ -83,7 +81,7 @@ export default function AdminDashboard() {
   const fetchOrders = useCallback(async () => {
     try {
       const data = await orderService.getAllOrders();
-      setOrders((prev) => {
+      setOrders((_prev) => {
         if (previousOrderCountRef.current > 0 && data.length > previousOrderCountRef.current) {
           playNewOrderChime();
         }

@@ -1,13 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   History,
   LayoutDashboard,
-  Calendar,
-  Filter,
   Search,
   ChevronLeft,
   ChevronRight,
@@ -17,17 +14,13 @@ import {
   ShoppingBag,
   DollarSign,
   Printer,
-  Sparkles,
   RefreshCw,
   Store,
   Bike,
-  MessageCircle,
-  FileText,
   TrendingUp,
   User,
 } from "lucide-react";
 import { orderService, Order, OrderStatus } from "../../../services/orderService";
-import { authService } from "../../../services/authService";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { OrderDetailDrawer } from "../../../components/admin/OrderDetailDrawer";
@@ -38,7 +31,6 @@ import { MobileOrientationBanner } from "@/components/admin/MobileOrientationBan
 type DateRangeOption = "today" | "yesterday" | "last7days" | "last30days" | "custom" | "all";
 
 export default function AdminHistoricoPage() {
-  const router = useRouter();
   const { showToast } = useToast();
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -116,11 +108,12 @@ export default function AdminHistoricoPage() {
         setTotalPages(data.totalPages);
         setTotalRevenue(data.totalRevenue);
         setAverageTicket(data.averageTicket);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Erro ao carregar histórico:", err);
+        const message = err instanceof Error ? err.message : "Não foi possível carregar os pedidos.";
         showToast({
           title: "Erro ao buscar histórico",
-          message: err.message || "Não foi possível carregar os pedidos.",
+          message,
           type: "error",
         });
       } finally {
@@ -134,7 +127,7 @@ export default function AdminHistoricoPage() {
   useEffect(() => {
     setPage(1);
     fetchHistoricalOrders(1);
-  }, [dateRangeOption, statusFilter]);
+  }, [dateRangeOption, statusFilter, fetchHistoricalOrders]);
 
   const handleApplyCustomSearch = (e: React.FormEvent) => {
     e.preventDefault();

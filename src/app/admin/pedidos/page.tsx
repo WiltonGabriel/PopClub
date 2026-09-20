@@ -450,10 +450,14 @@ export default function AdminPedidosPage() {
         type: "success",
       });
     } catch (err: unknown) {
-      if ((err as any).pendingCount) {
+      const pendingCount = (typeof err === "object" && err !== null && "pendingCount" in err)
+        ? (err as { pendingCount: number }).pendingCount
+        : undefined;
+
+      if (pendingCount) {
         showToast({
           title: "Atenção: Pedidos Ativos na Esteira",
-          message: `Não é possível encerrar. Existem ${(err as any).pendingCount} pedido(s) em andamento. Conclua ou cancele-os primeiro.`,
+          message: `Não é possível encerrar. Existem ${pendingCount} pedido(s) em andamento. Conclua ou cancele-os primeiro.`,
           type: "warning",
           duration: 9000,
         });
@@ -2125,19 +2129,19 @@ export default function AdminPedidosPage() {
 
         {/* Abas do Kanban no Mobile (< md) */}
         <div className="md:hidden flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
-          {[
-            { key: "novos", label: "Novos", color: "#9306CF", count: orders.filter((o) => o.status === "accepted").length },
-            { key: "preparo", label: "Preparo", color: "#EAB308", count: orders.filter((o) => ["preparing"].includes(o.status)).length },
-            { key: "entrega", label: "Entrega", color: "#940068", count: orders.filter((o) => ["ready", "delivering"].includes(o.status)).length },
-            { key: "concluidos", label: "Concluídos", color: "#10B981", count: orders.filter((o) => ["completed"].includes(o.status)).length },
-            { key: "cancelados", label: "Cancelados", color: "#EF4444", count: orders.filter((o) => ["cancelled"].includes(o.status)).length },
-          ].map((tab) => {
+          {([
+            { key: "novos" as const, label: "Novos", color: "#9306CF", count: orders.filter((o) => o.status === "accepted").length },
+            { key: "preparo" as const, label: "Preparo", color: "#EAB308", count: orders.filter((o) => ["preparing"].includes(o.status)).length },
+            { key: "entrega" as const, label: "Entrega", color: "#940068", count: orders.filter((o) => ["ready", "delivering"].includes(o.status)).length },
+            { key: "concluidos" as const, label: "Concluídos", color: "#10B981", count: orders.filter((o) => ["completed"].includes(o.status)).length },
+            { key: "cancelados" as const, label: "Cancelados", color: "#EF4444", count: orders.filter((o) => ["cancelled"].includes(o.status)).length },
+          ]).map((tab) => {
             const isActive = mobileKanbanTab === tab.key;
             return (
               <button
                 key={tab.key}
                 type="button"
-                onClick={() => setMobileKanbanTab(tab.key as any)}
+                onClick={() => setMobileKanbanTab(tab.key)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                   isActive
                     ? "bg-[#9306CF] text-white shadow-sm scale-[1.02]"
