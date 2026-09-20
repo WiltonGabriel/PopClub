@@ -45,8 +45,8 @@ done
 
 echo "==> Conexão com PostgreSQL estabelecida com sucesso!"
 
-echo "==> Executando migrations do banco de dados (npx prisma migrate deploy)..."
-npx prisma migrate deploy
+echo "==> Executando migrations do banco de dados (./node_modules/.bin/prisma migrate deploy)..."
+./node_modules/.bin/prisma migrate deploy
 
 echo "==> Iniciando aplicação Next.js (node server.js)..."
 exec node server.js
