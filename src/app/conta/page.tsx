@@ -33,7 +33,13 @@ import {
   Banknote,
   QrCode,
   Wallet,
+  Ticket,
+  Copy,
+  CheckCheck,
+  Inbox,
+  BellOff,
 } from "lucide-react";
+import { notificationService, AppNotification } from "../../services/notificationService";
 import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../contexts/ThemeContext";
 import { 
@@ -69,8 +75,44 @@ const DEFAULT_AVATAR_PRESETS: AvatarPresetItem[] = [
   { id: "cookie", name: "Cookie Choco", imageUrl: "/avatars/avatar-cookie.svg", description: "Cookie crocante com gotas de chocolate" },
   { id: "cereja", name: "Cereja Pop", imageUrl: "/avatars/avatar-cereja.svg", description: "Toque final irresistível" },
   { id: "casquinha", name: "Casquinha Dupla", imageUrl: "/avatars/avatar-casquinha.svg", description: "Casquinha crocante com dois sabores" },
-  { id: "chef", name: "Mestre Gelateiro", imageUrl: "/avatars/avatar-chef.svg", description: "Toque profissional de confeitaria" },
 ];
+
+function formatFullDateTime(dateString: string): string {
+  try {
+    const d = new Date(dateString);
+    const months = [
+      "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
+    const day = d.getDate();
+    const month = months[d.getMonth()];
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return `${day} de ${month} às ${hours}:${minutes}`;
+  } catch {
+    return dateString;
+  }
+}
+
+function formatRelativeTime(dateString: string): string {
+  try {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMin / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMin < 1) return "Agora mesmo";
+    if (diffMin < 60) return `Há ${diffMin} min`;
+    if (diffHours < 24) return `Há ${diffHours} ${diffHours === 1 ? "hora" : "horas"}`;
+    if (diffDays === 1) return "Ontem";
+    if (diffDays < 7) return `Há ${diffDays} dias`;
+    return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  } catch {
+    return "";
+  }
+}
 
 export default function AccountPage() {
   const { user, loading, refreshUser } = useAuth();
@@ -110,10 +152,123 @@ export default function AccountPage() {
   const [preferredChangeFor, setPreferredChangeFor] = useState("");
   const [isSavingPreferences, setIsSavingPreferences] = useState(false);
 
+  // Notificações e Alertas
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [copiedCouponId, setCopiedCouponId] = useState<string | null>(null);
+  const [isSavingNotificationPref, setIsSavingNotificationPref] = useState(false);
+
   // Modal de Avatar
   const [avatarPresets, setAvatarPresets] = useState<AvatarPresetItem[]>(DEFAULT_AVATAR_PRESETS);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [modalAvatarChoice, setModalAvatarChoice] = useState("/avatars/avatar-sorvete.svg");
+
+  const loadNotifications = useCallback(async () => {
+    try {
+      setNotificationsLoading(true);
+      const data = await notificationService.getNotifications();
+      setNotifications(data.notifications);
+      setUnreadNotificationsCount(data.unreadCount);
+      setNotificationsEnabled(data.notificationsEnabled);
+    } catch (err) {
+      console.error("Erro ao carregar histórico de notificações:", err);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  }, []);
+
+  // Detecta ?tab=notificacoes na URL
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("tab") === "notificacoes") {
+        setActiveSection("notificacoes");
+      }
+    }
+  }, []);
+
+  const handleToggleNotificationPreference = async (enabled: boolean) => {
+    setNotificationsEnabled(enabled);
+    setIsSavingNotificationPref(true);
+    try {
+      await notificationService.updatePreferences(enabled);
+      showToast({
+        type: "success",
+        title: enabled ? "Notificações Ativadas" : "Alertas Silenciados",
+        message: enabled
+          ? "Você voltará a receber avisos e badges na tela inicial."
+          : "Os avisos da tela inicial foram silenciados. As mensagens continuarão arquivadas aqui.",
+      });
+    } catch {
+      setNotificationsEnabled(!enabled);
+      showToast({
+        type: "error",
+        title: "Erro",
+        message: "Não foi possível atualizar suas preferências no momento.",
+      });
+    } finally {
+      setIsSavingNotificationPref(false);
+    }
+  };
+
+  const handleMarkNotificationAsRead = async (notif: AppNotification) => {
+    if (notif.isRead) return;
+    try {
+      await notificationService.markAsRead(notif.id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notif.id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n))
+      );
+      setUnreadNotificationsCount((prev) => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleMarkAllNotificationsAsRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications((prev) =>
+        prev.map((n) => ({ ...n, isRead: true, readAt: new Date().toISOString() }))
+      );
+      setUnreadNotificationsCount(0);
+      showToast({
+        type: "success",
+        title: "Histórico Atualizado",
+        message: "Todas as notificações foram marcadas como lidas.",
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCopyCouponCode = (code: string, notif: AppNotification) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCouponId(notif.id);
+    playDingSound();
+    handleMarkNotificationAsRead(notif);
+    showToast({
+      type: "success",
+      title: "Cupom Copiado!",
+      message: `Código ${code} pronto para colar no carrinho.`,
+    });
+    setTimeout(() => setCopiedCouponId(null), 2500);
+  };
+
+  const handleApplyCouponToCart = (code: string, notif: AppNotification) => {
+    handleMarkNotificationAsRead(notif);
+    try {
+      localStorage.setItem("popclub_applied_coupon", code);
+      window.dispatchEvent(new CustomEvent("popclub_coupon_applied", { detail: { code } }));
+    } catch {}
+    showToast({
+      type: "success",
+      title: "Cupom Aplicado!",
+      message: `O cupom ${code} foi adicionado ao seu pedido!`,
+    });
+    router.push("/carrinho");
+  };
 
   useEffect(() => {
     fetch("/api/avatars")
@@ -163,12 +318,13 @@ export default function AccountPage() {
         setPreferredChangeFor(pChange);
       }
       setLocations(locs);
+      await loadNotifications();
     } catch (err) {
       console.error(err);
     } finally {
       setFetching(false);
     }
-  }, [user]);
+  }, [user, loadNotifications]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -312,6 +468,12 @@ export default function AccountPage() {
 
   const sections = [
     { id: "perfil", label: "Meu Perfil", icon: <User className="w-4 h-4" /> },
+    { 
+      id: "notificacoes", 
+      label: "Notificações", 
+      icon: <Bell className="w-4 h-4" />,
+      badge: unreadNotificationsCount > 0 ? unreadNotificationsCount : undefined,
+    },
     { id: "enderecos", label: "Endereços", icon: <MapPin className="w-4 h-4" /> },
     { id: "avaliacoes", label: "Avaliações", icon: <Star className="w-4 h-4" /> },
     { id: "preferencias", label: "Preferências", icon: <Settings className="w-4 h-4" /> },
@@ -375,7 +537,12 @@ export default function AccountPage() {
                 }`}
               >
                 {sec.icon}
-                {sec.label}
+                <span className="flex-1 truncate">{sec.label}</span>
+                {sec.badge !== undefined && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-pink-600 text-white leading-none">
+                    {sec.badge}
+                  </span>
+                )}
               </button>
             ))}
 
@@ -503,6 +670,184 @@ export default function AccountPage() {
                   )}
                 </Button>
               </form>
+            </div>
+          )}
+
+          {/* ================= ABA: NOTIFICAÇÕES & ALERTAS ================= */}
+          {activeSection === "notificacoes" && (
+            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-[#512B54]/30 pb-4">
+                <div>
+                  <h2 className="font-heading text-xl sm:text-2xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
+                    <Bell className="w-6 h-6 text-[#9306CF] dark:text-[#C7A9C9]" /> Notificações & Alertas
+                  </h2>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                    Histórico completo de comunicados, presentes e preferências de avisos da loja.
+                  </p>
+                </div>
+
+                {unreadNotificationsCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleMarkAllNotificationsAsRead}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-purple-200 dark:border-purple-800/50 bg-purple-50/70 dark:bg-purple-950/40 text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:bg-purple-100 dark:hover:bg-purple-900/60 transition-all cursor-pointer w-fit"
+                  >
+                    <CheckCheck className="w-4 h-4" /> Marcar todas como lidas
+                  </button>
+                )}
+              </div>
+
+              {/* 1. Gerenciamento de Preferências de Alerta */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gray-50/80 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1 max-w-xl">
+                  <div className="flex items-center gap-2">
+                    <span className="font-heading font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9]">
+                      Notificações da Loja (Alertas e Novidades)
+                    </span>
+                    {isSavingNotificationPref && (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#9306CF]" />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Quando ativado, exibe o contador numérico de mensagens não lidas no cabeçalho da página inicial. Se desativado, os avisos intrusivos são suprimidos na Home, mas suas mensagens continuam sendo arquivadas normalmente aqui.
+                  </p>
+                </div>
+
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={notificationsEnabled}
+                    disabled={isSavingNotificationPref}
+                    onChange={(e) => handleToggleNotificationPreference(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-300 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#35A340]"></div>
+                </label>
+              </div>
+
+              {/* 2. Histórico Geral de Mensagens */}
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                    Histórico de Mensagens ({notifications.length})
+                  </h3>
+                  {unreadNotificationsCount > 0 && (
+                    <span className="text-xs font-bold text-pink-600 dark:text-pink-400">
+                      {unreadNotificationsCount} não lida(s)
+                    </span>
+                  )}
+                </div>
+
+                {notificationsLoading ? (
+                  <div className="p-8 text-center">
+                    <Loader2 className="w-7 h-7 animate-spin text-[#9306CF] mx-auto" />
+                    <p className="text-xs text-muted-foreground mt-2">Carregando histórico...</p>
+                  </div>
+                ) : notifications.length === 0 ? (
+                  <div className="p-8 text-center rounded-2xl border border-dashed border-gray-200 dark:border-[#512B54]/40 bg-gray-50/50 dark:bg-[#190B1A]/40 space-y-2">
+                    <div className="w-12 h-12 rounded-full bg-purple-50 dark:bg-purple-950/30 text-[#9306CF] flex items-center justify-center mx-auto">
+                      <Inbox className="w-6 h-6 opacity-60" />
+                    </div>
+                    <p className="font-heading font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9]">
+                      Nenhuma notificação por aqui ainda
+                    </p>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                      Quando enviarmos cupons especiais, novidades do cardápio ou avisos sobre seu pedido, eles aparecerão aqui.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3.5">
+                    {notifications.map((notif) => (
+                      <div
+                        key={notif.id}
+                        onClick={() => handleMarkNotificationAsRead(notif)}
+                        className={`p-4 sm:p-5 rounded-2xl border transition-all ${
+                          !notif.isRead
+                            ? "bg-purple-50/60 dark:bg-purple-950/20 border-[#9306CF]/40 shadow-xs"
+                            : "bg-gray-50/60 dark:bg-[#190B1A]/60 border-gray-200 dark:border-[#512B54]/30"
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2">
+                            {!notif.isRead && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-pink-600 text-white">
+                                Nova
+                              </span>
+                            )}
+                            <h4 className="font-heading font-bold text-sm sm:text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                              {notif.title}
+                            </h4>
+                          </div>
+
+                          {/* Registro Obrigatório de Data e Hora */}
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono shrink-0">
+                            <Clock className="w-3.5 h-3.5 text-[#9306CF]" />
+                            <span className="font-semibold text-gray-700 dark:text-gray-300">
+                              {formatFullDateTime(notif.createdAt)}
+                            </span>
+                            <span className="text-[11px] text-gray-400">
+                              ({formatRelativeTime(notif.createdAt)})
+                            </span>
+                          </div>
+                        </div>
+
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                          {notif.message}
+                        </p>
+
+                        {/* Card Promocional com Cupom Anexado */}
+                        {notif.coupon && (
+                          <div className="mt-3.5 p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/50 dark:to-pink-950/30 border border-[#9306CF]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-black text-sm sm:text-base tracking-wider text-[#9306CF] dark:text-[#F9F5F9] bg-white dark:bg-[#1C0920] px-2.5 py-1 rounded-lg border border-purple-200 dark:border-purple-800/60 shadow-2xs">
+                                  {notif.coupon.code}
+                                </span>
+                                <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-100/70 dark:bg-emerald-950/50 px-2 py-0.5 rounded-md">
+                                  {notif.coupon.discountType === "percentage"
+                                    ? `${notif.coupon.discountValue}% OFF`
+                                    : `R$ ${notif.coupon.discountValue.toFixed(2).replace(".", ",")} OFF`}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground">
+                                {notif.coupon.oncePerUser && "Uso único por cliente • "}
+                                {notif.coupon.minOrderValue > 0 && `Pedido mínimo de R$ ${notif.coupon.minOrderValue.toFixed(2).replace(".", ",")} • `}
+                                {notif.coupon.expiresAt ? `Válido até ${new Date(notif.coupon.expiresAt).toLocaleDateString("pt-BR")}` : "Sem expiração"}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleCopyCouponCode(notif.coupon!.code, notif)}
+                                className="px-3 py-2 rounded-xl bg-white dark:bg-[#200B22] border border-purple-200 dark:border-purple-800/50 text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9] hover:bg-purple-100 dark:hover:bg-purple-900/40 flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                              >
+                                {copiedCouponId === notif.id ? (
+                                  <>
+                                    <Check className="w-3.5 h-3.5 text-emerald-600" /> Copiado!
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3.5 h-3.5 text-[#9306CF]" /> Copiar Código
+                                  </>
+                                )}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleApplyCouponToCart(notif.coupon!.code, notif)}
+                                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] text-xs font-bold text-white hover:opacity-95 flex items-center gap-1.5 shadow-sm shadow-[#9306CF]/30 transition-opacity cursor-pointer"
+                              >
+                                <Sparkles className="w-3.5 h-3.5" /> Aplicar no Carrinho
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

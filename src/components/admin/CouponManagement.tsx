@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   Clock,
   XCircle,
+  ShieldCheck,
 } from "lucide-react";
 
 export function CouponManagement() {
@@ -255,6 +256,13 @@ export function CouponManagement() {
                       />
                     </button>
                   </div>
+
+                  {coupon.oncePerUser && (
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#9306CF] dark:text-[#C7A9C9] bg-purple-100/80 dark:bg-purple-950/40 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800/30 w-fit">
+                      <ShieldCheck className="w-3 h-3 text-[#9306CF]" />
+                      Uso Único por Cliente
+                    </div>
+                  )}
 
                   {/* Código e Botão Copiar */}
                   <div className="flex items-center justify-between bg-white dark:bg-[#200B22] border border-gray-200 dark:border-[#512B54]/40 rounded-xl p-2.5">

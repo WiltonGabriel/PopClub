@@ -46,6 +46,8 @@ export async function getAuthUser(request?: Request): Promise<{
   accessibilitySettings: any;
   defaultPaymentMethod?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
   defaultChangeFor?: number | null;
+  phone: string | null;
+  notificationsEnabled: boolean;
 } | null> {
   try {
     let token: string | undefined;
@@ -79,6 +81,8 @@ export async function getAuthUser(request?: Request): Promise<{
           fullName: true,
           avatarUrl: true,
           accessibilitySettings: true,
+          phone: true,
+          notificationsEnabled: true,
         },
       });
     } catch (err: any) {
@@ -117,6 +121,8 @@ export async function getAuthUser(request?: Request): Promise<{
       accessibilitySettings: user.accessibilitySettings || null,
       defaultPaymentMethod: rawSettings.defaultPaymentMethod || null,
       defaultChangeFor: rawSettings.defaultChangeFor !== undefined ? rawSettings.defaultChangeFor : null,
+      phone: user.phone || null,
+      notificationsEnabled: Boolean(user.notificationsEnabled ?? true),
     };
   } catch (err: any) {
     console.error("Erro geral em getAuthUser:", err);

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthUser } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
@@ -31,6 +32,34 @@ export async function POST(request: Request) {
 
     if (coupon.maxUses && coupon.uses >= coupon.maxUses) {
       return NextResponse.json({ valid: false, message: "Limite de utilizações deste cupom atingido." }, { status: 400 });
+    }
+
+    // Regra de Uso Único por Cliente
+    if (coupon.oncePerUser) {
+      const authUser = await getAuthUser(request);
+      const targetUserId = authUser?.id || body.userId;
+      const targetPhone = body.phone || body.customerPhone || authUser?.phone;
+
+      const conditions: any[] = [];
+      if (targetUserId) conditions.push({ userId: targetUserId });
+      if (targetPhone) conditions.push({ user: { phone: targetPhone } });
+
+      if (conditions.length > 0) {
+        const priorOrder = await prisma.order.findFirst({
+          where: {
+            couponId: coupon.id,
+            status: { not: "cancelled" },
+            OR: conditions,
+          },
+        });
+
+        if (priorOrder) {
+          return NextResponse.json({
+            valid: false,
+            message: "Este cupom é de uso único por cliente e já foi utilizado anteriormente.",
+          }, { status: 400 });
+        }
+      }
     }
 
     const numSubtotal = Number(subtotal || 0);

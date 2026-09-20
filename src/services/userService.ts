@@ -22,6 +22,8 @@ export interface UserProfile {
   defaultPaymentMethod?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
   defaultChangeFor?: number | null;
   phone: string | null;
+  notificationsEnabled?: boolean;
+  notifications_enabled?: boolean;
   created_at: string;
 }
 

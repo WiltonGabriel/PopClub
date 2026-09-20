@@ -45,10 +45,12 @@ model User {
   phone                 String?
   resetCode        String?        @map("reset_code")
   resetCodeExpires DateTime?      @map("reset_code_expires")
-  createdAt        DateTime       @default(now()) @map("created_at")
-  updatedAt        DateTime       @updatedAt @map("updated_at")
-  locations        UserLocation[]
-  orders           Order[]
+  notificationsEnabled Boolean        @default(true) @map("notifications_enabled")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+  locations            UserLocation[]
+  orders               Order[]
+  userNotifications    UserNotification[]
 
   @@map("users")
 }
@@ -145,10 +147,12 @@ model Coupon {
   maxUses       Int?         @map("max_uses")
   uses          Int          @default(0)
   expiresAt     DateTime?    @map("expires_at")
-  isActive      Boolean      @default(true) @map("is_active")
-  productIds    String[]     @default([]) @map("product_ids")
-  createdAt     DateTime     @default(now()) @map("created_at")
+  isActive      Boolean        @default(true) @map("is_active")
+  oncePerUser   Boolean        @default(false) @map("once_per_user")
+  productIds    String[]       @default([]) @map("product_ids")
+  createdAt     DateTime       @default(now()) @map("created_at")
   orders        Order[]
+  notifications Notification[]
 
   @@map("coupons")
 }
@@ -309,5 +313,52 @@ model AvatarPreset {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("avatar_presets")
+}
+
+enum NotificationType {
+  BROADCAST
+  TARGETED
+  COUPON
+}
+
+model Notification {
+  id                String             @id @default(uuid())
+  title             String
+  message           String
+  type              NotificationType   @default(BROADCAST)
+  targetAudience    String             @default("ALL") @map("target_audience")
+  couponId          String?            @map("coupon_id")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  coupon            Coupon?            @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  userNotifications UserNotification[]
+
+  @@map("notifications")
+}
+
+model UserNotification {
+  id             String       @id @default(uuid())
+  userId         String       @map("user_id")
+  notificationId String       @map("notification_id")
+  isRead         Boolean      @default(false) @map("is_read")
+  readAt         DateTime?    @map("read_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, notificationId])
+  @@index([userId, isRead])
+  @@map("user_notifications")
+}
+
+model NotificationTemplate {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  category  String   @default("custom")
+  couponId  String?  @map("coupon_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("notification_templates")
 }
 

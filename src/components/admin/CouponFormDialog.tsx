@@ -19,6 +19,7 @@ import {
   AlertCircle,
   Loader2,
   RefreshCw,
+  ShieldCheck,
 } from "lucide-react";
 
 interface CouponFormDialogProps {
@@ -41,6 +42,7 @@ export function CouponFormDialog({
   const [maxUses, setMaxUses] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [oncePerUser, setOncePerUser] = useState(false);
 
   // Escopo de Aplicação: all vs specific
   const [scope, setScope] = useState<"all" | "specific">("all");
@@ -78,6 +80,7 @@ export function CouponFormDialog({
       }
 
       setIsActive(couponToEdit.isActive);
+      setOncePerUser(Boolean(couponToEdit.oncePerUser));
 
       if (couponToEdit.productIds && couponToEdit.productIds.length > 0) {
         setScope("specific");
@@ -94,6 +97,7 @@ export function CouponFormDialog({
       setMaxUses("");
       setExpiresAt("");
       setIsActive(true);
+      setOncePerUser(false);
       setScope("all");
       setSelectedProductIds([]);
     }
@@ -170,6 +174,7 @@ export function CouponFormDialog({
         maxUses: maxUses ? parseInt(maxUses, 10) : null,
         expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
         isActive,
+        oncePerUser: Boolean(oncePerUser),
         productIds: scope === "specific" ? selectedProductIds : [],
       };
 
@@ -298,48 +303,83 @@ export function CouponFormDialog({
             </div>
           </div>
 
-          {/* 3. Regras de Validade e Pedido Mínimo */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                Pedido Mínimo (R$)
-              </Label>
-              <Input
-                type="number"
-                min="0"
-                step="1"
-                value={minOrderValue}
-                onChange={(e) => setMinOrderValue(e.target.value)}
-                placeholder="0 (Opcional)"
-                className="font-mono text-xs bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-10"
-              />
+          {/* 3. Regras de Validade, Pedido Mínimo e Limites de Uso */}
+          <div className="space-y-4">
+            {/* Linha 1: Pedido Mínimo e Limite de Usos Geral */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                  Pedido Mínimo (R$)
+                </Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={minOrderValue}
+                  onChange={(e) => setMinOrderValue(e.target.value)}
+                  placeholder="R$ 0,00 (Opcional)"
+                  className="font-mono text-sm bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-10.5 rounded-xl"
+                />
+                <p className="text-[11px] text-muted-foreground">Valor mínimo dos itens no carrinho para ativar.</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                  Limite de Usos (Total Geral)
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={maxUses}
+                  onChange={(e) => setMaxUses(e.target.value)}
+                  placeholder="Ilimitado (Geral)"
+                  className="font-mono text-sm bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-10.5 rounded-xl"
+                />
+                <p className="text-[11px] text-muted-foreground">Quantidade máxima de resgates em toda a loja.</p>
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                Limite de Usos (Total)
-              </Label>
-              <Input
-                type="number"
-                min="1"
-                step="1"
-                value={maxUses}
-                onChange={(e) => setMaxUses(e.target.value)}
-                placeholder="Ilimitado"
-                className="font-mono text-xs bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-10"
-              />
-            </div>
+            {/* Linha 2: Validade e Limite de 1 Uso por Cliente */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-[#9306CF]" /> Validade do Cupom
+                </Label>
+                <Input
+                  type="datetime-local"
+                  value={expiresAt}
+                  onChange={(e) => setExpiresAt(e.target.value)}
+                  className="text-xs sm:text-sm bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-10.5 rounded-xl"
+                />
+                <p className="text-[11px] text-muted-foreground">Deixe em branco se o cupom não tiver data de expiração.</p>
+              </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-1">
-                <Calendar className="w-3 h-3 text-[#9306CF]" /> Validade
-              </Label>
-              <Input
-                type="datetime-local"
-                value={expiresAt}
-                onChange={(e) => setExpiresAt(e.target.value)}
-                className="text-xs bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-10"
-              />
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#9306CF]" /> Regra por Cliente
+                </Label>
+                <label className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
+                  oncePerUser 
+                    ? "bg-purple-50/80 dark:bg-purple-950/30 border-[#9306CF] shadow-xs" 
+                    : "bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/70"
+                }`}>
+                  <input
+                    type="checkbox"
+                    checked={oncePerUser}
+                    onChange={(e) => setOncePerUser(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#9306CF] focus:ring-[#9306CF] cursor-pointer"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9] block">
+                      Limitar a 1 uso por cliente
+                    </span>
+                    <span className="text-[11px] text-muted-foreground block mt-0.5 leading-snug">
+                      Ideal para cupons de boas-vindas e primeira compra
+                    </span>
+                  </div>
+                </label>
+              </div>
             </div>
           </div>
 

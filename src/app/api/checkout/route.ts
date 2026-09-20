@@ -31,6 +31,9 @@ const checkoutSchema = z.object({
   }),
 
   couponCode: z.string().optional().nullable(),
+  customerPhone: z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  userId: z.string().optional().nullable(),
 });
 
 export async function POST(request: Request) {
@@ -166,6 +169,37 @@ export async function POST(request: Request) {
 
       if (coupon.maxUses && coupon.uses >= coupon.maxUses) {
         return NextResponse.json({ error: "O limite de utilizações deste cupom foi atingido." }, { status: 400 });
+      }
+
+      // Regra de Uso Único por Cliente
+      if (coupon.oncePerUser) {
+        const clientUserId = authUser?.id || (json as any)?.userId;
+        const clientPhone = (json as any)?.customerPhone || (json as any)?.phone || authUser?.phone;
+
+        const conditions: any[] = [];
+        if (clientUserId) {
+          conditions.push({ userId: clientUserId });
+        }
+        if (clientPhone) {
+          conditions.push({ user: { phone: clientPhone } });
+        }
+
+        if (conditions.length > 0) {
+          const previousOrder = await prisma.order.findFirst({
+            where: {
+              couponId: coupon.id,
+              status: { not: "cancelled" },
+              OR: conditions,
+            },
+          });
+
+          if (previousOrder) {
+            return NextResponse.json(
+              { error: "Este cupom é de uso único por cliente e já foi utilizado anteriormente." },
+              { status: 400 }
+            );
+          }
+        }
       }
 
       const minVal = Number(coupon.minOrderValue);

@@ -24,6 +24,7 @@ export async function GET(request: Request) {
       uses: c.uses,
       expiresAt: c.expiresAt ? c.expiresAt.toISOString() : null,
       isActive: c.isActive,
+      oncePerUser: c.oncePerUser,
       productIds: c.productIds || [],
       createdAt: c.createdAt.toISOString(),
     }));
@@ -57,6 +58,7 @@ export async function POST(request: Request) {
       maxUses = null,
       expiresAt = null,
       isActive = true,
+      oncePerUser = false,
       productIds = [],
     } = body || {};
 
@@ -97,6 +99,7 @@ export async function POST(request: Request) {
         maxUses: maxUses ? parseInt(String(maxUses), 10) : null,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
         isActive: Boolean(isActive),
+        oncePerUser: Boolean(oncePerUser),
         productIds: Array.isArray(productIds) ? productIds : [],
       },
     });
@@ -111,6 +114,7 @@ export async function POST(request: Request) {
       uses: newCoupon.uses,
       expiresAt: newCoupon.expiresAt ? newCoupon.expiresAt.toISOString() : null,
       isActive: newCoupon.isActive,
+      oncePerUser: newCoupon.oncePerUser,
       productIds: newCoupon.productIds,
       createdAt: newCoupon.createdAt.toISOString(),
     }, { status: 201 });

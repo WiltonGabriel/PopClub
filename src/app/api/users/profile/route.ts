@@ -30,6 +30,7 @@ export async function GET(request: Request) {
         avatarUrl: true,
         accessibilitySettings: true,
         phone: true,
+        notificationsEnabled: true,
         createdAt: true,
       },
     });
@@ -65,6 +66,8 @@ export async function GET(request: Request) {
       default_change_for: defaultChangeFor,
       defaultChangeFor,
       phone: profile.phone,
+      notificationsEnabled: Boolean(profile.notificationsEnabled ?? true),
+      notifications_enabled: Boolean(profile.notificationsEnabled ?? true),
       created_at: profile.createdAt.toISOString(),
     });
   } catch (error: any) {
@@ -91,6 +94,8 @@ async function handleUpdateProfile(request: Request) {
     if (body?.avatar_url !== undefined) dataToUpdate.avatarUrl = body.avatar_url;
     if (body?.avatar !== undefined) dataToUpdate.avatarUrl = body.avatar;
     if (body?.phone !== undefined) dataToUpdate.phone = body.phone;
+    if (body?.notificationsEnabled !== undefined) dataToUpdate.notificationsEnabled = Boolean(body.notificationsEnabled);
+    if (body?.notifications_enabled !== undefined) dataToUpdate.notificationsEnabled = Boolean(body.notifications_enabled);
 
     // Buscar configurações já existentes para fusão segura sem perda de dados
     const current = await prisma.user.findUnique({
@@ -154,6 +159,8 @@ async function handleUpdateProfile(request: Request) {
       default_change_for: defaultChangeFor,
       defaultChangeFor,
       phone: updated.phone,
+      notificationsEnabled: Boolean(updated.notificationsEnabled ?? true),
+      notifications_enabled: Boolean(updated.notificationsEnabled ?? true),
       created_at: updated.createdAt.toISOString(),
     });
   } catch (error: any) {

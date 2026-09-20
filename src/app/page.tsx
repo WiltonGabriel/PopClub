@@ -20,6 +20,7 @@ import { Footer } from "../components/storefront/Footer";
 import { ProductDetailModal } from "../components/storefront/ProductDetailModal";
 import { HeaderAddressButton } from "../components/storefront/HeaderAddressButton";
 import { CategoriesDrawer } from "../components/storefront/CategoriesDrawer";
+import { NotificationBell } from "../components/storefront/NotificationBell";
 import { PopShakeLoading } from "../components/ui/PopShakeLoading";
 import {
   loadingSettingsService,
@@ -716,6 +717,9 @@ export default function Storefront() {
                 </span>
               )}
             </button>
+
+            {/* Sino de Notificações — Posicionado OBRIGATORIAMENTE ao lado esquerdo da foto de perfil / avatar */}
+            <NotificationBell />
 
             {/* 4. [ Menu de Perfil / Administrador / Visitante ] */}
             {!user ? (

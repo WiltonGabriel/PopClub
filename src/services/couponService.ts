@@ -17,6 +17,7 @@ export interface Coupon {
   uses: number;
   expiresAt: string | null;
   isActive: boolean;
+  oncePerUser?: boolean;
   productIds: string[];
   createdAt: string;
 }
@@ -29,6 +30,7 @@ export interface CreateCouponInput {
   maxUses?: number | null;
   expiresAt?: string | null;
   isActive?: boolean;
+  oncePerUser?: boolean;
   productIds?: string[];
 }
 
@@ -40,6 +42,7 @@ export interface UpdateCouponInput {
   maxUses?: number | null;
   expiresAt?: string | null;
   isActive?: boolean;
+  oncePerUser?: boolean;
   productIds?: string[];
 }
 

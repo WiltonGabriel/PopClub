@@ -27,6 +27,7 @@ import {
   Sun,
   Moon,
   Palette,
+  Send,
 } from "lucide-react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { orderService, Order } from "../../services/orderService";
@@ -48,6 +49,7 @@ import { CardBadgesSection } from "../../components/admin/CardBadgesSection";
 import { OrderFlowSettings } from "../../components/admin/OrderFlowSettings";
 import { AvatarPresetManager } from "../../components/admin/AvatarPresetManager";
 import { VisualIdentitySection } from "../../components/admin/VisualIdentitySection";
+import { CommunicationSection } from "../../components/admin/CommunicationSection";
 import { MobileOrientationBanner } from "../../components/admin/MobileOrientationBanner";
 
 export default function AdminDashboard() {
@@ -62,7 +64,7 @@ export default function AdminDashboard() {
   });
   const [fetching, setFetching] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    "metrics" | "combos" | "promotions" | "banners" | "appearance" | "coupons" | "delivery" | "avatars"
+    "metrics" | "combos" | "promotions" | "banners" | "appearance" | "coupons" | "messages" | "delivery" | "avatars"
   >("metrics");
   const [promoDialogOpen, setPromoDialogOpen] = useState(false);
   const [promoToEdit, setPromoToEdit] = useState<Promotion | null>(null);
@@ -533,6 +535,19 @@ export default function AdminDashboard() {
                 >
                   <Ticket className="w-4 h-4" />
                   <span>🎟️ Cupons</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("messages")}
+                  className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
+                    activeTab === "messages"
+                      ? "bg-[#9306CF] text-white shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                  }`}
+                >
+                  <Send className="w-4 h-4" />
+                  <span>💬 Comunicação & Mensagens</span>
                 </button>
 
                 <button
@@ -1028,6 +1043,13 @@ export default function AdminDashboard() {
               {activeTab === "coupons" && (
                 <div className="animate-in fade-in duration-150">
                   <CouponManagement />
+                </div>
+              )}
+
+              {/* CONTEÚDO DA ABA 5.5: COMUNICAÇÃO & MENSAGENS */}
+              {activeTab === "messages" && (
+                <div className="animate-in fade-in duration-150">
+                  <CommunicationSection />
                 </div>
               )}
 

@@ -28,6 +28,7 @@ export async function PUT(
       maxUses,
       expiresAt,
       isActive,
+      oncePerUser,
       productIds,
     } = body || {};
 
@@ -56,6 +57,7 @@ export async function PUT(
         ...(maxUses !== undefined && { maxUses: maxUses ? parseInt(String(maxUses), 10) : null }),
         ...(expiresAt !== undefined && { expiresAt: expiresAt ? new Date(expiresAt) : null }),
         ...(isActive !== undefined && { isActive: Boolean(isActive) }),
+        ...(oncePerUser !== undefined && { oncePerUser: Boolean(oncePerUser) }),
         ...(productIds !== undefined && { productIds: Array.isArray(productIds) ? productIds : [] }),
       },
     });
@@ -70,6 +72,7 @@ export async function PUT(
       uses: updated.uses,
       expiresAt: updated.expiresAt ? updated.expiresAt.toISOString() : null,
       isActive: updated.isActive,
+      oncePerUser: updated.oncePerUser,
       productIds: updated.productIds,
       createdAt: updated.createdAt.toISOString(),
     });
