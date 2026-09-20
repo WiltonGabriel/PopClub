@@ -41,15 +41,17 @@ export function PromotionFormDialog({
   const [gradientEnd, setGradientEnd] = useState("#881BAA");
   const [bannerUrl, setBannerUrl] = useState("");
   const [bannerFile, setBannerFile] = useState<File | null>(null);
-  const [selectedProductIds, setSelectedProductIds] = useState<{ [id: string]: number }>({});
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Duração
+  const [autoBanner, setAutoBanner] = useState(false);
+
+  // Duração & Escassez
   const [durationDays, setDurationDays] = useState<string>("");
-  const [showDuration, setShowDuration] = useState(false);
-  const [durationDisplay, setDurationDisplay] = useState<string[]>([]);
+  const [showScarcity, setShowScarcity] = useState(false);
+  const [scarcityUnits, setScarcityUnits] = useState<string>("");
 
   // Estados do Modal de Recorte
   const [cropModalOpen, setCropModalOpen] = useState(false);
@@ -73,11 +75,8 @@ export function PromotionFormDialog({
       setRawBannerSrc(null);
       setCropModalOpen(false);
 
-      const itemsMap: { [id: string]: number } = {};
-      promoToEdit.items?.forEach((it) => {
-        itemsMap[it.productId] = it.quantity;
-      });
-      setSelectedProductIds(itemsMap);
+      setSelectedProductId(promoToEdit.productId || null);
+      setAutoBanner(promoToEdit.autoBanner || false);
 
       if (promoToEdit.expiresAt) {
         const diff = new Date(promoToEdit.expiresAt).getTime() - Date.now();
@@ -86,8 +85,8 @@ export function PromotionFormDialog({
       } else {
         setDurationDays("");
       }
-      setShowDuration(promoToEdit.showDuration || false);
-      setDurationDisplay(promoToEdit.durationDisplay || []);
+      setShowScarcity(promoToEdit.showScarcity || false);
+      setScarcityUnits(promoToEdit.scarcityUnits ? String(promoToEdit.scarcityUnits) : "");
     } else {
       setTitle("");
       setBadge("PROMO");
@@ -100,10 +99,11 @@ export function PromotionFormDialog({
       setBannerFile(null);
       setRawBannerSrc(null);
       setCropModalOpen(false);
-      setSelectedProductIds({});
+      setSelectedProductId(null);
+      setAutoBanner(false);
       setDurationDays("");
-      setShowDuration(false);
-      setDurationDisplay([]);
+      setShowScarcity(false);
+      setScarcityUnits("");
     }
   }, [promoToEdit, open]);
 
@@ -152,24 +152,8 @@ export function PromotionFormDialog({
     setRawBannerSrc(null);
   };
 
-  const handleToggleProduct = (productId: string) => {
-    setSelectedProductIds((prev) => {
-      const next = { ...prev };
-      if (next[productId]) {
-        delete next[productId];
-      } else {
-        next[productId] = 1;
-      }
-      return next;
-    });
-  };
-
-  const handleQuantityChange = (productId: string, qty: number) => {
-    if (qty <= 0) return;
-    setSelectedProductIds((prev) => ({
-      ...prev,
-      [productId]: qty,
-    }));
+  const handleSelectProduct = (productId: string) => {
+    setSelectedProductId(prev => prev === productId ? null : productId);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -178,11 +162,6 @@ export function PromotionFormDialog({
     setError("");
 
     try {
-      const items = Object.entries(selectedProductIds).map(([productId, quantity]) => ({
-        productId,
-        quantity,
-      }));
-
       let expiresAt: string | null = null;
       if (durationDays) {
         const days = parseInt(durationDays, 10);
@@ -204,9 +183,10 @@ export function PromotionFormDialog({
         bannerImageUrl: bannerUrl,
         isActive: true,
         expiresAt,
-        showDuration,
-        durationDisplay,
-        items,
+        productId: selectedProductId,
+        autoBanner,
+        showScarcity,
+        scarcityUnits: showScarcity && scarcityUnits ? parseInt(scarcityUnits) : null,
       };
 
       if (promoToEdit) {
@@ -409,53 +389,69 @@ export function PromotionFormDialog({
             </div>
 
             {/* 5. Mini-Banner */}
-            <div className="space-y-2">
+            <div className="space-y-3 border-t border-gray-100 dark:border-[#512B54]/30 pt-4">
               <div className="flex justify-between items-center">
                 <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                  Banner da Oferta (Imagem)
+                  Banner da Oferta
                 </Label>
-                <span className="text-[10px] text-[#9306CF] dark:text-[#C7A9C9] bg-[#9306CF]/10 px-2 py-0.5 rounded-full font-mono">
-                  16:9 widescreen
-                </span>
               </div>
-              <div className="flex border border-gray-200 dark:border-[#512B54]/40 bg-gray-50 dark:bg-[#190B1A] rounded-xl h-11 relative overflow-hidden group">
-                <div className="bg-gray-200 dark:bg-white/10 px-3.5 flex items-center justify-center text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 border-r border-gray-200 dark:border-[#512B54]/40 group-hover:bg-gray-300 transition-colors">
-                  {bannerFile ? "Substituir" : "Escolher Imagem"}
-                </div>
-                <Input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={handleBannerFileChange}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                />
-                <div className="flex-1 px-3.5 flex items-center text-xs text-gray-600 dark:text-gray-300 truncate">
-                  {bannerFile ? bannerFile.name : (bannerUrl ? "Imagem configurada por URL" : "Nenhum arquivo selecionado")}
-                </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer mb-2">
+                  <input
+                    type="checkbox"
+                    checked={autoBanner}
+                    onChange={(e) => setAutoBanner(e.target.checked)}
+                    className="w-4 h-4 text-[#9306CF] rounded border-gray-300"
+                  />
+                  Gerar Automaticamente com os Produtos Escolhidos
+                </label>
+
+                {!autoBanner && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-[11px] text-gray-500 font-mono">Upload Manual da Imagem (16:9)</Label>
+                    </div>
+                    <div className="flex border border-gray-200 dark:border-[#512B54]/40 bg-gray-50 dark:bg-[#190B1A] rounded-xl h-11 relative overflow-hidden group">
+                      <div className="bg-gray-200 dark:bg-white/10 px-3.5 flex items-center justify-center text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 border-r border-gray-200 dark:border-[#512B54]/40 group-hover:bg-gray-300 transition-colors">
+                        {bannerFile ? "Substituir" : "Escolher Imagem"}
+                      </div>
+                      <Input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={handleBannerFileChange}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      />
+                      <div className="flex-1 px-3.5 flex items-center text-xs text-gray-600 dark:text-gray-300 truncate">
+                        {bannerFile ? bannerFile.name : (bannerUrl ? "Imagem configurada por URL" : "Nenhum arquivo selecionado")}
+                      </div>
+                    </div>
+                    <Input
+                      type="text"
+                      placeholder="Ou cole o link direto da imagem..."
+                      value={bannerUrl}
+                      onChange={(e) => {
+                        setBannerUrl(e.target.value);
+                        if (e.target.value) setBannerFile(null);
+                      }}
+                      className="bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-10 text-xs rounded-xl"
+                    />
+                  </div>
+                )}
               </div>
-              <Input
-                type="text"
-                placeholder="Ou cole o link direto da imagem..."
-                value={bannerUrl}
-                onChange={(e) => {
-                  setBannerUrl(e.target.value);
-                  if (e.target.value) setBannerFile(null);
-                }}
-                className="bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-10 text-xs rounded-xl"
-              />
             </div>
 
             {/* 6. Produtos Vinculados (Opcional) */}
             <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
               <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center justify-between">
-                <span>Vincular Produtos Específicos (Opcional)</span>
+                <span>Produto da Promoção (Opcional)</span>
                 <span className="text-[11px] font-mono text-gray-400">
-                  {Object.keys(selectedProductIds).length} selecionado(s)
+                  {selectedProductId ? "1" : "0"} selecionado
                 </span>
               </Label>
               <div className="max-h-48 overflow-y-auto space-y-1.5 border border-gray-200 dark:border-[#512B54]/40 p-2.5 rounded-xl bg-gray-50/50 dark:bg-[#190B1A]/50">
                 {availableProducts.map((prod) => {
-                  const isChecked = Boolean(selectedProductIds[prod.id]);
-                  const qty = selectedProductIds[prod.id] || 1;
+                  const isChecked = selectedProductId === prod.id;
                   return (
                     <div
                       key={prod.id}
@@ -469,25 +465,12 @@ export function PromotionFormDialog({
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={() => handleToggleProduct(prod.id)}
+                          onChange={() => handleSelectProduct(prod.id)}
                           className="accent-[#9306CF] w-4 h-4 rounded"
                         />
                         <span className="font-bold text-gray-800 dark:text-gray-200 truncate">{prod.name}</span>
                         <span className="text-gray-400 font-mono text-[11px]">R$ {Number(prod.price).toFixed(2).replace(".", ",")}</span>
                       </label>
-
-                      {isChecked && (
-                        <div className="flex items-center gap-1.5 font-mono text-xs">
-                          <span className="text-[10px] text-gray-400">Qtd:</span>
-                          <input
-                            type="number"
-                            min={1}
-                            value={qty}
-                            onChange={(e) => handleQuantityChange(prod.id, parseInt(e.target.value) || 1)}
-                            className="w-12 h-7 px-1.5 border border-gray-300 dark:border-[#512B54]/60 rounded-md text-center bg-white dark:bg-[#190B1A] text-xs font-bold"
-                          />
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -524,40 +507,31 @@ export function PromotionFormDialog({
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={showDuration}
-                      onChange={(e) => setShowDuration(e.target.checked)}
+                      checked={showScarcity}
+                      onChange={(e) => setShowScarcity(e.target.checked)}
                       className="w-4 h-4 text-[#9306CF] rounded border-gray-300"
                     />
                     <Eye className="w-4 h-4 text-gray-500" />
                     Mostrar Escassez para o Cliente
                   </label>
                   
-                  {showDuration && (
-                    <div className="bg-gray-50 dark:bg-zinc-900/50 p-3 rounded-xl border border-gray-200 dark:border-zinc-800 space-y-2">
-                      <p className="text-xs text-muted-foreground mb-2">Formato de Exibição:</p>
-                      {[
-                        "Cronômetro Regressivo",
-                        "Data e Hora Limite Claras",
-                        "Contador de Estoque Limitado",
-                        "Destaque Visual do Desconto",
-                        "Nomeação Temática"
-                      ].map((opt) => (
-                        <label key={opt} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={durationDisplay.includes(opt)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setDurationDisplay([...durationDisplay, opt]);
-                              } else {
-                                setDurationDisplay(durationDisplay.filter((d) => d !== opt));
-                              }
-                            }}
-                            className="w-3.5 h-3.5 text-[#9306CF] rounded border-gray-300"
-                          />
-                          {opt}
-                        </label>
-                      ))}
+                  {showScarcity && (
+                    <div className="bg-gray-50 dark:bg-zinc-900/50 p-3 rounded-xl border border-gray-200 dark:border-zinc-800 space-y-3 mt-2">
+                      <Label className="text-xs text-muted-foreground block">
+                        Unidades Restantes (Opcional)
+                      </Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={scarcityUnits}
+                        onChange={(e) => setScarcityUnits(e.target.value)}
+                        placeholder="Ex: 5"
+                        className="bg-white dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-10 rounded-xl text-sm"
+                      />
+                      <p className="text-[10px] text-gray-500">
+                        Se definido, exibirá "Apenas {scarcityUnits || 'X'} restantes!"
+                      </p>
                     </div>
                   )}
                 </div>

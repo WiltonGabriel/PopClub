@@ -12,6 +12,13 @@ export interface Product {
   isAvailable?: boolean;
   cardBadgeId?: string | null;
   cardBadge?: CardBadge | null;
+  isCombo?: boolean;
+  comboItems?: {
+    id?: string;
+    productId: string;
+    quantity: number;
+    product?: Product;
+  }[];
 }
 
 export const productService = {
@@ -66,6 +73,8 @@ export const productService = {
       isAvailable: item.isAvailable !== undefined ? Boolean(item.isAvailable) : true,
       cardBadgeId: item.cardBadgeId || null,
       cardBadge: item.cardBadge || null,
+      isCombo: item.isCombo || false,
+      comboItems: item.comboItems || [],
     }));
   },
 
@@ -89,6 +98,8 @@ export const productService = {
         stock: product.stock,
         isAvailable: product.isAvailable,
         cardBadgeId: product.cardBadgeId || null,
+        isCombo: product.isCombo || false,
+        comboItems: product.comboItems || [],
       }),
     });
 
@@ -107,6 +118,8 @@ export const productService = {
       isAvailable: data.isAvailable,
       cardBadgeId: data.cardBadgeId,
       cardBadge: data.cardBadge,
+      isCombo: data.isCombo,
+      comboItems: data.comboItems || [],
     };
   },
 
@@ -130,6 +143,8 @@ export const productService = {
         stock: updates.stock,
         isAvailable: updates.isAvailable,
         cardBadgeId: updates.cardBadgeId,
+        isCombo: updates.isCombo,
+        comboItems: updates.comboItems,
       }),
     });
 
@@ -148,6 +163,8 @@ export const productService = {
       isAvailable: data.isAvailable,
       cardBadgeId: data.cardBadgeId,
       cardBadge: data.cardBadge,
+      isCombo: data.isCombo,
+      comboItems: data.comboItems || [],
     };
   },
 

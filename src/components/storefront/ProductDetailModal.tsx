@@ -348,6 +348,41 @@ export function ProductDetailModal({
                   </p>
                 </div>
               )}
+              
+              {/* Composição do Combo (Se for um combo) */}
+              {product.isCombo && product.comboItems && product.comboItems.length > 0 && (
+                <div className="mt-4 border border-border/50 rounded-2xl p-4 bg-muted/20">
+                  <h3 className="font-heading font-bold text-sm uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-brand-pop-shake" />
+                    Incluso neste Combo
+                  </h3>
+                  <div className="space-y-3">
+                    {product.comboItems.map((item) => (
+                      <div key={item.id} className="flex items-center gap-3 bg-card border border-border/40 p-3 rounded-xl shadow-sm">
+                        <div className="w-12 h-12 bg-muted rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
+                          {item.product?.imageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={item.product.imageUrl} alt={item.product.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-[10px] font-mono text-muted-foreground uppercase">Item</span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="bg-brand-pop-shake/10 text-brand-pop-shake px-1.5 py-0.5 rounded font-mono text-[10px] font-bold">
+                              {item.quantity}x
+                            </span>
+                            <span className="font-semibold text-sm truncate block">{item.product?.name || "Produto Removido"}</span>
+                          </div>
+                          {item.product?.description && (
+                            <span className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{item.product.description}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Grupos de Customização & Adicionais */}

@@ -30,27 +30,26 @@ export default function PromotionDetailPage({
       .finally(() => setLoading(false));
   }, [id]);
 
-  const handleAddComboToCart = () => {
-    if (!promo || !promo.items || promo.items.length === 0) return;
+  const handleAddPromoToCart = () => {
+    if (!promo || !promo.product) return;
 
-    // Adiciona cada item do combo com o desconto proporcional da promoção
-    const originalTotal = promo.originalTotal || 1;
-    const finalPrice = promo.finalPrice || originalTotal;
-    const discountFactor = finalPrice / originalTotal;
+    const originalPrice = promo.product.price;
+    let finalPrice = originalPrice;
+    if (promo.discountType === "percentage") {
+      finalPrice = Number((originalPrice * (1 - promo.discountValue / 100)).toFixed(2));
+    } else {
+      finalPrice = Math.max(0, originalPrice - promo.discountValue);
+    }
 
-    promo.items.forEach((item) => {
-      const discountedUnitPrice = Number((item.product.price * discountFactor).toFixed(2));
-
-      addItem({
-        productId: item.productId,
-        name: `${item.product.name} (${promo.title})`,
-        price: discountedUnitPrice,
-        originalPrice: item.product.price,
-        quantity: item.quantity,
-        imageUrl: item.product.imageUrl,
-        promotionId: promo.id,
-        promotionTitle: promo.title,
-      });
+    addItem({
+      productId: promo.product.id,
+      name: `${promo.product.name} (${promo.title})`,
+      price: finalPrice,
+      originalPrice: originalPrice,
+      quantity: 1,
+      imageUrl: promo.product.imageUrl,
+      promotionId: promo.id,
+      promotionTitle: promo.title,
     });
 
     setAdded(true);
@@ -80,6 +79,15 @@ export default function PromotionDetailPage({
   }
 
   const bgGradient = `linear-gradient(135deg, ${promo.gradientStart || "#9306CF"}, ${promo.gradientEnd || "#881BAA"})`;
+
+  const originalPrice = promo.product?.price || 0;
+  let finalPrice = originalPrice;
+  if (promo.discountType === "percentage") {
+    finalPrice = Number((originalPrice * (1 - promo.discountValue / 100)).toFixed(2));
+  } else {
+    finalPrice = Math.max(0, originalPrice - promo.discountValue);
+  }
+  const discountAmount = Math.max(0, originalPrice - finalPrice);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans pb-28">
@@ -145,55 +153,46 @@ export default function PromotionDetailPage({
           <div className="flex items-center gap-2 mb-6 border-b border-border pb-4">
             <Sparkles className="w-5 h-5 text-primary" />
             <h2 className="font-heading text-xl font-bold uppercase tracking-wide">
-              Itens Inclusos neste Combo
+              Produto em Oferta
             </h2>
           </div>
 
           <div className="space-y-4">
-            {promo.items && promo.items.length > 0 ? (
-              promo.items.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-4 bg-background border-2 border-border p-4 transition-all hover:border-accent"
-                >
-                  <div className="w-20 h-20 bg-muted border border-border shrink-0 overflow-hidden relative flex items-center justify-center">
-                    {item.product.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={item.product.imageUrl}
-                        alt={item.product.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-muted-foreground font-mono text-xs">AÇAÍ</span>
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="bg-primary/20 text-primary px-2 py-0.5 font-mono text-xs font-bold">
-                        {item.quantity}x
-                      </span>
-                      <h3 className="font-heading font-bold text-foreground text-lg truncate">
-                        {item.product.name}
-                      </h3>
-                    </div>
-                    <p className="text-xs font-sans text-muted-foreground line-clamp-2 mt-1">
-                      {item.product.description}
-                    </p>
-                  </div>
-
-                  <div className="text-right shrink-0">
-                    <span className="block text-[10px] font-mono text-muted-foreground uppercase">Valor Original</span>
-                    <span className="font-mono text-sm line-through text-muted-foreground">
-                      R$ {(item.product.price * item.quantity).toFixed(2).replace(".", ",")}
-                    </span>
-                  </div>
+            {promo.product ? (
+              <div
+                key={promo.product.id}
+                className="flex items-center gap-4 bg-background border-2 border-border p-4 transition-all hover:border-accent"
+              >
+                <div className="w-20 h-20 bg-muted border border-border shrink-0 overflow-hidden relative flex items-center justify-center">
+                  {promo.product.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={promo.product.imageUrl}
+                      alt={promo.product.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-muted-foreground font-mono text-xs">AÇAÍ</span>
+                  )}
                 </div>
-              ))
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="bg-primary/20 text-primary px-2 py-0.5 font-mono text-xs font-bold">
+                      1x
+                    </span>
+                    <h3 className="font-heading font-bold text-foreground text-lg truncate">
+                      {promo.product.name}
+                    </h3>
+                  </div>
+                  <p className="text-muted-foreground text-xs mt-1 line-clamp-2">
+                    {promo.product.description}
+                  </p>
+                </div>
+              </div>
             ) : (
               <p className="text-sm font-mono text-muted-foreground">
-                Nenhum produto individual listado neste combo.
+                Nenhum produto individual listado nesta promoção.
               </p>
             )}
           </div>
@@ -207,28 +206,30 @@ export default function PromotionDetailPage({
 
           <div className="space-y-3 font-mono text-sm border-b border-border pb-4">
             <div className="flex justify-between text-muted-foreground">
-              <span>Soma dos Itens Individuais:</span>
-              <span>R$ {promo.originalTotal?.toFixed(2).replace(".", ",")}</span>
+              <span>Valor Original do Produto:</span>
+              <span>R$ {originalPrice.toFixed(2).replace(".", ",")}</span>
             </div>
 
             <div className="flex justify-between text-success font-bold">
               <span className="flex items-center gap-1">
                 Desconto da Promoção ({promo.discountType === "percentage" ? `${promo.discountValue}%` : `R$ ${promo.discountValue}`}):
               </span>
-              <span>- R$ {promo.discountAmount?.toFixed(2).replace(".", ",")}</span>
+              <span>
+                - R$ {discountAmount.toFixed(2).replace(".", ",")}
+              </span>
             </div>
           </div>
 
           <div className="pt-4 flex justify-between items-baseline">
             <span className="font-mono text-sm uppercase tracking-wider text-muted-foreground font-bold">
-              Preço Final do Combo:
+              Preço Final do Produto:
             </span>
             <div className="text-right">
               <span className="font-heading text-3xl font-black text-primary">
-                R$ {promo.finalPrice?.toFixed(2).replace(".", ",")}
+                R$ {finalPrice.toFixed(2).replace(".", ",")}
               </span>
               <span className="block text-[10px] font-mono text-success uppercase font-bold">
-                Economia de R$ {promo.discountAmount?.toFixed(2).replace(".", ",")}
+                Economia de R$ {discountAmount.toFixed(2).replace(".", ",")}
               </span>
             </div>
           </div>
@@ -243,7 +244,7 @@ export default function PromotionDetailPage({
               Total com Desconto
             </span>
             <span className="font-heading text-2xl font-bold text-primary">
-              R$ {promo.finalPrice?.toFixed(2).replace(".", ",")}
+              R$ {finalPrice.toFixed(2).replace(".", ",")}
             </span>
           </div>
 
@@ -257,11 +258,11 @@ export default function PromotionDetailPage({
               </Button>
             ) : (
               <Button
-                onClick={handleAddComboToCart}
+                onClick={handleAddPromoToCart}
                 className="h-12 bg-primary text-primary-foreground hover:bg-primary/90 rounded-none font-heading text-base uppercase tracking-wider font-bold px-6 flex items-center gap-2 shadow-lg"
               >
                 <ShoppingBag className="w-5 h-5" />
-                Adicionar Combo ao Carrinho
+                Adicionar Oferta ao Carrinho
               </Button>
             )}
           </div>

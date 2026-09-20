@@ -11,6 +11,11 @@ export async function GET() {
           select: { name: true },
         },
         cardBadge: true,
+        comboItems: {
+          include: {
+            product: true
+          }
+        }
       },
       orderBy: { createdAt: "desc" },
     });
@@ -27,6 +32,18 @@ export async function GET() {
       isAvailable: p.isAvailable,
       cardBadgeId: p.cardBadgeId,
       cardBadge: p.cardBadge,
+      isCombo: p.isCombo,
+      comboItems: p.comboItems?.map(ci => ({
+        id: ci.id,
+        productId: ci.productId,
+        quantity: ci.quantity,
+        product: {
+          id: ci.product.id,
+          name: ci.product.name,
+          price: Number(ci.product.price),
+          imageUrl: ci.product.imageUrl || ""
+        }
+      })) || [],
     }));
 
     return apiSuccess(formatted);
@@ -48,7 +65,7 @@ export async function POST(request: Request) {
     } catch {
       return apiError("Formato de requisição inválido ou corpo vazio.", 400, "BAD_REQUEST");
     }
-    const { name, description, price, categoryId, category, imageUrl, stock, isAvailable, cardBadgeId } = body || {};
+    const { name, description, price, categoryId, category, imageUrl, stock, isAvailable, cardBadgeId, isCombo, comboItems } = body || {};
 
     if (!name || price === undefined) {
       return apiError("Nome e preço do produto são obrigatórios.", 400, "VALIDATION_ERROR");
@@ -67,10 +84,18 @@ export async function POST(request: Request) {
         stock: parsedStock !== null && !isNaN(parsedStock) ? Math.max(0, parsedStock) : null,
         isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : true,
         cardBadgeId: cardBadgeId || null,
+        isCombo: isCombo ? true : false,
+        comboItems: (isCombo && Array.isArray(comboItems)) ? {
+          create: comboItems.map((ci: any) => ({
+            productId: ci.productId,
+            quantity: ci.quantity || 1
+          }))
+        } : undefined
       },
       include: {
         categoryRel: { select: { name: true } },
         cardBadge: true,
+        comboItems: { include: { product: true } }
       },
     });
 
@@ -86,6 +111,18 @@ export async function POST(request: Request) {
       isAvailable: product.isAvailable,
       cardBadgeId: product.cardBadgeId,
       cardBadge: product.cardBadge,
+      isCombo: product.isCombo,
+      comboItems: product.comboItems?.map(ci => ({
+        id: ci.id,
+        productId: ci.productId,
+        quantity: ci.quantity,
+        product: {
+          id: ci.product.id,
+          name: ci.product.name,
+          price: Number(ci.product.price),
+          imageUrl: ci.product.imageUrl || ""
+        }
+      })) || [],
     }, 201);
   } catch (error: unknown) {
     return handleApiError(error, "API:products:POST", "Não foi possível cadastrar o produto.");

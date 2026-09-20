@@ -16,10 +16,13 @@ export function GlobalBackgroundSync() {
     loadingSettingsService.getCachedLoadingSettings()
   );
 
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
-    let mounted = true;
+    let active = true;
+    setMounted(true);
     loadingSettingsService.getLoadingSettings().then((remote) => {
-      if (mounted) setSettings(remote);
+      if (active) setSettings(remote);
     });
 
     const handleUpdated = (e: Event) => {
@@ -31,27 +34,24 @@ export function GlobalBackgroundSync() {
 
     window.addEventListener(LOADING_UPDATED_EVENT, handleUpdated);
     return () => {
-      mounted = false;
+      active = false;
       window.removeEventListener(LOADING_UPDATED_EVENT, handleUpdated);
     };
   }, []);
 
-  const isDark = theme === "dark";
-  const bgType = isDark ? (settings.bgTypeDark || "gradient") : (settings.bgTypeLight || "gradient");
-  const bgValue = isDark ? (settings.bgValueDark || "preset_dark_violet") : (settings.bgValueLight || "preset_cream");
-
   // Injeta o background estático ou a base do canvas diretamente no <body>
   useEffect(() => {
-    if (typeof document === "undefined") return;
+    if (!mounted || typeof document === "undefined") return;
 
+    const isDark = theme === "dark";
     const baseCss = resolveBackgroundCss(settings, isDark);
     document.body.style.background = baseCss;
     document.body.style.backgroundAttachment = "fixed";
-  }, [settings, isDark]);
+  }, [settings, theme, mounted]);
 
   // Sincroniza o favicon dinâmico no <head> do navegador
   useEffect(() => {
-    if (typeof document === "undefined" || !settings.faviconUrl) return;
+    if (!mounted || typeof document === "undefined" || !settings.faviconUrl) return;
 
     const faviconHref = settings.faviconUrl;
     const iconLinks = document.querySelectorAll<HTMLLinkElement>("link[rel*='icon']");
@@ -65,7 +65,13 @@ export function GlobalBackgroundSync() {
       newLink.href = faviconHref;
       document.head.appendChild(newLink);
     }
-  }, [settings.faviconUrl]);
+  }, [settings.faviconUrl, mounted]);
+
+  if (!mounted) return null;
+
+  const isDark = theme === "dark";
+  const bgType = isDark ? (settings.bgTypeDark || "gradient") : (settings.bgTypeLight || "gradient");
+  const bgValue = isDark ? (settings.bgValueDark || "preset_dark_violet") : (settings.bgValueLight || "preset_cream");
 
   if (bgType === "dynamic") {
     return (

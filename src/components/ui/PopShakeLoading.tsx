@@ -45,11 +45,14 @@ export function PopShakeLoading({
   const [fadeState, setFadeState] = useState<"in" | "out">("in");
   const [activeStep, setActiveStep] = useState(0);
 
+  const [mounted, setMounted] = useState(false);
+
   // Carrega configurações dinâmicas da API e escuta eventos de alteração em tempo real
   useEffect(() => {
-    let mounted = true;
+    let active = true;
+    setMounted(true);
     loadingSettingsService.getLoadingSettings().then((remote) => {
-      if (mounted) setSettings(remote);
+      if (active) setSettings(remote);
     });
 
     const handleUpdated = (e: Event) => {
@@ -61,13 +64,16 @@ export function PopShakeLoading({
 
     window.addEventListener(LOADING_UPDATED_EVENT, handleUpdated);
     return () => {
-      mounted = false;
+      active = false;
       window.removeEventListener(LOADING_UPDATED_EVENT, handleUpdated);
     };
   }, []);
 
   // Determina os valores efetivos (prioriza props de override caso fornecidos)
-  const effectiveSettings = overrideSettings ? { ...settings, ...overrideSettings } : settings;
+  const effectiveSettings = overrideSettings 
+    ? { ...settings, ...overrideSettings } 
+    : (mounted ? settings : DEFAULT_LOADING_SETTINGS);
+    
   const activeTheme: LoadingTheme = themeOverride || effectiveSettings.theme || "liquid_cream";
   const activeIcon: string = centerIconOverride || effectiveSettings.centerIcon || "🥣";
   const activePhrases: string[] = useMemo(() => {

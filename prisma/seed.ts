@@ -39,7 +39,7 @@ async function main() {
   console.log("🧹 Limpando dados fictícios anteriores...");
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
-  await prisma.promotionItem.deleteMany();
+  await prisma.comboItem.deleteMany();
   await prisma.promotion.deleteMany();
   await prisma.product.deleteMany();
   await prisma.category.deleteMany();

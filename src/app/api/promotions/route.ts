@@ -22,23 +22,15 @@ export async function GET(request: Request) {
     const promotions = await prisma.promotion.findMany({
       where: whereClause,
       include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
+        product: true
       },
       orderBy: { createdAt: "desc" },
     });
 
     const formatted = promotions.map((p) => {
-      // Calcula o preço original total dos produtos do combo
-      const originalTotal = p.items.reduce((sum, item) => {
-        return sum + Number(item.product.price) * item.quantity;
-      }, 0);
-
       // Calcula o preço final com desconto da promoção
-      let finalPrice = originalTotal;
+      let finalPrice = p.product ? Number(p.product.price) : 0;
+      const originalTotal = finalPrice;
       if (p.discountType === "percentage") {
         const pct = Number(p.discountValue);
         finalPrice = originalTotal * (1 - pct / 100);
@@ -64,18 +56,17 @@ export async function GET(request: Request) {
         createdAt: p.createdAt.toISOString(),
         originalTotal: Number(originalTotal.toFixed(2)),
         finalPrice: Number(finalPrice.toFixed(2)),
-        items: p.items.map((it) => ({
-          id: it.id,
-          productId: it.productId,
-          quantity: it.quantity,
-          product: {
-            id: it.product.id,
-            name: it.product.name,
-            description: it.product.description || "",
-            price: Number(it.product.price),
-            imageUrl: it.product.imageUrl || "",
-          },
-        })),
+        autoBanner: p.autoBanner,
+        showScarcity: p.showScarcity,
+        scarcityUnits: p.scarcityUnits,
+        productId: p.productId,
+        product: p.product ? {
+          id: p.product.id,
+          name: p.product.name,
+          description: p.product.description || "",
+          price: Number(p.product.price),
+          imageUrl: p.product.imageUrl || "",
+        } : undefined,
       };
     });
 
@@ -113,7 +104,10 @@ export async function POST(request: Request) {
       expiresAt,
       showDuration,
       durationDisplay,
-      items, // array of { productId: string, quantity?: number }
+      productId,
+      autoBanner,
+      showScarcity,
+      scarcityUnits,
     } = body || {};
 
     if (!title || !badge) {
@@ -134,17 +128,13 @@ export async function POST(request: Request) {
         expiresAt: expiresAt ? new Date(expiresAt) : null,
         showDuration: showDuration || false,
         durationDisplay: durationDisplay || [],
-        items: {
-          create: (items || []).map((it: any) => ({
-            productId: it.productId,
-            quantity: it.quantity || 1,
-          })),
-        },
+        productId: productId || null,
+        autoBanner: autoBanner || false,
+        showScarcity: showScarcity || false,
+        scarcityUnits: scarcityUnits !== undefined && scarcityUnits !== null ? Number(scarcityUnits) : null,
       },
       include: {
-        items: {
-          include: { product: true },
-        },
+        product: true
       },
     });
 

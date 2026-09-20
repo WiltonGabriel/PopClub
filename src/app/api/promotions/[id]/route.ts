@@ -12,11 +12,7 @@ export async function GET(
     const promo = await prisma.promotion.findUnique({
       where: { id },
       include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
+        product: true
       },
     });
 
@@ -24,11 +20,8 @@ export async function GET(
       return NextResponse.json({ error: "Promoção não encontrada." }, { status: 404 });
     }
 
-    const originalTotal = promo.items.reduce((sum, item) => {
-      return sum + Number(item.product.price) * item.quantity;
-    }, 0);
-
-    let finalPrice = originalTotal;
+    let finalPrice = promo.product ? Number(promo.product.price) : 0;
+    const originalTotal = finalPrice;
     if (promo.discountType === "percentage") {
       const pct = Number(promo.discountValue);
       finalPrice = originalTotal * (1 - pct / 100);
@@ -56,18 +49,17 @@ export async function GET(
       expiresAt: promo.expiresAt ? promo.expiresAt.toISOString() : null,
       showDuration: promo.showDuration,
       durationDisplay: promo.durationDisplay,
-      items: promo.items.map((it) => ({
-        id: it.id,
-        productId: it.productId,
-        quantity: it.quantity,
-        product: {
-          id: it.product.id,
-          name: it.product.name,
-          description: it.product.description || "",
-          price: Number(it.product.price),
-          imageUrl: it.product.imageUrl || "",
-        },
-      })),
+      autoBanner: promo.autoBanner,
+      showScarcity: promo.showScarcity,
+      scarcityUnits: promo.scarcityUnits,
+      productId: promo.productId,
+      product: promo.product ? {
+        id: promo.product.id,
+        name: promo.product.name,
+        description: promo.product.description || "",
+        price: Number(promo.product.price),
+        imageUrl: promo.product.imageUrl || "",
+      } : undefined,
     });
   } catch (error: any) {
     console.error("Erro ao buscar promoção:", error);
@@ -106,7 +98,10 @@ export async function PUT(
       expiresAt,
       showDuration,
       durationDisplay,
-      items,
+      productId,
+      autoBanner,
+      showScarcity,
+      scarcityUnits,
     } = body || {};
 
     const dataToUpdate: any = {};
@@ -122,30 +117,17 @@ export async function PUT(
     if (expiresAt !== undefined) dataToUpdate.expiresAt = expiresAt ? new Date(expiresAt) : null;
     if (showDuration !== undefined) dataToUpdate.showDuration = showDuration;
     if (durationDisplay !== undefined) dataToUpdate.durationDisplay = durationDisplay;
+    if (productId !== undefined) dataToUpdate.productId = productId || null;
+    if (autoBanner !== undefined) dataToUpdate.autoBanner = autoBanner;
+    if (showScarcity !== undefined) dataToUpdate.showScarcity = showScarcity;
+    if (scarcityUnits !== undefined) dataToUpdate.scarcityUnits = scarcityUnits !== null ? Number(scarcityUnits) : null;
 
-    const updated = await prisma.$transaction(async (tx) => {
-      if (items && Array.isArray(items)) {
-        await tx.promotionItem.deleteMany({ where: { promotionId: id } });
-        if (items.length > 0) {
-          await tx.promotionItem.createMany({
-            data: items.map((it: any) => ({
-              promotionId: id,
-              productId: it.productId,
-              quantity: it.quantity || 1,
-            })),
-          });
-        }
-      }
-
-      return await tx.promotion.update({
-        where: { id },
-        data: dataToUpdate,
-        include: {
-          items: {
-            include: { product: true },
-          },
-        },
-      });
+    const updated = await prisma.promotion.update({
+      where: { id },
+      data: dataToUpdate,
+      include: {
+        product: true,
+      },
     });
 
     return NextResponse.json(updated);

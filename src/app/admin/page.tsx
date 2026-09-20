@@ -35,6 +35,7 @@ import { promotionService, Promotion } from "../../services/promotionService";
 import { bannerService, HighlightBannerData } from "../../services/bannerService";
 import { storeSettingsService, StoreSettings } from "../../services/storeSettingsService";
 import { authService } from "../../services/authService";
+import { productService, Product } from "../../services/productService";
 import { playNewOrderChime } from "../../lib/sound";
 import { subscribeToOrderEvents } from "../../lib/orderEvents";
 import { useRouter } from "next/navigation";
@@ -56,6 +57,7 @@ export default function AdminDashboard() {
   const { theme, toggleTheme } = useTheme();
   const [orders, setOrders] = useState<Order[]>([]);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [combos, setCombos] = useState<Product[]>([]);
   const [highlightBanner, setHighlightBanner] = useState<HighlightBannerData>({
     icon: "🥣",
     title: "Monte do seu jeito: escolha o tamanho e adicione seus acompanhamentos favoritos",
@@ -69,7 +71,7 @@ export default function AdminDashboard() {
   const [promoDialogOpen, setPromoDialogOpen] = useState(false);
   const [promoToEdit, setPromoToEdit] = useState<Promotion | null>(null);
   const [comboDialogOpen, setComboDialogOpen] = useState(false);
-  const [comboToEdit, setComboToEdit] = useState<Promotion | null>(null);
+  const [comboToEdit, setComboToEdit] = useState<Product | null>(null);
   const [editBannerModalOpen, setEditBannerModalOpen] = useState(false);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
   const [currentTime, setCurrentTime] = useState<number>(0);
@@ -101,6 +103,15 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  const fetchCombos = useCallback(async () => {
+    try {
+      const data = await productService.getProducts();
+      setCombos(data.filter((p) => p.isCombo));
+    } catch (error) {
+      console.error("Erro ao buscar combos:", error);
+    }
+  }, []);
+
   const fetchBanner = useCallback(async () => {
     try {
       const banner = await bannerService.getHighlightBanner();
@@ -117,11 +128,12 @@ export default function AdminDashboard() {
     await Promise.all([
       fetchOrders(),
       fetchPromos(),
+      fetchCombos(),
       fetchBanner(),
       storeSettingsService.getSettings().then(setStoreSettings).catch(() => null),
     ]);
     setFetching(false);
-  }, [fetchOrders, fetchPromos, fetchBanner]);
+  }, [fetchOrders, fetchPromos, fetchCombos, fetchBanner]);
 
   useEffect(() => {
     loadAll();
@@ -148,13 +160,22 @@ export default function AdminDashboard() {
   }, [loadAll, fetchOrders]);
 
   const handleDeletePromo = async (id: string) => {
-    if (confirm("Deseja realmente remover esta promoção?")) {
-      try {
-        await promotionService.deletePromotion(id);
-        fetchPromos();
-      } catch (err) {
-        alert("Erro ao excluir promoção");
-      }
+    if (!confirm("Tem certeza que deseja excluir esta promoção?")) return;
+    try {
+      await promotionService.deletePromotion(id);
+      fetchPromos();
+    } catch (error) {
+      console.error("Erro ao excluir promoção:", error);
+    }
+  };
+
+  const handleDeleteCombo = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este combo?")) return;
+    try {
+      await productService.deleteProduct(id);
+      fetchCombos();
+    } catch (error) {
+      console.error("Erro ao excluir combo:", error);
     }
   };
 
@@ -424,9 +445,8 @@ export default function AdminDashboard() {
 
         {/* Navegação por Abas Principais (Posicionada Logo Abaixo da Mini Esteira) */}
         {(() => {
-          const combos = promotions.filter((p) => p.items && p.items.length >= 2);
           const bannerPromos = promotions.filter((p) => Boolean(p.bannerImageUrl));
-          const directPromos = promotions.filter((p) => !p.bannerImageUrl && (!p.items || p.items.length < 2));
+          const directPromos = promotions.filter((p) => !p.bannerImageUrl);
 
           return (
             <div className="space-y-6">
@@ -624,57 +644,49 @@ export default function AdminDashboard() {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                       {combos.map((combo) => {
-                        const originalTotal = combo.originalTotal || combo.items?.reduce((s, it) => s + Number(it.product.price) * it.quantity, 0) || 0;
-                        const finalPrice = combo.finalPrice || originalTotal;
+                        const finalPrice = Number(combo.price) || 0;
+                        const originalTotal = combo.comboItems?.reduce((s, it) => s + Number(it.product?.price || 0) * it.quantity, 0) || finalPrice;
                         const savings = Math.max(0, originalTotal - finalPrice);
 
                         return (
                           <div
                             key={combo.id}
-                            className="bg-gray-50/80 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-[#9306CF]/50 transition-all"
+                            className="bg-white dark:bg-[#190B1A] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-[#9306CF]/50 transition-all"
                           >
                             <div
                               className="h-1.5 w-full absolute top-0 left-0"
                               style={{
-                                background: `linear-gradient(to right, ${combo.gradientStart || "#9306CF"}, ${combo.gradientEnd || "#940068"})`,
+                                background: `linear-gradient(to right, #9306CF, #940068)`,
                               }}
                             />
-
-                            <div className="space-y-3.5 pt-1">
-                              <div className="flex justify-between items-start gap-2">
-                                <span className="bg-purple-100 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg border border-purple-200/60 shadow-xs">
-                                  {combo.badge}
-                                </span>
-                                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded-md border border-emerald-200/50">
-                                  {combo.discountType === "percentage"
-                                    ? `${combo.discountValue}% OFF`
-                                    : `Economize R$ ${savings.toFixed(2).replace(".", ",")}`}
+                            <div className="p-5 flex flex-col h-full">
+                              <div className="flex justify-between items-start mb-3 pt-1">
+                                <span className="bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-gray-200 text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg border border-gray-200 dark:border-white/10">
+                                  {combo.cardBadge?.text || "COMBO ESPECIAL"}
                                 </span>
                               </div>
 
-                              <div>
-                                <h4 className="font-heading font-bold text-base leading-snug text-[#4C264F] dark:text-[#F9F5F9]">
-                                  {combo.title}
-                                </h4>
-                                {combo.description && (
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1">
-                                    {combo.description}
-                                  </p>
-                                )}
-                              </div>
+                              <h4 className="font-heading font-bold text-base leading-snug text-[#4C264F] dark:text-[#F9F5F9] line-clamp-2">
+                                {combo.name}
+                              </h4>
+                              {combo.description && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1">
+                                  {combo.description}
+                                </p>
+                              )}
 
                               {/* Itens do Combo */}
-                              <div className="space-y-2 bg-white dark:bg-[#200B22] rounded-xl p-3 border border-gray-200 dark:border-[#512B54]/30">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
-                                  Itens Inclusos ({combo.items?.length || 0}):
+                              <div className="mt-4 space-y-2 bg-gray-50 dark:bg-[#200B22] rounded-xl p-3 border border-gray-100 dark:border-[#512B54]/30">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block">
+                                  Itens Inclusos ({combo.comboItems?.length || 0}):
                                 </span>
                                 <div className="flex flex-wrap gap-1.5">
-                                  {combo.items?.map((it) => (
+                                  {combo.comboItems?.map((it) => (
                                     <span
                                       key={it.id}
-                                      className="text-[11px] font-semibold bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-lg"
+                                      className="text-[11px] font-semibold bg-white dark:bg-white/10 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-lg shadow-xs"
                                     >
-                                      {it.quantity}x {it.product.name}
+                                      {it.quantity}x {it.product?.name || "Produto Removido"}
                                     </span>
                                   ))}
                                 </div>
@@ -721,7 +733,7 @@ export default function AdminDashboard() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => handleDeletePromo(combo.id)}
+                                  onClick={() => handleDeleteCombo(combo.id)}
                                   className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors cursor-pointer"
                                   title="Excluir Combo"
                                 >
@@ -811,20 +823,18 @@ export default function AdminDashboard() {
                               )}
                             </div>
 
-                            {promo.items && promo.items.length > 0 && (
+                            {promo.product && (
                               <div className="space-y-1.5 bg-white dark:bg-[#200B22] rounded-xl p-3 border border-gray-200 dark:border-[#512B54]/30">
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
-                                  Produtos com Desconto ({promo.items.length}):
+                                  Produto Vinculado:
                                 </span>
                                 <div className="flex flex-wrap gap-1.5">
-                                  {promo.items.map((it) => (
-                                    <span
-                                      key={it.id}
-                                      className="text-[11px] font-semibold bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-lg"
-                                    >
-                                      {it.product.name}
-                                    </span>
-                                  ))}
+                                  <span
+                                    key={promo.product.id}
+                                    className="text-[11px] font-semibold bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-lg"
+                                  >
+                                    {promo.product.name}
+                                  </span>
                                 </div>
                               </div>
                             )}
@@ -1084,7 +1094,10 @@ export default function AdminDashboard() {
       <ComboFormDialog
         open={comboDialogOpen}
         onOpenChange={setComboDialogOpen}
-        onSaved={fetchPromos}
+        onSaved={() => {
+          fetchCombos();
+          fetchPromos();
+        }}
         comboToEdit={comboToEdit}
       />
 

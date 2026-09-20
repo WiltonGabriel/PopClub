@@ -29,8 +29,11 @@ function ProductPlaceholder({ name }: { name: string }) {
   );
 }
 
-function getCategoryBadge(name: string) {
-  const l = name.toLowerCase();
+function getCategoryBadge(product: Product) {
+  if (product.isCombo)
+    return { icon: <Zap className="w-3 h-3" />, label: "Combo", color: "bg-yellow-50 text-yellow-600 dark:bg-yellow-950/40 dark:text-yellow-300" };
+    
+  const l = (product.category ?? "").toLowerCase();
   if (l.includes("açaí") || l.includes("acai"))
     return { icon: <IceCream className="w-3 h-3" />, label: "Açaí", color: "bg-brand-pop-shake/10 text-brand-pop-shake" };
   if (l.includes("sorvete"))
@@ -61,7 +64,7 @@ export function ProductCard({
     ? Math.round(((originalPrice - product.price) / originalPrice) * 100)
     : null;
 
-  const badge = getCategoryBadge(product.category ?? "");
+  const badge = getCategoryBadge(product);
   const formattedPrice = new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",

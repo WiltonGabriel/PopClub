@@ -19,21 +19,19 @@ import {
   Activity,
   PackageSearch,
   DollarSign,
-  Maximize2,
-  Minimize2,
+
   RotateCcw,
   Sparkles,
   FileText,
   BarChart3,
-  Bell,
-  BellOff,
+
   Power,
   Play,
   History,
   Printer,
   X,
   Coins,
-  CreditCard,
+
   SlidersHorizontal,
   ChevronDown,
   Sun,
@@ -49,8 +47,7 @@ import {
   LayoutGrid,
   Ban,
   ArrowRight,
-  Volume2,
-  VolumeX,
+
 } from "lucide-react";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { orderService, Order, OrderStatus } from "../../../services/orderService";
@@ -80,7 +77,6 @@ import { MobileOrientationBanner } from "@/components/admin/MobileOrientationBan
 export default function AdminPedidosPage() {
   const { theme, toggleTheme } = useTheme();
   const [orders, setOrders] = useState<Order[]>([]);
-  const [fetching, setFetching] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Estados de Responsividade Mobile
@@ -403,7 +399,6 @@ export default function AdminPedidosPage() {
           });
         }
       } finally {
-        setFetching(false);
         if (isManual) setIsRefreshing(false);
       }
     },
@@ -423,10 +418,10 @@ export default function AdminPedidosPage() {
         message: `Esteira iniciada. Estimativa de entrega: ${deliveryTimeInput}.`,
         type: "success",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       showToast({
         title: "Erro ao abrir loja",
-        message: err.message || "Não foi possível iniciar o turno.",
+        message: (err instanceof Error ? err.message : "Erro desconhecido") || "Não foi possível iniciar o turno.",
         type: "error",
       });
     } finally {
@@ -454,18 +449,18 @@ export default function AdminPedidosPage() {
         message: "A esteira foi limpa e os pedidos foram arquivados para o próximo turno.",
         type: "success",
       });
-    } catch (err: any) {
-      if (err.pendingCount) {
+    } catch (err: unknown) {
+      if ((err as any).pendingCount) {
         showToast({
           title: "Atenção: Pedidos Ativos na Esteira",
-          message: `Não é possível encerrar. Existem ${err.pendingCount} pedido(s) em andamento. Conclua ou cancele-os primeiro.`,
+          message: `Não é possível encerrar. Existem ${(err as any).pendingCount} pedido(s) em andamento. Conclua ou cancele-os primeiro.`,
           type: "warning",
           duration: 9000,
         });
       } else {
         showToast({
           title: "Erro ao encerrar turno",
-          message: err.message || "Não foi possível fechar o turno.",
+          message: (err instanceof Error ? err.message : "Erro desconhecido") || "Não foi possível fechar o turno.",
           type: "error",
         });
       }
@@ -487,10 +482,10 @@ export default function AdminPedidosPage() {
         message: `Novo tempo estimado: ${deliveryTimeInput}.`,
         type: "success",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       showToast({
         title: "Erro ao atualizar",
-        message: err.message || "Não foi possível salvar o tempo estimado.",
+        message: (err instanceof Error ? err.message : "Erro desconhecido") || "Não foi possível salvar o tempo estimado.",
         type: "error",
       });
     }
@@ -775,16 +770,7 @@ export default function AdminPedidosPage() {
     }
   };
 
-  // Compactação granular por coluna
-  const toggleColumnCompact = (colKey: string) => {
-    setCompactColumns((prev) => {
-      const updated = { ...prev, [colKey]: !prev[colKey] };
-      if (typeof window !== "undefined") {
-        localStorage.setItem("popshake_kanban_compact_columns", JSON.stringify(updated));
-      }
-      return updated;
-    });
-  };
+
 
   const setAllColumnsCompact = (compact: boolean) => {
     const updated = {
@@ -828,10 +814,10 @@ export default function AdminPedidosPage() {
         type: "success",
       });
       fetchOrders();
-    } catch (err: any) {
+    } catch (err: unknown) {
       showToast({
         title: "Erro ao aceitar pedido",
-        message: err.message || "Não foi possível avançar o pedido para Novos.",
+        message: (err instanceof Error ? err.message : "Erro desconhecido") || "Não foi possível avançar o pedido para Novos.",
         type: "error",
       });
       throw err;
@@ -847,10 +833,10 @@ export default function AdminPedidosPage() {
         type: "warning",
       });
       fetchOrders();
-    } catch (err: any) {
+    } catch (err: unknown) {
       showToast({
         title: "Erro ao recusar pedido",
-        message: err.message || "Não foi possível registrar a recusa do pedido.",
+        message: (err instanceof Error ? err.message : "Erro desconhecido") || "Não foi possível registrar a recusa do pedido.",
         type: "error",
       });
       throw err;
@@ -876,10 +862,10 @@ export default function AdminPedidosPage() {
         type: "success",
       });
       fetchOrders();
-    } catch (err: any) {
+    } catch (err: unknown) {
       showToast({
         title: "Erro ao avançar",
-        message: err.message || "Não foi possível avançar o pedido.",
+        message: (err instanceof Error ? err.message : "Erro desconhecido") || "Não foi possível avançar o pedido.",
         type: "error",
       });
     }
@@ -896,10 +882,10 @@ export default function AdminPedidosPage() {
         type: "info",
       });
       fetchOrders();
-    } catch (err: any) {
+    } catch (err: unknown) {
       showToast({
         title: "Erro ao reverter",
-        message: err.message || "Não foi possível retornar o pedido.",
+        message: (err instanceof Error ? err.message : "Erro desconhecido") || "Não foi possível retornar o pedido.",
         type: "error",
       });
     }
@@ -1839,18 +1825,18 @@ export default function AdminPedidosPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap pb-1 pt-0.5 max-w-full">
-            {/* Bloco 2: Card de Tempo Médio Independente com Botão Ajustar Separado */}
-            <div className="inline-flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-xl bg-purple-50 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-xs">
-              <Clock className="w-3.5 h-3.5 text-[#9306CF] dark:text-[#E899FF]" />
-              <span>Tempo Médio: <strong className="font-mono text-purple-900 dark:text-purple-200">{shiftData?.estimatedDeliveryTime || "30-50 min"}</strong></span>
-              <button
-                onClick={() => setIsAdjustDeliveryModalOpen(true)}
-                className="text-[10px] uppercase font-bold text-[#9306CF] dark:text-[#E899FF] hover:underline bg-purple-100 dark:bg-purple-900/40 px-2 py-0.5 rounded-lg transition-colors border border-purple-200/60 dark:border-purple-800/60 cursor-pointer ml-0.5"
-                title="Ajustar tempo estimado de entrega"
-              >
-                Ajustar
-              </button>
-            </div>
+            {/* Bloco 2: Card de Tempo Médio Compacto/Acionável */}
+            <button
+              type="button"
+              onClick={() => setIsAdjustDeliveryModalOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-xl bg-purple-50 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-xs hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors cursor-pointer"
+              title="Ajustar tempo estimado de entrega"
+            >
+              <Clock className="w-4 h-4 text-[#9306CF] dark:text-[#E899FF]" />
+              <span className="font-mono font-bold text-xs">
+                {shiftData?.estimatedDeliveryTime?.replace(" min", "m")?.replace("min", "m") || "30-50m"}
+              </span>
+            </button>
 
             {/* Controle de Turno / Sessão da Loja */}
             {shiftData?.isOpen ? (
@@ -1872,27 +1858,7 @@ export default function AdminPedidosPage() {
               </Button>
             )}
 
-            {/* Botão de Alternância de Som Operacional (Compacto: Apenas Ícone) */}
-            <Button
-              variant="outline"
-              onClick={handleSoundToggleClick}
-              className={`rounded-xl border w-10 h-10 p-0 flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
-                isSoundMuted
-                  ? "border-red-300 dark:border-red-900/50 bg-red-50/70 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:bg-red-100"
-                  : "border-emerald-300 dark:border-emerald-900/50 bg-emerald-50/70 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100"
-              }`}
-              title={
-                isSoundMuted
-                  ? "Alertas sonoros silenciados. Clique para ativar som da esteira."
-                  : "Alertas sonoros ativos. Clique para silenciar avisos sonoros."
-              }
-            >
-              {isSoundMuted ? (
-                <VolumeX className="w-4 h-4 text-red-500" />
-              ) : (
-                <Volume2 className="w-4 h-4 text-emerald-600 animate-pulse" />
-              )}
-            </Button>
+
 
             {/* Ativador de Notificações Desktop/Navegador para Operador */}
             {notifPermission === "default" && (
@@ -2037,11 +2003,10 @@ export default function AdminPedidosPage() {
             <Button
               onClick={() => fetchOrders(true)}
               disabled={isRefreshing}
-              className="rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-2 h-10 px-4 shadow-md shadow-[#9306CF]/20 transition-all cursor-pointer ml-auto lg:ml-0 shrink-0"
-              title="Atualizar esteira de pedidos"
+              className="rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white flex items-center justify-center w-10 h-10 p-0 shadow-md shadow-[#9306CF]/20 transition-all cursor-pointer shrink-0"
+              title="Atualizar Esteira"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
-              <span>{isRefreshing ? "Sincronizando..." : "Atualizar"}</span>
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
             </Button>
           </div>
         </div>

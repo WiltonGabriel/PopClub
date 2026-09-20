@@ -19,7 +19,7 @@ export async function PUT(
     } catch {
       return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
     }
-    const { name, description, price, categoryId, category, imageUrl, stock, isAvailable, cardBadgeId } = body || {};
+    const { name, description, price, categoryId, category, imageUrl, stock, isAvailable, cardBadgeId, isCombo, comboItems } = body || {};
 
     const dataToUpdate: any = {};
     if (name !== undefined) dataToUpdate.name = name;
@@ -31,6 +31,16 @@ export async function PUT(
     if (stock !== undefined) dataToUpdate.stock = stock !== null ? Number(stock) : null;
     if (isAvailable !== undefined) dataToUpdate.isAvailable = Boolean(isAvailable);
     if (cardBadgeId !== undefined) dataToUpdate.cardBadgeId = cardBadgeId || null;
+    if (isCombo !== undefined) dataToUpdate.isCombo = Boolean(isCombo);
+    if (isCombo && Array.isArray(comboItems)) {
+      dataToUpdate.comboItems = {
+        deleteMany: {}, // Clean old items
+        create: comboItems.map((ci: any) => ({
+          productId: ci.productId,
+          quantity: ci.quantity || 1
+        }))
+      };
+    }
 
     const updated = await prisma.product.update({
       where: { id },
@@ -38,6 +48,7 @@ export async function PUT(
       include: {
         categoryRel: { select: { name: true } },
         cardBadge: true,
+        comboItems: { include: { product: true } }
       },
     });
 
@@ -53,6 +64,18 @@ export async function PUT(
       isAvailable: updated.isAvailable,
       cardBadgeId: updated.cardBadgeId,
       cardBadge: updated.cardBadge,
+      isCombo: updated.isCombo,
+      comboItems: updated.comboItems?.map(ci => ({
+        id: ci.id,
+        productId: ci.productId,
+        quantity: ci.quantity,
+        product: {
+          id: ci.product.id,
+          name: ci.product.name,
+          price: Number(ci.product.price),
+          imageUrl: ci.product.imageUrl || ""
+        }
+      })) || [],
     });
   } catch (error: any) {
     console.error("Erro ao atualizar produto:", error);

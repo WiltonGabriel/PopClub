@@ -93,7 +93,7 @@ export async function POST(request: Request) {
     const dbPromotions = promoIds.length > 0
       ? await prisma.promotion.findMany({
           where: { id: { in: promoIds }, isActive: true },
-          include: { items: true },
+          include: { product: true },
         })
       : [];
 
@@ -124,15 +124,15 @@ export async function POST(request: Request) {
       if (item.promotionId) {
         const promo = promotionsMap.get(item.promotionId);
         // Verifica se a promoção existe, está ativa e contém este produto
-        const isInPromo = promo?.items.some((pi) => pi.productId === item.productId);
+        const isInPromo = promo?.productId === item.productId;
         if (promo && isInPromo) {
           if (promo.discountType === "percentage") {
             const pct = Number(promo.discountValue);
             unitPrice = Number((originalPrice * (1 - pct / 100)).toFixed(2));
           } else {
-            // Em desconto fixo por combo, distribui proporcionalmente ou desconta por item
+            // Em desconto fixo por produto
             const fixed = Number(promo.discountValue);
-            unitPrice = Math.max(0, Number((originalPrice - fixed / promo.items.length).toFixed(2)));
+            unitPrice = Math.max(0, Number((originalPrice - fixed).toFixed(2)));
           }
           promoDiscountTotal += (originalPrice - unitPrice) * item.quantity;
         }

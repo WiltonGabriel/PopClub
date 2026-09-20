@@ -1,19 +1,6 @@
 import { productService } from "./productService";
 
-export interface PromotionItemProduct {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  imageUrl: string;
-}
 
-export interface PromotionItem {
-  id: string;
-  productId: string;
-  quantity: number;
-  product: PromotionItemProduct;
-}
 
 export interface Promotion {
   id: string;
@@ -33,7 +20,19 @@ export interface Promotion {
   originalTotal?: number;
   discountAmount?: number;
   finalPrice?: number;
-  items?: PromotionItem[];
+  
+  // New Fields
+  productId?: string | null;
+  product?: {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    imageUrl: string;
+  };
+  autoBanner?: boolean;
+  showScarcity?: boolean;
+  scarcityUnits?: number | null;
 }
 
 export const promotionService = {
@@ -69,7 +68,7 @@ export const promotionService = {
   },
 
   async createPromotion(
-    promo: Omit<Promotion, "id" | "items"> & { items?: { productId: string; quantity: number }[] },
+    promo: Omit<Promotion, "id" | "product">,
     imageFile?: File
   ): Promise<Promotion> {
     let finalImageUrl = promo.bannerImageUrl;
@@ -94,7 +93,7 @@ export const promotionService = {
 
   async updatePromotion(
     id: string,
-    updates: Partial<Omit<Promotion, "items">> & { items?: { productId: string; quantity: number }[] },
+    updates: Partial<Omit<Promotion, "id" | "product">>,
     imageFile?: File
   ): Promise<Promotion> {
     let finalImageUrl = updates.bannerImageUrl;

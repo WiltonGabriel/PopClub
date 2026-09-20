@@ -13,7 +13,7 @@ import {
   Percent,
   DollarSign,
   Search,
-  Check,
+
   Calendar,
   Layers,
   AlertCircle,
@@ -186,9 +186,9 @@ export function CouponFormDialog({
 
       onSaved();
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || "Erro ao salvar cupom.");
+      setError(err instanceof Error ? err.message : "Erro ao salvar cupom.");
     } finally {
       setLoading(false);
     }
@@ -196,7 +196,7 @@ export function CouponFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto bg-white dark:bg-[#200B22] border-gray-200 dark:border-[#512B54]/40 text-foreground p-5 sm:p-7 rounded-2xl shadow-2xl">
+      <DialogContent className="sm:max-w-xl w-[95vw] max-h-[92vh] overflow-y-auto bg-white dark:bg-[#200B22] border-gray-200 dark:border-[#512B54]/40 text-foreground p-5 sm:p-7 rounded-2xl shadow-2xl">
         <DialogHeader className="border-b border-gray-100 dark:border-[#512B54]/30 pb-4">
           <DialogTitle className="text-lg sm:text-xl font-heading font-black text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
             <Ticket className="w-5 h-5 text-[#9306CF]" />
@@ -255,7 +255,7 @@ export function CouponFormDialog({
                   type="button"
                   onClick={() => setDiscountType("percentage")}
                   className={`
-                    py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all
+                    py-2 px-2 rounded-xl border text-xs font-medium flex items-center justify-center gap-1 transition-all
                     ${
                       discountType === "percentage"
                         ? "bg-[#9306CF] text-white border-[#9306CF] shadow-xs"
@@ -263,15 +263,15 @@ export function CouponFormDialog({
                     }
                   `}
                 >
-                  <Percent className="w-3.5 h-3.5" />
-                  <span>Porcentagem</span>
+                  <Percent className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Porcentagem</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setDiscountType("fixed")}
                   className={`
-                    py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all
+                    py-2 px-2 rounded-xl border text-xs font-medium flex items-center justify-center gap-1 transition-all
                     ${
                       discountType === "fixed"
                         ? "bg-[#9306CF] text-white border-[#9306CF] shadow-xs"
@@ -279,8 +279,8 @@ export function CouponFormDialog({
                     }
                   `}
                 >
-                  <DollarSign className="w-3.5 h-3.5" />
-                  <span>Valor Fixo (R$)</span>
+                  <DollarSign className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Valor Fixo</span>
                 </button>
               </div>
             </div>
@@ -317,10 +317,10 @@ export function CouponFormDialog({
                   step="1"
                   value={minOrderValue}
                   onChange={(e) => setMinOrderValue(e.target.value)}
-                  placeholder="R$ 0,00 (Opcional)"
-                  className="font-mono text-sm bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-10.5 rounded-xl"
+                  placeholder="0,00 (Opcional)"
+                  className="font-mono text-sm bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-10.5 rounded-xl truncate"
                 />
-                <p className="text-[11px] text-muted-foreground">Valor mínimo dos itens no carrinho para ativar.</p>
+                <p className="text-[11px] text-muted-foreground">Valor mínimo para ativar.</p>
               </div>
 
               <div className="space-y-1.5">
@@ -333,10 +333,10 @@ export function CouponFormDialog({
                   step="1"
                   value={maxUses}
                   onChange={(e) => setMaxUses(e.target.value)}
-                  placeholder="Ilimitado (Geral)"
-                  className="font-mono text-sm bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-10.5 rounded-xl"
+                  placeholder="Ilimitado"
+                  className="font-mono text-sm bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-10.5 rounded-xl truncate"
                 />
-                <p className="text-[11px] text-muted-foreground">Quantidade máxima de resgates em toda a loja.</p>
+                <p className="text-[11px] text-muted-foreground">Máx. de resgates totais.</p>
               </div>
             </div>
 

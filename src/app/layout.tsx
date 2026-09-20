@@ -59,18 +59,18 @@ export default function RootLayout({
         <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2" />
         <link rel="shortcut icon" href="/icon.png?v=2" />
         <link rel="apple-touch-icon" href="/apple-icon.png?v=2" />
+        <script
+          id="theme-initializer"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=localStorage.getItem('popshake-theme');if(s==='dark'){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}var a=localStorage.getItem('popshake-accessibility');if(a){var cfg=JSON.parse(a);if(cfg.fontSize==='large')document.documentElement.classList.add('font-scale-large');if(cfg.fontSize==='xlarge')document.documentElement.classList.add('font-scale-xlarge');if(cfg.highContrast)document.documentElement.classList.add('high-contrast');if(cfg.dyslexicFont)document.documentElement.classList.add('font-dyslexic');if(cfg.reduceMotion)document.documentElement.classList.add('reduce-motion');if(cfg.colorBlindMode&&cfg.colorBlindMode!=='none')document.documentElement.classList.add('colorblind-'+cfg.colorBlindMode);}}catch(e){}})();`,
+          }}
+        />
       </head>
       <body
         className={cn("font-sans bg-background text-foreground antialiased overflow-x-hidden min-h-screen", inter.className)}
         suppressHydrationWarning
       >
-        <Script
-          id="theme-initializer"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var s=localStorage.getItem('popshake-theme');if(s==='dark'){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}var a=localStorage.getItem('popshake-accessibility');if(a){var cfg=JSON.parse(a);if(cfg.fontSize==='large')document.documentElement.classList.add('font-scale-large');if(cfg.fontSize==='xlarge')document.documentElement.classList.add('font-scale-xlarge');if(cfg.highContrast)document.documentElement.classList.add('high-contrast');if(cfg.dyslexicFont)document.documentElement.classList.add('font-dyslexic');if(cfg.reduceMotion)document.documentElement.classList.add('reduce-motion');if(cfg.colorBlindMode&&cfg.colorBlindMode!=='none')document.documentElement.classList.add('colorblind-'+cfg.colorBlindMode);}}catch(e){}})();`,
-          }}
-        />
+
         <ThemeProvider>
           <GlobalBackgroundSync />
           <AuthProvider>

@@ -30,7 +30,7 @@ interface ComboFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
-  comboToEdit?: Promotion | null;
+  comboToEdit?: Product | null;
 }
 
 export function ComboFormDialog({
@@ -76,35 +76,24 @@ export function ComboFormDialog({
 
   useEffect(() => {
     if (comboToEdit) {
-      setTitle(comboToEdit.title);
-      setBadge(comboToEdit.badge || "COMBO POP");
+      setTitle(comboToEdit.name);
+      setBadge(comboToEdit.cardBadge?.text || "COMBO POP"); // Fallback
       setDescription(comboToEdit.description || "");
-      setIsActive(comboToEdit.isActive);
+      setIsActive(comboToEdit.isAvailable ?? true);
 
       const itemsMap: { [productId: string]: number } = {};
-      comboToEdit.items?.forEach((it) => {
+      comboToEdit.comboItems?.forEach((it) => {
         itemsMap[it.productId] = it.quantity;
       });
       setComboItems(itemsMap);
 
-      if (comboToEdit.discountType === "percentage") {
-        setPricingMode("percentage");
-        setDiscountPercent(String(comboToEdit.discountValue));
-        setFixedComboPrice("");
-      } else {
-        setPricingMode("percentage"); // default fallback
-        setDiscountPercent("15");
-      }
-
-      if (comboToEdit.expiresAt) {
-        const diff = new Date(comboToEdit.expiresAt).getTime() - Date.now();
-        const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-        setDurationDays(days > 0 ? String(days) : "");
-      } else {
-        setDurationDays("");
-      }
-      setShowDuration(comboToEdit.showDuration || false);
-      setDurationDisplay(comboToEdit.durationDisplay || []);
+      // Simplification: always use fixed price if editing a combo, since we just have final price
+      setPricingMode("fixed_price");
+      setFixedComboPrice(String(comboToEdit.price));
+      
+      setDurationDays("");
+      setShowDuration(false);
+      setDurationDisplay([]);
     } else {
       setTitle("");
       setBadge("COMBO POP");
@@ -225,45 +214,21 @@ export function ComboFormDialog({
     setLoading(true);
 
     try {
-      // Calcula desconto para salvar
-      let discountType: "percentage" | "fixed" = "percentage";
-      let discountValue = effectivePct;
-
-      if (pricingMode === "fixed_price") {
-        discountType = "fixed";
-        discountValue = savings;
-      }
-
-      let expiresAt: string | null = null;
-      if (durationDays) {
-        const days = parseInt(durationDays, 10);
-        if (!isNaN(days) && days > 0) {
-          const target = new Date();
-          target.setDate(target.getDate() + days);
-          expiresAt = target.toISOString();
-        }
-      }
-
       const payload = {
-        title: title.trim(),
-        badge: badge.trim() || "COMBO POP",
+        name: title.trim(),
         description: description.trim(),
-        gradientStart: "#9306CF",
-        gradientEnd: "#940068",
-        bannerImageUrl: "",
-        discountType,
-        discountValue,
-        isActive,
-        expiresAt,
-        showDuration,
-        durationDisplay,
-        items: itemsPayload,
+        price: finalPrice,
+        category: "Combo Especial",
+        isAvailable: isActive,
+        isCombo: true,
+        comboItems: itemsPayload,
+        imageUrl: "", // Combos don't have a distinct image yet
       };
 
       if (comboToEdit) {
-        await promotionService.updatePromotion(comboToEdit.id, payload);
+        await productService.updateProduct(comboToEdit.id, payload);
       } else {
-        await promotionService.createPromotion(payload);
+        await productService.createProduct(payload);
       }
 
       onSaved();
