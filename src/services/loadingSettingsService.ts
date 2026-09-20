@@ -241,7 +241,7 @@ export const loadingSettingsService = {
   async getLoadingSettings(): Promise<LoadingSettingsData> {
     try {
       const res = await fetch("/api/settings/loading", {
-        signal: AbortSignal.timeout(6000),
+        signal: AbortSignal.timeout(10000),
       });
       if (!res.ok) {
         return this.getCachedLoadingSettings();
@@ -275,8 +275,10 @@ export const loadingSettingsService = {
       }
 
       return sanitized;
-    } catch (err) {
-      console.warn("Falha ao buscar loadingSettings remotas, usando cache/padrão:", err);
+    } catch (err: any) {
+      if (err?.name !== "AbortError" && err?.name !== "TimeoutError") {
+        console.warn("Falha ao buscar loadingSettings remotas, usando cache/padrão:", err);
+      }
       return this.getCachedLoadingSettings();
     }
   },

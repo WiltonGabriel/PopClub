@@ -14,10 +14,6 @@ import {
   MapPin,
   Crosshair,
   Loader2,
-  CheckCircle2,
-  HelpCircle,
-  Maximize2,
-  Navigation,
 } from "lucide-react";
 
 export interface ReverseGeocodeResult {
@@ -81,7 +77,7 @@ export default function LocationPickerMap({
   height = "250px",
   zoom = 16,
   pinEmoji = "📍",
-  pinLabel = "Ponto de Entrega",
+  pinLabel: _pinLabel = "Ponto de Entrega",
   autoReverseGeocode = true,
   className = "",
 }: LocationPickerMapProps) {

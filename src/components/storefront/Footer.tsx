@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import {
   MapPin,
   Clock,
   Phone,
-  MessageCircle,
   ShieldCheck,
   CreditCard,
   QrCode,

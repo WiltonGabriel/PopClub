@@ -97,7 +97,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    let rawBody: any;
+    let rawBody: unknown;
     try {
       rawBody = await request.json();
     } catch {

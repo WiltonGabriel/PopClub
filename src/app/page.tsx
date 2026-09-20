@@ -259,32 +259,37 @@ export default function Storefront() {
       let hasData = false;
 
       if (catsRes.status === "fulfilled") {
-        let loadedCats = catsRes.value;
+        let loadedCats = Array.isArray(catsRes.value) ? catsRes.value : [];
         try {
           const savedOrderStr = localStorage.getItem("popshake_category_order");
           if (savedOrderStr) {
             const savedOrder: string[] = JSON.parse(savedOrderStr);
-            loadedCats = [...loadedCats].sort((a, b) => {
-              const idxA = savedOrder.indexOf(a.id);
-              const idxB = savedOrder.indexOf(b.id);
-              if (idxA === -1 && idxB === -1) return 0;
-              if (idxA === -1) return 1;
-              if (idxB === -1) return -1;
-              return idxA - idxB;
-            });
+            if (Array.isArray(savedOrder)) {
+              loadedCats = [...loadedCats].sort((a, b) => {
+                const idxA = savedOrder.indexOf(a.id);
+                const idxB = savedOrder.indexOf(b.id);
+                if (idxA === -1 && idxB === -1) return 0;
+                if (idxA === -1) return 1;
+                if (idxB === -1) return -1;
+                return idxA - idxB;
+              });
+            }
           }
         } catch {}
         setCategories(loadedCats);
         if (loadedCats.length > 0) hasData = true;
       } else {
         console.error("Erro ao carregar categorias:", catsRes.reason);
+        setCategories((prev) => (Array.isArray(prev) ? prev : []));
       }
 
       if (prodsRes.status === "fulfilled") {
-        setProducts(prodsRes.value);
-        if (prodsRes.value.length > 0) hasData = true;
+        const loadedProds = Array.isArray(prodsRes.value) ? prodsRes.value : [];
+        setProducts(loadedProds);
+        if (loadedProds.length > 0) hasData = true;
       } else {
         console.error("Erro ao carregar produtos:", prodsRes.reason);
+        setProducts((prev) => (Array.isArray(prev) ? prev : []));
       }
 
       if (bannerRes.status === "fulfilled" && bannerRes.value) {

@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Bell, X, CheckCircle2 } from "lucide-react";
+import { Bell, X } from "lucide-react";
 import {
   isNotificationSupported,
-  getNotificationPermission,
   requestNotificationPermission,
   sendWebNotification,
 } from "@/lib/notifications";

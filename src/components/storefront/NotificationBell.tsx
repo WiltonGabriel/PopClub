@@ -13,7 +13,6 @@ import {
   CheckCheck,
   Clock,
   Inbox,
-  X,
 } from "lucide-react";
 import { notificationService, AppNotification } from "../../services/notificationService";
 import { useAuth } from "../../hooks/useAuth";

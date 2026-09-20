@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Tag, Plus, Edit2, Trash2, ArrowRight } from "lucide-react";
+import { Plus, Edit2, Trash2, ArrowRight } from "lucide-react";
 import { promotionService, Promotion } from "../../services/promotionService";
 import { useAuth } from "../../hooks/useAuth";
 import { useEditMode } from "../../contexts/EditModeContext";

@@ -14,7 +14,7 @@ import {
 import { AppApiError } from "@/lib/fetchClient";
 
 export interface ResilientErrorAlertProps {
-  error: AppApiError | Error | { code?: string; message: string; details?: any } | string | null;
+  error: AppApiError | Error | { code?: string; message: string; details?: unknown } | string | null;
   onRetry?: () => void;
   onReviewAddress?: () => void;
   onDismiss?: () => void;
@@ -39,7 +39,7 @@ export function ResilientErrorAlert({
   // Normalização do erro
   let code = "REQUEST_FAILED";
   const message = typeof error === "string" ? error : error.message || "Ocorreu um erro inesperado.";
-  let details: any = null;
+  let details: unknown = null;
   let status: number | undefined = undefined;
 
   if (typeof error !== "string" && error) {
@@ -241,7 +241,7 @@ export function ResilientErrorAlert({
             {/* Detalhes de validação se fornecidos */}
             {Array.isArray(details) && details.length > 0 && (
               <ul className="text-xs text-purple-800 dark:text-purple-300 list-disc list-inside space-y-0.5 pt-1">
-                {details.map((d: any, idx: number) => (
+                {details.map((d: { field?: string; message?: string }, idx: number) => (
                   <li key={idx}>
                     <strong className="font-semibold">{d.field || "Campo"}:</strong> {d.message}
                   </li>

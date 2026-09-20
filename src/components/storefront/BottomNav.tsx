@@ -16,7 +16,7 @@ interface BottomNavProps {
 }
 
 export function BottomNav({
-  onSearchClick,
+  onSearchClick: _onSearchClick,
   onCategoriesClick,
   onHomeClick,
   isCategoryActive,

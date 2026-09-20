@@ -5,7 +5,7 @@ import { orderService, Order, OrderStatus } from "../services/orderService";
 import { subscribeToOrderEvents, OrderEventPayload } from "../lib/orderEvents";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../components/ui/ToastNotification";
-import { playDingSound, initAudioUnlock } from "../lib/sound";
+import { playDingSound } from "../lib/sound";
 import { sendWebNotification } from "../lib/notifications";
 
 const GUEST_ORDERS_STORAGE_KEY = "popshake_guest_order_ids";
@@ -139,8 +139,10 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
         data = [];
       }
 
+      const safeData = Array.isArray(data) ? data : [];
+
       // Notifica o cliente se houve transição de status em algum pedido
-      data.forEach((updated) => {
+      safeData.forEach((updated) => {
         const oldStatus = previousStatusMap.current[updated.id];
         const newStatus = updated.status;
 
@@ -202,9 +204,10 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
         previousStatusMap.current[updated.id] = newStatus;
       });
 
-      setOrders(data);
+      setOrders(safeData);
     } catch (err) {
       console.error("Erro ao sincronizar pedidos:", err);
+      setOrders((prev) => (Array.isArray(prev) ? prev : []));
     } finally {
       if (!silent) setLoading(false);
     }

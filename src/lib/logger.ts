@@ -70,7 +70,7 @@ function formatError(error: unknown): { message: string; code?: string; type?: s
   if (typeof error === "string") return { message: error };
 
   if (error instanceof Error) {
-    const errorObj = error as any;
+    const errorObj = error as Error & { code?: string };
 
     // Tratamento para erros conhecidos do Prisma
     if (errorObj.name === "PrismaClientInitializationError") {

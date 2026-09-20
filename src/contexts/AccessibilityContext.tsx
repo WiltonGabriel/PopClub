@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { Bell, Check } from "lucide-react";
 
 export type FontSizeOption = "normal" | "large" | "xlarge";
 export type ColorBlindModeOption = "none" | "protanopia" | "deuteranopia" | "tritanopia" | "monochrome";

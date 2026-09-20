@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useEffect, useState, ReactNode, useCallback } from "react";
-import { authService, AuthUser } from "../services/authService";
+import { authService } from "../services/authService";
 
 export interface AppUser {
   id: string;

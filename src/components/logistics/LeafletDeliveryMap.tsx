@@ -179,7 +179,7 @@ export default function LeafletDeliveryMap({
       formattedEta,
       isArriving,
     });
-  }, [courier?.lat, courier?.lng, origin.lat, origin.lng, destination.lat, destination.lng, onMetricsUpdate]);
+  }, [courier, origin, destination, onMetricsUpdate]);
 
   // Ícone estilizado da Loja física
   const storeIcon = useMemo(() => {

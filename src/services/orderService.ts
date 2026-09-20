@@ -112,7 +112,11 @@ export const orderService = {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error || "Erro ao buscar seus pedidos.");
     }
-    return await res.json();
+    const result = await res.json().catch(() => []);
+    if (Array.isArray(result)) return result;
+    if (Array.isArray(result?.orders)) return result.orders;
+    if (Array.isArray(result?.data)) return result.data;
+    return [];
   },
 
   async getOrdersByUser(guestOrderIds?: string[]): Promise<Order[]> {
