@@ -609,11 +609,44 @@ export default function Storefront() {
           Desktop: Logo + Endereço + Busca + Pedidos + AdminToggle + Carrinho + Perfil + Tema
       ───────────────────────────────────────── */}
       <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-md border-b border-border/40 transition-colors duration-200">
-        {/* Single contained row — max-w-7xl keeps it from stretching */}
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-4 w-full">
+        {/* ── 1. HEADER MOBILE EXCLUSIVO (Padrão iFood: Logo | Endereço | Notificações) ── */}
+        <div className="flex md:hidden items-center justify-between gap-2 w-full px-3 py-2">
+          {/* À Esquerda: Nome/Logo da loja (PopShake) com tipografia destacada */}
+          <Link
+            href="/"
+            onClick={() => {
+              if (mobileCategoryView) {
+                handleCloseMobileCategoryView();
+              }
+            }}
+            className="flex items-center select-none cursor-pointer hover:opacity-85 transition-opacity duration-200 shrink-0"
+            aria-label="Pop Shake — Início"
+          >
+            <span className="font-heading font-black text-xl tracking-tight text-foreground flex items-center shrink-0">
+              Pop<span className="gradient-text-brand">Shake</span>
+            </span>
+          </Link>
 
-          {/* ── 1. ESQUERDA: Logotipo tipográfico PopShake + Chip de Endereço no Mobile ── */}
-          <div className="flex items-center gap-2 min-w-0 shrink">
+          {/* Ao Centro: Seletor de endereço centralizado e clicável */}
+          <div className="flex-1 flex justify-center items-center min-w-0 px-1">
+            <HeaderAddressButton
+              isMobile
+              className="max-w-[170px] xs:max-w-[210px] sm:max-w-[240px] truncate text-xs px-2.5 py-1.5 rounded-full border-border/50 bg-white/80 dark:bg-[#230E26]/80 shadow-xs"
+              spanClassName="max-w-[120px] xs:max-w-[160px] truncate font-medium"
+            />
+          </div>
+
+          {/* À Direita: Apenas o ícone de Notificações com badge numérico */}
+          <div className="flex items-center shrink-0">
+            <NotificationBell />
+          </div>
+        </div>
+
+        {/* ── 2. HEADER DESKTOP EXCLUSIVO (md+) ── */}
+        <div className="hidden md:flex max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-2.5 items-center justify-between gap-4 w-full">
+
+          {/* ── ESQUERDA: Logotipo tipográfico PopShake ── */}
+          <div className="flex items-center gap-2 min-w-0 shrink-0">
             <Link
               href="/"
               onClick={() => {
@@ -624,38 +657,14 @@ export default function Storefront() {
               className="flex items-center select-none cursor-pointer hover:opacity-85 transition-opacity duration-200 shrink-0"
               aria-label="Pop Shake — Início"
             >
-              <span className="font-heading font-black text-lg xs:text-xl sm:text-2xl tracking-tight text-foreground flex items-center shrink-0">
+              <span className="font-heading font-black text-2xl tracking-tight text-foreground flex items-center shrink-0">
                 Pop<span className="gradient-text-brand">Shake</span>
               </span>
             </Link>
-
-            {/* Chip de endereço agrupado à esquerda no Mobile (< md) */}
-            <div className="flex md:hidden items-center min-w-0">
-              <HeaderAddressButton
-                isMobile
-                className="max-w-[100px] xs:max-w-[115px] truncate text-xs px-2 py-1 rounded-full border-border/40"
-              />
-            </div>
           </div>
 
-          {/* ── 2. CENTRO: Barra de Busca Centralizada no Mobile (< md) ── */}
-          <div className="flex md:hidden flex-1 justify-center max-w-[200px] mx-1.5 xs:mx-2 min-w-0">
-            <button
-              type="button"
-              onClick={() => setMobileSearchOpen(true)}
-              className="w-full h-9 px-2.5 xs:px-3 rounded-full bg-muted/60 border border-border/50 hover:border-[#9306CF]/50 hover:bg-muted/80 flex items-center gap-2 text-muted-foreground text-xs transition-all shadow-xs active:scale-[0.98] cursor-pointer min-w-0"
-              aria-label="Buscar produtos no cardápio"
-              title="Buscar produtos"
-            >
-              <Search className="w-3.5 h-3.5 text-[#9306CF] dark:text-[#C7A9C9] shrink-0" />
-              <span className="truncate select-none text-left font-medium text-[11px] xs:text-xs">
-                O que vai pedir hoje?
-              </span>
-            </button>
-          </div>
-
-          {/* ── CENTRO-DESKTOP: Endereço + Busca com Autocomplete (md+) ── */}
-          <div className="hidden md:flex items-center gap-3 flex-1 max-w-xl mx-4 min-w-0">
+          {/* ── CENTRO: Endereço + Busca com Autocomplete ── */}
+          <div className="flex items-center gap-3 flex-1 max-w-xl mx-4 min-w-0">
             <HeaderAddressButton className="shrink-0" />
             <div className="flex-1 min-w-[180px]">
               <SearchAutocomplete
@@ -667,8 +676,8 @@ export default function Storefront() {
             </div>
           </div>
 
-          {/* ── 3. DIREITA: Actions (No mobile: apenas Avatar na extrema direita) ── */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* ── DIREITA: Actions Desktop ── */}
+          <div className="flex items-center gap-2 shrink-0">
 
             {/* 1. [ Meus Pedidos ] — Desktop only */}
             <Link
@@ -1474,22 +1483,23 @@ export default function Storefront() {
 
       {/* ─────────────────────────────────────────
           MOBILE — Floating cart bar (when items > 0)
-          Shows above BottomNav (apenas quando não estiver no modo de categoria)
+          Posicionada de forma fixa e suspensa logo ACIMA da Bottom Navigation Bar
       ───────────────────────────────────────── */}
-      {totalItems > 0 && !isCategoryMode && (
-        <div className="fixed bottom-16 left-0 right-0 md:hidden z-40 px-4 pb-2 animate-in fade-in duration-200">
+      {totalItems > 0 && (
+        <div className="fixed bottom-20 left-0 right-0 md:hidden z-40 px-4 pb-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
           <Link href="/carrinho">
             <button className="
               btn-clay w-full
-              bg-brand-folha-acai text-white
+              bg-brand-folha-acai hover:bg-brand-folha-acai-dk text-white
               font-heading font-bold text-sm
               h-12 rounded-2xl
               flex items-center justify-between px-4
-              shadow-green-clay
+              shadow-green-clay shadow-lg
+              cursor-pointer active:scale-[0.98] transition-all
             ">
               <span className="flex items-center gap-2">
                 <ShoppingBag className="w-4 h-4" />
-                Ver Carrinho ({totalItems})
+                <span>Ver Carrinho ({totalItems})</span>
               </span>
               <span className="font-mono font-black text-base">
                 R$ {formattedTotal}
@@ -1505,18 +1515,9 @@ export default function Storefront() {
       <Footer />
 
       {/* ─────────────────────────────────────────
-          BOTTOM NAV (mobile only)
+          BOTTOM NAV (mobile only - Padrão iFood)
       ───────────────────────────────────────── */}
       <BottomNav
-        isCategoryActive={Boolean(
-          (activeCategory && activeCategory !== "all" && activeCategory !== "todas") ||
-          mobileCategoryView ||
-          categoriesDrawerOpen
-        )}
-        categoryMode={isCategoryMode}
-        categoryName={mobileCategoryView?.name || categories.find((c) => c.id === activeCategory)?.name}
-        onBackToAll={() => handleSelectCategory(null)}
-        onCategoriesClick={() => setCategoriesDrawerOpen(true)}
         onHomeClick={() => {
           handleSelectCategory(null);
         }}

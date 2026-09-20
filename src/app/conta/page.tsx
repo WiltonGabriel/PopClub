@@ -49,6 +49,7 @@ import {
   ColorBlindModeOption 
 } from "../../contexts/AccessibilityContext";
 import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
+import { BottomNav } from "../../components/storefront/BottomNav";
 import { useToast } from "../../components/ui/ToastNotification";
 import { authService } from "../../services/authService";
 import { userService, UserProfile, UserLocation } from "../../services/userService";
@@ -1821,6 +1822,11 @@ export default function AccountPage() {
         onConfirm={handleSignOut}
         isLoggingOut={isLoggingOut}
       />
+
+      {/* ─────────────────────────────────────────
+          BOTTOM NAV (mobile only - Padrão iFood)
+      ───────────────────────────────────────── */}
+      <BottomNav />
     </div>
   );
 }

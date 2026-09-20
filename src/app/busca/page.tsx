@@ -25,6 +25,7 @@ import { ProductCard } from "../../components/storefront/ProductCard";
 import { CartDrawer } from "../../components/storefront/CartDrawer";
 import { SearchAutocomplete } from "../../components/storefront/SearchAutocomplete";
 import { Footer } from "../../components/storefront/Footer";
+import { BottomNav } from "../../components/storefront/BottomNav";
 import { ProductDetailModal } from "../../components/storefront/ProductDetailModal";
 import { useCart } from "../../hooks/useCart";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -63,7 +64,7 @@ function SearchContent() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
 
-  const { addItem, totalItems } = useCart();
+  const { addItem, totalItems, itemsTotal } = useCart();
   const { theme, toggleTheme } = useTheme();
 
   // Carrega produtos e categorias
@@ -476,6 +477,31 @@ function SearchContent() {
 
       {/* Rodapé Institucional */}
       <Footer />
+
+      {/* ─────────────────────────────────────────
+          MOBILE — Floating cart bar (when items > 0)
+          Posicionada logo ACIMA da Bottom Navigation Bar
+      ───────────────────────────────────────── */}
+      {totalItems > 0 && (
+        <div className="fixed bottom-20 left-0 right-0 md:hidden z-40 px-4 pb-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <Link href="/carrinho">
+            <button className="btn-clay w-full bg-brand-folha-acai hover:bg-brand-folha-acai-dk text-white font-heading font-bold text-sm h-12 rounded-2xl flex items-center justify-between px-4 shadow-green-clay shadow-lg cursor-pointer active:scale-[0.98] transition-all">
+              <span className="flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4" />
+                <span>Ver Carrinho ({totalItems})</span>
+              </span>
+              <span className="font-mono font-black text-base">
+                R$ {new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(itemsTotal)}
+              </span>
+            </button>
+          </Link>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────
+          BOTTOM NAV (mobile only - Padrão iFood)
+      ───────────────────────────────────────── */}
+      <BottomNav />
 
       {/* Cart Drawer */}
       <CartDrawer open={cartDrawerOpen} onClose={() => setCartDrawerOpen(false)} />

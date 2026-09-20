@@ -24,6 +24,7 @@ import { useOrders } from "../../contexts/OrderContext";
 import { Order, OrderStatus } from "../../services/orderService";
 import { useToast } from "../../components/ui/ToastNotification";
 import { Footer } from "../../components/storefront/Footer";
+import { BottomNav } from "../../components/storefront/BottomNav";
 import { initAudioUnlock } from "../../lib/sound";
 import { NotificationPermissionBanner } from "../../components/storefront/NotificationPermissionBanner";
 
@@ -678,6 +679,11 @@ export default function PedidosPage() {
       </main>
 
       <Footer />
+
+      {/* ─────────────────────────────────────────
+          BOTTOM NAV (mobile only - Padrão iFood)
+      ───────────────────────────────────────── */}
+      <BottomNav />
     </div>
   );
 }
