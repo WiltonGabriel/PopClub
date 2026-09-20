@@ -304,7 +304,7 @@ export default function AccountPage() {
 
   if (loading || (fetching && !profile)) {
     return (
-      <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#190B1A] flex items-center justify-center">
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-[#9306CF]" />
       </div>
     );
@@ -321,7 +321,7 @@ export default function AccountPage() {
   const currentDisplayAvatar = selectedAvatar || profile?.avatar || profile?.avatar_url || user?.avatar || "/avatars/avatar-sorvete.svg";
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#190B1A] text-foreground flex flex-col font-sans transition-colors duration-200">
+    <div className="min-h-screen bg-transparent text-foreground flex flex-col font-sans transition-colors duration-200">
       {/* Header com contraste dinâmico */}
       <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-white/80 dark:bg-[#190B1A]/80 border-b border-gray-200 dark:border-[#512B54]/40 px-4 py-3 sm:py-4 flex items-center justify-between gap-3">
         <Link 

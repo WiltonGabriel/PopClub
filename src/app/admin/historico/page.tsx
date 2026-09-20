@@ -191,7 +191,7 @@ export default function AdminHistoricoPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans pb-16 bg-[#F8F9FA] dark:bg-[#190B1A] text-foreground transition-colors duration-200">
+    <div className="min-h-screen flex flex-col font-sans pb-16 bg-transparent text-foreground transition-colors duration-200">
       {/* Alerta Não-Bloqueante de Orientação Mobile */}
       <MobileOrientationBanner />
 
@@ -270,45 +270,45 @@ export default function AdminHistoricoPage() {
 
         {/* Cards de Métricas do Filtro */}
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4.5 shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block">
+          <div className="bg-white/95 dark:bg-[#230E26]/95 backdrop-blur-md border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 min-h-[105px] shadow-sm flex items-center justify-between gap-4 overflow-hidden">
+            <div className="flex-1 min-w-0 flex flex-col justify-center">
+              <span className="text-[11px] sm:text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block mb-1 truncate">
                 Total de Pedidos
               </span>
-              <span className="font-heading font-black text-2xl text-[#4C264F] dark:text-[#F9F5F9]">
+              <span className="font-heading font-black text-2xl sm:text-3xl text-[#4C264F] dark:text-[#F9F5F9] leading-tight sm:leading-normal block truncate">
                 {total}
               </span>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-[#9306CF]/10 text-[#9306CF] flex items-center justify-center">
-              <ShoppingBag className="w-5 h-5" />
+            <div className="w-12 h-12 rounded-2xl bg-[#9306CF]/10 text-[#9306CF] flex items-center justify-center shrink-0">
+              <ShoppingBag className="w-6 h-6" />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4.5 shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block">
+          <div className="bg-white/95 dark:bg-[#230E26]/95 backdrop-blur-md border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 min-h-[105px] shadow-sm flex items-center justify-between gap-4 overflow-hidden">
+            <div className="flex-1 min-w-0 flex flex-col justify-center">
+              <span className="text-[11px] sm:text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block mb-1 truncate">
                 Faturamento do Filtro
               </span>
-              <span className="font-heading font-black text-2xl text-emerald-600 dark:text-emerald-400 font-mono">
-                R$ {totalRevenue.toFixed(2).replace(".", ",")}
+              <span className="font-heading font-black text-2xl sm:text-3xl text-emerald-600 dark:text-emerald-400 font-mono tracking-tight leading-tight sm:leading-normal block truncate">
+                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totalRevenue)}
               </span>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-              <DollarSign className="w-5 h-5" />
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+              <DollarSign className="w-6 h-6" />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4.5 shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block">
+          <div className="bg-white/95 dark:bg-[#230E26]/95 backdrop-blur-md border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 min-h-[105px] shadow-sm flex items-center justify-between gap-4 overflow-hidden">
+            <div className="flex-1 min-w-0 flex flex-col justify-center">
+              <span className="text-[11px] sm:text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block mb-1 truncate">
                 Ticket Médio
               </span>
-              <span className="font-heading font-black text-2xl text-purple-600 dark:text-purple-400 font-mono">
-                R$ {averageTicket.toFixed(2).replace(".", ",")}
+              <span className="font-heading font-black text-2xl sm:text-3xl text-purple-600 dark:text-purple-400 font-mono tracking-tight leading-tight sm:leading-normal block truncate">
+                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(averageTicket)}
               </span>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5" />
+            <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center shrink-0">
+              <TrendingUp className="w-6 h-6" />
             </div>
           </div>
         </section>

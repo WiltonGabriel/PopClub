@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { useAuth } from "../../hooks/useAuth";
+import { useCart } from "../../hooks/useCart";
 import { useOrders } from "../../contexts/OrderContext";
 import { Order, OrderStatus } from "../../services/orderService";
 import { useToast } from "../../components/ui/ToastNotification";
@@ -80,6 +81,7 @@ export default function PedidosPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { showToast } = useToast();
+  const { addItem } = useCart();
   const {
     orders,
     activeOrders,
@@ -93,6 +95,7 @@ export default function PedidosPage() {
   const [activeTab, setActiveTab] = useState<"ativos" | "historico">("ativos");
   const [expandedOrderIds, setExpandedOrderIds] = useState<Record<string, boolean>>({});
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [reorderingOrderId, setReorderingOrderId] = useState<string | null>(null);
 
   const toggleOrderExpanded = (id: string) => {
     setExpandedOrderIds((prev) => ({
@@ -153,8 +156,70 @@ export default function PedidosPage() {
     return `https://wa.me/${cleanNumber}?text=${msg}`;
   };
 
+  const handleReorder = (order: Order) => {
+    if (reorderingOrderId) return;
+    setReorderingOrderId(order.id);
+
+    const isCancelled = order.status === "cancelled";
+    const hasItems = order.items && order.items.length > 0;
+    const canReorder = !isCancelled && hasItems && order.items!.every((i) => i.product_id);
+
+    if (!canReorder) {
+      showToast({
+        title: "Ops!",
+        message:
+          "Não foi possível repetir este pedido automaticamente. Vamos te redirecionar para a página inicial para você poder escolher novamente!",
+        type: "warning",
+        duration: 4000,
+      });
+
+      setTimeout(() => {
+        router.push("/");
+      }, 1800);
+      return;
+    }
+
+    try {
+      order.items!.forEach((item) => {
+        addItem({
+          productId: item.product_id,
+          name: item.product?.name || "Item do Pedido",
+          price: item.product?.price || item.price_at_time,
+          originalPrice: item.product?.price || item.price_at_time,
+          quantity: item.quantity || 1,
+          imageUrl: item.product?.imageUrl,
+        });
+      });
+
+      showToast({
+        title: "Itens Adicionados!",
+        message: "Os produtos deste pedido foram adicionados ao seu carrinho.",
+        type: "success",
+      });
+
+      setTimeout(() => {
+        router.push("/carrinho");
+      }, 500);
+    } catch {
+      showToast({
+        title: "Ops!",
+        message:
+          "Não foi possível repetir este pedido automaticamente. Vamos te redirecionar para a página inicial para você poder escolher novamente!",
+        type: "warning",
+        duration: 4000,
+      });
+      setTimeout(() => {
+        router.push("/");
+      }, 1800);
+    } finally {
+      setTimeout(() => {
+        setReorderingOrderId(null);
+      }, 2000);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#190B1A] text-foreground flex flex-col font-sans transition-colors duration-200">
+    <div className="min-h-screen bg-transparent text-foreground flex flex-col font-sans transition-colors duration-200">
       {/* Header */}
       <header className="sticky top-0 z-40 w-full max-w-full overflow-x-hidden backdrop-blur-xl bg-white/85 dark:bg-[#1F0B22]/90 border-b border-gray-200 dark:border-[#512B54]/40 px-4 py-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
@@ -516,16 +581,26 @@ export default function PedidosPage() {
                         />
                       </button>
 
-                      <Link href="/">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold text-[#9306CF] hover:bg-[#9306CF]/10 gap-1.5 h-8 px-3"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                          <span>Pedir Novamente</span>
-                        </Button>
-                      </Link>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleReorder(order)}
+                        disabled={reorderingOrderId === order.id}
+                        className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold text-[#9306CF] hover:bg-[#9306CF]/10 gap-1.5 h-8 px-3 cursor-pointer"
+                      >
+                        {reorderingOrderId === order.id ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Verificando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>Pedir Novamente</span>
+                          </>
+                        )}
+                      </Button>
                     </div>
 
                     {/* ── DETALHES DO HISTÓRICO EXPANDÍVEIS (ACCORDION) ── */}

@@ -1657,7 +1657,7 @@ export default function AdminPedidosPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans pb-16 bg-[#F8F9FA] dark:bg-[#190B1A] text-foreground transition-colors duration-200">
+    <div className="min-h-screen flex flex-col font-sans pb-16 bg-transparent text-foreground transition-colors duration-200">
       {/* Alerta Não-Bloqueante de Orientação Mobile */}
       <MobileOrientationBanner />
 

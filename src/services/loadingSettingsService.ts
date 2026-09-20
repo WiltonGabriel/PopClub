@@ -1,5 +1,5 @@
 export type LoadingTheme = "liquid_cream" | "playful_bounce" | "minimal_pulse";
-export type BackgroundType = "gradient" | "solid" | "pattern";
+export type BackgroundType = "gradient" | "solid" | "pattern" | "dynamic";
 
 export interface LoadingSettingsData {
   id?: string;
@@ -28,6 +28,34 @@ export interface BackgroundPreset {
   css: string;
   previewBg: string;
 }
+
+export interface DynamicCanvasPreset {
+  id: "constellation" | "aurora_orbs";
+  label: string;
+  description: string;
+  badge: string;
+  previewBgLight: string;
+  previewBgDark: string;
+}
+
+export const DYNAMIC_CANVAS_PRESETS: DynamicCanvasPreset[] = [
+  {
+    id: "constellation",
+    label: "Malha Constelação Neon",
+    description: "Partículas estelares que desenham conexões e reagem magneticamente ao cursor do mouse",
+    badge: "Plexus Interativo",
+    previewBgLight: "radial-gradient(circle at center, #FFF5FC 0%, #F4EAFF 100%)",
+    previewBgDark: "radial-gradient(circle at center, #260A2E 0%, #120415 100%)",
+  },
+  {
+    id: "aurora_orbs",
+    label: "Aurora & Orbs Cremosos",
+    description: "Gotas fluidas com spotlight radial e física amortecida ao passar o mouse",
+    badge: "Spotlight Fluido",
+    previewBgLight: "radial-gradient(circle at center, #FFF9F2 0%, #F7EEFF 100%)",
+    previewBgDark: "radial-gradient(circle at center, #2F0E2D 0%, #150618 100%)",
+  },
+];
 
 export const LIGHT_GRADIENT_PRESETS: BackgroundPreset[] = [
   {
@@ -64,30 +92,30 @@ export const DARK_GRADIENT_PRESETS: BackgroundPreset[] = [
   {
     id: "preset_dark_violet",
     label: "Açaí Profundo & Neon",
-    description: "Violeta escuro açaí com suave brilho de neon púrpura",
-    css: "linear-gradient(135deg, #130614 0%, #220B25 50%, #160718 100%)",
-    previewBg: "linear-gradient(135deg, #130614, #220B25, #160718)",
+    description: "Violeta escuro açaí com suave brilho e reflexos de neon púrpura",
+    css: "linear-gradient(135deg, #18051E 0%, #350943 50%, #1D0626 100%)",
+    previewBg: "linear-gradient(135deg, #18051E, #350943, #1D0626)",
   },
   {
     id: "preset_cosmic",
     label: "Noite Cósmica Pop",
-    description: "Profundidade estelar com nuances magenta e ameixa escura",
-    css: "linear-gradient(180deg, #0F0311 0%, #1D0621 50%, #2A0930 100%)",
-    previewBg: "linear-gradient(180deg, #0F0311, #1D0621, #2A0930)",
+    description: "Profundidade estelar com nuances quentes de magenta e ameixa escura",
+    css: "linear-gradient(180deg, #160419 0%, #2F0735 50%, #440D40 100%)",
+    previewBg: "linear-gradient(180deg, #160419, #2F0735, #440D40)",
   },
   {
     id: "preset_velvet",
-    label: "Veludo Roxo & Magenta",
+    label: "Veludo Roxo & Vinho",
     description: "Luxuoso tom de veludo com transição quente em vinho nobre",
-    css: "linear-gradient(135deg, #1A0A1D 0%, #2F0E2A 100%)",
-    previewBg: "linear-gradient(135deg, #1A0A1D, #2F0E2A)",
+    css: "linear-gradient(135deg, #1E0722 0%, #3D0A35 60%, #520F3E 100%)",
+    previewBg: "linear-gradient(135deg, #1E0722, #3D0A35, #520F3E)",
   },
   {
     id: "preset_obsidian",
-    label: "Midnight Obsidian",
-    description: "Minimalismo escuro absoluto com toques açaí quase pretos",
-    css: "linear-gradient(180deg, #0B030D 0%, #140517 100%)",
-    previewBg: "linear-gradient(180deg, #0B030D, #140517)",
+    label: "Midnight Obsidian & Menta",
+    description: "Minimalismo escuro sofisticado com toques açaí e nuances menta",
+    css: "linear-gradient(180deg, #110414 0%, #1F0824 50%, #111D16 100%)",
+    previewBg: "linear-gradient(180deg, #110414, #1F0824, #111D16)",
   },
 ];
 
@@ -156,6 +184,11 @@ export function resolveBackgroundCss(settings: Partial<LoadingSettingsData>, isD
   const type = isDark ? (settings.bgTypeDark || "gradient") : (settings.bgTypeLight || "gradient");
   const value = isDark ? (settings.bgValueDark || "preset_dark_violet") : (settings.bgValueLight || "preset_cream");
   const custom = isDark ? (settings.bgCustomDark || "#190B1A") : (settings.bgCustomLight || "#FBF8FD");
+
+  if (type === "dynamic") {
+    const found = DYNAMIC_CANVAS_PRESETS.find((p) => p.id === value) || DYNAMIC_CANVAS_PRESETS[0];
+    return isDark ? found.previewBgDark : found.previewBgLight;
+  }
 
   if (type === "solid") {
     return custom || (isDark ? "#190B1A" : "#FFFFFF");

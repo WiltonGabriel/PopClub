@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import {
   Palette,
   Sparkles,
   Sun,
   Moon,
-  Save,
   Check,
   RotateCcw,
   Plus,
@@ -28,9 +27,11 @@ import {
   DARK_GRADIENT_PRESETS,
   LIGHT_PATTERN_PRESETS,
   DARK_PATTERN_PRESETS,
+  DYNAMIC_CANVAS_PRESETS,
   resolveBackgroundCss,
 } from "@/services/loadingSettingsService";
 import { PopShakeLoading } from "@/components/ui/PopShakeLoading";
+import { DynamicCanvasBackground } from "@/components/ui/DynamicCanvasBackground";
 import { useToast } from "@/components/ui/ToastNotification";
 
 const ICON_PRESETS = ["🥣", "🍧", "🍦", "🥤", "🍓", "✨", "🍨", "🥞", "🍒", "🍫"];
@@ -44,11 +45,11 @@ const SOLID_LIGHT_SWATCHES = [
 ];
 
 const SOLID_DARK_SWATCHES = [
-  { label: "Açaí Profundo", hex: "#190B1A" },
-  { label: "Noite Roxa", hex: "#120713" },
-  { label: "Obsidiana Dark", hex: "#0E050F" },
-  { label: "Vinho Escuro", hex: "#200922" },
-  { label: "Café Gourmet", hex: "#180D15" },
+  { label: "Açaí Aveludado", hex: "#22082B" },
+  { label: "Vinho Nobre", hex: "#2E0A28" },
+  { label: "Roxo Neon Noturno", hex: "#1D0524" },
+  { label: "Menta Profundo", hex: "#0B2118" },
+  { label: "Cacau & Ameixa", hex: "#250F1E" },
 ];
 
 export function VisualIdentitySection() {
@@ -58,6 +59,9 @@ export function VisualIdentitySection() {
   );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Referência para o container de Live Preview (para o canvas rastrear o mouse no mockup)
+  const previewContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Modo de cor exclusivo para o Mock de Pré-Visualização
   const [previewMode, setPreviewMode] = useState<"light" | "dark">("light");
@@ -174,45 +178,21 @@ export function VisualIdentitySection() {
   return (
     <div className="space-y-6">
       {/* ── CABEÇALHO DO MÓDULO UNIFICADO ── */}
-      <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-[#9306CF] dark:text-[#E899FF]">
-              <Palette className="w-5 h-5" />
-            </span>
-            <h2 className="font-heading font-bold text-lg sm:text-xl text-[#4C264F] dark:text-[#F9F5F9] uppercase tracking-wide">
-              Aparência & Identidade Visual
-            </h2>
-            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800 font-mono">
-              Live Customizer
-            </span>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 max-w-2xl">
-            Personalize a estética de fundo da vitrine e a animação da tela de carregamento com adaptação independente para os modos Claro e Escuro.
-          </p>
+      <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 sm:p-6 shadow-xs">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-[#9306CF] dark:text-[#E899FF]">
+            <Palette className="w-5 h-5" />
+          </span>
+          <h2 className="font-heading font-bold text-lg sm:text-xl text-[#4C264F] dark:text-[#F9F5F9] uppercase tracking-wide">
+            Aparência & Identidade Visual
+          </h2>
+          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800 font-mono">
+            Live Customizer
+          </span>
         </div>
-
-        {/* Botão de Salvar no Topo */}
-        <div className="shrink-0">
-          <button
-            type="button"
-            onClick={handleSaveAll}
-            disabled={saving || loading}
-            className="w-full md:w-auto inline-flex items-center justify-center gap-2 font-bold px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 active:scale-[0.98] text-white text-xs uppercase tracking-wider shadow-md shadow-[#9306CF]/25 transition-all cursor-pointer disabled:opacity-50"
-          >
-            {saving ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Salvando...</span>
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4" />
-                <span>Salvar Identidade Visual</span>
-              </>
-            )}
-          </button>
-        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 max-w-2xl">
+          Personalize a estética de fundo da vitrine e a animação da tela de carregamento com adaptação independente para os modos Claro e Escuro.
+        </p>
       </div>
 
       {/* ── GRID PRINCIPAL: CONFIGURAÇÕES (ESQ) + LIVE PREVIEW MOCK (DIR) ── */}
@@ -274,9 +254,16 @@ export function VisualIdentitySection() {
               const currentCustom = isDark ? (settings.bgCustomDark || "#190B1A") : (settings.bgCustomLight || "#FBF8FD");
 
               const updateType = (t: BackgroundType) => {
-                setSettings((prev) =>
-                  isDark ? { ...prev, bgTypeDark: t } : { ...prev, bgTypeLight: t }
-                );
+                setSettings((prev) => {
+                  const currentVal = isDark ? prev.bgValueDark : prev.bgValueLight;
+                  const nextVal =
+                    t === "dynamic" && currentVal !== "constellation" && currentVal !== "aurora_orbs"
+                      ? "constellation"
+                      : currentVal;
+                  return isDark
+                    ? { ...prev, bgTypeDark: t, bgValueDark: nextVal }
+                    : { ...prev, bgTypeLight: t, bgValueLight: nextVal };
+                });
               };
 
               const updateValue = (v: string) => {
@@ -293,16 +280,17 @@ export function VisualIdentitySection() {
 
               return (
                 <div className="space-y-4">
-                  {/* Seletor de Tipo: Gradiente / Sólido / Textura */}
+                  {/* Seletor de Tipo: Gradiente / Dinâmico / Sólido / Textura */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">
                       Estilo de Fundo ({isDark ? "Modo Escuro" : "Modo Claro"}):
                     </label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {[
-                        { type: "gradient" as BackgroundType, label: "Gradiente Temático", icon: Wand2 },
+                        { type: "gradient" as BackgroundType, label: "Gradiente", icon: Wand2 },
+                        { type: "dynamic" as BackgroundType, label: "✨ Dinâmico", icon: Sparkles },
                         { type: "solid" as BackgroundType, label: "Cor Sólida", icon: Palette },
-                        { type: "pattern" as BackgroundType, label: "Textura Sutil", icon: Layers },
+                        { type: "pattern" as BackgroundType, label: "Textura", icon: Layers },
                       ].map(({ type, label, icon: Icon }) => (
                         <button
                           key={type}
@@ -360,7 +348,56 @@ export function VisualIdentitySection() {
                     </div>
                   )}
 
-                  {/* OPÇÃO B: COR SÓLIDA PERSONALIZADA */}
+                  {/* OPÇÃO B: FUNDOS DINÂMICOS & ANIMADOS COM CANVAS */}
+                  {currentType === "dynamic" && (
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                          Selecione um estilo de animação interativa com Canvas:
+                        </span>
+                        <span className="text-[9px] font-bold font-mono px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">
+                          60 FPS • Zero Bloqueio
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {DYNAMIC_CANVAS_PRESETS.map((p) => {
+                          const isSelected = currentValue === p.id;
+                          return (
+                            <div
+                              key={p.id}
+                              onClick={() => updateValue(p.id)}
+                              className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
+                                isSelected
+                                  ? "border-[#9306CF] bg-purple-50/60 dark:bg-purple-950/30 ring-2 ring-[#9306CF]/30 shadow-xs"
+                                  : "border-gray-200 dark:border-[#512B54]/30 hover:border-gray-300 dark:hover:border-[#512B54]/70"
+                              }`}
+                            >
+                              <div
+                                className="w-10 h-10 rounded-xl shrink-0 border border-black/10 shadow-xs flex items-center justify-center text-lg relative overflow-hidden"
+                                style={{ background: isDark ? p.previewBgDark : p.previewBgLight }}
+                              >
+                                <span>{p.id === "constellation" ? "✨" : "🫧"}</span>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-xs font-bold text-gray-900 dark:text-gray-100 flex items-center justify-between gap-1">
+                                  <span>{p.label}</span>
+                                  {isSelected && <Check className="w-3.5 h-3.5 text-[#9306CF] shrink-0" />}
+                                </div>
+                                <span className="inline-block text-[9px] font-bold text-[#9306CF] dark:text-[#E899FF] mb-0.5">
+                                  {p.badge}
+                                </span>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">
+                                  {p.description}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* OPÇÃO C: COR SÓLIDA PERSONALIZADA */}
                   {currentType === "solid" && (
                     <div className="space-y-3">
                       <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
@@ -667,7 +704,10 @@ export function VisualIdentitySection() {
               <div className="inline-flex items-center p-0.5 rounded-xl bg-gray-100 dark:bg-[#180A1A] border border-gray-200 dark:border-[#512B54]/40 text-xs font-bold">
                 <button
                   type="button"
-                  onClick={() => setPreviewMode("light")}
+                  onClick={() => {
+                    setPreviewMode("light");
+                    setActiveBgTab("light");
+                  }}
                   className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                     previewMode === "light"
                       ? "bg-white text-amber-600 shadow-xs"
@@ -680,7 +720,10 @@ export function VisualIdentitySection() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setPreviewMode("dark")}
+                  onClick={() => {
+                    setPreviewMode("dark");
+                    setActiveBgTab("dark");
+                  }}
                   className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                     previewMode === "dark"
                       ? "bg-[#2F1333] text-purple-300 shadow-xs"
@@ -695,24 +738,53 @@ export function VisualIdentitySection() {
             </div>
 
             {/* QUADRO MOCK DA APLICAÇÃO (COM O FUNDO ESCOLHIDO + LOADING) */}
-            <div
-              className="relative rounded-2xl border border-gray-300/70 dark:border-[#512B54]/70 p-6 min-h-[360px] flex flex-col items-center justify-center shadow-inner overflow-hidden transition-all duration-300"
-              style={{ background: activePreviewBackground }}
-            >
-              {/* Badge indicando simulação */}
-              <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/40 text-white text-[9px] font-mono backdrop-blur-xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Simulação: Vitrine + Loading</span>
-              </div>
+            {(() => {
+              const isDarkPreview = previewMode === "dark";
+              const activeBgType = isDarkPreview ? settings.bgTypeDark : settings.bgTypeLight;
+              const activeBgValue = isDarkPreview ? settings.bgValueDark : settings.bgValueLight;
 
-              {/* Card simulado de Loading */}
-              <div className="w-full max-w-xs rounded-3xl bg-white/90 dark:bg-[#1E0921]/90 backdrop-blur-md border border-purple-200/80 dark:border-[#512B54]/70 shadow-2xl p-2 transition-colors duration-200">
-                <PopShakeLoading
-                  overrideSettings={settings}
-                  previewColorMode={previewMode}
-                />
-              </div>
-            </div>
+              return (
+                <div
+                  ref={previewContainerRef}
+                  className={`relative rounded-2xl p-6 min-h-[360px] flex flex-col items-center justify-center shadow-inner overflow-hidden transition-all duration-300 ${
+                    isDarkPreview
+                      ? "border border-purple-900/40"
+                      : "border border-gray-300/70"
+                  }`}
+                  style={{ background: activePreviewBackground }}
+                >
+                  {/* Canvas Dinâmico se o tipo for 'dynamic' */}
+                  {activeBgType === "dynamic" && (
+                    <DynamicCanvasBackground
+                      style={activeBgValue === "aurora_orbs" ? "aurora_orbs" : "constellation"}
+                      isDark={isDarkPreview}
+                      previewContainerRef={previewContainerRef}
+                      className="absolute inset-0 w-full h-full pointer-events-auto"
+                    />
+                  )}
+
+                  {/* Badge indicando simulação */}
+                  <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/50 text-white text-[9px] font-mono backdrop-blur-xs pointer-events-none">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Simulação: Vitrine + Loading</span>
+                  </div>
+
+                  {/* Card simulado de Loading (sem moldura branca no modo escuro) */}
+                  <div
+                    className={`relative z-10 w-full max-w-xs rounded-3xl backdrop-blur-md shadow-2xl p-2 transition-colors duration-200 ${
+                      isDarkPreview
+                        ? "bg-[#160718]/90 border border-purple-900/40 text-[#F9F5F9]"
+                        : "bg-white/90 border border-purple-200/80 text-[#4C264F]"
+                    }`}
+                  >
+                    <PopShakeLoading
+                      overrideSettings={settings}
+                      previewColorMode={previewMode}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Botão de Salvar no Mock */}
             <button

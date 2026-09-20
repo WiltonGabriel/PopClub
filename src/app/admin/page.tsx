@@ -163,14 +163,14 @@ export default function AdminDashboard() {
 
   if (fetching && orders.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center min-h-screen bg-[#F8F9FA] dark:bg-[#190B1A]">
+      <div className="flex-1 flex items-center justify-center min-h-screen bg-transparent">
         <Loader2 className="w-8 h-8 animate-spin text-[#9306CF]" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col font-sans pb-16 bg-[#F8F9FA] dark:bg-[#190B1A] text-foreground transition-colors duration-200">
+    <div className="min-h-screen flex flex-col font-sans pb-16 bg-transparent text-foreground transition-colors duration-200">
       {/* Alerta Não-Bloqueante de Orientação Mobile */}
       <MobileOrientationBanner />
 

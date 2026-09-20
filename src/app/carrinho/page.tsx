@@ -480,7 +480,7 @@ export default function CarrinhoPage() {
   // Modal / Tela de Sucesso
   if (orderSuccessId) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6 text-center font-sans">
+      <div className="min-h-screen bg-transparent text-foreground flex flex-col items-center justify-center p-6 text-center font-sans">
         <div className="w-20 h-20 bg-success/20 text-success rounded-full flex items-center justify-center mb-6">
           <CheckCircle2 className="w-12 h-12" />
         </div>
@@ -519,7 +519,7 @@ export default function CarrinhoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans pb-32">
+    <div className="min-h-screen bg-transparent text-foreground flex flex-col font-sans pb-32">
       {/* Header */}
       <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-background/90 border-b border-border/40 px-4 py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-3">

@@ -153,7 +153,7 @@ export default function RecuperarSenhaPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#190B1A] flex flex-col items-center justify-center p-4 relative">
+    <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-4 relative">
       {/* Decorative ambient blobs */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
         <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-[#9306CF]/5 dark:bg-[#9306CF]/10 blur-3xl" />

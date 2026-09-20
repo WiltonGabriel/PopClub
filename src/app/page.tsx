@@ -612,8 +612,7 @@ export default function Storefront() {
 
   return (
     <div
-      className="min-h-screen text-foreground flex flex-col font-sans pb-20 md:pb-0 transition-colors duration-200"
-      style={{ background: dynamicStoreBackground }}
+      className="min-h-screen bg-transparent text-foreground flex flex-col font-sans pb-20 md:pb-0 transition-colors duration-200"
     >
 
       {/* ─────────────────────────────────────────
