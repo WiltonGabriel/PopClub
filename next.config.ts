@@ -27,7 +27,7 @@ try {
 const nextConfig: NextConfig = {
   output: "standalone",
   compiler: {
-    removeConsole: process.env.NODE_ENV === "production",
+    removeConsole: process.env.NODE_ENV === "production" ? { exclude: ["error", "warn"] } : false,
   },
   allowedDevOrigins: devOrigins,
   images: {

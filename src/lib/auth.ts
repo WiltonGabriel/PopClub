@@ -3,7 +3,13 @@ import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 import { prisma } from "./prisma";
 
-const JWT_SECRET = process.env.JWT_SECRET || "popclub_secret_jwt_key_2026_super_secure";
+export function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+  if (secret && typeof secret === "string" && secret.trim().length > 0) {
+    return secret.trim();
+  }
+  return "popclub_secret_jwt_key_2026_super_secure";
+}
 
 export interface TokenPayload {
   userId: string;
@@ -13,20 +19,26 @@ export interface TokenPayload {
 }
 
 export async function hashPassword(password: string): Promise<string> {
-  return await bcrypt.hash(password, 10);
+  return await bcrypt.hash(String(password), 10);
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return await bcrypt.compare(password, hash);
+  if (!password || !hash) return false;
+  try {
+    return await bcrypt.compare(String(password), String(hash));
+  } catch (err) {
+    console.error("Erro na verificação de hash de senha:", err);
+    return false;
+  }
 }
 
 export function signToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: "7d" });
 }
 
 export function verifyToken(token: string): TokenPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as TokenPayload;
+    return jwt.verify(token, getJwtSecret()) as TokenPayload;
   } catch {
     return null;
   }
