@@ -39,6 +39,9 @@ import {
   CheckCheck,
   Inbox,
   BellOff,
+  LayoutDashboard,
+  ClipboardList,
+  History,
 } from "lucide-react";
 import { notificationService, AppNotification } from "../../services/notificationService";
 import { useAuth } from "../../hooks/useAuth";
@@ -118,7 +121,7 @@ function formatRelativeTime(dateString: string): string {
 }
 
 export default function AccountPage() {
-  const { user, loading, refreshUser } = useAuth();
+  const { user, loading, refreshUser, isAdmin } = useAuth();
   const { theme, setTheme } = useTheme();
   const { 
     addresses, 
@@ -635,6 +638,88 @@ export default function AccountPage() {
             </div>
           </div>
 
+          {/* ================= SEÇÃO GESTÃO DA LOJA (EXCLUSIVO ADMIN / OPERADOR) ================= */}
+          {(isAdmin || user?.role === "admin") && (
+            <div className="mb-4 p-3.5 bg-gradient-to-br from-[#9306CF]/10 via-purple-500/5 to-[#940068]/10 dark:from-[#9306CF]/20 dark:via-[#512B54]/20 dark:to-[#940068]/20 border border-[#9306CF]/30 dark:border-[#9306CF]/40 rounded-2xl shadow-sm">
+              <div className="flex items-center justify-between mb-2.5 px-0.5">
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                  <span className="font-heading font-bold text-xs uppercase tracking-wider text-[#4C264F] dark:text-[#F9F5F9]">
+                    Gestão da Loja
+                  </span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#9306CF] text-white shadow-xs">
+                  Acesso Admin
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {/* 1. Painel Operacional / PDV */}
+                <Link
+                  href="/admin"
+                  className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/60 hover:border-[#9306CF] dark:hover:border-[#9306CF] hover:shadow-md transition-all active:scale-[0.99]"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] group-hover:scale-105 transition-transform shrink-0">
+                      <LayoutDashboard className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-heading font-bold text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                        Painel Operacional / PDV
+                      </p>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        Dashboard, caixas e configurações
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#9306CF] group-hover:translate-x-0.5 transition-all shrink-0" />
+                </Link>
+
+                {/* 2. Gerenciar Pedidos */}
+                <Link
+                  href="/admin/pedidos"
+                  className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/60 hover:border-[#9306CF] dark:hover:border-[#9306CF] hover:shadow-md transition-all active:scale-[0.99]"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="p-2 rounded-lg bg-pink-100 dark:bg-pink-950/60 text-[#940068] dark:text-pink-300 group-hover:scale-105 transition-transform shrink-0">
+                      <ClipboardList className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-heading font-bold text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                        Gerenciar Pedidos
+                      </p>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        Fila ao vivo, cozinha e despacho
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#940068] group-hover:translate-x-0.5 transition-all shrink-0" />
+                </Link>
+
+                {/* 3. Histórico de Pedidos da Loja */}
+                <Link
+                  href="/admin/historico"
+                  className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/60 hover:border-[#9306CF] dark:hover:border-[#9306CF] hover:shadow-md transition-all active:scale-[0.99]"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform shrink-0">
+                      <History className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-heading font-bold text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                        Histórico de Vendas
+                      </p>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        Relatório geral de pedidos da loja
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+                </Link>
+              </div>
+            </div>
+          )}
+
           {/* Lista de Opções do Menu */}
           <nav className="flex flex-col gap-2">
             {sections.map((sec) => {
@@ -700,7 +785,7 @@ export default function AccountPage() {
             <button 
               type="button"
               onClick={() => setIsLogoutModalOpen(true)}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-colors border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 mt-4 cursor-pointer"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-colors border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 mt-4 mb-8 cursor-pointer active:scale-98 shadow-xs"
             >
               <LogOut className="w-4 h-4" />
               <span>Sair da Conta</span>
