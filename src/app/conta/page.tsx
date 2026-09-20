@@ -15,7 +15,6 @@ import {
   Settings, 
   LogOut, 
   Loader2, 
-  Map, 
   Check, 
   Eye, 
   Bell, 
@@ -34,11 +33,9 @@ import {
   Banknote,
   QrCode,
   Wallet,
-  Ticket,
   Copy,
   CheckCheck,
   Inbox,
-  BellOff,
   LayoutDashboard,
   ClipboardList,
   History,
@@ -55,7 +52,7 @@ import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 import { BottomNav } from "../../components/storefront/BottomNav";
 import { useToast } from "../../components/ui/ToastNotification";
 import { authService } from "../../services/authService";
-import { userService, UserProfile, UserLocation } from "../../services/userService";
+import { userService, UserProfile } from "../../services/userService";
 import { useAddress } from "../../contexts/AddressContext";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -65,8 +62,10 @@ import { playDingSound } from "../../lib/sound";
 interface AvatarPresetItem {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   imageUrl: string;
+  path?: string;
+  desc?: string;
   category?: string | null;
   order?: number;
 }
@@ -129,7 +128,6 @@ export default function AccountPage() {
     setActiveAddressId, 
     openAddressModal, 
     deleteAddress: deleteAddressCtx,
-    refreshAddresses 
   } = useAddress();
   const { 
     previewSettings, 
@@ -151,7 +149,6 @@ export default function AccountPage() {
   const [activeSection, setActiveSection] = useState("perfil");
   const [currentView, setCurrentView] = useState<AccountView>("menu");
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [locations, setLocations] = useState<UserLocation[]>([]);
   const [fetching, setFetching] = useState(true);
 
   // Navegação Drill-down reativa
@@ -317,18 +314,11 @@ export default function AccountPage() {
       });
   }, []);
 
-  // Location state
-  const [isAddingLocation, setIsAddingLocation] = useState(false);
-  const [locAddress, setLocAddress] = useState("");
-
   const loadUserData = useCallback(async () => {
     if (!user) return;
     setFetching(true);
     try {
-      const [prof, locs] = await Promise.all([
-        userService.getProfile(user.id),
-        userService.getLocations(user.id)
-      ]);
+      const prof = await userService.getProfile(user.id);
       if (prof) {
         setProfile(prof);
         setFullName(prof.full_name || "");
@@ -351,7 +341,6 @@ export default function AccountPage() {
                       : "")));
         setPreferredChangeFor(pChange);
       }
-      setLocations(locs);
       await loadNotifications();
     } catch (err) {
       console.error(err);
@@ -386,11 +375,12 @@ export default function AccountPage() {
         title: "Perfil Atualizado!",
         message: "Suas informações e avatar foram salvos com sucesso.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Não foi possível salvar os dados do perfil.";
       showToast({
         type: "error",
         title: "Erro ao atualizar",
-        message: err?.message || "Não foi possível salvar os dados do perfil.",
+        message,
       });
     } finally {
       setIsUpdatingProfile(false);
@@ -412,11 +402,12 @@ export default function AccountPage() {
         title: "Acessibilidade Salva!",
         message: "Suas preferências foram aplicadas e persistidas na sua conta.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Falha ao salvar preferências de acessibilidade.";
       showToast({
         type: "error",
         title: "Erro ao salvar preferências",
-        message: err?.message || "Falha ao salvar preferências de acessibilidade.",
+        message,
       });
     }
   };
@@ -438,11 +429,12 @@ export default function AccountPage() {
         title: "Preferências salvas!",
         message: "Sua forma de pagamento preferencial e configurações foram atualizadas com sucesso.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Não foi possível salvar suas preferências.";
       showToast({
         type: "error",
         title: "Erro ao salvar preferências",
-        message: err?.message || "Não foi possível salvar suas preferências.",
+        message,
       });
     } finally {
       setIsSavingPreferences(false);
@@ -458,43 +450,6 @@ export default function AccountPage() {
     } finally {
       setIsLoggingOut(false);
       setIsLogoutModalOpen(false);
-    }
-  };
-
-  const simulateGetLocation = () => {
-    alert("Iniciando captura de localização via GPS...");
-    setTimeout(() => {
-      setLocAddress("Rua Fictícia, 123 - Bairro Mock, Cidade");
-    }, 1500);
-  };
-
-  const handleSaveLocation = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    try {
-      await userService.addLocation({
-        user_id: user.id,
-        name: null,
-        address_line: locAddress,
-        latitude: -23.5505,
-        longitude: -46.6333,
-        accuracy: null,
-        is_default: locations.length === 0
-      });
-      setIsAddingLocation(false);
-      setLocAddress("");
-      loadUserData();
-      showToast({
-        type: "success",
-        title: "Endereço Salvo",
-        message: "Seu endereço foi cadastrado com sucesso.",
-      });
-    } catch (err) {
-      showToast({
-        type: "error",
-        title: "Erro ao salvar",
-        message: "Não foi possível cadastrar o endereço.",
-      });
     }
   };
 
@@ -1839,7 +1794,7 @@ export default function AccountPage() {
             {/* Grid dos Avatares Oficiais */}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5 max-h-[55vh] overflow-y-auto pr-1">
               {avatarPresets.map((avatar) => {
-                const avatarPath = avatar.imageUrl || (avatar as any).path;
+                const avatarPath = avatar.imageUrl || avatar.path || "";
                 const isSelected = modalAvatarChoice === avatarPath;
                 return (
                   <button
@@ -1872,7 +1827,7 @@ export default function AccountPage() {
                       {avatar.name}
                     </span>
                     <span className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
-                      {avatar.description || (avatar as any).desc}
+                      {avatar.description || avatar.desc || ""}
                     </span>
                   </button>
                 );
