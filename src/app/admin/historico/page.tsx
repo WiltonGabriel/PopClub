@@ -24,6 +24,7 @@ import {
   MessageCircle,
   FileText,
   TrendingUp,
+  User,
 } from "lucide-react";
 import { orderService, Order, OrderStatus } from "../../../services/orderService";
 import { authService } from "../../../services/authService";
@@ -233,6 +234,14 @@ export default function AdminHistoricoPage() {
           >
             <TrendingUp className="w-4 h-4 text-[#9306CF]" />
             <span className="hidden sm:inline">Painel Operacional</span>
+          </Link>
+
+          <Link
+            href="/conta"
+            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 hover:text-[#9306CF] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+          >
+            <User className="w-4 h-4 text-[#9306CF]" />
+            <span className="hidden sm:inline">Meu Perfil</span>
           </Link>
 
           <Link

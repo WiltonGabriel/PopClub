@@ -28,6 +28,7 @@ import {
   Moon,
   Palette,
   Send,
+  User,
 } from "lucide-react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { orderService, Order } from "../../services/orderService";
@@ -238,6 +239,14 @@ export default function AdminDashboard() {
           </Link>
 
           <Link
+            href="/conta"
+            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+          >
+            <User className="w-4 h-4 text-[#9306CF]" />
+            <span className="hidden sm:inline">Meu Perfil</span>
+          </Link>
+
+          <Link
             href="/"
             className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
           >
@@ -269,40 +278,6 @@ export default function AdminDashboard() {
       </header>
 
       <main className="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full space-y-8">
-        {/* Banner de Acesso Rápido ao Painel de Pedidos */}
-        <div className="bg-gradient-to-r from-[#9306CF]/10 to-[#940068]/10 border border-[#9306CF]/25 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
-          <div className="flex items-start sm:items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#9306CF] to-[#940068] text-white flex items-center justify-center shrink-0 shadow-md shadow-[#9306CF]/20">
-              <LayoutDashboard className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-heading font-bold text-base sm:text-lg text-[#4C264F] dark:text-[#F9F5F9] uppercase tracking-wide">
-                Central de Despacho & Cozinha
-              </h3>
-              <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
-                Acompanhe a esteira de pedidos ao vivo, despache entregas e controle o fluxo de preparo no Kanban dedicado.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            <Link
-              href="/admin/historico"
-              className="inline-flex items-center justify-center gap-2 border border-gray-200 dark:border-[#512B54]/50 bg-white/80 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 font-heading text-xs uppercase tracking-wider font-bold h-11 px-4 rounded-xl shadow-xs transition-all"
-            >
-              <History className="w-4 h-4 text-[#9306CF]" />
-              <span>Histórico de Pedidos</span>
-            </Link>
-
-            <Link
-              href="/admin/pedidos"
-              className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider font-bold h-11 px-5 rounded-xl shadow-md shadow-[#9306CF]/20 transition-all"
-            >
-              <span>Gerenciar Pedidos ➔</span>
-            </Link>
-          </div>
-        </div>
-
         {/* Mini Esteira Live (Monitor Compacto no Topo) */}
         {(() => {
           const activeOrders = orders.filter((o) => !["completed", "cancelled"].includes(o.status));
