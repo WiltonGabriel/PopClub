@@ -38,6 +38,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+ENV PATH="/app/node_modules/.bin:$PATH"
 
 # Instala openssl (para o Prisma Engine) e netcat (para o healthcheck de rede do PostgreSQL)
 RUN apt-get update && apt-get install -y openssl netcat-openbsd && rm -rf /var/lib/apt/lists/*
@@ -58,10 +59,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 
-# Copia binário e módulos do Prisma para permitir 'npx prisma migrate deploy'
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules/.bin ./node_modules/.bin
+# Copia node_modules completo para garantir a CLI do Prisma e todas as suas dependências no runner
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 # Copia script de inicialização (entrypoint)
 COPY --chown=nextjs:nodejs entrypoint.sh ./entrypoint.sh
