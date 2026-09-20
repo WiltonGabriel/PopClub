@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Plus, Edit2, Trash2, ArrowRight } from "lucide-react";
+import { Plus, Edit2, Trash2, ArrowRight, Clock, Timer, Sparkles } from "lucide-react";
 import { promotionService, Promotion } from "../../services/promotionService";
 import { useAuth } from "../../hooks/useAuth";
 import { useEditMode } from "../../contexts/EditModeContext";
@@ -163,6 +163,42 @@ export function PromoBanner() {
                     ">
                       {discountLabel}
                     </span>
+                    
+                    {(() => {
+                      if (!promo.showDuration || !promo.expiresAt) return null;
+                      
+                      const diffMs = new Date(promo.expiresAt).getTime() - Date.now();
+                      if (diffMs <= 0) return null;
+                      
+                      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                      const diffDays = Math.floor(diffHours / 24);
+                      
+                      let label = "Tempo Limitado!";
+                      let Icon = Clock;
+                      
+                      if (promo.durationDisplay?.includes("Cronômetro Regressivo")) {
+                        label = diffDays > 0 ? `${diffDays}d ${diffHours % 24}h restantes` : `${diffHours}h restantes`;
+                        Icon = Timer;
+                      } else if (promo.durationDisplay?.includes("Data e Hora Limite Claras")) {
+                        label = `Até ${new Date(promo.expiresAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`;
+                      } else if (promo.durationDisplay?.includes("Contador de Estoque Limitado")) {
+                        label = "Últimas unidades";
+                        Icon = Sparkles;
+                      }
+
+                      return (
+                        <span className="
+                          flex items-center gap-1
+                          bg-red-500/80 text-white
+                          text-[10px] font-bold px-2 py-1 rounded-full
+                          backdrop-blur-sm animate-pulse
+                        ">
+                          <Icon className="w-3 h-3" />
+                          {label}
+                        </span>
+                      );
+                    })()}
+
                     <span className="
                       text-[11px] font-semibold text-white/90
                       flex items-center gap-1

@@ -33,6 +33,7 @@ import { playDingSound } from "../../lib/sound";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { CustomAudienceModal } from "./CustomAudienceModal";
 
 type AudienceType =
   | "ALL"
@@ -41,7 +42,8 @@ type AudienceType =
   | "VIP"
   | "INACTIVE_15"
   | "INACTIVE_30"
-  | "INACTIVE_60";
+  | "INACTIVE_60"
+  | "CUSTOM";
 
 interface AudienceOption {
   id: AudienceType;
@@ -106,8 +108,16 @@ const AUDIENCE_OPTIONS: AudienceOption[] = [
     title: "Inativos (60 dias)",
     subtitle: "Clientes ausentes há mais de 2 meses • Resgate urgente",
     badge: "60 dias",
-    icon: Clock,
-    color: "from-red-700 to-slate-800",
+    icon: RotateCcw,
+    color: "from-red-600 to-rose-700",
+  },
+  {
+    id: "CUSTOM",
+    title: "Personalizado",
+    subtitle: "Selecione clientes manualmente ou carregue listas salvas",
+    badge: "Custom",
+    icon: Users,
+    color: "from-[#9306CF] to-[#940068]",
   },
 ];
 
@@ -122,6 +132,10 @@ export function CommunicationSection() {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [selectedCouponId, setSelectedCouponId] = useState<string>("");
+
+  // Custom Audience
+  const [isCustomAudienceModalOpen, setIsCustomAudienceModalOpen] = useState(false);
+  const [customAudienceUserIds, setCustomAudienceUserIds] = useState<string[]>([]);
 
   // Presets / Modelos
   const [templates, setTemplates] = useState<NotificationTemplateItem[]>([]);
@@ -165,8 +179,13 @@ export function CommunicationSection() {
       .finally(() => setLoadingCoupons(false));
   }, []);
 
-  // Atualiza contagem de público sempre que o segmento mudar
   const fetchAudienceCount = useCallback(async (audience: AudienceType) => {
+    if (audience === "CUSTOM") {
+      setAudienceCount(customAudienceUserIds.length);
+      setLoadingCount(false);
+      return;
+    }
+    
     setLoadingCount(true);
     try {
       const count = await notificationService.getAudienceCount(audience);
@@ -177,7 +196,7 @@ export function CommunicationSection() {
     } finally {
       setLoadingCount(false);
     }
-  }, []);
+  }, [customAudienceUserIds.length]);
 
   useEffect(() => {
     fetchAudienceCount(selectedAudience);
@@ -344,7 +363,12 @@ export function CommunicationSection() {
               <button
                 key={opt.id}
                 type="button"
-                onClick={() => setSelectedAudience(opt.id)}
+                onClick={() => {
+                  setSelectedAudience(opt.id);
+                  if (opt.id === "CUSTOM") {
+                    setIsCustomAudienceModalOpen(true);
+                  }
+                }}
                 className={`
                   p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between cursor-pointer
                   ${
@@ -392,13 +416,29 @@ export function CommunicationSection() {
             <Sparkles className="w-4 h-4 text-[#9306CF]" />
             2. Modelos Prontos & Presets de Mensagem
           </Label>
-          <button
-            type="button"
-            onClick={() => setIsSaveTemplateModalOpen(true)}
-            className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1 cursor-pointer"
-          >
-            <Save className="w-3.5 h-3.5" /> Salvar Mensagem Atual como Preset
-          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground font-medium">
+              ({templates.length}/5 salvos)
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (templates.length >= 5) {
+                  showToast("Limite atingido: Você já possui 5 modelos de mensagem salvos. Exclua um modelo existente para salvar um novo.", "error");
+                  return;
+                }
+                setIsSaveTemplateModalOpen(true);
+              }}
+              disabled={templates.length >= 5}
+              className={`text-xs font-bold flex items-center gap-1 transition-colors ${
+                templates.length >= 5
+                  ? "text-gray-400 cursor-not-allowed"
+                  : "text-[#9306CF] dark:text-[#C7A9C9] hover:underline cursor-pointer"
+              }`}
+            >
+              <Save className="w-3.5 h-3.5" /> Salvar Mensagem Atual como Preset
+            </button>
+          </div>
         </div>
 
         {loadingTemplates ? (
@@ -671,6 +711,13 @@ export function CommunicationSection() {
           </div>
         </div>
       )}
+      
+      {/* Modal de Custom Audience */}
+      <CustomAudienceModal
+        open={isCustomAudienceModalOpen}
+        onOpenChange={setIsCustomAudienceModalOpen}
+        onSelectionSaved={setCustomAudienceUserIds}
+      />
     </div>
   );
 }

@@ -74,6 +74,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "O texto do modelo é obrigatório." }, { status: 400 });
     }
 
+    const currentCount = await prisma.notificationTemplate.count();
+    if (currentCount >= 5) {
+      return NextResponse.json({ error: "Limite atingido: Você já possui 5 modelos de mensagem salvos. Exclua ou substitua um modelo existente para salvar um novo." }, { status: 400 });
+    }
+
     const created = await prisma.notificationTemplate.create({
       data: {
         title: title.trim(),

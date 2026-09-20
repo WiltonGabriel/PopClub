@@ -78,6 +78,16 @@ model UserLocation {
   @@map("user_locations")
 }
 
+model CustomAudienceList {
+  id        String   @id @default(uuid())
+  name      String
+  userIds   String[] @default([]) @map("user_ids")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("custom_audience_lists")
+}
+
 model Category {
   id        String    @id @default(uuid())
   name      String
@@ -119,6 +129,12 @@ model Promotion {
   discountType   DiscountType    @default(percentage) @map("discount_type")
   discountValue  Decimal         @default(0) @db.Decimal(10, 2) @map("discount_value")
   isActive       Boolean         @default(true) @map("is_active")
+  
+  // Duração e Escassez
+  expiresAt      DateTime?       @map("expires_at")
+  showDuration   Boolean         @default(false) @map("show_duration")
+  durationDisplay String[]       @default([]) @map("duration_display")
+  
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
   items          PromotionItem[]

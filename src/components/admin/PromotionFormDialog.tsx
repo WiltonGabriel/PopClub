@@ -8,7 +8,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Tag, Sparkles, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Tag, Sparkles, Image as ImageIcon, Loader2, Clock, Eye } from "lucide-react";
 import { ImageCropperDialog } from "./ImageCropperDialog";
 
 interface PromotionFormDialogProps {
@@ -46,6 +46,11 @@ export function PromotionFormDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Duração
+  const [durationDays, setDurationDays] = useState<string>("");
+  const [showDuration, setShowDuration] = useState(false);
+  const [durationDisplay, setDurationDisplay] = useState<string[]>([]);
+
   // Estados do Modal de Recorte
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [rawBannerSrc, setRawBannerSrc] = useState<string | null>(null);
@@ -73,6 +78,16 @@ export function PromotionFormDialog({
         itemsMap[it.productId] = it.quantity;
       });
       setSelectedProductIds(itemsMap);
+
+      if (promoToEdit.expiresAt) {
+        const diff = new Date(promoToEdit.expiresAt).getTime() - Date.now();
+        const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+        setDurationDays(days > 0 ? String(days) : "");
+      } else {
+        setDurationDays("");
+      }
+      setShowDuration(promoToEdit.showDuration || false);
+      setDurationDisplay(promoToEdit.durationDisplay || []);
     } else {
       setTitle("");
       setBadge("PROMO");
@@ -86,6 +101,9 @@ export function PromotionFormDialog({
       setRawBannerSrc(null);
       setCropModalOpen(false);
       setSelectedProductIds({});
+      setDurationDays("");
+      setShowDuration(false);
+      setDurationDisplay([]);
     }
   }, [promoToEdit, open]);
 
@@ -165,6 +183,16 @@ export function PromotionFormDialog({
         quantity,
       }));
 
+      let expiresAt: string | null = null;
+      if (durationDays) {
+        const days = parseInt(durationDays, 10);
+        if (!isNaN(days) && days > 0) {
+          const target = new Date();
+          target.setDate(target.getDate() + days);
+          expiresAt = target.toISOString();
+        }
+      }
+
       const payload = {
         title,
         badge,
@@ -175,6 +203,9 @@ export function PromotionFormDialog({
         gradientEnd,
         bannerImageUrl: bannerUrl,
         isActive: true,
+        expiresAt,
+        showDuration,
+        durationDisplay,
         items,
       };
 
@@ -460,6 +491,76 @@ export function PromotionFormDialog({
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Escassez e Prazo */}
+            <div className="pt-6 border-t border-gray-100 dark:border-[#512B54]/30">
+              <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#9306CF]" /> Regras de Escassez e Prazo
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <Label className="text-xs font-bold text-gray-700 dark:text-gray-300 block">
+                    Duração da Oferta (em dias)
+                  </Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={durationDays}
+                    onChange={(e) => setDurationDays(e.target.value)}
+                    placeholder="Ex: 3 (deixe vazio p/ indeterminado)"
+                    className="bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-11 rounded-xl text-sm"
+                  />
+                  {durationDays && (
+                    <p className="text-[11px] text-emerald-600 font-medium">
+                      Válido até: {new Date(Date.now() + parseInt(durationDays) * 86400000).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showDuration}
+                      onChange={(e) => setShowDuration(e.target.checked)}
+                      className="w-4 h-4 text-[#9306CF] rounded border-gray-300"
+                    />
+                    <Eye className="w-4 h-4 text-gray-500" />
+                    Mostrar Escassez para o Cliente
+                  </label>
+                  
+                  {showDuration && (
+                    <div className="bg-gray-50 dark:bg-zinc-900/50 p-3 rounded-xl border border-gray-200 dark:border-zinc-800 space-y-2">
+                      <p className="text-xs text-muted-foreground mb-2">Formato de Exibição:</p>
+                      {[
+                        "Cronômetro Regressivo",
+                        "Data e Hora Limite Claras",
+                        "Contador de Estoque Limitado",
+                        "Destaque Visual do Desconto",
+                        "Nomeação Temática"
+                      ].map((opt) => (
+                        <label key={opt} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={durationDisplay.includes(opt)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setDurationDisplay([...durationDisplay, opt]);
+                              } else {
+                                setDurationDisplay(durationDisplay.filter((d) => d !== opt));
+                              }
+                            }}
+                            className="w-3.5 h-3.5 text-[#9306CF] rounded border-gray-300"
+                          />
+                          {opt}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

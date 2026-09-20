@@ -10,8 +10,14 @@ export async function GET(request: Request) {
     const user = await getAuthUser(request);
     const isAdmin = user?.role === "admin";
 
-    // Se não for admin e não pediu all explicitamente, filtra apenas as ativas
-    const whereClause = all && isAdmin ? {} : { isActive: true };
+    // Se não for admin e não pediu all explicitamente, filtra apenas as ativas e não vencidas
+    const whereClause: any = all && isAdmin ? {} : { 
+      isActive: true,
+      OR: [
+        { expiresAt: null },
+        { expiresAt: { gt: new Date() } }
+      ]
+    };
 
     const promotions = await prisma.promotion.findMany({
       where: whereClause,
@@ -52,6 +58,9 @@ export async function GET(request: Request) {
         discountType: p.discountType,
         discountValue: Number(p.discountValue),
         isActive: p.isActive,
+        expiresAt: p.expiresAt ? p.expiresAt.toISOString() : null,
+        showDuration: p.showDuration,
+        durationDisplay: p.durationDisplay,
         createdAt: p.createdAt.toISOString(),
         originalTotal: Number(originalTotal.toFixed(2)),
         finalPrice: Number(finalPrice.toFixed(2)),
@@ -101,6 +110,9 @@ export async function POST(request: Request) {
       discountType,
       discountValue,
       isActive,
+      expiresAt,
+      showDuration,
+      durationDisplay,
       items, // array of { productId: string, quantity?: number }
     } = body || {};
 
@@ -119,6 +131,9 @@ export async function POST(request: Request) {
         discountType: discountType || "percentage",
         discountValue: Number(discountValue || 0),
         isActive: isActive !== undefined ? isActive : true,
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        showDuration: showDuration || false,
+        durationDisplay: durationDisplay || [],
         items: {
           create: (items || []).map((it: any) => ({
             productId: it.productId,

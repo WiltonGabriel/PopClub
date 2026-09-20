@@ -26,6 +26,9 @@ export interface Promotion {
   discountType: "percentage" | "fixed";
   discountValue: number;
   isActive: boolean;
+  expiresAt?: string | null;
+  showDuration?: boolean;
+  durationDisplay?: string[];
   createdAt?: string;
   originalTotal?: number;
   discountAmount?: number;

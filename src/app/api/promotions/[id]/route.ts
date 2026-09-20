@@ -53,6 +53,9 @@ export async function GET(
       originalTotal: Number(originalTotal.toFixed(2)),
       discountAmount: Number(discountAmount.toFixed(2)),
       finalPrice: Number(finalPrice.toFixed(2)),
+      expiresAt: promo.expiresAt ? promo.expiresAt.toISOString() : null,
+      showDuration: promo.showDuration,
+      durationDisplay: promo.durationDisplay,
       items: promo.items.map((it) => ({
         id: it.id,
         productId: it.productId,
@@ -100,6 +103,9 @@ export async function PUT(
       discountType,
       discountValue,
       isActive,
+      expiresAt,
+      showDuration,
+      durationDisplay,
       items,
     } = body || {};
 
@@ -113,6 +119,9 @@ export async function PUT(
     if (discountType !== undefined) dataToUpdate.discountType = discountType;
     if (discountValue !== undefined) dataToUpdate.discountValue = Number(discountValue);
     if (isActive !== undefined) dataToUpdate.isActive = isActive;
+    if (expiresAt !== undefined) dataToUpdate.expiresAt = expiresAt ? new Date(expiresAt) : null;
+    if (showDuration !== undefined) dataToUpdate.showDuration = showDuration;
+    if (durationDisplay !== undefined) dataToUpdate.durationDisplay = durationDisplay;
 
     const updated = await prisma.$transaction(async (tx) => {
       if (items && Array.isArray(items)) {
