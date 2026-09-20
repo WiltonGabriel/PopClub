@@ -77,9 +77,8 @@ export function OrderDetailDrawer({
   // Próxima etapa
   const getNextStage = (currentStatus: OrderStatus): { nextStatus: OrderStatus; label: string } | null => {
     switch (currentStatus) {
-      case "pending":
       case "accepted":
-        return { nextStatus: "preparing", label: "Avançar para Preparo ➔" };
+        return { nextStatus: "preparing", label: "Iniciar Preparo ➔" };
       case "preparing":
         return { nextStatus: "ready", label: "Pronto p/ Saída ➔" };
       case "ready":
@@ -95,7 +94,7 @@ export function OrderDetailDrawer({
   const getPrevStage = (currentStatus: OrderStatus): { prevStatus: OrderStatus; label: string } | null => {
     switch (currentStatus) {
       case "preparing":
-        return { prevStatus: "pending", label: "Voltar para Novos" };
+        return { prevStatus: "accepted", label: "Voltar p/ Novos" };
       case "ready":
         return { prevStatus: "preparing", label: "Voltar para Preparo" };
       case "delivering":
@@ -114,8 +113,9 @@ export function OrderDetailDrawer({
   const getStatusDisplay = (status: OrderStatus) => {
     switch (status) {
       case "pending":
+        return { label: "Aguardando Triagem", color: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200" };
       case "accepted":
-        return { label: "Novo Pedido", color: "bg-[#9306CF]/10 text-[#9306CF] border-[#9306CF]/30" };
+        return { label: "Novo (Aceito)", color: "bg-[#9306CF]/10 text-[#9306CF] border-[#9306CF]/30" };
       case "preparing":
         return { label: "Em Preparo", color: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200" };
       case "ready":
