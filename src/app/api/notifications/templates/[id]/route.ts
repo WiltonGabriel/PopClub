@@ -13,9 +13,16 @@ export async function PUT(
     }
 
     const { id } = await params;
-    let body: any;
+    interface UpdateTemplateBody {
+      title?: string;
+      message?: string;
+      category?: string;
+      couponId?: string | null;
+    }
+
+    let body: UpdateTemplateBody = {};
     try {
-      body = await request.json();
+      body = (await request.json()) as UpdateTemplateBody;
     } catch {
       return NextResponse.json({ error: "Corpo da requisição inválido." }, { status: 400 });
     }
@@ -33,7 +40,7 @@ export async function PUT(
     });
 
     return NextResponse.json(updated);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao atualizar modelo de notificação:", error);
     return NextResponse.json({ error: "Erro ao atualizar modelo." }, { status: 500 });
   }
@@ -56,7 +63,7 @@ export async function DELETE(
     });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao deletar modelo de notificação:", error);
     return NextResponse.json({ error: "Erro ao excluir modelo." }, { status: 500 });
   }

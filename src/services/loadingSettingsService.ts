@@ -275,8 +275,9 @@ export const loadingSettingsService = {
       }
 
       return sanitized;
-    } catch (err: any) {
-      if (err?.name !== "AbortError" && err?.name !== "TimeoutError") {
+    } catch (err: unknown) {
+      const errorName = err instanceof Error ? err.name : "";
+      if (errorName !== "AbortError" && errorName !== "TimeoutError") {
         console.warn("Falha ao buscar loadingSettings remotas, usando cache/padrão:", err);
       }
       return this.getCachedLoadingSettings();

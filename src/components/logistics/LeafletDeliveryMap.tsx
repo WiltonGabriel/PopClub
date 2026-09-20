@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -11,7 +11,6 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Crosshair } from "lucide-react";
 
 import {
   LatLng,
@@ -60,10 +59,10 @@ export default function LeafletDeliveryMap({
   origin,
   destination,
   courier,
-  isGpsActive = false,
+  isGpsActive: _isGpsActive = false,
   clientAddress = "Endereço de Entrega",
   clientName = "Cliente",
-  orderId,
+  orderId: _orderId,
   onMetricsUpdate,
   className = "",
 }: LeafletDeliveryMapProps) {
@@ -92,7 +91,7 @@ export default function LeafletDeliveryMap({
       points.push([courier.lat, courier.lng]);
     }
     return points;
-  }, [origin.lat, origin.lng, destination.lat, destination.lng, courier?.lat, courier?.lng]);
+  }, [origin, destination, courier]);
 
   // Atualiza ângulo/direção da moto quando o entregador se desloca
   useEffect(() => {
@@ -117,7 +116,7 @@ export default function LeafletDeliveryMap({
       }
       setPrevCourier(courier);
     }
-  }, [courier?.lat, courier?.lng]);
+  }, [courier, prevCourier]);
 
   // Busca traçado da rota via OSRM e calcula distância e ETA dinâmicos
   useEffect(() => {
@@ -149,7 +148,7 @@ export default function LeafletDeliveryMap({
     return () => {
       isMounted = false;
     };
-  }, [origin.lat, origin.lng, destination.lat, destination.lng, courier?.lat, courier?.lng]);
+  }, [origin, destination, courier]);
 
   // Recalcula métricas dinâmicas em tempo real (distância, ETA e alerta de chegada)
   useEffect(() => {

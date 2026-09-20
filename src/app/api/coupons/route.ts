@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     }));
 
     return NextResponse.json(formatted);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao listar cupons:", error);
     return NextResponse.json({ error: "Erro ao buscar cupons." }, { status: 500 });
   }
@@ -43,9 +43,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Acesso não autorizado." }, { status: 403 });
     }
 
-    let body: any;
+    interface CreateCouponBody {
+      code?: string;
+      discountType?: string;
+      discountValue?: number | string;
+      minOrderValue?: number | string;
+      maxUses?: number | string | null;
+      expiresAt?: string | null;
+      isActive?: boolean;
+      oncePerUser?: boolean;
+      productIds?: string[];
+    }
+
+    let body: CreateCouponBody = {};
     try {
-      body = await request.json();
+      body = (await request.json()) as CreateCouponBody;
     } catch {
       return NextResponse.json({ error: "Corpo da requisição inválido." }, { status: 400 });
     }
@@ -118,7 +130,7 @@ export async function POST(request: Request) {
       productIds: newCoupon.productIds,
       createdAt: newCoupon.createdAt.toISOString(),
     }, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao criar cupom:", error);
     return NextResponse.json({ error: "Erro ao cadastrar cupom." }, { status: 500 });
   }
