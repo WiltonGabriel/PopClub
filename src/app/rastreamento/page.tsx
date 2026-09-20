@@ -147,11 +147,13 @@ function TrackingContent() {
     lng: order?.delivery_address?.longitude || originCoords.lng + 0.008,
   }), [order?.delivery_address?.latitude, order?.delivery_address?.longitude, originCoords.lat, originCoords.lng]);
 
+  const courierLat = order?.courier_latitude;
+  const courierLng = order?.courier_longitude;
   const courierCoords = useMemo(() => (
-    order?.courier_latitude && order?.courier_longitude
-      ? { lat: order.courier_latitude, lng: order.courier_longitude }
+    courierLat && courierLng
+      ? { lat: courierLat, lng: courierLng }
       : null
-  ), [order?.courier_latitude, order?.courier_longitude]);
+  ), [courierLat, courierLng]);
 
   // Métricas de entrega calculadas imediatamente (garante exibição instantânea sem atraso de carregamento)
   const initialMetrics = useMemo(() => {

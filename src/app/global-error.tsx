@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 export default function GlobalError({
   error,
@@ -130,7 +131,7 @@ export default function GlobalError({
             >
               Tentar Novamente
             </button>
-            <a
+            <Link
               href="/"
               style={{
                 backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : "#F3F4F6",
@@ -146,7 +147,7 @@ export default function GlobalError({
               }}
             >
               Início
-            </a>
+            </Link>
           </div>
 
           <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: `1px solid ${isDark ? "rgba(81, 43, 84, 0.4)" : "rgba(229, 231, 235, 0.8)"}` }}>

@@ -75,6 +75,7 @@ const STATUS_CONFIG: Record<
 export function OrderProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
   const { showToast } = useToast();
+  const userId = user?.id || null;
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,7 +122,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
 
     try {
       let data: Order[] = [];
-      const currentUserId = user?.id || null;
+      const currentUserId = userId;
 
       if (currentUserId) {
         // Usuário logado: busca exclusivamente os pedidos atrelados ao seu userId
@@ -207,7 +208,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [user?.id, authLoading, guestOrderIds, showToast]);
+  }, [userId, authLoading, guestOrderIds, showToast]);
 
   // Reconciliação intencional: quando um usuário loga e possui pedidos de visitante pendentes
   useEffect(() => {

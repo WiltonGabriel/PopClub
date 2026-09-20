@@ -38,7 +38,7 @@ export function ResilientErrorAlert({
 
   // Normalização do erro
   let code = "REQUEST_FAILED";
-  let message = typeof error === "string" ? error : error.message || "Ocorreu um erro inesperado.";
+  const message = typeof error === "string" ? error : error.message || "Ocorreu um erro inesperado.";
   let details: any = null;
   let status: number | undefined = undefined;
 

@@ -381,7 +381,7 @@ export default function AdminPedidosPage() {
         if (isManual) setIsRefreshing(false);
       }
     },
-    [showToast]
+    [showToast, setDeliveryTimeInput]
   );
 
   // Abertura de Turno / Iniciar Loja
