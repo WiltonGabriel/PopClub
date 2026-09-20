@@ -26,9 +26,23 @@ const DEFAULT_SETTINGS = {
   storeAddress: "Várzea Grande, MT",
 };
 
+const coerceOptionalNumber = (val: unknown) => {
+  if (val === undefined) return undefined;
+  if (val === null || val === "" || (typeof val === "string" && val.trim() === "")) return undefined;
+  const n = Number(val);
+  return isNaN(n) ? undefined : n;
+};
+
+const coerceNullableNumber = (val: unknown) => {
+  if (val === undefined) return undefined;
+  if (val === null || val === "" || (typeof val === "string" && val.trim() === "")) return null;
+  const n = Number(val);
+  return isNaN(n) ? null : n;
+};
+
 const settingsUpdateSchema = z.object({
-  deliveryFee: z.number().min(0, "A taxa de entrega não pode ser negativa").optional(),
-  freeDeliveryThreshold: z.number().min(0, "O valor mínimo não pode ser negativo").nullable().optional(),
+  deliveryFee: z.preprocess(coerceOptionalNumber, z.number().min(0, "A taxa de entrega não pode ser negativa")).optional(),
+  freeDeliveryThreshold: z.preprocess(coerceNullableNumber, z.number().min(0, "O valor mínimo não pode ser negativo").nullable()).optional(),
   whatsappNumber: z.string().nullable().optional(),
   whatsappMessage: z.string().nullable().optional(),
   isOpen: z.boolean().optional(),
@@ -36,8 +50,10 @@ const settingsUpdateSchema = z.object({
   estimatedDeliveryTime: z.string().optional(),
   estimatedTimePresets: z.array(z.string().trim().max(15, "Preset de tempo deve ter no máximo 15 caracteres")).max(4, "Máximo de 4 presets de tempo permitidos").optional(),
   rejectionReasonPresets: z.array(z.string().trim().max(60, "Motivo deve ter no máximo 60 caracteres")).max(6, "Máximo de 6 presets de motivo permitidos").optional(),
-  storeLatitude: z.number().nullable().optional(),
-  storeLongitude: z.number().nullable().optional(),
+  storeLatitude: z.preprocess(coerceNullableNumber, z.number().nullable()).optional(),
+  storeLongitude: z.preprocess(coerceNullableNumber, z.number().nullable()).optional(),
+  latitude: z.preprocess(coerceNullableNumber, z.number().nullable()).optional(),
+  longitude: z.preprocess(coerceNullableNumber, z.number().nullable()).optional(),
   storeAddress: z.string().nullable().optional(),
   openedAt: z.string().nullable().optional(),
   closedAt: z.string().nullable().optional(),
@@ -135,10 +151,15 @@ export async function PUT(request: Request) {
       rejectionReasonPresets,
       storeLatitude,
       storeLongitude,
+      latitude,
+      longitude,
       storeAddress,
       openedAt,
       closedAt,
     } = parsed.data;
+
+    const effectiveLat = storeLatitude !== undefined ? storeLatitude : latitude;
+    const effectiveLng = storeLongitude !== undefined ? storeLongitude : longitude;
 
     const dataToUpdate: any = {};
     if (deliveryFee !== undefined) dataToUpdate.deliveryFee = deliveryFee;
@@ -150,8 +171,8 @@ export async function PUT(request: Request) {
     if (estimatedDeliveryTime !== undefined) dataToUpdate.estimatedDeliveryTime = estimatedDeliveryTime;
     if (estimatedTimePresets !== undefined) dataToUpdate.estimatedTimePresets = estimatedTimePresets;
     if (rejectionReasonPresets !== undefined) dataToUpdate.rejectionReasonPresets = rejectionReasonPresets;
-    if (storeLatitude !== undefined) dataToUpdate.storeLatitude = storeLatitude;
-    if (storeLongitude !== undefined) dataToUpdate.storeLongitude = storeLongitude;
+    if (effectiveLat !== undefined) dataToUpdate.storeLatitude = effectiveLat;
+    if (effectiveLng !== undefined) dataToUpdate.storeLongitude = effectiveLng;
     if (storeAddress !== undefined) dataToUpdate.storeAddress = storeAddress;
     if (openedAt !== undefined) dataToUpdate.openedAt = openedAt ? new Date(openedAt) : null;
     if (closedAt !== undefined) dataToUpdate.closedAt = closedAt ? new Date(closedAt) : null;
@@ -170,8 +191,8 @@ export async function PUT(request: Request) {
         estimatedDeliveryTime: estimatedDeliveryTime || DEFAULT_SETTINGS.estimatedDeliveryTime,
         estimatedTimePresets: estimatedTimePresets || DEFAULT_SETTINGS.estimatedTimePresets,
         rejectionReasonPresets: rejectionReasonPresets || DEFAULT_SETTINGS.rejectionReasonPresets,
-        storeLatitude: storeLatitude ?? DEFAULT_SETTINGS.storeLatitude,
-        storeLongitude: storeLongitude ?? DEFAULT_SETTINGS.storeLongitude,
+        storeLatitude: effectiveLat ?? DEFAULT_SETTINGS.storeLatitude,
+        storeLongitude: effectiveLng ?? DEFAULT_SETTINGS.storeLongitude,
         storeAddress: storeAddress || DEFAULT_SETTINGS.storeAddress,
         openedAt: openedAt ? new Date(openedAt) : null,
         closedAt: closedAt ? new Date(closedAt) : null,

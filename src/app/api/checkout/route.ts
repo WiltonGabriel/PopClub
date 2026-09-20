@@ -14,15 +14,15 @@ const checkoutSchema = z.object({
   ).min(1, "O carrinho deve ter pelo menos 1 item"),
 
   deliveryAddress: z.object({
-    street: z.string().min(2, "Logradouro/Rua é obrigatório"),
-    number: z.string().min(1, "Número é obrigatório"),
-    neighborhood: z.string().min(2, "Bairro é obrigatório"),
-    city: z.string().default("Local"),
-    complement: z.string().optional().nullable(),
-    reference: z.string().optional().nullable(),
-    zip: z.string().optional().nullable(),
-    latitude: z.number().optional().nullable(),
-    longitude: z.number().optional().nullable(),
+    street: z.string().trim().min(1, "Logradouro/Rua é obrigatório"),
+    number: z.string().trim().min(1, "Número é obrigatório"),
+    neighborhood: z.string().trim().min(1, "Bairro é obrigatório"),
+    city: z.string().trim().default("Local"),
+    complement: z.string().trim().optional().nullable(),
+    reference: z.string().trim().optional().nullable(),
+    zip: z.string().trim().optional().nullable(),
+    latitude: z.preprocess((val) => (val === "" || val === null || val === undefined ? null : Number(val)), z.number().nullable().optional()),
+    longitude: z.preprocess((val) => (val === "" || val === null || val === undefined ? null : Number(val)), z.number().nullable().optional()),
   }),
 
   paymentMethod: z.object({
@@ -219,7 +219,7 @@ export async function POST(request: Request) {
       // Criação do pedido
       const newOrder = await tx.order.create({
         data: {
-          userId: authUser?.id || null,
+          user: authUser?.id ? { connect: { id: authUser.id } } : undefined,
           shiftId: storeSettings?.currentShiftId || null,
           isArchived: false,
           status: "pending",
@@ -227,7 +227,7 @@ export async function POST(request: Request) {
           discountAmount: totalDiscount,
           deliveryFee: calculatedDeliveryFee,
           totalAmount: finalTotal,
-          couponId: validCouponId,
+          coupon: validCouponId ? { connect: { id: validCouponId } } : undefined,
           couponCode: validCouponCode,
           paymentMethodType: paymentMethod.type,
           paymentChangeFor: paymentMethod.changeFor || null,

@@ -262,10 +262,13 @@ export function DeliveryFeeSettings() {
     setSaving(true);
     setMessage(null);
     try {
-      const feeNum = parseFloat(deliveryFee);
+      const rawFee = parseFloat(deliveryFee.replace(",", "."));
+      const feeNum = !isNaN(rawFee) && rawFee >= 0 ? rawFee : 5.0;
+
       let thresholdNum: number | null = null;
       if (enableFreeShipping) {
-        thresholdNum = parseFloat(freeShippingThreshold);
+        const rawThresh = parseFloat(freeShippingThreshold.replace(",", "."));
+        thresholdNum = !isNaN(rawThresh) && rawThresh >= 0 ? rawThresh : 60.0;
       }
 
       const parsedLat = parseFloat(latInput.trim().replace(",", "."));

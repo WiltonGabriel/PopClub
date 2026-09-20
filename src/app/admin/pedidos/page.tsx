@@ -45,6 +45,8 @@ import {
   ChefHat,
   PackageCheck,
   Bike,
+  LayoutList,
+  LayoutGrid,
 } from "lucide-react";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { orderService, Order, OrderStatus } from "../../../services/orderService";
@@ -80,6 +82,23 @@ export default function AdminPedidosPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileKanbanTab, setMobileKanbanTab] = useState<"novos" | "preparo" | "entrega" | "concluidos" | "cancelados">("novos");
   
+  // Modo de Exibição da Esteira (Padrão/Detalhado vs. Compacto/Alta Densidade - persistido em localStorage)
+  const [adminViewMode, setAdminViewMode] = useState<"detailed" | "compact">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("popshake_admin_view_mode");
+      if (saved === "compact" || saved === "detailed") return saved;
+      const colSaved = localStorage.getItem("popshake_kanban_compact_columns");
+      if (colSaved) {
+        try {
+          const parsed = JSON.parse(colSaved);
+          if (parsed.novos && parsed.preparo && parsed.entrega) return "compact";
+        } catch {}
+      }
+    }
+    return "detailed";
+  });
+  const compactDropdownRef = useRef<HTMLDivElement>(null);
+
   // Compactação granular por coluna da esteira (persistido em localStorage)
   const [compactColumns, setCompactColumns] = useState<Record<string, boolean>>(() => {
     if (typeof window !== "undefined") {
@@ -91,6 +110,19 @@ export default function AdminPedidosPage() {
     return { novos: false, preparo: false, entrega: false, concluidos: false, cancelados: false };
   });
   const [isCompactDropdownOpen, setIsCompactDropdownOpen] = useState(false);
+
+  // Fecha dropdown de exibição ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (compactDropdownRef.current && !compactDropdownRef.current.contains(event.target as Node)) {
+        setIsCompactDropdownOpen(false);
+      }
+    }
+    if (isCompactDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [isCompactDropdownOpen]);
 
   // Impressão automática de comprovante ao aceitar (persistido em localStorage, padrão false)
   const [autoPrintReceipt, setAutoPrintReceipt] = useState<boolean>(() => {
@@ -663,6 +695,14 @@ export default function AdminPedidosPage() {
     }
   };
 
+  const handleChangeViewMode = (mode: "detailed" | "compact") => {
+    setAdminViewMode(mode);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("popshake_admin_view_mode", mode);
+    }
+    setAllColumnsCompact(mode === "compact");
+  };
+
   // Abertura e confirmação dos modais operacionais de triagem
   const handleOpenAcceptDialog = (order: Order) => {
     setOrderToAccept(order);
@@ -888,7 +928,7 @@ export default function AdminPedidosPage() {
     isCancelColumn = false
   ) => {
     const colOrders = orders.filter((o) => statuses.includes(o.status));
-    const isColCompact = !!compactColumns[columnKey];
+    const isColCompact = adminViewMode === "compact" || !!compactColumns[columnKey];
 
     return (
       <div
@@ -937,6 +977,9 @@ export default function AdminPedidosPage() {
               const isPickup =
                 !order.delivery_address?.street ||
                 order.delivery_address?.street.toLowerCase().includes("retirada");
+              const neighborhood = isPickup
+                ? "Retirada no Balcão"
+                : order.delivery_address?.neighborhood || "Entrega";
 
               const createdDate = new Date(order.created_at);
               const nextStage = getNextStage(order.status);
@@ -1061,14 +1104,14 @@ export default function AdminPedidosPage() {
                       </div>
                     </div>
 
-                    {/* Linha 2: Cliente + Recorrência + WhatsApp */}
+                    {/* Linha 2: Cliente + Bairro + WhatsApp */}
                     <div className="flex items-center justify-between gap-1.5">
                       <div className="min-w-0">
                         <p className="font-bold text-xs text-[#4C264F] dark:text-[#F9F5F9] truncate">
                           {clientName}
                         </p>
-                        <span className="text-[10px] text-[#9306CF] dark:text-[#C7A9C9] font-medium block">
-                          {recurrence.shortLabel}
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium truncate block">
+                          {neighborhood}
                         </span>
                       </div>
 
@@ -1110,10 +1153,11 @@ export default function AdminPedidosPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleOpenRejectDialog(order)}
-                          className="h-7 px-2 text-[10px] font-bold rounded-lg border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center cursor-pointer"
+                          className="h-7 px-2.5 text-[10px] font-bold rounded-lg border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center gap-1 cursor-pointer"
                           title="Recusar pedido"
                         >
                           <XCircle className="w-3 h-3" />
+                          <span>Recusar</span>
                         </Button>
                         <Button
                           variant="outline"
@@ -1396,31 +1440,34 @@ export default function AdminPedidosPage() {
 
                     {/* Botões Operacionais: Triagem (se pending) ou Avanço/Recuo */}
                     {order.status === "pending" ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col gap-1.5 pt-1">
                         <Button
                           onClick={() => handleOpenAcceptDialog(order)}
-                          className="flex-1 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-heading font-bold text-xs uppercase tracking-wider shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                          className="w-full h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-heading font-bold text-xs uppercase tracking-wider shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <CheckCircle2 className="w-4 h-4" />
                           <span>Aceitar Pedido</span>
                         </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handleOpenRejectDialog(order)}
-                          className="h-9 px-3 rounded-xl border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 cursor-pointer"
-                          title="Recusar pedido"
-                        >
-                          <XCircle className="w-3.5 h-3.5" />
-                          <span>Recusar</span>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => printThermalReceipt(order)}
-                          className="h-9 px-3 rounded-xl border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center cursor-pointer"
-                          title="Imprimir Comprovante (80mm / 58mm)"
-                        >
-                          <Printer className="w-3.5 h-3.5 text-[#9306CF]" />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => handleOpenRejectDialog(order)}
+                            className="flex-1 h-8 rounded-xl border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer"
+                            title="Recusar pedido"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                            <span>Recusar</span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => printThermalReceipt(order)}
+                            className="h-8 px-3.5 rounded-xl border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                            title="Imprimir Comprovante (80mm / 58mm)"
+                          >
+                            <Printer className="w-3.5 h-3.5 text-[#9306CF]" />
+                            <span className="hidden sm:inline">Comprovante</span>
+                          </Button>
+                        </div>
                       </div>
                     ) : (
                       <div className="flex items-center gap-1.5">
@@ -1723,79 +1770,109 @@ export default function AdminPedidosPage() {
               </Button>
             )}
 
-            {/* Menu Dropdown de Compactação Granular por Coluna */}
-            <div className="relative" data-compact-dropdown>
+            {/* Menu Dropdown de Exibição / Densidade (Padrão vs Compacto) */}
+            <div className="relative" ref={compactDropdownRef}>
               <Button
                 variant="outline"
-                onClick={() => setIsCompactDropdownOpen(!isCompactDropdownOpen)}
-                className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 h-10 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
-                title="Configurar colunas em modo compacto ou expandido"
+                onClick={() => setIsCompactDropdownOpen((prev) => !prev)}
+                className={`rounded-xl border text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 h-10 transition-all cursor-pointer ${
+                  adminViewMode === "compact"
+                    ? "border-[#9306CF] bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9]"
+                    : "border-gray-200 dark:border-[#512B54]/40 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5"
+                }`}
+                title="Alternar densidade de visualização da esteira"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5 text-[#9306CF]" />
                 <span className="hidden sm:inline">Exibição</span>
-                <ChevronDown className="w-3 h-3 text-gray-400" />
+                <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-[#9306CF]/15 text-[#9306CF] dark:text-[#C7A9C9]">
+                  {adminViewMode === "compact" ? "Compacto" : "Padrão"}
+                </span>
+                <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${isCompactDropdownOpen ? "rotate-180" : ""}`} />
               </Button>
 
               {isCompactDropdownOpen && (
-                <div className="absolute right-0 top-12 z-50 w-64 bg-white dark:bg-[#1E0921] border border-gray-200 dark:border-[#512B54]/60 rounded-2xl p-3 shadow-xl space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
-                  <div className="flex items-center justify-between pb-1.5 border-b border-gray-100 dark:border-[#512B54]/30">
-                    <span className="text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9]">
-                      Colunas Compactas
-                    </span>
+                <div className="absolute right-0 top-12 z-50 w-72 bg-white dark:bg-[#1E0921] border border-gray-200 dark:border-[#512B54]/60 rounded-2xl p-3.5 shadow-2xl space-y-3 animate-in fade-in zoom-in-95 duration-150">
+                  {/* Cabeçalho */}
+                  <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-[#512B54]/30">
+                    <div>
+                      <span className="text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9] block">
+                        Densidade da Esteira
+                      </span>
+                      <span className="text-[10px] text-gray-400 dark:text-gray-400">
+                        Selecione a visualização dos pedidos
+                      </span>
+                    </div>
                     <button
+                      type="button"
                       onClick={() => setIsCompactDropdownOpen(false)}
-                      className="text-gray-400 hover:text-gray-600 text-xs p-1"
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
+                      title="Fechar"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
-                  <div className="space-y-1.5">
-                    {[
-                      { key: "novos", label: "Novos" },
-                      { key: "preparo", label: "Em Preparo" },
-                      { key: "entrega", label: "A Caminho / Pronto" },
-                      { key: "concluidos", label: "Concluídos" },
-                      { key: "cancelados", label: "Cancelados" },
-                    ].map((col) => (
-                      <label
-                        key={col.key}
-                        className="flex items-center justify-between p-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer text-xs select-none"
-                      >
-                        <span className="text-gray-700 dark:text-gray-300 font-medium">
-                          {col.label}
-                        </span>
-                        <input
-                          type="checkbox"
-                          checked={!!compactColumns[col.key]}
-                          onChange={() => toggleColumnCompact(col.key)}
-                          className="w-4 h-4 rounded text-[#9306CF] focus:ring-[#9306CF] border-gray-300 cursor-pointer"
-                        />
-                      </label>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+                  {/* Seletores Principais: Padrão vs Compacto */}
+                  <div className="space-y-2">
                     <button
                       type="button"
-                      onClick={() => setAllColumnsCompact(true)}
-                      className="flex-1 py-1 text-[11px] font-bold text-[#9306CF] hover:bg-purple-50 dark:hover:bg-purple-950/30 rounded-md transition-colors cursor-pointer"
+                      onClick={() => handleChangeViewMode("detailed")}
+                      className={`w-full p-2.5 rounded-xl border text-left flex items-start gap-2.5 transition-all cursor-pointer ${
+                        adminViewMode === "detailed"
+                          ? "border-[#9306CF] bg-[#9306CF]/10 ring-1 ring-[#9306CF]/30"
+                          : "border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-50 dark:hover:bg-white/5"
+                      }`}
                     >
-                      Compactar Todas
+                      <div className={`p-1.5 rounded-lg mt-0.5 ${adminViewMode === "detailed" ? "bg-[#9306CF] text-white" : "bg-gray-100 dark:bg-white/10 text-gray-500"}`}>
+                        <LayoutList className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9]">
+                            Modo Padrão / Detalhado
+                          </span>
+                          {adminViewMode === "detailed" && (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-[#9306CF]" />
+                          )}
+                        </div>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">
+                          Cards completos com observações, dados expandidos e ações detalhadas.
+                        </p>
+                      </div>
                     </button>
+
                     <button
                       type="button"
-                      onClick={() => setAllColumnsCompact(false)}
-                      className="flex-1 py-1 text-[11px] font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 rounded-md transition-colors cursor-pointer"
+                      onClick={() => handleChangeViewMode("compact")}
+                      className={`w-full p-2.5 rounded-xl border text-left flex items-start gap-2.5 transition-all cursor-pointer ${
+                        adminViewMode === "compact"
+                          ? "border-[#9306CF] bg-[#9306CF]/10 ring-1 ring-[#9306CF]/30"
+                          : "border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-50 dark:hover:bg-white/5"
+                      }`}
                     >
-                      Expandir Todas
+                      <div className={`p-1.5 rounded-lg mt-0.5 ${adminViewMode === "compact" ? "bg-[#9306CF] text-white" : "bg-gray-100 dark:bg-white/10 text-gray-500"}`}>
+                        <LayoutGrid className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9]">
+                            Modo Compacto (Alta Densidade)
+                          </span>
+                          {adminViewMode === "compact" && (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-[#9306CF]" />
+                          )}
+                        </div>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">
+                          Paddings menores, número, itens essenciais, bairro e valor na tela.
+                        </p>
+                      </div>
                     </button>
                   </div>
 
                   {/* Controle de Impressão Automática */}
                   <div className="pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
                     <span className="text-[11px] font-bold text-[#4C264F] dark:text-[#F9F5F9] block mb-1">
-                      Impressão de Comprovante
+                      Impressão Operacional
                     </span>
                     <label className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer text-xs select-none">
                       <input
