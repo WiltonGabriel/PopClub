@@ -14,7 +14,8 @@ export const categoryService = {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error || "Erro ao listar categorias.");
     }
-    return await res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : Array.isArray(data?.categories) ? data.categories : Array.isArray(data?.data) ? data.data : [];
   },
 
   async createCategory(name: string, orderIndex: number = 0): Promise<Category> {

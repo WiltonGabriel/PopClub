@@ -474,3 +474,92 @@ html[class*="colorblind-"]:not(.colorblind-none) [data-semantic-status] {
   font-weight: 800 !important;
   border-width: 2px !important;
 }
+
+/* ═══════════════════════════════════════════════
+   Pop Shake Premium Micro-Animations
+   ═══════════════════════════════════════════════ */
+@keyframes loading-bar {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(50%); }
+  100% { transform: translateX(200%); }
+}
+
+@keyframes bounce-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+
+@keyframes float-gentle {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(3deg); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-12px) scale(1.03); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.1); }
+}
+
+@keyframes ripple-wave {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+@keyframes shake-attention {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-8deg); }
+  40% { transform: rotate(8deg); }
+  60% { transform: rotate(-5deg); }
+  80% { transform: rotate(5deg); }
+}
+
+@keyframes shimmer-gradient {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-loading-bar {
+  animation: loading-bar 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 2.8s ease-in-out infinite;
+}
+
+.animate-float-gentle {
+  animation: float-gentle 3.5s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: float-slow 4s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 10s linear infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-ripple {
+  animation: ripple-wave 2.4s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
+
+.animate-shake-attention {
+  animation: shake-attention 2.5s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background-size: 200% auto;
+  animation: shimmer-gradient 3s linear infinite;
+}

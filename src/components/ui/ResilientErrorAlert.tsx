@@ -92,17 +92,17 @@ export function ResilientErrorAlert({
   if (isDbOrServerDown && !isOffline) {
     return (
       <div
-        className={`relative overflow-hidden rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 backdrop-blur-md shadow-lg shadow-amber-500/5 transition-all animate-in fade-in slide-in-from-top-2 ${className}`}
+        className={`relative overflow-hidden rounded-2xl border border-amber-500/30 dark:border-amber-500/40 bg-amber-500/10 dark:bg-amber-950/40 p-5 backdrop-blur-md shadow-lg shadow-amber-500/5 transition-all animate-in fade-in slide-in-from-top-2 ${className}`}
         role="alert"
       >
         <div className="flex items-start gap-4">
-          <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
+          <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0 animate-float-gentle">
             <Database className="w-5 h-5 animate-pulse" />
           </div>
 
           <div className="flex-1 space-y-1.5 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300">
+              <span className="font-mono text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full bg-amber-500/20 dark:bg-amber-500/30 text-amber-700 dark:text-amber-300">
                 Instabilidade Temporária
               </span>
             </div>
@@ -162,7 +162,7 @@ export function ResilientErrorAlert({
   if (isOffline) {
     return (
       <div
-        className={`relative overflow-hidden rounded-2xl border border-orange-500/30 bg-orange-500/10 p-5 backdrop-blur-md shadow-lg shadow-orange-500/5 transition-all animate-in fade-in slide-in-from-top-2 ${className}`}
+        className={`relative overflow-hidden rounded-2xl border border-orange-500/30 dark:border-orange-500/40 bg-orange-500/10 dark:bg-orange-950/40 p-5 backdrop-blur-md shadow-lg shadow-orange-500/5 transition-all animate-in fade-in slide-in-from-top-2 ${className}`}
         role="alert"
       >
         <div className="flex items-start gap-4">
@@ -172,7 +172,7 @@ export function ResilientErrorAlert({
 
           <div className="flex-1 space-y-1.5 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-700 dark:text-orange-300">
+              <span className="font-mono text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full bg-orange-500/20 dark:bg-orange-500/30 text-orange-700 dark:text-orange-300">
                 Sem Conexão
               </span>
             </div>
@@ -217,17 +217,17 @@ export function ResilientErrorAlert({
   if (isValidationOrAddress) {
     return (
       <div
-        className={`relative overflow-hidden rounded-2xl border border-purple-500/30 bg-purple-500/10 p-5 backdrop-blur-md shadow-lg shadow-purple-500/5 transition-all animate-in fade-in slide-in-from-top-2 ${className}`}
+        className={`relative overflow-hidden rounded-2xl border border-purple-500/30 dark:border-purple-500/40 bg-purple-500/10 dark:bg-purple-950/40 p-5 backdrop-blur-md shadow-lg shadow-purple-500/5 transition-all animate-in fade-in slide-in-from-top-2 ${className}`}
         role="alert"
       >
         <div className="flex items-start gap-4">
-          <div className="p-2.5 rounded-xl bg-purple-500/20 text-[#9306CF] dark:text-purple-300 shrink-0">
+          <div className="p-2.5 rounded-xl bg-purple-500/20 text-[#9306CF] dark:text-[#E899FF] shrink-0 animate-bounce-subtle">
             <MapPin className="w-5 h-5" />
           </div>
 
           <div className="flex-1 space-y-1.5 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-700 dark:text-purple-300">
+              <span className="font-mono text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full bg-purple-500/20 dark:bg-purple-500/30 text-purple-700 dark:text-purple-300">
                 Atenção ao Preenchimento
               </span>
             </div>
@@ -293,17 +293,17 @@ export function ResilientErrorAlert({
   // Renderização Cenário 4: Erro Crítico / Desconhecido com Botão de Contingência WhatsApp
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border border-rose-500/30 bg-rose-500/10 p-5 backdrop-blur-md shadow-lg shadow-rose-500/5 transition-all animate-in fade-in slide-in-from-top-2 ${className}`}
+      className={`relative overflow-hidden rounded-2xl border border-rose-500/30 dark:border-rose-500/40 bg-rose-500/10 dark:bg-rose-950/40 p-5 backdrop-blur-md shadow-lg shadow-rose-500/5 transition-all animate-in fade-in slide-in-from-top-2 ${className}`}
       role="alert"
     >
       <div className="flex items-start gap-4">
-        <div className="p-2.5 rounded-xl bg-rose-500/20 text-rose-600 dark:text-rose-400 shrink-0">
+        <div className="p-2.5 rounded-xl bg-rose-500/20 text-rose-600 dark:text-rose-400 shrink-0 animate-shake-attention">
           <AlertCircle className="w-5 h-5" />
         </div>
 
         <div className="flex-1 space-y-1.5 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-700 dark:text-rose-300">
+            <span className="font-mono text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full bg-rose-500/20 dark:bg-rose-500/30 text-rose-700 dark:text-rose-300">
               Não se preocupe
             </span>
           </div>

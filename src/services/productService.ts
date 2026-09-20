@@ -46,7 +46,15 @@ export const productService = {
       throw new Error(data.error || "Erro ao carregar produtos.");
     }
     const data = await res.json();
-    return data.map((item: any) => ({
+    const rawList = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.products)
+      ? data.products
+      : Array.isArray(data?.data)
+      ? data.data
+      : [];
+
+    return rawList.map((item: any) => ({
       id: item.id,
       name: item.name,
       description: item.description || "",

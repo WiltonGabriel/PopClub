@@ -19,9 +19,6 @@ export interface ErrorFieldDetail {
  * Resposta de Sucesso Padronizada
  */
 export function apiSuccess<T>(data: T, status = 200): NextResponse {
-  if (typeof data === "object" && data !== null && !("success" in data)) {
-    return NextResponse.json({ success: true, ...data }, { status });
-  }
   return NextResponse.json(data, { status });
 }
 
