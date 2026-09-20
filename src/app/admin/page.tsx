@@ -46,6 +46,7 @@ import { DeliveryFeeSettings } from "../../components/admin/DeliveryFeeSettings"
 import { CardBadgesSection } from "../../components/admin/CardBadgesSection";
 import { OrderFlowSettings } from "../../components/admin/OrderFlowSettings";
 import { AvatarPresetManager } from "../../components/admin/AvatarPresetManager";
+import { LoadingCustomizationSection } from "../../components/admin/LoadingCustomizationSection";
 
 export default function AdminDashboard() {
   const { theme, toggleTheme } = useTheme();
@@ -473,7 +474,7 @@ export default function AdminDashboard() {
                   }`}
                 >
                   <ImageIcon className="w-4 h-4" />
-                  <span>🖼️ Banners & Selos</span>
+                  <span>🖼️ Banners, Selos & Loading</span>
                   <span
                     className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
                       activeTab === "banners"
@@ -977,6 +978,9 @@ export default function AdminDashboard() {
 
                   {/* SEÇÃO 3: Gestão de Selos / Badges Flutuantes dos Cards */}
                   <CardBadgesSection onBadgesUpdated={fetchPromos} />
+
+                  {/* SEÇÃO 4: Personalização da Tela de Carregamento (Loading) */}
+                  <LoadingCustomizationSection />
                 </section>
               )}
 
