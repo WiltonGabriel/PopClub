@@ -9,7 +9,11 @@
     "dev": "next dev -H 0.0.0.0 --webpack",
     "build": "next build --webpack",
     "start": "next start -H 0.0.0.0",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "db:backup": "node scripts/backup-db.mjs",
+    "db:restore": "node scripts/restore-db.mjs",
+    "db:diagnose": "node scripts/diagnose-db.mjs",
+    "test:smoke": "node scripts/smoke-test-all.mjs"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

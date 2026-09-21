@@ -24,6 +24,22 @@ Diretório centralizado de scripts de governança, testes e suporte operacional 
   node scripts/diagnose-db.mjs
   ```
 
+### 3. `scripts/backup-db.mjs` (Política de Máximo 2 Backups)
+- **Função**: Clona instantaneamente todas as tabelas no servidor PostgreSQL na VPS (`backup_slot_1` e `backup_slot_2`), aplicando rotação automática FIFO (limite estrito de 2 backups). Também salva dump JSON em `/backups` mantendo apenas os 2 mais recentes.
+- **Como executar**:
+  ```bash
+  node scripts/backup-db.mjs
+  ```
+
+### 4. `scripts/restore-db.mjs` (Restauração Atômica)
+- **Função**: Restaura o schema `public` a partir de um dos slots (`1` ou `2`) com transação atômica (`BEGIN`/`COMMIT`) e rollback automático caso ocorra qualquer erro.
+- **Como executar**:
+  ```bash
+  node scripts/restore-db.mjs 1
+  # ou
+  node scripts/restore-db.mjs 2
+  ```
+
 ---
 
 ## 🛠️ Utilitários Operacionais (`scripts/utils/`)

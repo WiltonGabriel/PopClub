@@ -28,7 +28,8 @@
 *.dump
 *.dump.json
 *dump*.json
-*backup*
+/backups/
+*.backup
 *.bak
 
 # Logs

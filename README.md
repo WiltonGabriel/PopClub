@@ -143,8 +143,32 @@ O projeto conta com ferramentas integradas de verificação, teste e manutençã
 | `npm run lint` | Executa a análise estática com o ESLint configurado para Next.js. |
 | `node scripts/smoke-test-all.mjs` | **Suíte oficial de CI/CD**: executa 18 testes ponta a ponta (Auth, Vitrine, Pedidos, Cupons). |
 | `node scripts/diagnose-db.mjs` | Diagnóstico de latência de rede, contagem de registros e verificação das rotas de API. |
+| `node scripts/backup-db.mjs` | **Backup de Segurança**: clona dados no servidor VPS (Slots 1 e 2, max 2 backups). |
+| `node scripts/restore-db.mjs <1\|2>` | **Restauração de Desastre**: recupera dados a partir de um dos slots com rollback atômico. |
 | `node scripts/utils/reset-admin.mjs` | Redefine ou reinjeta a senha do usuário Administrador oficial (`admin@popclub.com`). |
 | `node scripts/utils/transfer-db.mjs` | Utilitário relacional para exportação e importação de dados entre instâncias PostgreSQL. |
+
+### 🛡️ Política de Backup do Banco de Dados (Regra de Ouro)
+
+> [!WARNING]
+> **SEMPRE REALIZE UM BACKUP ANTES DE QUALQUER OPERAÇÃO CRÍTICA OU MIGRAÇÃO!**  
+> Para evitar perda de dados por falha humana, novas migrations ou refatorações estruturais, execute o backup preventivo.
+
+- **Limite Estrito de 2 Backups:** O sistema gerencia uma política de **retenção máxima de 2 backups** via rotação automática (FIFO):
+  - **No Servidor VPS (PostgreSQL):** Os dados são clonados em schemas dedicados (`backup_slot_1` e `backup_slot_2`). Ao executar um terceiro backup, o mais antigo é sobrescrito automaticamente.
+  - **Em Arquivo Local:** Gera e mantém no máximo 2 dumps JSON em `/backups` (apagando os mais antigos automaticamente).
+- **Criar Backup:**
+  ```bash
+  node scripts/backup-db.mjs
+  # ou via npm:
+  npm run db:backup
+  ```
+- **Restaurar Backup (caso algo dê errado):**
+  ```bash
+  node scripts/restore-db.mjs 1
+  # ou
+  node scripts/restore-db.mjs 2
+  ```
 
 > Detalhes adicionais sobre os utilitários estão disponíveis em [scripts/README.md](file:///home/wiltongx/Projetos/PastePopClub/PopClub/scripts/README.md).
 
