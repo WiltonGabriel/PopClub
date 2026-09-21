@@ -64,7 +64,12 @@ export async function proxy(request: NextRequest) {
     let isAuthorized = false;
     if (token) {
       const payload = await verifyJwtEdge(token, JWT_SECRET);
-      if (payload && payload.role === "admin") {
+      if (
+        payload &&
+        payload.role !== "client" &&
+        payload.role === "admin" &&
+        (payload as any).isRegistered !== false
+      ) {
         isAuthorized = true;
       }
     }

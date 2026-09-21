@@ -9,6 +9,7 @@ const verifyDeviceBodySchema = z.object({
   phone: phoneSchema,
   addressId: z.string().optional().nullable(),
   houseNumber: z.string().trim().optional().nullable(),
+  isNoNumber: z.boolean().optional().nullable(),
   updatedName: z.string().trim().optional().nullable(),
   newAddress: z
     .object({
@@ -26,13 +27,24 @@ const verifyDeviceBodySchema = z.object({
     .nullable(),
 });
 
-function normalizeHouseNumber(str: string): string {
-  return str
+function normalizeHouseNumber(str: string | null | undefined): string {
+  if (!str) return "sn";
+  const clean = str
     .trim()
     .toLowerCase()
     .replace(/^n[º°.]?\s*/i, "")
     .replace(/\s+/g, "");
+
+  if (["sn", "s/n", "s-n", "s.n.", "semnumero", "semnúmero", "0", ""].includes(clean)) {
+    return "sn";
+  }
+  return clean;
 }
+
+// Rastreador em memória de tentativas anti-brute force
+const attemptsMap = new Map<string, { count: number; lockedUntil: number }>();
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutos
 
 export async function POST(request: Request) {
   try {
@@ -52,7 +64,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: errorMsg }, { status: 400 });
     }
 
-    const { phone, addressId, houseNumber, updatedName, newAddress } = parsed.data;
+    const { phone, addressId, houseNumber, isNoNumber, updatedName, newAddress } = parsed.data;
 
     let isHttps = false;
     try {
@@ -93,7 +105,28 @@ export async function POST(request: Request) {
           isDefault: true,
         },
       });
-    } else if (addressId && houseNumber) {
+    } else if (addressId && (houseNumber || isNoNumber)) {
+      // Trava Anti-Brute Force (5 tentativas consecutivas)
+      const attemptKey = `${phone}:${addressId}`;
+      const now = Date.now();
+      const attemptRecord = attemptsMap.get(attemptKey);
+
+      if (attemptRecord && attemptRecord.count >= MAX_ATTEMPTS) {
+        if (now < attemptRecord.lockedUntil) {
+          return NextResponse.json(
+            {
+              error: "Limite de tentativas atingido. Por segurança, selecione 'Entregar em outro endereço' para preencher o local de entrega.",
+              code: "MAX_ATTEMPTS_EXCEEDED",
+              locked: true,
+              attemptsLeft: 0,
+            },
+            { status: 429 }
+          );
+        } else {
+          attemptsMap.delete(attemptKey);
+        }
+      }
+
       // Confirmação do número residencial do endereço cadastrado
       const existingLocation = await prisma.userLocation.findFirst({
         where: { id: addressId, userId: user.id },
@@ -107,18 +140,41 @@ export async function POST(request: Request) {
       }
 
       const expectedNumber = normalizeHouseNumber(existingLocation.number);
-      const providedNumber = normalizeHouseNumber(houseNumber);
+      const providedNumber = isNoNumber ? "sn" : normalizeHouseNumber(houseNumber);
 
       if (expectedNumber !== providedNumber) {
+        const currentCount = (attemptsMap.get(attemptKey)?.count || 0) + 1;
+        attemptsMap.set(attemptKey, {
+          count: currentCount,
+          lockedUntil: now + LOCKOUT_DURATION_MS,
+        });
+
+        const attemptsLeft = Math.max(0, MAX_ATTEMPTS - currentCount);
+
+        if (currentCount >= MAX_ATTEMPTS) {
+          return NextResponse.json(
+            {
+              error: "Limite de tentativas atingido. Por segurança, selecione 'Entregar em outro endereço' para preencher o local de entrega.",
+              code: "MAX_ATTEMPTS_EXCEEDED",
+              locked: true,
+              attemptsLeft: 0,
+            },
+            { status: 429 }
+          );
+        }
+
         return NextResponse.json(
           {
-            error: "Número residencial incorreto para este endereço. Por favor, verifique ou opte por entregar em outro endereço.",
+            error: `Número residencial incorreto para este endereço. Tentativas restantes: ${attemptsLeft}.`,
             code: "INVALID_HOUSE_NUMBER",
+            attemptsLeft,
           },
           { status: 400 }
         );
       }
 
+      // Sucesso na validação: limpa o contador de erros
+      attemptsMap.delete(attemptKey);
       verifiedAddress = existingLocation;
     } else {
       return NextResponse.json(

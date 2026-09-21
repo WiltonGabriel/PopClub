@@ -105,27 +105,37 @@ export async function POST(request: Request) {
       return response;
     }
 
-    // 2. Cliente existente: verifica se possui endereço salvo para proteção de novo aparelho
-    const primaryLocation = existingUser.locations[0];
-    if (primaryLocation && primaryLocation.number && primaryLocation.number.trim().length > 0) {
-      // Retorna endereço com número residencial censurado (sem emitir cookie de sessão ainda)
-      return NextResponse.json({
-        status: "new_device_detected",
-        maskedAddress: {
-          addressId: primaryLocation.id,
-          street: primaryLocation.street,
-          neighborhood: primaryLocation.neighborhood,
-          city: primaryLocation.city,
-          complement: primaryLocation.complement || null,
-          reference: primaryLocation.reference || null,
-        },
-        maskedPrompt: true,
-        phone,
-        existingName: existingUser.fullName || existingUser.username || null,
-      });
+    // Se o pedido for Retirada no Balcão: BYPASS DE SEGURANÇA (não exige endereço nem número residencial)
+    const isPickup = Boolean(
+      body?.isPickup ||
+      body?.isTakeout ||
+      body?.orderType === "retirada" ||
+      body?.deliveryType === "retirada"
+    );
+
+    // 2. Cliente existente com Entrega: verifica se possui endereço salvo para proteção de novo aparelho
+    if (!isPickup) {
+      const primaryLocation = existingUser.locations[0];
+      if (primaryLocation && primaryLocation.number && primaryLocation.number.trim().length > 0) {
+        // Retorna endereço com número residencial censurado (sem emitir cookie de sessão ainda)
+        return NextResponse.json({
+          status: "new_device_detected",
+          maskedAddress: {
+            addressId: primaryLocation.id,
+            street: primaryLocation.street,
+            neighborhood: primaryLocation.neighborhood,
+            city: primaryLocation.city,
+            complement: primaryLocation.complement || null,
+            reference: primaryLocation.reference || null,
+          },
+          maskedPrompt: true,
+          phone,
+          existingName: existingUser.fullName || existingUser.username || null,
+        });
+      }
     }
 
-    // 3. Cliente existente sem endereço salvo: autentica direto e atualiza nome se necessário
+    // 3. Cliente existente sem endereço salvo ou retirada: autentica direto e atualiza nome se necessário
     if (fullName && fullName !== existingUser.fullName) {
       await prisma.user.update({
         where: { id: existingUser.id },

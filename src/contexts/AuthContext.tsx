@@ -36,6 +36,7 @@ interface AuthContextType {
     phone: string;
     houseNumber?: string;
     addressId?: string;
+    isNoNumber?: boolean;
     updatedName?: string;
     newAddress?: any;
   }) => Promise<any>;
@@ -109,6 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     phone: string;
     houseNumber?: string;
     addressId?: string;
+    isNoNumber?: boolean;
     updatedName?: string;
     newAddress?: any;
   }) => {

@@ -119,7 +119,12 @@ export function OrderDispatchDialog({
 
   const handleSendWhatsApp = () => {
     if (!dispatchedData?.trackingUrl) return;
-    const cleanPhone = courierPhone.replace(/\D/g, "");
+    const rawDigits = courierPhone.replace(/\D/g, "");
+    const phoneNo55 = rawDigits.startsWith("55") && (rawDigits.length === 12 || rawDigits.length === 13)
+      ? rawDigits.slice(2)
+      : rawDigits;
+    const finalPhone = rawDigits ? `55${phoneNo55}` : null;
+
     const message = encodeURIComponent(
       `🍧 *Pop Shake Sorveteria — Nova Entrega*\n\n` +
         `Olá! Você foi escalado para entregar o pedido *#${order.id.substring(0, 6)}*.\n\n` +
@@ -130,8 +135,8 @@ export function OrderDispatchDialog({
         `Bom trabalho e dirija com segurança!`
     );
 
-    const waUrl = cleanPhone
-      ? `https://wa.me/${cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`}?text=${message}`
+    const waUrl = finalPhone
+      ? `https://wa.me/${finalPhone}?text=${message}`
       : `https://api.whatsapp.com/send?text=${message}`;
 
     window.open(waUrl, "_blank");

@@ -57,45 +57,142 @@ export const fullNameSchema = z
   });
 
 /**
+ * Sanitiza e auto-corrige o número de telefone para o padrão brasileiro:
+ * - Remove caracteres não numéricos (\D)
+ * - DDI: se começar com 55 e tiver 12 ou 13 dígitos, remove o prefixo 55
+ * - Caso 10 dígitos (DDD + 8 dígitos): auto-corrija inserindo o 9 logo após o DDD (normaliza para 11 dígitos)
+ */
+export function sanitizeAndNormalizePhone(val: string): string {
+  if (typeof val !== "string") return "";
+  let digits = val.replace(/\D/g, "");
+
+  // Tratamento de DDI: Se começar com 55 e tiver 12 ou 13 dígitos, remove o prefixo 55
+  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) {
+    digits = digits.substring(2);
+  }
+
+  // Caso 10 dígitos (DDD + 8 dígitos): Auto-corrija inserindo o 9 logo após o DDD
+  if (digits.length === 10) {
+    const ddd = digits.substring(0, 2);
+    const body = digits.substring(2);
+    digits = `${ddd}9${body}`;
+  }
+
+  return digits;
+}
+
+/**
  * Sanitiza e valida o telefone/WhatsApp brasileiro:
  * - Extrai estritamente os dígitos numéricos
- * - Exige exatamente 11 dígitos
- * - DDD válido no Brasil (rejeita 00, 01, 10, etc.)
+ * - DDI: se começar com 55 e tiver 12 ou 13 dígitos, remove o prefixo 55
+ * - Caso 10 dígitos (DDD + 8 dígitos): auto-corrija inserindo o 9 logo após o DDD: DDD + "9" + 8_dígitos
+ * - Caso menos de 10 dígitos (Faltou DDD): rejeita com mensagem orientando DDD
+ * - Valida DDD brasileiro (11 a 99)
  * - 3º dígito obrigatoriamente '9' (celular padrão nacional)
  * - Rejeita números com todos os dígitos iguais (ex: 11111111111, 00000000000)
  * - Rejeita números com sequência repetida no corpo (ex: 11999999999)
+ * - Saída no banco: SEMPRE persistido no formato normalizado de 11 dígitos (XX9XXXXXXXX)
  */
 export const phoneSchema = z
   .string()
-  .transform((val) => (typeof val === "string" ? val.replace(/\D/g, "") : ""))
-  .refine((val) => val.length === 11, {
-    message: "O WhatsApp deve conter DDD + 9 dígitos (ex: 65999887766).",
-  })
-  .refine(
-    (val) => {
-      const ddd = parseInt(val.substring(0, 2), 10);
-      return VALID_BRAZILIAN_DDDS.has(ddd);
-    },
-    {
-      message: "DDD informado é inválido no Brasil.",
+  .superRefine((val, ctx) => {
+    if (typeof val !== "string") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Telefone deve ser uma string.",
+      });
+      return;
     }
-  )
-  .refine((val) => val.charAt(2) === "9", {
-    message: "O número de celular deve iniciar com o dígito 9 após o DDD.",
-  })
-  .refine(
-    (val) => {
-      // Rejeita todos os 11 dígitos iguais: 00000000000, 11111111111, etc.
-      if (/^(\d)\1{10}$/.test(val)) return false;
-      // Rejeita celular com corpo de 9 dígitos todos iguais: ex 11999999999, 65988888888
-      const body = val.substring(2);
-      if (/^(\d)\1{8}$/.test(body)) return false;
-      return true;
-    },
-    {
-      message: "Por favor, informe um número de telefone real e válido.",
+    const cleanDigits = val.replace(/\D/g, "");
+    let working = cleanDigits;
+    if (working.startsWith("55") && (working.length === 12 || working.length === 13)) {
+      working = working.substring(2);
     }
-  );
+    // Caso menos de 10 dígitos (Faltou DDD)
+    if (working.length < 10) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Por favor, inclua o DDD com 2 dígitos antes do número (ex: 65, 11).",
+      });
+      return;
+    }
+    // Auto-correção de 10 dígitos para verificação das regras seguintes
+    if (working.length === 10) {
+      working = `${working.substring(0, 2)}9${working.substring(2)}`;
+    }
+    if (working.length !== 11) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "O WhatsApp deve conter DDD + 9 dígitos (ex: 65999887766).",
+      });
+      return;
+    }
+    // Rejeita todos os 11 dígitos iguais: 00000000000, 11111111111, etc.
+    if (/^(\d)\1{10}$/.test(working)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Por favor, informe um número de telefone real e válido.",
+      });
+      return;
+    }
+    // Rejeita celular com corpo de 9 dígitos todos iguais: ex 11999999999, 65988888888
+    const body = working.substring(2);
+    if (/^(\d)\1{8}$/.test(body)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Por favor, informe um número de telefone real e válido.",
+      });
+      return;
+    }
+    const ddd = parseInt(working.substring(0, 2), 10);
+    if (!VALID_BRAZILIAN_DDDS.has(ddd)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "DDD informado é inválido no Brasil.",
+      });
+      return;
+    }
+    if (working.charAt(2) !== "9") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "O número de celular deve iniciar com o dígito 9 após o DDD.",
+      });
+      return;
+    }
+  })
+  .transform((val) => sanitizeAndNormalizePhone(val));
+
+/**
+ * Validação de troco para pagamentos em dinheiro
+ */
+export function validateCashChange(
+  paymentMethodType: string,
+  changeFor: number | null | undefined,
+  totalAmount: number
+): { valid: boolean; error?: string; changeToReturn?: number } {
+  if (paymentMethodType !== "dinheiro" && paymentMethodType !== "cash") {
+    return { valid: true };
+  }
+
+  if (changeFor === null || changeFor === undefined) {
+    return { valid: true, changeToReturn: 0 };
+  }
+
+  const numChangeFor = Number(changeFor);
+  if (isNaN(numChangeFor) || numChangeFor <= 0) {
+    return { valid: false, error: "O valor para troco deve ser um número válido." };
+  }
+
+  if (numChangeFor < totalAmount) {
+    return {
+      valid: false,
+      error: "O valor para troco deve ser maior que o total do pedido.",
+    };
+  }
+
+  const changeToReturn = Number((numChangeFor - totalAmount).toFixed(2));
+  return { valid: true, changeToReturn };
+}
 
 /**
  * Validação estrita de e-mail para completar cadastro:

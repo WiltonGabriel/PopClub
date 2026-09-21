@@ -22,6 +22,7 @@ import {
   Sparkles,
   RefreshCw,
   Navigation,
+  User,
 } from "lucide-react";
 import { useCart } from "../../hooks/useCart";
 import { useAuth } from "../../hooks/useAuth";
@@ -38,12 +39,12 @@ import { playDingSound, initAudioUnlock } from "../../lib/sound";
 import { NotificationPermissionBanner } from "../../components/storefront/NotificationPermissionBanner";
 import { ResilientErrorAlert } from "../../components/ui/ResilientErrorAlert";
 import { AppApiError } from "@/lib/fetchClient";
-import { FastAccessModal } from "@/components/auth/FastAccessModal";
+import { FastAccessModal, formatPhoneInput } from "@/components/auth/FastAccessModal";
 import { CompleteRegistrationModal } from "@/components/auth/CompleteRegistrationModal";
 
 export default function CarrinhoPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, fastAccess, signOut } = useAuth();
   const { trackGuestOrder } = useOrders();
   const {
     items,
@@ -67,6 +68,12 @@ export default function CarrinhoPage() {
   // Modais de Autenticação Progressiva
   const [isFastAccessModalOpen, setIsFastAccessModalOpen] = useState(false);
   const [isCompleteRegModalOpen, setIsCompleteRegModalOpen] = useState(false);
+
+  // Identificação Inline no Topo do Checkout (Acesso Rápido)
+  const [inlineName, setInlineName] = useState("");
+  const [inlinePhone, setInlinePhone] = useState("");
+  const [inlineLoading, setInlineLoading] = useState(false);
+  const [inlineError, setInlineError] = useState<string | null>(null);
 
   // Configuração de entrega da loja
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
@@ -452,8 +459,26 @@ export default function CarrinhoPage() {
 
     // Bloqueio estrito de compras anônimas: exige autenticação via Acesso Rápido
     if (!user) {
-      setIsFastAccessModalOpen(true);
-      return;
+      const cleanPhone = inlinePhone.replace(/\D/g, "");
+      if (inlineName.trim().length >= 3 && cleanPhone.length >= 10) {
+        try {
+          setInlineLoading(true);
+          const res = await fastAccess(inlineName.trim(), cleanPhone);
+          if (res.status === "new_device_detected") {
+            setIsFastAccessModalOpen(true);
+            return;
+          }
+        } catch (err: any) {
+          setInlineError(err.message || "Erro ao conectar.");
+          setIsFastAccessModalOpen(true);
+          return;
+        } finally {
+          setInlineLoading(false);
+        }
+      } else {
+        setIsFastAccessModalOpen(true);
+        return;
+      }
     }
 
     if (storeSettings && !storeSettings.isOpen) {
@@ -694,7 +719,139 @@ export default function CarrinhoPage() {
           </div>
         ) : (
           <>
-            {/* 1. Lista de Itens */}
+            {/* 1. Identificação (Acesso Rápido) */}
+            <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-[#512B54]/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+              {!user ? (
+                <>
+                  <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+                    <h3 className="font-heading text-base sm:text-lg font-bold uppercase tracking-wide flex items-center gap-2.5 text-foreground">
+                      <div className="w-8 h-8 rounded-xl bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <span>1. Identificação (Acesso Rápido)</span>
+                    </h3>
+                    <span className="text-[11px] font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-800/40">
+                      Obrigatório
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    Informe seu WhatsApp para contato direto da loja caso haja dúvidas na entrega.
+                  </p>
+
+                  {inlineError && (
+                    <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-300 text-xs flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                      <span>{inlineError}</span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div className="space-y-1.5">
+                      <Label className="font-mono text-xs uppercase text-muted-foreground">
+                        Nome Completo *
+                      </Label>
+                      <Input
+                        value={inlineName}
+                        onChange={(e) => {
+                          setInlineName(e.target.value);
+                          if (inlineError) setInlineError(null);
+                        }}
+                        placeholder="Ex: João da Silva"
+                        className="rounded-xl border border-input text-base md:text-sm h-11 px-3"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="font-mono text-xs uppercase text-muted-foreground">
+                        Celular / WhatsApp *
+                      </Label>
+                      <Input
+                        value={inlinePhone}
+                        onChange={(e) => {
+                          setInlinePhone(formatPhoneInput(e.target.value));
+                          if (inlineError) setInlineError(null);
+                        }}
+                        placeholder="(65) 99999-9999"
+                        className="rounded-xl border border-input text-base md:text-sm h-11 px-3 font-mono"
+                        required
+                      />
+                      <span className="text-[10px] text-muted-foreground block">
+                        Inclua o DDD com 2 dígitos antes do número (ex: 65, 11).
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-gray-100 dark:border-[#512B54]/30">
+                    <Link
+                      href="/login?tab=password"
+                      className="text-xs text-[#9306CF] dark:text-[#C7A9C9] font-medium hover:underline flex items-center gap-1"
+                    >
+                      Já tem cadastro completo? <span className="font-bold underline">Entrar com senha</span>
+                    </Link>
+
+                    {inlineName.trim().length >= 3 && inlinePhone.replace(/\D/g, "").length >= 10 && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={async () => {
+                          setInlineError(null);
+                          setInlineLoading(true);
+                          try {
+                            const clean = inlinePhone.replace(/\D/g, "");
+                            const res = await fastAccess(inlineName.trim(), clean);
+                            if (res.status === "new_device_detected") {
+                              setIsFastAccessModalOpen(true);
+                            }
+                          } catch (err: any) {
+                            setInlineError(err.message || "Erro ao conectar.");
+                          } finally {
+                            setInlineLoading(false);
+                          }
+                        }}
+                        disabled={inlineLoading}
+                        className="rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] text-white text-xs font-bold px-4 h-9 shadow-sm cursor-pointer"
+                      >
+                        {inlineLoading ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          "Confirmar Identificação"
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="font-heading font-bold text-xs sm:text-sm text-foreground block">
+                        Identificado como: {user.fullName || user.username || "Cliente"}
+                      </span>
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {user.phone ? formatPhoneInput(user.phone) : (user.email || "WhatsApp cadastrado")}
+                      </span>
+                    </div>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => signOut()}
+                    className="rounded-xl text-xs font-bold h-8 px-3 border-gray-200 dark:border-[#512B54]/40 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 cursor-pointer"
+                  >
+                    Trocar
+                  </Button>
+                </div>
+              )}
+            </section>
+
+            {/* 2. Lista de Itens */}
             <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-[#512B54]/40 rounded-3xl p-4 sm:p-6 shadow-sm space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
                 <h2 className="font-heading text-base sm:text-lg font-bold uppercase tracking-wide flex items-center gap-2 text-foreground">

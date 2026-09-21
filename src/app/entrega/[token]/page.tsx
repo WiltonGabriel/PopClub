@@ -20,6 +20,9 @@ import {
   Radio,
   Loader2,
   Sparkles,
+  Sun,
+  Moon,
+  Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -48,7 +51,9 @@ interface DeliveryDetails {
   payment: {
     type: string;
     changeFor?: number | null;
+    changeToReturn?: number | null;
     total: number;
+    isPaid?: boolean;
   };
   items: {
     id: string;
@@ -73,6 +78,24 @@ export default function CourierDeliveryPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Alternador de Tema (Modo Claro para luz solar forte / Modo Escuro)
+  const [isLightMode, setIsLightMode] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("popshake_courier_theme") === "light";
+    }
+    return false;
+  });
+
+  const toggleTheme = () => {
+    setIsLightMode((prev) => {
+      const next = !prev;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("popshake_courier_theme", next ? "light" : "dark");
+      }
+      return next;
+    });
+  };
+
   // Estados de Rastreamento GPS
   const [isTracking, setIsTracking] = useState(false);
   const [lastSentTime, setLastSentTime] = useState<string | null>(null);
@@ -81,11 +104,12 @@ export default function CourierDeliveryPage({
   const watchIdRef = useRef<number | null>(null);
   const lastUpdateTimestampRef = useRef<number>(0);
 
-  // Estados de Conclusão da Entrega
+  // Estados de Conclusão e Compartilhamento
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [isCompletedSuccess, setIsCompletedSuccess] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(false);
+  const [copiedDeliveryLink, setCopiedDeliveryLink] = useState(false);
 
   // Carrega dados da entrega
   const fetchDelivery = async () => {
@@ -166,7 +190,6 @@ export default function CourierDeliveryPage({
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         const now = Date.now();
-        // Limita o envio a no máximo 1 vez a cada 10 segundos para economizar bateria e rede
         if (now - lastUpdateTimestampRef.current >= 10000) {
           lastUpdateTimestampRef.current = now;
           sendCoordinates(
@@ -231,9 +254,22 @@ export default function CourierDeliveryPage({
     }
   };
 
+  // Copia link da entrega
+  const handleCopyDeliveryLink = async () => {
+    try {
+      const url = typeof window !== "undefined" ? window.location.href : "";
+      if (!url) return;
+      await navigator.clipboard.writeText(url);
+      setCopiedDeliveryLink(true);
+      setTimeout(() => setCopiedDeliveryLink(false), 2500);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#190B1A] text-white flex flex-col items-center justify-center p-6 space-y-4">
+      <div className={`min-h-screen ${isLightMode ? "bg-slate-100 text-slate-800" : "bg-[#190B1A] text-white"} flex flex-col items-center justify-center p-6 space-y-4`}>
         <Loader2 className="w-10 h-10 text-[#9306CF] animate-spin" />
         <p className="font-mono text-xs uppercase tracking-widest text-gray-400">
           Carregando dados da rota...
@@ -244,7 +280,7 @@ export default function CourierDeliveryPage({
 
   if (error || !delivery) {
     return (
-      <div className="min-h-screen bg-[#190B1A] text-white flex flex-col items-center justify-center p-6 text-center space-y-4">
+      <div className={`min-h-screen ${isLightMode ? "bg-slate-100 text-slate-800" : "bg-[#190B1A] text-white"} flex flex-col items-center justify-center p-6 text-center space-y-4`}>
         <div className="w-16 h-16 rounded-2xl bg-red-950/60 border border-red-500/40 flex items-center justify-center text-red-400">
           <AlertTriangle className="w-8 h-8" />
         </div>
@@ -265,9 +301,7 @@ export default function CourierDeliveryPage({
   const destLng = deliveryAddress.longitude;
 
   // URLs diretas para navegação GPS nativa no celular
-  const googleMapsUrl = destLat && destLng
-    ? `https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}`
-    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
+  const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}`;
 
   const wazeUrl = destLat && destLng
     ? `https://www.waze.com/ul?ll=${destLat},${destLng}&navigate=yes`
@@ -279,31 +313,123 @@ export default function CourierDeliveryPage({
     setTimeout(() => setCopiedAddress(false), 2500);
   };
 
+  // WhatsApp Sanitizado com encodeURIComponent
+  const getClientWhatsAppUrl = () => {
+    if (!client.phone) return "#";
+    const rawDigits = client.phone.replace(/\D/g, "");
+    const digitsNo55 = rawDigits.startsWith("55") && (rawDigits.length === 12 || rawDigits.length === 13)
+      ? rawDigits.slice(2)
+      : rawDigits;
+    const finalPhone = `55${digitsNo55}`;
+
+    const shortId = delivery.orderId.substring(0, 6);
+    const message = `🍧 *Pop Shake Sorveteria — Entrega do Pedido #${shortId}*\n\n` +
+      `Olá, *${client.name}*!\n` +
+      `Sou o entregador da Pop Shake e estou a caminho com o seu pedido.\n\n` +
+      `📍 *Endereço:* ${deliveryAddress.street}, ${deliveryAddress.number} - ${deliveryAddress.neighborhood}\n` +
+      (deliveryAddress.complement ? `🏢 *Complemento:* ${deliveryAddress.complement}\n` : "") +
+      (deliveryAddress.reference ? `🔍 *Referência:* ${deliveryAddress.reference}\n` : "") +
+      `\nQualquer dúvida ou ponto de referência estou à disposição! 🛵💨`;
+
+    return `https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`;
+  };
+
+  // Status de Cobrança
+  const isPaidOnline = payment.type === "online" || payment.type === "pix_online" || payment.type === "pago" || payment.isPaid === true;
+  const isCash = payment.type === "dinheiro";
+  const isCard = payment.type === "cartao_maquininha";
+  const isPixDelivery = payment.type === "pix_entrega";
+
+  const changeFor = payment.changeFor || null;
+  const changeToReturn = payment.changeToReturn || (changeFor ? Math.max(0, changeFor - payment.total) : null);
+
+  // Classes do tema
+  const pageBgClass = isLightMode ? "bg-slate-100 text-slate-900" : "bg-[#120613] text-gray-100";
+  const headerBgClass = isLightMode ? "bg-white border-slate-200 text-slate-900" : "bg-[#1F0B22] border-[#512B54]/40 text-white";
+  const cardBgClass = isLightMode ? "bg-white border-slate-200 shadow-md text-slate-900" : "bg-[#1D0C20] border-[#512B54]/50 shadow-xl text-gray-100";
+  const mutedTextClass = isLightMode ? "text-slate-500" : "text-gray-400";
+  const headingTextClass = isLightMode ? "text-slate-900" : "text-white";
+
   return (
-    <div className="min-h-screen bg-[#120613] text-gray-100 flex flex-col selection:bg-[#9306CF]/30 pb-safe">
+    <div className={`min-h-screen ${pageBgClass} flex flex-col selection:bg-[#9306CF]/30 pb-safe transition-colors duration-200`}>
       {/* Top Header */}
-      <header className="w-full bg-[#1F0B22] border-b border-[#512B54]/40 px-4 py-3 sticky top-0 z-30 flex items-center justify-between shadow-lg">
+      <header className={`w-full ${headerBgClass} border-b px-4 py-3 sticky top-0 z-30 flex items-center justify-between shadow-lg`}>
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#9306CF] to-[#940068] flex items-center justify-center text-white shadow-sm shadow-[#9306CF]/30 font-bold text-lg">
             🍧
           </div>
           <div>
-            <span className="font-heading font-black text-sm tracking-tight text-white block leading-none">
-              Pop<span className="text-[#C7A9C9]">Shake</span>
+            <span className={`font-heading font-black text-sm tracking-tight ${headingTextClass} block leading-none`}>
+              Pop<span className="text-[#9306CF] dark:text-[#C7A9C9]">Shake</span>
             </span>
-            <span className="font-mono text-[9px] uppercase tracking-wider text-emerald-400 font-bold">
+            <span className="font-mono text-[9px] uppercase tracking-wider text-emerald-500 dark:text-emerald-400 font-bold">
               Área do Entregador
             </span>
           </div>
         </div>
 
-        <span className="font-mono text-xs font-bold bg-white/10 px-2.5 py-1 rounded-lg text-[#C7A9C9] border border-white/10">
-          #{delivery.orderId.substring(0, 6)}
-        </span>
+        <div className="flex items-center gap-2">
+          {/* Alternador de Tema: Sol (Modo Claro sob luz solar forte) / Lua */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={isLightMode ? "Ativar Modo Escuro" : "Ativar Modo Claro sob luz do Sol"}
+            className={`p-2 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
+              isLightMode
+                ? "bg-amber-100 border-amber-300 text-amber-900 hover:bg-amber-200"
+                : "bg-white/10 border-white/10 text-amber-300 hover:bg-white/20"
+            }`}
+          >
+            {isLightMode ? (
+              <>
+                <Sun className="w-4 h-4 text-amber-600 fill-amber-500" />
+                <span className="hidden sm:inline text-[11px]">Modo Sol</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-4 h-4 text-purple-300" />
+                <span className="hidden sm:inline text-[11px]">Modo Escuro</span>
+              </>
+            )}
+          </button>
+
+          <span className={`font-mono text-xs font-bold px-2.5 py-1 rounded-lg border ${
+            isLightMode ? "bg-slate-100 text-slate-800 border-slate-300" : "bg-white/10 text-[#C7A9C9] border-white/10"
+          }`}>
+            #{delivery.orderId.substring(0, 6)}
+          </span>
+        </div>
       </header>
 
       {/* Conteúdo Principal */}
       <main className="flex-1 max-w-lg w-full mx-auto p-4 space-y-4">
+        {/* Barra Rápida de Ações (Copiar Link de Entrega) */}
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={handleCopyDeliveryLink}
+            className={`flex-1 h-11 px-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98 ${
+              copiedDeliveryLink
+                ? "bg-emerald-600 text-white border-emerald-600 shadow-md"
+                : isLightMode
+                ? "bg-white border-slate-300 text-slate-700 hover:bg-slate-50 shadow-sm"
+                : "bg-[#1D0C20] border-[#512B54]/60 text-gray-200 hover:bg-[#25102a]"
+            }`}
+          >
+            {copiedDeliveryLink ? (
+              <>
+                <Check className="w-4 h-4" />
+                <span>✅ Link Copiado!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4 text-[#9306CF]" />
+                <span>📋 Copiar Link de Entrega</span>
+              </>
+            )}
+          </button>
+        </div>
+
         {/* Banner de Status Concluído */}
         {isCompletedSuccess ? (
           <div className="bg-emerald-950/60 border-2 border-emerald-500/50 rounded-3xl p-6 text-center space-y-3 animate-in zoom-in-95 duration-200">
@@ -319,21 +445,88 @@ export default function CourierDeliveryPage({
           </div>
         ) : (
           <>
+            {/* Bloco Destaque Visual de Cobrança (Prevenção de Erros de Caixa) */}
+            {isPaidOnline ? (
+              <div className="rounded-3xl p-5 border-2 border-emerald-500 bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 shadow-lg space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xl shrink-0 shadow">
+                    ✓
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono uppercase tracking-wider block font-bold text-emerald-600 dark:text-emerald-400">
+                      Status Financeiro
+                    </span>
+                    <h3 className="font-heading text-base sm:text-lg font-black uppercase text-emerald-700 dark:text-emerald-300">
+                      ✅ JÁ PAGO ONLINE
+                    </h3>
+                    <p className="text-xs font-bold text-emerald-800 dark:text-emerald-200">
+                      NÃO COBRAR NADA DO CLIENTE
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-3xl p-5 border-2 border-amber-500 bg-amber-500/15 text-amber-900 dark:text-amber-200 shadow-lg space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500 text-black flex items-center justify-center font-bold text-xl shrink-0 shadow">
+                    ⚠️
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-[10px] font-mono uppercase tracking-wider block font-bold text-amber-700 dark:text-amber-400">
+                      Cobrança Obrigatória na Entrega
+                    </span>
+                    <h3 className="font-heading text-lg sm:text-xl font-black uppercase text-amber-800 dark:text-amber-300">
+                      COBRAR R$ {payment.total.toFixed(2).replace(".", ",")}
+                    </h3>
+                    <p className="text-xs font-semibold text-amber-900 dark:text-amber-200 pt-0.5">
+                      Receber via:{" "}
+                      <strong className="uppercase underline">
+                        {isCash ? "Dinheiro" : isCard ? "Cartão / Maquininha" : "PIX na Entrega"}
+                      </strong>
+                    </p>
+                  </div>
+                </div>
+
+                {isCash && changeFor && (
+                  <div className={`rounded-2xl p-3.5 space-y-2 text-xs border ${
+                    isLightMode ? "bg-white/90 border-amber-300 text-slate-800" : "bg-black/40 border-amber-400/30 text-gray-200"
+                  }`}>
+                    <div className="flex justify-between items-center">
+                      <span className={mutedTextClass}>Cliente vai entregar:</span>
+                      <strong className="font-mono text-sm">
+                        R$ {changeFor.toFixed(2).replace(".", ",")}
+                      </strong>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className={mutedTextClass}>Valor do Pedido:</span>
+                      <span className="font-mono">R$ {payment.total.toFixed(2).replace(".", ",")}</span>
+                    </div>
+                    <div className="pt-2 border-t border-amber-400/30 flex justify-between items-center text-sm font-black text-amber-800 dark:text-amber-300">
+                      <span>💰 LEVAR DE TROCO:</span>
+                      <span className="font-mono text-base bg-amber-500 text-black px-2.5 py-0.5 rounded-lg shadow-sm">
+                        R$ {changeToReturn?.toFixed(2).replace(".", ",")}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Bloco 1: Controle de GPS ao Vivo */}
-            <section className="bg-[#1D0C20] border border-[#512B54]/50 rounded-3xl p-4 sm:p-5 shadow-xl space-y-4">
+            <section className={`${cardBgClass} rounded-3xl p-4 sm:p-5 space-y-4`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div
                     className={`w-3 h-3 rounded-full ${
-                      isTracking ? "bg-emerald-500 animate-ping" : "bg-gray-500"
+                      isTracking ? "bg-emerald-500 animate-ping" : "bg-gray-400"
                     }`}
                   />
-                  <span className="font-heading font-bold text-xs uppercase tracking-wider text-gray-200">
+                  <span className={`font-heading font-bold text-xs uppercase tracking-wider ${headingTextClass}`}>
                     {isTracking ? "GPS Ativo em Tempo Real" : "GPS Não Transmitindo"}
                   </span>
                 </div>
                 {isTracking && (
-                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-800/60 flex items-center gap-1">
+                  <span className="text-[10px] font-mono text-emerald-500 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1 font-bold">
                     <Radio className="w-3 h-3 animate-pulse" />
                     Ao Vivo
                   </span>
@@ -348,15 +541,17 @@ export default function CourierDeliveryPage({
               )}
 
               {isTracking && lastSentTime && (
-                <div className="text-[11px] text-gray-300 bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-1 font-mono">
+                <div className={`text-[11px] p-2.5 rounded-xl border space-y-1 font-mono ${
+                  isLightMode ? "bg-slate-50 border-slate-200 text-slate-700" : "bg-black/40 border-white/5 text-gray-300"
+                }`}>
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Última atualização:</span>
-                    <strong className="text-emerald-400">{lastSentTime}</strong>
+                    <span className={mutedTextClass}>Última atualização:</span>
+                    <strong className="text-emerald-600 dark:text-emerald-400">{lastSentTime}</strong>
                   </div>
                   {lastAccuracy !== null && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Precisão do GPS:</span>
-                      <span className="text-gray-200">± {lastAccuracy} metros</span>
+                      <span className={mutedTextClass}>Precisão do GPS:</span>
+                      <span className={headingTextClass}>± {lastAccuracy} metros</span>
                     </div>
                   )}
                 </div>
@@ -375,43 +570,51 @@ export default function CourierDeliveryPage({
                 <Button
                   onClick={stopTracking}
                   variant="outline"
-                  className="w-full h-11 rounded-2xl border-amber-500/40 text-amber-300 hover:bg-amber-950/30 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full h-11 rounded-2xl border-amber-500/40 text-amber-600 dark:text-amber-300 hover:bg-amber-500/10 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Pausar Envio de GPS</span>
                 </Button>
               )}
             </section>
 
-            {/* Bloco 2: Atalhos para Navegação por GPS Nativo */}
+            {/* Bloco 2: Navegação Nativa por GPS */}
             <div className="grid grid-cols-2 gap-3">
               <a
                 href={googleMapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="h-12 rounded-2xl bg-[#1D0C20] border border-[#512B54]/60 hover:border-[#9306CF] p-3 flex items-center justify-center gap-2 text-xs font-bold text-gray-200 shadow-md transition-all active:scale-95 cursor-pointer"
+                className={`h-12 rounded-2xl border p-3 flex items-center justify-center gap-2 text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer ${
+                  isLightMode
+                    ? "bg-white border-slate-200 hover:border-[#9306CF] text-slate-800"
+                    : "bg-[#1D0C20] border-[#512B54]/60 hover:border-[#9306CF] text-gray-200"
+                }`}
               >
-                <MapPin className="w-4 h-4 text-rose-400" />
-                <span>Google Maps</span>
+                <MapPin className="w-4 h-4 text-rose-500" />
+                <span>Abrir no GPS</span>
               </a>
 
               <a
                 href={wazeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="h-12 rounded-2xl bg-[#1D0C20] border border-[#512B54]/60 hover:border-[#9306CF] p-3 flex items-center justify-center gap-2 text-xs font-bold text-gray-200 shadow-md transition-all active:scale-95 cursor-pointer"
+                className={`h-12 rounded-2xl border p-3 flex items-center justify-center gap-2 text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer ${
+                  isLightMode
+                    ? "bg-white border-slate-200 hover:border-[#9306CF] text-slate-800"
+                    : "bg-[#1D0C20] border-[#512B54]/60 hover:border-[#9306CF] text-gray-200"
+                }`}
               >
-                <Navigation className="w-4 h-4 text-cyan-400" />
+                <Navigation className="w-4 h-4 text-cyan-500" />
                 <span>Waze</span>
               </a>
             </div>
 
             {/* Bloco 3: Dados do Cliente e Endereço */}
-            <section className="bg-[#1D0C20] border border-[#512B54]/50 rounded-3xl p-4 sm:p-5 shadow-xl space-y-3">
-              <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
-                <span className="text-[10px] font-mono uppercase text-gray-400 tracking-wider">
+            <section className={`${cardBgClass} rounded-3xl p-4 sm:p-5 space-y-3`}>
+              <div className="flex items-center justify-between border-b border-border/40 pb-2.5">
+                <span className={`text-[10px] font-mono uppercase tracking-wider ${mutedTextClass}`}>
                   Destinatário
                 </span>
-                <strong className="text-sm font-heading font-bold text-white">
+                <strong className={`text-sm font-heading font-bold ${headingTextClass}`}>
                   {client.name}
                 </strong>
               </div>
@@ -421,37 +624,43 @@ export default function CourierDeliveryPage({
                 <div className="grid grid-cols-2 gap-2 pt-1">
                   <a
                     href={`tel:${client.phone}`}
-                    className="h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold flex items-center justify-center gap-1.5 text-gray-200 transition-colors"
+                    className={`h-10 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
+                      isLightMode
+                        ? "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-800"
+                        : "bg-white/5 hover:bg-white/10 border-white/10 text-gray-200"
+                    }`}
                   >
-                    <Phone className="w-3.5 h-3.5 text-blue-400" />
+                    <Phone className="w-3.5 h-3.5 text-blue-500" />
                     <span>Ligar</span>
                   </a>
 
                   <a
-                    href={`https://wa.me/55${client.phone.replace(/\D/g, "")}`}
+                    href={getClientWhatsAppUrl()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="h-10 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-600/40 text-xs font-semibold flex items-center justify-center gap-1.5 text-emerald-300 transition-colors"
+                    className="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
                   >
-                    <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>WhatsApp</span>
+                    <MessageCircle className="w-3.5 h-3.5 text-white" />
+                    <span>Chamar WhatsApp</span>
                   </a>
                 </div>
               )}
 
               {/* Endereço Completo */}
-              <div className="bg-black/30 p-3 rounded-2xl border border-white/5 space-y-1 text-xs">
+              <div className={`p-3 rounded-2xl border space-y-1 text-xs ${
+                isLightMode ? "bg-slate-50 border-slate-200" : "bg-black/30 border-white/5"
+              }`}>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-400 text-[11px] font-mono">Endereço de Entrega</span>
+                  <span className={`${mutedTextClass} text-[11px] font-mono`}>Endereço de Entrega</span>
                   <button
                     type="button"
                     onClick={handleCopyAddress}
-                    className="text-[10px] text-[#C7A9C9] hover:underline flex items-center gap-1 cursor-pointer"
+                    className="text-[10px] text-[#9306CF] hover:underline flex items-center gap-1 cursor-pointer font-bold"
                   >
                     {copiedAddress ? (
                       <>
-                        <Check className="w-3 h-3 text-emerald-400" />
-                        <span className="text-emerald-400">Copiado</span>
+                        <Check className="w-3 h-3 text-emerald-500" />
+                        <span className="text-emerald-500">Copiado</span>
                       </>
                     ) : (
                       <>
@@ -461,54 +670,24 @@ export default function CourierDeliveryPage({
                     )}
                   </button>
                 </div>
-                <p className="font-medium text-gray-200 leading-snug">{fullAddress}</p>
+                <p className={`font-medium leading-snug ${headingTextClass}`}>{fullAddress}</p>
                 {deliveryAddress.reference && (
-                  <p className="text-[11px] text-amber-300/90 pt-1">
+                  <p className="text-[11px] text-amber-600 dark:text-amber-300 pt-1">
                     <strong>Ref:</strong> {deliveryAddress.reference}
                   </p>
                 )}
               </div>
             </section>
 
-            {/* Bloco 4: Forma de Pagamento e Total */}
-            <section className="bg-[#1D0C20] border border-[#512B54]/50 rounded-3xl p-4 shadow-xl flex items-center justify-between text-xs">
-              <div>
-                <span className="text-[10px] font-mono uppercase text-gray-400 block">
-                  Pagamento na Entrega
-                </span>
-                <span className="font-heading font-bold text-sm text-white capitalize">
-                  {payment.type === "dinheiro"
-                    ? "Dinheiro"
-                    : payment.type === "cartao_maquininha"
-                    ? "Cartão na Maquininha"
-                    : "PIX na Entrega"}
-                </span>
-                {payment.changeFor && (
-                  <span className="text-[11px] text-amber-400 block">
-                    Levar troco para R$ {payment.changeFor.toFixed(2).replace(".", ",")}
-                  </span>
-                )}
-              </div>
-
-              <div className="text-right">
-                <span className="text-[10px] font-mono uppercase text-gray-400 block">
-                  Total a Cobrar
-                </span>
-                <span className="font-heading text-xl font-black text-emerald-400 font-mono">
-                  R$ {payment.total.toFixed(2).replace(".", ",")}
-                </span>
-              </div>
-            </section>
-
             {/* Bloco 5: Resumo dos Itens da Sacola */}
-            <section className="bg-[#1D0C20] border border-[#512B54]/50 rounded-3xl p-4 shadow-xl space-y-2 text-xs">
-              <span className="text-[10px] font-mono uppercase text-gray-400 block">
+            <section className={`${cardBgClass} rounded-3xl p-4 space-y-2 text-xs`}>
+              <span className={`text-[10px] font-mono uppercase tracking-wider block ${mutedTextClass}`}>
                 Itens a Entregar ({items.length})
               </span>
-              <ul className="space-y-1.5 divide-y divide-white/5">
+              <ul className="space-y-1.5 divide-y divide-border/30">
                 {items.map((item) => (
                   <li key={item.id} className="pt-1.5 first:pt-0 flex items-center justify-between">
-                    <span className="text-gray-300 font-medium">
+                    <span className={`font-medium ${isLightMode ? "text-slate-800" : "text-gray-300"}`}>
                       {item.quantity}x {item.productName}
                     </span>
                   </li>
@@ -537,18 +716,20 @@ export default function CourierDeliveryPage({
           onClick={() => setIsCompleteModalOpen(false)}
         >
           <div
-            className="w-full max-w-sm bg-[#1F0B22] border-2 border-[#512B54] rounded-3xl p-6 space-y-4 animate-in zoom-in-95 duration-200 text-center"
+            className={`w-full max-w-sm rounded-3xl p-6 space-y-4 animate-in zoom-in-95 duration-200 text-center border-2 ${
+              isLightMode ? "bg-white border-slate-300 text-slate-900" : "bg-[#1F0B22] border-[#512B54] text-white"
+            }`}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+            <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-8 h-8" />
             </div>
 
-            <h3 className="font-heading text-lg font-black uppercase tracking-tight text-white">
+            <h3 className="font-heading text-lg font-black uppercase tracking-tight">
               Confirmar Entrega?
             </h3>
 
-            <p className="text-xs text-gray-300 leading-relaxed">
+            <p className={`text-xs leading-relaxed ${isLightMode ? "text-slate-600" : "text-gray-300"}`}>
               Você confirma que o pedido foi entregue ao cliente <strong>{client.name}</strong> e o pagamento foi conferido?
             </p>
 
@@ -558,7 +739,7 @@ export default function CourierDeliveryPage({
                 variant="outline"
                 onClick={() => setIsCompleteModalOpen(false)}
                 disabled={completing}
-                className="h-11 rounded-xl border-white/10 text-gray-300 text-xs font-bold"
+                className="h-11 rounded-xl text-xs font-bold"
               >
                 Voltar
               </Button>

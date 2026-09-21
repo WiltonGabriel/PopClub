@@ -14,7 +14,9 @@ function formatOrder(o: any) {
     delivery_fee: Number(o.deliveryFee || 0),
     total_amount: Number(o.totalAmount),
     payment_method_type: o.paymentMethodType,
-    payment_change_for: o.paymentChangeFor ? Number(o.paymentChangeFor) : null,
+    payment_change_for: o.paymentChangeFor ? Number(o.paymentChangeFor) : (o.changeFor ? Number(o.changeFor) : null),
+    change_for: o.changeFor ? Number(o.changeFor) : (o.paymentChangeFor ? Number(o.paymentChangeFor) : null),
+    change_to_return: o.changeToReturn ? Number(o.changeToReturn) : null,
     shift_id: o.shiftId,
     is_archived: o.isArchived,
     tracking_token: o.trackingToken || null,
@@ -66,7 +68,7 @@ export async function GET(request: Request) {
     const authUser = await getAuthUser(request);
     const { searchParams } = new URL(request.url);
 
-    // Consulta individual por ID (utilizada para rastreamento logístico em tempo real)
+    // Consulta individual por ID (utilizada para rastreamento logístico público em tempo real)
     const singleOrderId = searchParams.get("id")?.trim();
     if (singleOrderId) {
       const order = await prisma.order.findUnique({
@@ -81,11 +83,7 @@ export async function GET(request: Request) {
         return apiError("Pedido não encontrado.", 404, "NOT_FOUND");
       }
 
-      // Se autenticado e não for admin, garante que o pedido pertence ao usuário logado
-      if (authUser && authUser.role !== "admin" && order.userId && order.userId !== authUser.id) {
-        return apiError("Você não tem autorização para visualizar este pedido.", 403, "FORBIDDEN");
-      }
-
+      // Rastreamento público liberado via link direto do ID do pedido
       return apiSuccess(formatOrder(order));
     }
 

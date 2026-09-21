@@ -267,6 +267,21 @@ export async function POST(request: Request) {
     const itemsTotalAfterDiscount = Math.max(0, Number((calculatedSubtotal - totalDiscount).toFixed(2)));
     const finalTotal = Number((itemsTotalAfterDiscount + calculatedDeliveryFee).toFixed(2));
 
+    // 2.2. Validação estrita de troco para pagamento em dinheiro
+    let changeToReturn: number | null = null;
+    if (paymentMethod.type === "dinheiro" && paymentMethod.changeFor !== null && paymentMethod.changeFor !== undefined) {
+      if (paymentMethod.changeFor < finalTotal) {
+        return NextResponse.json(
+          {
+            error: "O valor para troco deve ser maior que o total do pedido.",
+            code: "INVALID_CHANGE_AMOUNT",
+          },
+          { status: 400 }
+        );
+      }
+      changeToReturn = Number((paymentMethod.changeFor - finalTotal).toFixed(2));
+    }
+
     // 3. Persistência Transacional do Pedido
     const order = await prisma.$transaction(async (tx) => {
       // Criação do pedido
@@ -284,6 +299,8 @@ export async function POST(request: Request) {
           couponCode: validCouponCode,
           paymentMethodType: paymentMethod.type,
           paymentChangeFor: paymentMethod.changeFor || null,
+          changeFor: paymentMethod.changeFor || null,
+          changeToReturn: changeToReturn,
           deliveryStreet: deliveryAddress.street,
           deliveryNumber: deliveryAddress.number,
           deliveryNeighborhood: deliveryAddress.neighborhood,

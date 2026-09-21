@@ -33,6 +33,7 @@ export const authService = {
     phone: string;
     houseNumber?: string;
     addressId?: string;
+    isNoNumber?: boolean;
     updatedName?: string;
     newAddress?: any;
   }) {

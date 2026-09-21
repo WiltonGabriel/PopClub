@@ -53,6 +53,9 @@ export function FastAccessModal({
   // Campos de novo aparelho detectado
   const [maskedAddress, setMaskedAddress] = useState<any>(null);
   const [houseNumberInput, setHouseNumberInput] = useState("");
+  const [isNoNumber, setIsNoNumber] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [isLocked, setIsLocked] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
 
@@ -77,8 +80,8 @@ export function FastAccessModal({
       setError("Por favor, informe seu nome completo (mínimo 3 caracteres).");
       return;
     }
-    if (rawPhone.length !== 11) {
-      setError("Informe o WhatsApp com DDD no formato (99) 99999-9999.");
+    if (rawPhone.length < 10) {
+      setError("Por favor, inclua o DDD com 2 dígitos antes do número (ex: 65, 11).");
       return;
     }
 
@@ -102,10 +105,11 @@ export function FastAccessModal({
 
   const handleConfirmHouseNumber = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLocked) return;
     setVerifyError(null);
 
-    if (!houseNumberInput.trim()) {
-      setVerifyError("Digite o número da residência para confirmar a entrega.");
+    if (!isNoNumber && !houseNumberInput.trim()) {
+      setVerifyError("Digite o número da residência ou marque a opção S/N.");
       return;
     }
 
@@ -115,7 +119,8 @@ export function FastAccessModal({
       const res = await verifyDevice({
         phone: rawPhone,
         addressId: maskedAddress?.addressId,
-        houseNumber: houseNumberInput.trim(),
+        houseNumber: isNoNumber ? "S/N" : houseNumberInput.trim(),
+        isNoNumber,
         updatedName: name.trim(),
       });
 
@@ -124,7 +129,18 @@ export function FastAccessModal({
         onClose();
       }
     } catch (err: any) {
-      setVerifyError(err.message || "Número incorreto. Tente novamente ou use outro endereço.");
+      const nextAttempts = failedAttempts + 1;
+      setFailedAttempts(nextAttempts);
+      if (nextAttempts >= 5 || err?.code === "MAX_ATTEMPTS_EXCEEDED") {
+        setIsLocked(true);
+        setVerifyError(
+          "Limite de tentativas atingido. Por segurança, selecione 'Entregar em outro endereço' para preencher o local de entrega."
+        );
+      } else {
+        setVerifyError(
+          err.message || `Número residencial incorreto. Tentativas restantes: ${5 - nextAttempts}.`
+        );
+      }
     } finally {
       setVerifyLoading(false);
     }
@@ -290,43 +306,68 @@ export function FastAccessModal({
                 <Input
                   id="verify-house-number"
                   type="text"
-                  placeholder="Ex: 142 ou 105-B"
-                  value={houseNumberInput}
+                  placeholder={isNoNumber ? "Sem número (S/N)" : "Ex: 142 ou 105-B"}
+                  value={isNoNumber ? "" : houseNumberInput}
                   onChange={(e) => {
                     setHouseNumberInput(e.target.value);
                     if (verifyError) setVerifyError(null);
                   }}
                   className="h-11 rounded-xl text-center font-bold font-mono text-base"
-                  disabled={verifyLoading}
-                  autoFocus
-                  required
+                  disabled={isNoNumber || isLocked || verifyLoading}
+                  autoFocus={!isNoNumber}
+                  required={!isNoNumber}
                 />
+
+                {/* Suporte a Sem Número (S/N) */}
+                <div className="flex items-center gap-2 pt-1.5">
+                  <input
+                    id="modal-sn-checkbox"
+                    type="checkbox"
+                    checked={isNoNumber}
+                    disabled={isLocked || verifyLoading}
+                    onChange={(e) => {
+                      setIsNoNumber(e.target.checked);
+                      if (e.target.checked) setHouseNumberInput("");
+                      if (verifyError) setVerifyError(null);
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 text-[#9306CF] focus:ring-[#9306CF] cursor-pointer"
+                  />
+                  <label htmlFor="modal-sn-checkbox" className="text-xs text-muted-foreground select-none cursor-pointer">
+                    Minha residência não tem número (S/N)
+                  </label>
+                </div>
               </div>
 
               <div className="pt-1 space-y-2">
-                <Button
-                  type="submit"
-                  className="w-full h-11 rounded-xl font-bold gap-2 text-sm shadow-md"
-                  disabled={verifyLoading}
-                >
-                  {verifyLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Confirmando...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      Confirmar e Continuar
-                    </>
-                  )}
-                </Button>
+                {!isLocked && (
+                  <Button
+                    type="submit"
+                    className="w-full h-11 rounded-xl font-bold gap-2 text-sm shadow-md cursor-pointer"
+                    disabled={verifyLoading}
+                  >
+                    {verifyLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Confirmando...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        Confirmar e Continuar
+                      </>
+                    )}
+                  </Button>
+                )}
 
                 <Button
                   type="button"
-                  variant="outline"
+                  variant={isLocked ? "default" : "outline"}
                   onClick={handleDeliverOtherAddress}
-                  className="w-full h-10 rounded-xl text-xs text-muted-foreground hover:text-foreground"
+                  className={`w-full ${
+                    isLocked
+                      ? "h-11 bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                      : "h-10 text-xs text-muted-foreground hover:text-foreground"
+                  } rounded-xl cursor-pointer`}
                 >
                   Entregar em outro endereço
                 </Button>

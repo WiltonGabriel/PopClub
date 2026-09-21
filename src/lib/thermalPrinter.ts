@@ -214,13 +214,30 @@ export function printOrderReceipt(order: Order, storeName = "Pop Shake Sorveteri
 
       <div class="total-final">
         <span>TOTAL:</span>
-        <span>R$ ${order.total_amount.toFixed(2).replace(".", ",")}</span>
+        <span>R$ ${Number(order.total_amount).toFixed(2).replace(".", ",")}</span>
       </div>
 
       <div class="divider"></div>
 
       <div style="font-size: 12px; line-height: 1.4;">
         <div><strong>Pagamento:</strong> ${paymentText}</div>
+        ${
+          order.payment_method_type === "dinheiro" && (order.change_for || order.payment_change_for || (order as any).changeFor)
+            ? `
+          <div style="margin-top: 6px; padding: 6px; border: 2px solid #000; background: #fdfdfd; font-size: 12px; line-height: 1.5;">
+            <div>Total do Pedido: R$ ${Number(order.total_amount).toFixed(2).replace(".", ",")}</div>
+            <div>Pagar com: R$ ${Number(order.change_for || order.payment_change_for || (order as any).changeFor).toFixed(2).replace(".", ",")}</div>
+            <div style="font-weight: 900; font-size: 14px; margin-top: 4px; border-top: 1px dashed #000; padding-top: 3px;">
+              LEVAR DE TROCO: R$ ${Number(
+                order.change_to_return ??
+                (order as any).changeToReturn ??
+                Math.max(0, Number(order.change_for || order.payment_change_for || (order as any).changeFor) - Number(order.total_amount))
+              ).toFixed(2).replace(".", ",")}
+            </div>
+          </div>
+        `
+            : ""
+        }
       </div>
 
       <div class="divider"></div>

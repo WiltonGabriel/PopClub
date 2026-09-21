@@ -6,28 +6,21 @@ import Link from "next/link";
 import {
   ChevronLeft,
   User,
+  Phone,
   Lock,
   Loader2,
   Eye,
   EyeOff,
-  Mail,
-  Check,
+  CheckCircle2,
+  ShieldAlert,
+  MapPin,
   X,
+  ArrowRight,
 } from "lucide-react";
 import { authService } from "../../services/authService";
 import { useAuth } from "../../hooks/useAuth";
-
-/* ─── Password requirement row ─── */
-function ValidationItem({ isValid, label }: { isValid: boolean; label: string }) {
-  return (
-    <div className={`flex items-center gap-2 text-xs transition-colors ${isValid ? "text-emerald-600 dark:text-emerald-400" : "text-[#7A587D] dark:text-[#957498]"}`}>
-      <span className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[10px] transition-colors ${isValid ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-400/20 dark:text-emerald-400" : "bg-black/5 text-[#7A587D] dark:bg-white/5 dark:text-[#957498]"}`}>
-        {isValid ? <Check className="w-2.5 h-2.5" strokeWidth={3} /> : <X className="w-2.5 h-2.5" strokeWidth={3} />}
-      </span>
-      {label}
-    </div>
-  );
-}
+import { formatPhoneInput } from "@/components/auth/FastAccessModal";
+import { Button } from "@/components/ui/button";
 
 /* ─── Reusable styled input wrapper ─── */
 interface AuthInputProps {
@@ -38,11 +31,25 @@ interface AuthInputProps {
   placeholder: string;
   required?: boolean;
   autoComplete?: string;
+  disabled?: boolean;
+  autoFocus?: boolean;
   leftIcon: React.ReactNode;
   rightSlot?: React.ReactNode;
 }
 
-function AuthInput({ id, type, value, onChange, placeholder, required, autoComplete, leftIcon, rightSlot }: AuthInputProps) {
+function AuthInput({
+  id,
+  type,
+  value,
+  onChange,
+  placeholder,
+  required,
+  autoComplete,
+  disabled,
+  autoFocus,
+  leftIcon,
+  rightSlot,
+}: AuthInputProps) {
   return (
     <div className="relative flex items-center">
       <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7A587D] dark:text-[#957498] pointer-events-none">
@@ -56,6 +63,8 @@ function AuthInput({ id, type, value, onChange, placeholder, required, autoCompl
         placeholder={placeholder}
         required={required}
         autoComplete={autoComplete}
+        disabled={disabled}
+        autoFocus={autoFocus}
         className="
           w-full h-12 rounded-xl
           border border-gray-200 bg-white text-gray-900 
@@ -65,6 +74,7 @@ function AuthInput({ id, type, value, onChange, placeholder, required, autoCompl
           outline-none
           focus:border-[#9306CF] dark:focus:border-[#9306CF]/70 focus:ring-2 focus:ring-[#9306CF]/20
           transition-all duration-200
+          disabled:opacity-60 disabled:cursor-not-allowed
         "
       />
       {rightSlot && (
@@ -104,50 +114,123 @@ function ErrorBanner({ message }: { message: string }) {
 function AuthPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, fastAccess, verifyDevice } = useAuth();
 
-  const initialTab = searchParams?.get("tab") === "register" ? "register" : "login";
-  const [activeTab, setActiveTab] = useState<"login" | "register">(initialTab as "login" | "register");
+  const redirectTarget = searchParams?.get("redirect") || "/";
+  const initialTab = searchParams?.get("tab") === "password" ? "password" : "fast";
+  const [activeTab, setActiveTab] = useState<"fast" | "password">(initialTab);
 
-  // Redirect authenticated users to home (/)
+  // Redireciona usuários autenticados para a home ou página alvo
   useEffect(() => {
     if (!authLoading && user) {
-      router.push("/");
+      router.push(redirectTarget);
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, redirectTarget]);
 
-  /* ── Login state ── */
+  /* ── Aba 1: Acesso Rápido State ── */
+  const [fastName, setFastName] = useState("");
+  const [fastPhone, setFastPhone] = useState("");
+  const [fastLoading, setFastLoading] = useState(false);
+  const [fastError, setFastError] = useState<string | null>(null);
+
+  // Verificação de novo aparelho em Acesso Rápido
+  const [isVerifyingDevice, setIsVerifyingDevice] = useState(false);
+  const [maskedAddress, setMaskedAddress] = useState<any>(null);
+  const [houseNumber, setHouseNumber] = useState("");
+  const [isNoNumber, setIsNoNumber] = useState(false);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [isLocked, setIsLocked] = useState(false);
+
+  /* ── Aba 2: Entrar com Senha State ── */
   const [loginId, setLoginId] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  /* ── Register state ── */
-  const [regUsername, setRegUsername] = useState("");
-  const [regEmail, setRegEmail] = useState("");
-  const [regPassword, setRegPassword] = useState("");
-  const [showRegPassword, setShowRegPassword] = useState(false);
-  const [regConfirmPassword, setRegConfirmPassword] = useState("");
-  const [regLoading, setRegLoading] = useState(false);
-  const [regError, setRegError] = useState<string | null>(null);
+  /* ── Handlers de Acesso Rápido ── */
+  const handleFastAccessSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFastError(null);
 
-  /* ── Password validation (unchanged logic) ── */
-  const hasMinLen = regPassword.length >= 8;
-  const hasLetter = /[A-Za-z]/.test(regPassword);
-  const hasNumber = /[0-9]/.test(regPassword);
-  const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(regPassword);
-  const hasLetterOrSpecial = hasLetter || hasSpecial;
-  const passwordsMatch = regPassword && regConfirmPassword && regPassword === regConfirmPassword;
+    const cleanPhone = fastPhone.replace(/\D/g, "");
+    if (!fastName.trim() || fastName.trim().length < 3) {
+      setFastError("Por favor, informe seu nome completo (mínimo 3 caracteres).");
+      return;
+    }
+    if (cleanPhone.length < 10) {
+      setFastError("Por favor, inclua o DDD com 2 dígitos antes do número (ex: 65, 11).");
+      return;
+    }
 
-  /* ── Handlers (unchanged logic) ── */
-  const handleLoginSubmit = async (e: React.FormEvent) => {
+    setFastLoading(true);
+    try {
+      const res = await fastAccess(fastName.trim(), cleanPhone);
+      if (res.status === "new_device_detected") {
+        setMaskedAddress(res.maskedAddress);
+        setIsVerifyingDevice(true);
+      } else if (res.status === "authenticated") {
+        window.location.replace(redirectTarget);
+      }
+    } catch (err: any) {
+      setFastError(err.message || "Erro ao identificar. Verifique seus dados.");
+    } finally {
+      setFastLoading(false);
+    }
+  };
+
+  const handleConfirmHouseNumber = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isLocked) return;
+    setVerifyError(null);
+
+    if (!isNoNumber && !houseNumber.trim()) {
+      setVerifyError("Digite o número da residência ou marque a opção S/N.");
+      return;
+    }
+
+    const cleanPhone = fastPhone.replace(/\D/g, "");
+    setVerifyLoading(true);
+    try {
+      const res = await verifyDevice({
+        phone: cleanPhone,
+        addressId: maskedAddress?.addressId,
+        houseNumber: isNoNumber ? "S/N" : houseNumber.trim(),
+        isNoNumber,
+        updatedName: fastName.trim(),
+      });
+
+      if (res.status === "authenticated") {
+        window.location.replace(redirectTarget);
+      }
+    } catch (err: any) {
+      const nextAttempts = failedAttempts + 1;
+      setFailedAttempts(nextAttempts);
+      if (nextAttempts >= 5 || err?.code === "MAX_ATTEMPTS_EXCEEDED") {
+        setIsLocked(true);
+        setVerifyError(
+          "Limite de tentativas atingido. Por segurança, selecione 'Entrar com Senha' ou consulte seu atendente."
+        );
+      } else {
+        setVerifyError(
+          err.message || `Número incorreto. Restam ${5 - nextAttempts} tentativas.`
+        );
+      }
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  /* ── Handlers de Login com Senha ── */
+  const handlePasswordLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
     setLoginLoading(true);
     try {
       await authService.signIn(loginId.trim(), loginPassword);
-      window.location.replace("/");
+      window.location.replace(redirectTarget);
     } catch (err: any) {
       setLoginError(err.message || "Credenciais inválidas.");
     } finally {
@@ -155,36 +238,11 @@ function AuthPageInner() {
     }
   };
 
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setRegError(null);
-    if (!hasMinLen || !hasNumber || !hasLetterOrSpecial) {
-      setRegError("A senha não atende a todos os requisitos.");
-      return;
-    }
-    if (!passwordsMatch) {
-      setRegError("As senhas não coincidem.");
-      return;
-    }
-    setRegLoading(true);
-    try {
-      await authService.signUp(regUsername.trim().toLowerCase(), regEmail.trim(), regPassword);
-      alert("Conta criada com sucesso! Faça o login agora.");
-      setLoginId(regUsername.trim().toLowerCase());
-      setActiveTab("login");
-    } catch (err: any) {
-      setRegError(err.message || "Erro ao criar conta.");
-    } finally {
-      setRegLoading(false);
-    }
-  };
-
   const handleGoogleLogin = async () => {
     try {
       await authService.signInWithGoogle();
     } catch (err: any) {
-      setLoginError(err.message || "Erro ao conectar com Google");
-      setRegError(err.message || "Erro ao conectar com Google");
+      setLoginError(err.message || "Erro ao conectar com Google.");
     }
   };
 
@@ -244,45 +302,255 @@ function AuthPageInner() {
             </span>
           </Link>
 
-          {/* ── Segmented Control (tab selector) ── */}
-          <div className="flex p-1 bg-[#F8F9FA] dark:bg-[#190B1A] rounded-2xl mb-6 border border-gray-100 dark:border-transparent" role="tablist" aria-label="Modo de autenticação">
-            {(["login", "register"] as const).map((tab) => (
-              <button
-                key={tab}
-                role="tab"
-                aria-selected={activeTab === tab}
-                onClick={() => setActiveTab(tab)}
-                className={`
-                  flex-1 h-10 rounded-xl text-sm font-semibold
-                  transition-all duration-200
-                  ${activeTab === tab
-                    ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white shadow-lg shadow-[#9306CF]/30"
-                    : "text-[#7A587D] dark:text-[#957498] hover:text-[#4C264F] dark:hover:text-[#C7A9C9]"
-                  }
-                `}
-              >
-                {tab === "login" ? "Entrar" : "Cadastrar"}
-              </button>
-            ))}
+          {/* ── Segmented Control (Abas Claras) ── */}
+          <div className="flex p-1 bg-[#F8F9FA] dark:bg-[#190B1A] rounded-2xl mb-6 border border-gray-100 dark:border-transparent" role="tablist">
+            <button
+              role="tab"
+              aria-selected={activeTab === "fast"}
+              onClick={() => {
+                setActiveTab("fast");
+                setIsVerifyingDevice(false);
+              }}
+              className={`
+                flex-1 h-10 rounded-xl text-xs sm:text-sm font-bold
+                transition-all duration-200 cursor-pointer
+                ${activeTab === "fast"
+                  ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white shadow-lg shadow-[#9306CF]/30"
+                  : "text-[#7A587D] dark:text-[#957498] hover:text-[#4C264F] dark:hover:text-[#C7A9C9]"
+                }
+              `}
+            >
+              Acesso Rápido
+            </button>
+
+            <button
+              role="tab"
+              aria-selected={activeTab === "password"}
+              onClick={() => setActiveTab("password")}
+              className={`
+                flex-1 h-10 rounded-xl text-xs sm:text-sm font-bold
+                transition-all duration-200 cursor-pointer
+                ${activeTab === "password"
+                  ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white shadow-lg shadow-[#9306CF]/30"
+                  : "text-[#7A587D] dark:text-[#957498] hover:text-[#4C264F] dark:hover:text-[#C7A9C9]"
+                }
+              `}
+            >
+              Entrar com Senha
+            </button>
           </div>
 
-          {/* ── LOGIN TAB ── */}
-          {activeTab === "login" && (
-            <div className="space-y-5" role="tabpanel" aria-label="Entrar">
+          {/* ── ABA 1: ACESSO RÁPIDO (PADRÃO) ── */}
+          {activeTab === "fast" && (
+            <div className="space-y-4">
+              {!isVerifyingDevice ? (
+                <>
+                  <p className="text-xs text-[#7A587D] dark:text-[#C7A9C9] text-center leading-relaxed">
+                    Entre direto apenas com seu WhatsApp. Sem necessidade de decorar senhas!
+                  </p>
+
+                  {fastError && <ErrorBanner message={fastError} />}
+
+                  <form onSubmit={handleFastAccessSubmit} className="space-y-4 pt-1">
+                    <div className="space-y-1.5">
+                      <label htmlFor="fastName" className="block text-xs font-semibold text-[#7A587D] dark:text-[#E2D2E4]">
+                        Seu Nome Completo *
+                      </label>
+                      <AuthInput
+                        id="fastName"
+                        type="text"
+                        value={fastName}
+                        onChange={(e) => {
+                          setFastName(e.target.value);
+                          if (fastError) setFastError(null);
+                        }}
+                        placeholder="Ex: Lucas Ferreira"
+                        required
+                        autoComplete="name"
+                        leftIcon={<User className="w-4 h-4" />}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label htmlFor="fastPhone" className="block text-xs font-semibold text-[#7A587D] dark:text-[#E2D2E4]">
+                        WhatsApp com DDD *
+                      </label>
+                      <AuthInput
+                        id="fastPhone"
+                        type="tel"
+                        value={fastPhone}
+                        onChange={(e) => {
+                          setFastPhone(formatPhoneInput(e.target.value));
+                          if (fastError) setFastError(null);
+                        }}
+                        placeholder="(65) 99999-9999"
+                        required
+                        autoComplete="tel"
+                        leftIcon={<Phone className="w-4 h-4" />}
+                      />
+                      <span className="text-[10px] text-[#7A587D] dark:text-[#957498] block">
+                        Informe o DDD com 2 dígitos antes do número (ex: 65, 11).
+                      </span>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={fastLoading}
+                      className="
+                        w-full h-12 rounded-xl mt-2
+                        font-semibold text-sm text-white
+                        bg-gradient-to-r from-[#9306CF] to-[#940068]
+                        hover:from-[#a30de8] hover:to-[#b0007c]
+                        active:scale-[0.98]
+                        transition-all duration-200
+                        shadow-lg shadow-[#9306CF]/30
+                        disabled:opacity-50 disabled:cursor-not-allowed
+                        flex items-center justify-center gap-2 cursor-pointer
+                      "
+                    >
+                      {fastLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Conectando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Continuar com Acesso Rápido</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </>
+              ) : (
+                /* Sub-etapa: Verificação de Novo Aparelho */
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  <div className="text-center">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 mb-2">
+                      <ShieldAlert className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-base font-bold text-foreground">
+                      🔒 Novo aparelho detectado
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Identificamos seu número. Por segurança, digite apenas o número da residência para confirmar a entrega.
+                    </p>
+                  </div>
+
+                  {verifyError && <ErrorBanner message={verifyError} />}
+
+                  {/* Card com endereço mascarado */}
+                  <div className="p-3.5 rounded-xl bg-muted/40 border border-border">
+                    <div className="flex items-start gap-2.5">
+                      <MapPin className="w-4 h-4 text-[#9306CF] shrink-0 mt-0.5" />
+                      <div className="text-xs space-y-1">
+                        <p className="text-muted-foreground leading-relaxed font-mono">
+                          {maskedAddress?.street || "Rua cadastrada"}, nº{" "}
+                          <span className="inline-block px-1.5 py-0.5 border border-dashed border-[#9306CF] text-[#9306CF] font-bold rounded bg-[#9306CF]/5">
+                            [ ? ]
+                          </span>{" "}
+                          - {maskedAddress?.neighborhood || "Bairro"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleConfirmHouseNumber} className="space-y-3">
+                    <div className="space-y-1.5">
+                      <label htmlFor="houseNumber" className="block text-xs font-semibold text-foreground">
+                        Número da Residência
+                      </label>
+                      <AuthInput
+                        id="houseNumber"
+                        type="text"
+                        value={isNoNumber ? "" : houseNumber}
+                        onChange={(e) => {
+                          setHouseNumber(e.target.value);
+                          if (verifyError) setVerifyError(null);
+                        }}
+                        placeholder={isNoNumber ? "Sem número (S/N)" : "Ex: 142"}
+                        disabled={isNoNumber || isLocked || verifyLoading}
+                        autoFocus={!isNoNumber}
+                        required={!isNoNumber}
+                        leftIcon={<MapPin className="w-4 h-4" />}
+                      />
+
+                      {/* Checkbox S/N */}
+                      <div className="flex items-center gap-2 pt-1">
+                        <input
+                          id="login-sn-checkbox"
+                          type="checkbox"
+                          checked={isNoNumber}
+                          disabled={isLocked || verifyLoading}
+                          onChange={(e) => {
+                            setIsNoNumber(e.target.checked);
+                            if (e.target.checked) setHouseNumber("");
+                            if (verifyError) setVerifyError(null);
+                          }}
+                          className="h-4 w-4 rounded border-gray-300 text-[#9306CF] focus:ring-[#9306CF] cursor-pointer"
+                        />
+                        <label htmlFor="login-sn-checkbox" className="text-xs text-muted-foreground select-none cursor-pointer">
+                          Minha residência não tem número (S/N)
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-1">
+                      {!isLocked && (
+                        <button
+                          type="submit"
+                          disabled={verifyLoading}
+                          className="
+                            w-full h-11 rounded-xl font-bold text-xs uppercase tracking-wider text-white
+                            bg-gradient-to-r from-[#9306CF] to-[#940068] shadow-md shadow-[#9306CF]/30
+                            flex items-center justify-center gap-2 cursor-pointer
+                          "
+                        >
+                          {verifyLoading ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>Confirmando...</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span>Confirmar e Entrar</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("password")}
+                        className="w-full h-10 rounded-xl text-xs font-semibold text-[#9306CF] dark:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
+                      >
+                        Entrar com senha em vez disso
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── ABA 2: ENTRAR COM SENHA ── */}
+          {activeTab === "password" && (
+            <div className="space-y-4" role="tabpanel" aria-label="Entrar com Senha">
               {loginError && <ErrorBanner message={loginError} />}
 
-              <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <form onSubmit={handlePasswordLoginSubmit} className="space-y-4">
                 {/* User/Email field */}
                 <div className="space-y-1.5">
-                  <label htmlFor="loginId" className="block text-sm font-medium text-[#7A587D] dark:text-[#E2D2E4]">
-                    Usuário ou e-mail
+                  <label htmlFor="loginId" className="block text-xs font-semibold text-[#7A587D] dark:text-[#E2D2E4]">
+                    E-mail ou Usuário *
                   </label>
                   <AuthInput
                     id="loginId"
                     type="text"
                     value={loginId}
                     onChange={(e) => setLoginId(e.target.value)}
-                    placeholder="seunome ou seu@email.com"
+                    placeholder="seu@email.com ou usuario"
                     required
                     autoComplete="username"
                     leftIcon={<User className="w-4 h-4" />}
@@ -292,8 +560,8 @@ function AuthPageInner() {
                 {/* Password field */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label htmlFor="loginPassword" className="block text-sm font-medium text-[#7A587D] dark:text-[#E2D2E4]">
-                      Senha
+                    <label htmlFor="loginPassword" className="block text-xs font-semibold text-[#7A587D] dark:text-[#E2D2E4]">
+                      Sua Senha *
                     </label>
                     <Link
                       href="/recuperar-senha"
@@ -333,10 +601,10 @@ function AuthPageInner() {
                     transition-all duration-200
                     shadow-lg shadow-[#9306CF]/30
                     disabled:opacity-50 disabled:cursor-not-allowed
-                    flex items-center justify-center gap-2
+                    flex items-center justify-center gap-2 cursor-pointer
                   "
                 >
-                  {loginLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Entrar"}
+                  {loginLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Entrar com Senha"}
                 </button>
               </form>
 
@@ -357,7 +625,7 @@ function AuthPageInner() {
                   border border-gray-200 dark:border-[#512B54]/60
                   bg-transparent hover:bg-black/5 dark:hover:bg-white/5
                   text-[#4C264F] dark:text-[#E2D2E4] text-sm font-medium
-                  transition-all duration-200
+                  transition-all duration-200 cursor-pointer
                   active:scale-[0.98]
                 "
               >
@@ -365,176 +633,15 @@ function AuthPageInner() {
                 Continuar com Google
               </button>
 
-              {/* Switch tab */}
-              <p className="text-center text-sm text-[#7A587D] dark:text-[#957498] pt-1">
-                Não tem uma conta?{" "}
+              <div className="pt-2 text-center">
                 <button
                   type="button"
-                  onClick={() => setActiveTab("register")}
-                  className="text-[#9306CF] hover:text-[#940068] dark:hover:text-[#C7A9C9] font-semibold hover:underline transition-colors"
+                  onClick={() => setActiveTab("fast")}
+                  className="text-xs text-[#7A587D] dark:text-[#C7A9C9] hover:underline cursor-pointer"
                 >
-                  Cadastre-se
+                  Prefere entrar sem senha? <strong>Usar Acesso Rápido</strong>
                 </button>
-              </p>
-            </div>
-          )}
-
-          {/* ── REGISTER TAB ── */}
-          {activeTab === "register" && (
-            <div className="space-y-4" role="tabpanel" aria-label="Cadastrar">
-              {regError && <ErrorBanner message={regError} />}
-
-              <form onSubmit={handleRegisterSubmit} className="space-y-4">
-                {/* Username */}
-                <div className="space-y-1.5">
-                  <label htmlFor="regUsername" className="block text-sm font-medium text-[#7A587D] dark:text-[#E2D2E4]">
-                    Nome de usuário
-                  </label>
-                  <AuthInput
-                    id="regUsername"
-                    type="text"
-                    value={regUsername}
-                    onChange={(e) => setRegUsername(e.target.value.replace(/\s+/g, ""))}
-                    placeholder="seunome (sem espaços)"
-                    required
-                    autoComplete="username"
-                    leftIcon={<User className="w-4 h-4" />}
-                  />
-                </div>
-
-                {/* Email */}
-                <div className="space-y-1.5">
-                  <label htmlFor="regEmail" className="block text-sm font-medium text-[#7A587D] dark:text-[#E2D2E4]">
-                    E-mail
-                  </label>
-                  <AuthInput
-                    id="regEmail"
-                    type="email"
-                    value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                    placeholder="seu@email.com"
-                    required
-                    autoComplete="email"
-                    leftIcon={<Mail className="w-4 h-4" />}
-                  />
-                </div>
-
-                {/* Password */}
-                <div className="space-y-1.5">
-                  <label htmlFor="regPassword" className="block text-sm font-medium text-[#7A587D] dark:text-[#E2D2E4]">
-                    Senha
-                  </label>
-                  <AuthInput
-                    id="regPassword"
-                    type={showRegPassword ? "text" : "password"}
-                    value={regPassword}
-                    onChange={(e) => setRegPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    autoComplete="new-password"
-                    leftIcon={<Lock className="w-4 h-4" />}
-                    rightSlot={
-                      <EyeToggle
-                        show={showRegPassword}
-                        onToggle={() => setShowRegPassword((v) => !v)}
-                      />
-                    }
-                  />
-
-                  {/* Password requirements */}
-                  {regPassword.length > 0 && (
-                    <div className="bg-[#F8F9FA] dark:bg-[#190B1A] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-4 py-3 space-y-2 mt-2">
-                      <p className="text-[10px] font-semibold text-[#7A587D] dark:text-[#957498] uppercase tracking-wider mb-1">
-                        Requisitos
-                      </p>
-                      <ValidationItem isValid={hasMinLen} label="Mínimo 8 caracteres" />
-                      <ValidationItem isValid={hasNumber} label="Pelo menos 1 número" />
-                      <ValidationItem isValid={hasLetterOrSpecial} label="Pelo menos 1 letra ou caractere especial" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Confirm password */}
-                <div className="space-y-1.5">
-                  <label htmlFor="regConfirmPassword" className="block text-sm font-medium text-[#7A587D] dark:text-[#E2D2E4]">
-                    Confirmar senha
-                  </label>
-                  <AuthInput
-                    id="regConfirmPassword"
-                    type="password"
-                    value={regConfirmPassword}
-                    onChange={(e) => setRegConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    autoComplete="new-password"
-                    leftIcon={<Lock className="w-4 h-4" />}
-                  />
-                  {regConfirmPassword.length > 0 && (
-                    <div className="pt-1">
-                      <ValidationItem
-                        isValid={Boolean(passwordsMatch)}
-                        label={passwordsMatch ? "Senhas coincidem ✓" : "Senhas não coincidem"}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Submit */}
-                <button
-                  type="submit"
-                  disabled={regLoading || !hasMinLen || !hasNumber || !hasLetterOrSpecial || !passwordsMatch}
-                  className="
-                    w-full h-12 rounded-xl mt-2
-                    font-semibold text-sm text-white
-                    bg-gradient-to-r from-[#9306CF] to-[#940068]
-                    hover:from-[#a30de8] hover:to-[#b0007c]
-                    active:scale-[0.98]
-                    transition-all duration-200
-                    shadow-lg shadow-[#9306CF]/30
-                    disabled:opacity-40 disabled:cursor-not-allowed
-                    flex items-center justify-center gap-2
-                  "
-                >
-                  {regLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Criar Conta"}
-                </button>
-              </form>
-
-              {/* Divider */}
-              <div className="flex items-center gap-3 my-1">
-                <div className="flex-1 h-px bg-gray-200 dark:bg-[#512B54]/50" />
-                <span className="text-[#7A587D] dark:text-[#957498] text-xs font-medium">OU</span>
-                <div className="flex-1 h-px bg-gray-200 dark:bg-[#512B54]/50" />
               </div>
-
-              {/* Google */}
-              <button
-                type="button"
-                onClick={handleGoogleLogin}
-                className="
-                  w-full h-12 rounded-xl
-                  flex items-center justify-center gap-3
-                  border border-gray-200 dark:border-[#512B54]/60
-                  bg-transparent hover:bg-black/5 dark:hover:bg-white/5
-                  text-[#4C264F] dark:text-[#E2D2E4] text-sm font-medium
-                  transition-all duration-200
-                  active:scale-[0.98]
-                "
-              >
-                <GoogleIcon />
-                Continuar com Google
-              </button>
-
-              {/* Switch tab */}
-              <p className="text-center text-sm text-[#7A587D] dark:text-[#957498] pt-1">
-                Já tem uma conta?{" "}
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("login")}
-                  className="text-[#9306CF] hover:text-[#940068] dark:hover:text-[#C7A9C9] font-semibold hover:underline transition-colors"
-                >
-                  Entrar
-                </button>
-              </p>
             </div>
           )}
         </div>

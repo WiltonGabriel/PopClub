@@ -334,19 +334,30 @@ export function OrderDetailDrawer({
                   </span>
                 </div>
 
-                {isCash && order.payment_change_for && (
-                  <div className="p-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200 dark:border-amber-900/40 text-amber-900 dark:text-amber-200">
+                {isCash && (order.change_for || order.payment_change_for) && (
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200 dark:border-amber-900/40 text-amber-900 dark:text-amber-200 space-y-1">
                     <div className="flex justify-between">
-                      <span>Troco solicitado para:</span>
+                      <span>Total do Pedido:</span>
+                      <span>
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(order.total_amount))}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Pagar com:</span>
                       <strong>
-                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(order.payment_change_for)}
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                          Number(order.change_for || order.payment_change_for)
+                        )}
                       </strong>
                     </div>
-                    <div className="flex justify-between mt-1 pt-1 border-t border-amber-200/50 dark:border-amber-900/50 text-emerald-700 dark:text-emerald-400 font-bold">
-                      <span>Troco a devolver:</span>
+                    <div className="flex justify-between pt-1.5 border-t border-amber-200/60 dark:border-amber-900/60 text-emerald-700 dark:text-emerald-400 font-black text-xs">
+                      <span>LEVAR DE TROCO:</span>
                       <span>
                         {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-                          Math.max(0, order.payment_change_for - Number(order.total_amount))
+                          Number(
+                            order.change_to_return ??
+                            Math.max(0, Number(order.change_for || order.payment_change_for) - Number(order.total_amount))
+                          )
                         )}
                       </span>
                     </div>

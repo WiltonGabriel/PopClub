@@ -195,6 +195,8 @@ model Order {
   couponCode           String?           @map("coupon_code")
   paymentMethodType    PaymentMethodType @default(dinheiro) @map("payment_method_type")
   paymentChangeFor     Decimal?          @db.Decimal(10, 2) @map("payment_change_for")
+  changeFor            Decimal?          @db.Decimal(10, 2) @map("change_for")
+  changeToReturn       Decimal?          @db.Decimal(10, 2) @map("change_to_return")
   deliveryStreet       String            @map("delivery_street")
   deliveryNumber       String            @map("delivery_number")
   deliveryNeighborhood String            @map("delivery_neighborhood")

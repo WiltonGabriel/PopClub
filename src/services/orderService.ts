@@ -40,6 +40,8 @@ export interface Order {
   total_amount: number;
   payment_method_type?: string;
   payment_change_for?: number | null;
+  change_for?: number | null;
+  change_to_return?: number | null;
   delivery_address?: DeliveryAddress;
   shift_id?: string | null;
   is_archived?: boolean;

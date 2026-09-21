@@ -42,8 +42,8 @@ export async function POST(request: Request) {
 
     if (existingEmailUser) {
       return NextResponse.json(
-        { error: "Este e-mail já está cadastrado em outra conta. Por favor, utilize outro e-mail." },
-        { status: 409 }
+        { error: "Este e-mail já está vinculado a outra conta. Faça login com sua senha ou utilize outro e-mail." },
+        { status: 400 }
       );
     }
 

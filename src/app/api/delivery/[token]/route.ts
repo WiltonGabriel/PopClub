@@ -62,7 +62,8 @@ export async function GET(
       },
       payment: {
         type: order.paymentMethodType,
-        changeFor: order.paymentChangeFor ? Number(order.paymentChangeFor) : null,
+        changeFor: order.changeFor ? Number(order.changeFor) : (order.paymentChangeFor ? Number(order.paymentChangeFor) : null),
+        changeToReturn: order.changeToReturn ? Number(order.changeToReturn) : null,
         total: Number(order.totalAmount),
       },
       items: order.items.map((it) => ({
