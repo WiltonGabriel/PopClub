@@ -49,22 +49,40 @@ export function GlobalBackgroundSync() {
     document.body.style.backgroundAttachment = "fixed";
   }, [settings, theme, mounted]);
 
-  // Sincroniza o favicon dinâmico no <head> do navegador
+  // Sincroniza o favicon dinâmico no <head> do navegador com fallback seguro
   useEffect(() => {
-    if (!mounted || typeof document === "undefined" || !settings.faviconUrl) return;
+    if (!mounted || typeof document === "undefined") return;
 
-    const faviconHref = settings.faviconUrl;
-    const iconLinks = document.querySelectorAll<HTMLLinkElement>("link[rel*='icon']");
-    if (iconLinks.length > 0) {
+    const faviconHref = settings.faviconUrl || "/favicon.ico";
+    if (faviconHref === "/favicon.ico") {
+      const iconLinks = document.querySelectorAll<HTMLLinkElement>("link[rel*='icon']");
       iconLinks.forEach((link) => {
-        link.href = faviconHref;
+        link.href = "/favicon.ico";
       });
-    } else {
-      const newLink = document.createElement("link");
-      newLink.rel = "icon";
-      newLink.href = faviconHref;
-      document.head.appendChild(newLink);
+      return;
     }
+
+    const img = new Image();
+    img.onload = () => {
+      const iconLinks = document.querySelectorAll<HTMLLinkElement>("link[rel*='icon']");
+      if (iconLinks.length > 0) {
+        iconLinks.forEach((link) => {
+          link.href = faviconHref;
+        });
+      } else {
+        const newLink = document.createElement("link");
+        newLink.rel = "icon";
+        newLink.href = faviconHref;
+        document.head.appendChild(newLink);
+      }
+    };
+    img.onerror = () => {
+      const iconLinks = document.querySelectorAll<HTMLLinkElement>("link[rel*='icon']");
+      iconLinks.forEach((link) => {
+        link.href = "/favicon.ico";
+      });
+    };
+    img.src = faviconHref;
   }, [settings.faviconUrl, mounted]);
 
   if (!mounted) return null;
