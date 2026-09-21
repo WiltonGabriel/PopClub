@@ -5,12 +5,14 @@ import { authService } from "../services/authService";
 
 export interface AppUser {
   id: string;
-  email: string;
-  username: string;
+  email?: string | null;
+  username?: string | null;
+  phone?: string | null;
   role: "client" | "admin";
   fullName?: string | null;
   avatarUrl?: string | null;
   avatar?: string | null;
+  isRegistered?: boolean;
   accessibilitySettings?: any;
   defaultPaymentMethod?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
   defaultChangeFor?: number | null;
@@ -29,6 +31,15 @@ interface AuthContextType {
   isAdmin: boolean;
   refreshUser: () => Promise<void>;
   signOut: () => Promise<void>;
+  fastAccess: (name: string, phone: string) => Promise<any>;
+  verifyDevice: (payload: {
+    phone: string;
+    houseNumber?: string;
+    addressId?: string;
+    updatedName?: string;
+    newAddress?: any;
+  }) => Promise<any>;
+  completeProfile: (email: string, password: string) => Promise<any>;
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -38,6 +49,9 @@ export const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   refreshUser: async () => {},
   signOut: async () => {},
+  fastAccess: async () => ({}),
+  verifyDevice: async () => ({}),
+  completeProfile: async () => ({}),
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -53,20 +67,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const appUser: AppUser = {
           id: current.id,
-          email: current.email,
-          username: current.username,
+          email: current.email || null,
+          username: current.username || null,
+          phone: current.phone || null,
           role: current.role,
           fullName: current.fullName,
           avatarUrl: avatar,
           avatar: avatar,
+          isRegistered: Boolean(current.isRegistered),
           accessibilitySettings: current.accessibilitySettings,
           defaultPaymentMethod: current.defaultPaymentMethod || current.default_payment_method || null,
           defaultChangeFor: current.defaultChangeFor !== undefined ? current.defaultChangeFor : (current.default_change_for !== undefined ? current.default_change_for : null),
           default_payment_method: current.defaultPaymentMethod || current.default_payment_method || null,
           default_change_for: current.defaultChangeFor !== undefined ? current.defaultChangeFor : (current.default_change_for !== undefined ? current.default_change_for : null),
           user_metadata: {
-            username: current.username,
-            full_name: current.fullName || current.username,
+            username: current.username || "",
+            full_name: current.fullName || current.username || "",
           },
         };
         setUser(appUser);
@@ -80,6 +96,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     }
   }, []);
+
+  const fastAccess = useCallback(async (name: string, phone: string) => {
+    const result = await authService.fastAccess(name, phone);
+    if (result.status === "authenticated") {
+      await refreshUser();
+    }
+    return result;
+  }, [refreshUser]);
+
+  const verifyDevice = useCallback(async (payload: {
+    phone: string;
+    houseNumber?: string;
+    addressId?: string;
+    updatedName?: string;
+    newAddress?: any;
+  }) => {
+    const result = await authService.verifyDevice(payload);
+    if (result.status === "authenticated") {
+      await refreshUser();
+    }
+    return result;
+  }, [refreshUser]);
+
+  const completeProfile = useCallback(async (email: string, password: string) => {
+    const result = await authService.completeProfile(email, password);
+    if (result.success) {
+      await refreshUser();
+    }
+    return result;
+  }, [refreshUser]);
 
   const signOut = useCallback(async () => {
     setUser(null);
@@ -103,7 +149,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const session = user ? { user } : null;
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, refreshUser, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        loading,
+        isAdmin,
+        refreshUser,
+        signOut,
+        fastAccess,
+        verifyDevice,
+        completeProfile,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

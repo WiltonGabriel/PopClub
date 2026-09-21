@@ -1,11 +1,13 @@
 export interface AuthUser {
   id: string;
-  email: string;
-  username: string;
+  email?: string | null;
+  username?: string | null;
+  phone?: string | null;
   role: "client" | "admin";
   fullName?: string | null;
   avatarUrl?: string | null;
   avatar?: string | null;
+  isRegistered?: boolean;
   accessibilitySettings?: any;
   defaultPaymentMethod?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
   defaultChangeFor?: number | null;
@@ -14,6 +16,51 @@ export interface AuthUser {
 }
 
 export const authService = {
+  async fastAccess(name: string, phone: string) {
+    const res = await fetch("/api/auth/fast-access", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, fullName: name, phone }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Erro ao processar Acesso Rápido.");
+    }
+    return data;
+  },
+
+  async verifyDevice(payload: {
+    phone: string;
+    houseNumber?: string;
+    addressId?: string;
+    updatedName?: string;
+    newAddress?: any;
+  }) {
+    const res = await fetch("/api/auth/verify-device", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Erro ao verificar identificação do aparelho.");
+    }
+    return data;
+  },
+
+  async completeProfile(email: string, password: string) {
+    const res = await fetch("/api/auth/complete-profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Erro ao completar cadastro.");
+    }
+    return data;
+  },
+
   async signUp(username: string, email: string, password: string) {
     const res = await fetch("/api/auth/register", {
       method: "POST",

@@ -35,14 +35,15 @@ enum PaymentMethodType {
 
 model User {
   id               String         @id @default(uuid())
-  username         String         @unique
-  email            String         @unique
-  passwordHash     String         @map("password_hash")
+  username         String?        @unique
+  email            String?        @unique
+  passwordHash     String?        @map("password_hash")
   role             Role           @default(client)
   fullName              String?        @map("full_name")
   avatarUrl             String?        @default("/avatars/avatar-sorvete.svg") @map("avatar_url")
   accessibilitySettings Json?          @map("accessibility_settings")
   phone                 String?
+  isRegistered          Boolean        @default(false) @map("is_registered")
   resetCode        String?        @map("reset_code")
   resetCodeExpires DateTime?      @map("reset_code_expires")
   notificationsEnabled Boolean        @default(true) @map("notifications_enabled")
@@ -52,6 +53,7 @@ model User {
   orders               Order[]
   userNotifications    UserNotification[]
 
+  @@index([phone])
   @@map("users")
 }
 

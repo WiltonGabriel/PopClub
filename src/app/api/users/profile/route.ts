@@ -30,6 +30,7 @@ export async function GET(request: Request) {
         avatarUrl: true,
         accessibilitySettings: true,
         phone: true,
+        isRegistered: true,
         notificationsEnabled: true,
         createdAt: true,
       },
@@ -66,6 +67,7 @@ export async function GET(request: Request) {
       default_change_for: defaultChangeFor,
       defaultChangeFor,
       phone: profile.phone,
+      isRegistered: Boolean(profile.isRegistered),
       notificationsEnabled: Boolean(profile.notificationsEnabled ?? true),
       notifications_enabled: Boolean(profile.notificationsEnabled ?? true),
       created_at: profile.createdAt.toISOString(),
@@ -87,6 +89,18 @@ async function handleUpdateProfile(request: Request) {
       body = await request.json();
     } catch {
       return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
+    }
+
+    // Gating de Avatar: Clientes em Acesso Rápido usam o avatar padrão
+    const requestedAvatar = body?.avatar_url || body?.avatar;
+    if (requestedAvatar && requestedAvatar !== DEFAULT_AVATAR && !authUser.isRegistered) {
+      return NextResponse.json(
+        {
+          error: "Personalização de avatar disponível após completar o cadastro.",
+          code: "AVATAR_REQUIRES_REGISTRATION",
+        },
+        { status: 403 }
+      );
     }
 
     const dataToUpdate: any = {};
@@ -159,6 +173,7 @@ async function handleUpdateProfile(request: Request) {
       default_change_for: defaultChangeFor,
       defaultChangeFor,
       phone: updated.phone,
+      isRegistered: Boolean(updated.isRegistered),
       notificationsEnabled: Boolean(updated.notificationsEnabled ?? true),
       notifications_enabled: Boolean(updated.notificationsEnabled ?? true),
       created_at: updated.createdAt.toISOString(),

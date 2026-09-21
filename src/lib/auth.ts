@@ -11,11 +11,18 @@ export function getJwtSecret(): string {
   return "popclub_secret_jwt_key_2026_super_secure";
 }
 
+export const SESSION_COOKIE_NAME = "popshake_session";
+export const LEGACY_COOKIE_NAME = "auth_token";
+export const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60; // 30 dias
+
 export interface TokenPayload {
   userId: string;
-  email: string;
-  username: string;
+  email?: string | null;
+  username?: string | null;
+  phone?: string | null;
+  name?: string | null;
   role: "client" | "admin";
+  isRegistered?: boolean;
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -32,8 +39,8 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   }
 }
 
-export function signToken(payload: TokenPayload): string {
-  return jwt.sign(payload, getJwtSecret(), { expiresIn: "7d" });
+export function signToken(payload: TokenPayload, expiresIn: string = "30d"): string {
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: expiresIn as any });
 }
 
 export function verifyToken(token: string): TokenPayload | null {
@@ -45,12 +52,53 @@ export function verifyToken(token: string): TokenPayload | null {
 }
 
 /**
+ * Define o cookie de sessão HttpOnly popshake_session (e auth_token para compatibilidade).
+ */
+export function setSessionCookies(
+  response: { cookies: { set: (name: string, val: string, opts: any) => void } },
+  token: string,
+  isHttps: boolean = false
+) {
+  const cookieOptions = {
+    httpOnly: true,
+    secure: isHttps || process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    maxAge: SESSION_MAX_AGE_SECONDS,
+    path: "/",
+  };
+
+  try {
+    response.cookies.set(SESSION_COOKIE_NAME, token, cookieOptions);
+    response.cookies.set(LEGACY_COOKIE_NAME, token, cookieOptions);
+  } catch (err) {
+    console.warn("Aviso ao definir cookies de sessão:", err);
+  }
+}
+
+/**
+ * Remove os cookies de sessão no logout.
+ */
+export function clearSessionCookies(response: { cookies: { set: (name: string, val: string, opts: any) => void } }) {
+  const clearOptions = {
+    path: "/",
+    maxAge: 0,
+    expires: new Date(0),
+  };
+  try {
+    response.cookies.set(SESSION_COOKIE_NAME, "", clearOptions);
+    response.cookies.set(LEGACY_COOKIE_NAME, "", clearOptions);
+  } catch (err) {
+    console.warn("Aviso ao limpar cookies de sessão:", err);
+  }
+}
+
+/**
  * Retorna o usuário logado com base nos cookies ou cabeçalho Authorization da requisição.
  */
 export async function getAuthUser(request?: Request): Promise<{
   id: string;
-  email: string;
-  username: string;
+  email: string | null;
+  username: string | null;
   role: "client" | "admin";
   fullName: string | null;
   avatarUrl: string | null;
@@ -59,6 +107,7 @@ export async function getAuthUser(request?: Request): Promise<{
   defaultPaymentMethod?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
   defaultChangeFor?: number | null;
   phone: string | null;
+  isRegistered: boolean;
   notificationsEnabled: boolean;
 } | null> {
   try {
@@ -73,7 +122,7 @@ export async function getAuthUser(request?: Request): Promise<{
 
     if (!token) {
       const cookieStore = await cookies();
-      token = cookieStore.get("auth_token")?.value;
+      token = cookieStore.get(SESSION_COOKIE_NAME)?.value || cookieStore.get(LEGACY_COOKIE_NAME)?.value;
     }
 
     if (!token) return null;
@@ -94,6 +143,7 @@ export async function getAuthUser(request?: Request): Promise<{
           avatarUrl: true,
           accessibilitySettings: true,
           phone: true,
+          isRegistered: true,
           notificationsEnabled: true,
         },
       });
@@ -107,6 +157,7 @@ export async function getAuthUser(request?: Request): Promise<{
             email: true,
             username: true,
             role: true,
+            isRegistered: true,
           },
         });
       } catch (fallbackErr: any) {
@@ -124,8 +175,8 @@ export async function getAuthUser(request?: Request): Promise<{
 
     return {
       id: user.id,
-      email: user.email,
-      username: user.username,
+      email: user.email || null,
+      username: user.username || null,
       role: user.role as "client" | "admin",
       fullName: user.fullName || null,
       avatarUrl: avatar,
@@ -134,6 +185,7 @@ export async function getAuthUser(request?: Request): Promise<{
       defaultPaymentMethod: rawSettings.defaultPaymentMethod || null,
       defaultChangeFor: rawSettings.defaultChangeFor !== undefined ? rawSettings.defaultChangeFor : null,
       phone: user.phone || null,
+      isRegistered: Boolean(user.isRegistered),
       notificationsEnabled: Boolean(user.notificationsEnabled ?? true),
     };
   } catch (err: any) {

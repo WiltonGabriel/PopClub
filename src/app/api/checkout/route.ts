@@ -74,8 +74,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // Obtém usuário autenticado se houver
+    // Obtém usuário autenticado obrigatoriamente (compras anônimas 100% bloqueadas)
     const authUser = await getAuthUser(request);
+    if (!authUser?.id) {
+      return NextResponse.json(
+        {
+          error: "Identificação obrigatória. Utilize o Acesso Rápido ou entre na sua conta para finalizar o pedido.",
+          code: "AUTH_REQUIRED",
+        },
+        { status: 401 }
+      );
+    }
 
     // 1. Validação e Recálculo Seguro de Itens no Cardápio
     const productIds = items.map((i) => i.productId);
@@ -154,6 +163,16 @@ export async function POST(request: Request) {
     let validCouponCode: string | null = null;
 
     if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
+      if (!authUser.isRegistered) {
+        return NextResponse.json(
+          {
+            error: "🏷️ Cupom indisponível: Descontos e cupons são exclusivos para clientes com cadastro completo. Complete seu cadastro para aplicar este cupom.",
+            code: "COUPON_REQUIRES_REGISTRATION",
+          },
+          { status: 403 }
+        );
+      }
+
       const cleanCode = couponCode.trim().toUpperCase();
       const coupon = await prisma.coupon.findUnique({
         where: { code: cleanCode },
@@ -253,7 +272,7 @@ export async function POST(request: Request) {
       // Criação do pedido
       const newOrder = await tx.order.create({
         data: {
-          user: authUser?.id ? { connect: { id: authUser.id } } : undefined,
+          user: { connect: { id: authUser.id } },
           shiftId: storeSettings?.currentShiftId || null,
           isArchived: false,
           status: "pending",

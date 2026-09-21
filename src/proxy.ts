@@ -52,7 +52,7 @@ export async function proxy(request: NextRequest) {
 
   // Proteção server-side de rotas do painel administrativo (/admin e /admin/*)
   if (pathname.startsWith("/admin")) {
-    let token = request.cookies.get("auth_token")?.value;
+    let token = request.cookies.get("popshake_session")?.value || request.cookies.get("auth_token")?.value;
 
     if (!token) {
       const authHeader = request.headers.get("authorization");

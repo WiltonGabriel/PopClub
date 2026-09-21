@@ -18,6 +18,7 @@ import { notificationService, AppNotification } from "../../services/notificatio
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../ui/ToastNotification";
 import { playDingSound } from "../../lib/sound";
+import { CompleteRegistrationModal } from "@/components/auth/CompleteRegistrationModal";
 
 function formatRelativeTime(dateString: string): string {
   try {
@@ -50,6 +51,7 @@ export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copiedCouponId, setCopiedCouponId] = useState<string | null>(null);
+  const [isCompleteRegModalOpen, setIsCompleteRegModalOpen] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -209,6 +211,28 @@ export function NotificationBell() {
             )}
           </div>
 
+          {/* Card de Boas-vindas para clientes em Acesso Rápido */}
+          {user && !user.isRegistered && (
+            <div className="p-3.5 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-amber-500/10 border-b border-purple-200/50 dark:border-purple-900/40 flex flex-col gap-2">
+              <p className="text-xs text-foreground leading-relaxed">
+                🎁 <strong>Seja bem-vindo ao PopShake!</strong> Complete seu cadastro adicionando e-mail e senha para liberar cupons de desconto e ofertas exclusivas.
+              </p>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    setIsCompleteRegModalOpen(true);
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] text-white text-[11px] font-bold shadow-xs hover:opacity-95 transition-opacity cursor-pointer flex items-center gap-1"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Completar meu cadastro
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Lista de Não Lidas */}
           <div className="max-h-[380px] overflow-y-auto divide-y divide-gray-100 dark:divide-[#512B54]/20">
             {notifications.length === 0 ? (
@@ -309,6 +333,12 @@ export function NotificationBell() {
           </div>
         </div>
       )}
+
+      <CompleteRegistrationModal
+        isOpen={isCompleteRegModalOpen}
+        onClose={() => setIsCompleteRegModalOpen(false)}
+        onSuccess={loadNotifications}
+      />
     </div>
   );
 }

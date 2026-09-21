@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyPassword, signToken } from "@/lib/auth";
+import { verifyPassword, signToken, setSessionCookies } from "@/lib/auth";
 import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
@@ -76,7 +76,10 @@ export async function POST(request: Request) {
         userId: user.id,
         email: user.email,
         username: user.username,
+        phone: user.phone,
+        name: user.fullName,
         role: user.role,
+        isRegistered: Boolean(user.isRegistered),
       });
     } catch (tokenErr: any) {
       console.error("❌ [API /api/auth/login] Falha ao assinar token JWT:", tokenErr);
@@ -95,35 +98,25 @@ export async function POST(request: Request) {
       isHttps = false;
     }
 
-    const cookieOptions = {
-      httpOnly: true,
-      secure: isHttps,
-      sameSite: "lax" as const,
-      maxAge: 60 * 60 * 24 * 7, // 7 dias
-      path: "/",
-    };
-
     const response = NextResponse.json({
       user: {
         id: user.id,
         email: user.email,
         username: user.username,
+        phone: user.phone,
         role: user.role,
         fullName: user.fullName,
+        isRegistered: Boolean(user.isRegistered),
       },
       token,
     });
 
-    try {
-      response.cookies.set("auth_token", token, cookieOptions);
-    } catch (cookieErr) {
-      console.warn("Aviso ao definir cookie no cabeçalho de resposta:", cookieErr);
-    }
+    setSessionCookies(response, token, isHttps);
 
     try {
       const cookieStore = await cookies();
-      cookieStore.set("auth_token", token, cookieOptions);
-    } catch (cookieStoreErr) {
+      setSessionCookies({ cookies: cookieStore } as any, token, isHttps);
+    } catch {
       // Ignora erro se o contexto do store já estiver encerrado
     }
 

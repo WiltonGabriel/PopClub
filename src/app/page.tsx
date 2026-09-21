@@ -234,7 +234,7 @@ export default function Storefront() {
   }, [userMenuOpen]);
 
   const userFirstName = user
-    ? (user.fullName || user.user_metadata?.full_name || user.username || user.email.split("@")[0]).split(" ")[0]
+    ? (user.fullName || user.user_metadata?.full_name || user.username || user.email?.split("@")[0] || "Cliente").split(" ")[0]
     : "";
 
   const fetchData = useCallback(async () => {

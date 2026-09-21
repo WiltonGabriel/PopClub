@@ -27,6 +27,7 @@ import { Footer } from "../../components/storefront/Footer";
 import { BottomNav } from "../../components/storefront/BottomNav";
 import { initAudioUnlock } from "../../lib/sound";
 import { NotificationPermissionBanner } from "../../components/storefront/NotificationPermissionBanner";
+import { CompleteRegistrationModal } from "@/components/auth/CompleteRegistrationModal";
 
 const STORE_WHATSAPP = process.env.NEXT_PUBLIC_STORE_WHATSAPP || "5584999999999";
 
@@ -97,6 +98,7 @@ export default function PedidosPage() {
   const [expandedOrderIds, setExpandedOrderIds] = useState<Record<string, boolean>>({});
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [reorderingOrderId, setReorderingOrderId] = useState<string | null>(null);
+  const [isCompleteRegModalOpen, setIsCompleteRegModalOpen] = useState(false);
 
   const toggleOrderExpanded = (id: string) => {
     setExpandedOrderIds((prev) => ({
@@ -267,6 +269,25 @@ export default function PedidosPage() {
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 pt-6 pb-32 sm:pb-36 space-y-6">
         {/* Banner para Solicitação Amigável de Permissão de Notificação */}
         <NotificationPermissionBanner />
+
+        {/* Aviso Discreto para quem está em Acesso Rápido */}
+        {user && !user.isRegistered && (
+          <div className="p-3.5 rounded-2xl bg-purple-50 dark:bg-purple-950/25 border border-purple-200/60 dark:border-purple-900/40 text-xs text-purple-800 dark:text-purple-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs">
+            <div className="flex items-center gap-2">
+              <span className="text-base shrink-0">💡</span>
+              <p className="leading-relaxed">
+                <strong>Dica:</strong> Complete seu cadastro com e-mail e senha para consultar seus pedidos em qualquer aparelho ou computador.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsCompleteRegModalOpen(true)}
+              className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline shrink-0 text-left sm:text-right cursor-pointer"
+            >
+              Completar Cadastro &rarr;
+            </button>
+          </div>
+        )}
 
         {/* Seletor de Abas */}
         <div className="flex bg-gray-200/70 dark:bg-[#2A102E]/60 p-1 rounded-2xl border border-gray-200 dark:border-[#512B54]/40">
@@ -693,6 +714,11 @@ export default function PedidosPage() {
       </main>
 
       <Footer />
+
+      <CompleteRegistrationModal
+        isOpen={isCompleteRegModalOpen}
+        onClose={() => setIsCompleteRegModalOpen(false)}
+      />
 
       {/* ─────────────────────────────────────────
           BOTTOM NAV (mobile only - Padrão iFood)

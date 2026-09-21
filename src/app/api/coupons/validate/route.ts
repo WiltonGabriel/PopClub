@@ -17,6 +17,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ valid: false, message: "Código do cupom é obrigatório." }, { status: 400 });
     }
 
+    const authUser = await getAuthUser(request);
+    if (!authUser || !authUser.isRegistered) {
+      return NextResponse.json(
+        {
+          valid: false,
+          code: "REQUIRES_REGISTRATION",
+          message: "🏷️ Cupom indisponível: Descontos e cupons são exclusivos para clientes com cadastro completo.",
+        },
+        { status: 403 }
+      );
+    }
+
     const cleanCode = code.trim().toUpperCase();
     const coupon = await prisma.coupon.findUnique({
       where: { code: cleanCode },

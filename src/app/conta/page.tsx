@@ -49,6 +49,7 @@ import {
   ColorBlindModeOption 
 } from "../../contexts/AccessibilityContext";
 import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
+import { CompleteRegistrationModal } from "@/components/auth/CompleteRegistrationModal";
 import { BottomNav } from "../../components/storefront/BottomNav";
 import { useToast } from "../../components/ui/ToastNotification";
 import { authService } from "../../services/authService";
@@ -192,6 +193,7 @@ export default function AccountPage() {
   const [avatarPresets, setAvatarPresets] = useState<AvatarPresetItem[]>(DEFAULT_AVATAR_PRESETS);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [modalAvatarChoice, setModalAvatarChoice] = useState("/avatars/avatar-sorvete.svg");
+  const [isCompleteRegModalOpen, setIsCompleteRegModalOpen] = useState(false);
 
   const loadNotifications = useCallback(async () => {
     try {
@@ -389,6 +391,16 @@ export default function AccountPage() {
 
   // Confirmar escolha de avatar no modal
   const handleConfirmAvatarModal = () => {
+    if (modalAvatarChoice !== "/avatars/avatar-sorvete.svg" && (!user || !user.isRegistered)) {
+      showToast({
+        type: "warning",
+        title: "Recurso Exclusivo",
+        message: "Personalização de avatar disponível após completar o cadastro.",
+      });
+      setIsAvatarModalOpen(false);
+      setIsCompleteRegModalOpen(true);
+      return;
+    }
     setSelectedAvatar(modalAvatarChoice);
     setIsAvatarModalOpen(false);
   };
@@ -672,6 +684,31 @@ export default function AccountPage() {
                   <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all shrink-0" />
                 </Link>
               </div>
+            </div>
+          )}
+
+          {/* Banner de Incentivo para Completar Cadastro */}
+          {user && !user.isRegistered && (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-900/40 to-pink-900/40 border border-purple-500/30 text-white shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-purple-500/20 text-purple-300 shrink-0 mt-0.5">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-white">Complete seu cadastro</h4>
+                  <p className="text-xs text-purple-200 mt-0.5 leading-relaxed">
+                    Adicione e-mail e senha para liberar cupons de desconto, personalizar seu avatar e acessar seus pedidos em outros aparelhos.
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setIsCompleteRegModalOpen(true)}
+                className="bg-white hover:bg-purple-50 text-purple-950 font-bold text-xs h-9 px-4 rounded-xl shrink-0 cursor-pointer shadow"
+              >
+                Completar Cadastro
+              </Button>
             </div>
           )}
 
@@ -1861,6 +1898,12 @@ export default function AccountPage() {
         onClose={() => setIsLogoutModalOpen(false)}
         onConfirm={handleSignOut}
         isLoggingOut={isLoggingOut}
+      />
+
+      <CompleteRegistrationModal
+        isOpen={isCompleteRegModalOpen}
+        onClose={() => setIsCompleteRegModalOpen(false)}
+        onSuccess={() => refreshUser()}
       />
 
       {/* ─────────────────────────────────────────

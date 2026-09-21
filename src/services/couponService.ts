@@ -109,7 +109,7 @@ export const couponService = {
     code: string,
     subtotal: number,
     productIds?: string[]
-  ): Promise<{ valid: boolean; coupon?: ValidatedCoupon; message?: string }> {
+  ): Promise<{ valid: boolean; coupon?: ValidatedCoupon; message?: string; code?: string }> {
     try {
       const res = await fetch("/api/coupons/validate", {
         method: "POST",

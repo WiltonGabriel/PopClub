@@ -38,6 +38,8 @@ import { playDingSound, initAudioUnlock } from "../../lib/sound";
 import { NotificationPermissionBanner } from "../../components/storefront/NotificationPermissionBanner";
 import { ResilientErrorAlert } from "../../components/ui/ResilientErrorAlert";
 import { AppApiError } from "@/lib/fetchClient";
+import { FastAccessModal } from "@/components/auth/FastAccessModal";
+import { CompleteRegistrationModal } from "@/components/auth/CompleteRegistrationModal";
 
 export default function CarrinhoPage() {
   const router = useRouter();
@@ -59,6 +61,12 @@ export default function CarrinhoPage() {
   const [appliedCoupon, setAppliedCoupon] = useState<ValidatedCoupon | null>(null);
   const [couponError, setCouponError] = useState("");
   const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [couponGatedMessage, setCouponGatedMessage] = useState<string | null>(null);
+  const [pendingCoupon, setPendingCoupon] = useState<string | null>(null);
+
+  // Modais de Autenticação Progressiva
+  const [isFastAccessModalOpen, setIsFastAccessModalOpen] = useState(false);
+  const [isCompleteRegModalOpen, setIsCompleteRegModalOpen] = useState(false);
 
   // Configuração de entrega da loja
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
@@ -207,8 +215,23 @@ export default function CarrinhoPage() {
     e.preventDefault();
     if (!couponInput.trim()) return;
 
-    setValidatingCoupon(true);
     setCouponError("");
+    setCouponGatedMessage(null);
+
+    // Gating: cupons exigem cadastro completo
+    if (user && !user.isRegistered) {
+      setPendingCoupon(couponInput.trim().toUpperCase());
+      setCouponGatedMessage("🏷️ Cupom indisponível: Descontos e cupons são exclusivos para clientes com cadastro completo.");
+      return;
+    }
+
+    if (!user) {
+      setPendingCoupon(couponInput.trim().toUpperCase());
+      setIsFastAccessModalOpen(true);
+      return;
+    }
+
+    setValidatingCoupon(true);
 
     try {
       const cartProductIds = items.map((it) => it.productId);
@@ -216,6 +239,9 @@ export default function CarrinhoPage() {
       if (res.valid && res.coupon) {
         setAppliedCoupon(res.coupon);
         setCouponInput("");
+      } else if (res.code === "REQUIRES_REGISTRATION") {
+        setPendingCoupon(couponInput.trim().toUpperCase());
+        setCouponGatedMessage(res.message || "🏷️ Cupom indisponível: Descontos e cupons são exclusivos para clientes com cadastro completo.");
       } else {
         setCouponError(res.message || "Cupom inválido.");
       }
@@ -226,9 +252,45 @@ export default function CarrinhoPage() {
     }
   };
 
+  const handleCompleteRegistrationSuccess = async () => {
+    setCouponGatedMessage(null);
+    if (pendingCoupon) {
+      setValidatingCoupon(true);
+      try {
+        const cartProductIds = items.map((it) => it.productId);
+        const res = await couponService.validateCoupon(pendingCoupon, itemsTotal, cartProductIds);
+        if (res.valid && res.coupon) {
+          setAppliedCoupon(res.coupon);
+          setPendingCoupon(null);
+        } else {
+          setCouponError(res.message || "Não foi possível aplicar o cupom.");
+        }
+      } catch {
+        setCouponError("Erro ao validar cupom após completar o cadastro.");
+      } finally {
+        setValidatingCoupon(false);
+      }
+    }
+  };
+
+  const handleFastAccessSuccess = (verifiedAddress?: any) => {
+    if (verifiedAddress) {
+      if (verifiedAddress.street) setStreet(verifiedAddress.street);
+      if (verifiedAddress.number) setNumber(verifiedAddress.number);
+      if (verifiedAddress.neighborhood) setNeighborhood(verifiedAddress.neighborhood);
+      if (verifiedAddress.city) setCity(verifiedAddress.city);
+      if (verifiedAddress.complement !== undefined) setComplement(verifiedAddress.complement || "");
+      if (verifiedAddress.reference !== undefined) setReference(verifiedAddress.reference || "");
+      if (verifiedAddress.zip !== undefined) setZip(verifiedAddress.zip || "");
+      if (verifiedAddress.latitude !== undefined) setLatitude(verifiedAddress.latitude || null);
+      if (verifiedAddress.longitude !== undefined) setLongitude(verifiedAddress.longitude || null);
+    }
+  };
+
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
     setCouponError("");
+    setCouponGatedMessage(null);
   };
 
   // Cálculos de Entrega & Totais
@@ -387,6 +449,12 @@ export default function CarrinhoPage() {
   const handleFinishOrder = async () => {
     setCheckoutError("");
     setCheckoutErrorObj(null);
+
+    // Bloqueio estrito de compras anônimas: exige autenticação via Acesso Rápido
+    if (!user) {
+      setIsFastAccessModalOpen(true);
+      return;
+    }
 
     if (storeSettings && !storeSettings.isOpen) {
       const msg = "A loja está fechada no momento e não está aceitando novos pedidos. Nosso atendimento abrirá em breve!";
@@ -824,6 +892,20 @@ export default function CarrinhoPage() {
                     {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
                   </Button>
                 </form>
+              )}
+
+              {couponGatedMessage && (
+                <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <span className="font-medium">{couponGatedMessage}</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setIsCompleteRegModalOpen(true)}
+                    className="rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white shrink-0 text-xs h-8 px-3 cursor-pointer"
+                  >
+                    Completar cadastro e aplicar
+                  </Button>
+                </div>
               )}
 
               {couponError && (
@@ -1492,6 +1574,19 @@ export default function CarrinhoPage() {
           </div>
         </div>
       )}
+
+      <FastAccessModal
+        isOpen={isFastAccessModalOpen}
+        onClose={() => setIsFastAccessModalOpen(false)}
+        onSuccess={handleFastAccessSuccess}
+        onRequestNewAddress={openAddressModal}
+      />
+
+      <CompleteRegistrationModal
+        isOpen={isCompleteRegModalOpen}
+        onClose={() => setIsCompleteRegModalOpen(false)}
+        onSuccess={handleCompleteRegistrationSuccess}
+      />
     </div>
   );
 }
