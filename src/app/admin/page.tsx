@@ -75,6 +75,74 @@ export default function AdminDashboard() {
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const previousOrderCountRef = useRef(0);
+  const [advanceModal, setAdvanceModal] = useState<{
+    orderId: string;
+    targetStatus: "accepted" | "preparing" | "ready" | "delivering" | "completed";
+    targetLabel: string;
+    description: string;
+  } | null>(null);
+  const [isAdvancing, setIsAdvancing] = useState(false);
+
+  const getNextStageInfo = (status: string, isPickup: boolean) => {
+    switch (status) {
+      case "pending":
+        return {
+          targetStatus: "accepted" as const,
+          targetLabel: "Aceitar Pedido",
+          description: "O pedido será confirmado e enviado para a esteira de produção.",
+        };
+      case "accepted":
+        return {
+          targetStatus: "preparing" as const,
+          targetLabel: "Iniciar Preparo",
+          description: "A cozinha começará a montagem dos itens.",
+        };
+      case "preparing":
+        return {
+          targetStatus: "ready" as const,
+          targetLabel: isPickup ? "Pronto p/ Balcão" : "Pronto p/ Saída",
+          description: isPickup
+            ? "O cliente será notificado que o pedido está pronto para retirada."
+            : "O pedido estará pronto aguardando o entregador.",
+        };
+      case "ready":
+        if (isPickup) {
+          return {
+            targetStatus: "completed" as const,
+            targetLabel: "Finalizar Retirada",
+            description: "O cliente retirou o pedido e o ciclo será concluído.",
+          };
+        }
+        return {
+          targetStatus: "delivering" as const,
+          targetLabel: "Despachar Entrega",
+          description: "O pedido sairá em rota e o cliente poderá acompanhar no mapa.",
+        };
+      case "delivering":
+        return {
+          targetStatus: "completed" as const,
+          targetLabel: "Finalizar Entrega",
+          description: "A entrega foi realizada com sucesso e o pedido será arquivado.",
+        };
+      default:
+        return null;
+    }
+  };
+
+  const handleConfirmAdvance = async () => {
+    if (!advanceModal) return;
+    setIsAdvancing(true);
+    try {
+      await orderService.updateOrderStatus(advanceModal.orderId, advanceModal.targetStatus);
+      await fetchOrders();
+      setAdvanceModal(null);
+    } catch (error) {
+      console.error("Erro ao avançar pedido:", error);
+      alert("Falha ao avançar status do pedido.");
+    } finally {
+      setIsAdvancing(false);
+    }
+  };
 
   const router = useRouter();
 
@@ -138,8 +206,9 @@ export default function AdminDashboard() {
     loadAll();
     setCurrentTime(Date.now());
 
-    // Polling contínuo leve a cada 15 segundos para atualizar pedidos ativos
+    // Polling contínuo a cada 15s pausado caso aba esteja inativa
     const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
       fetchOrders();
       setCurrentTime(Date.now());
     }, 15000);
@@ -360,17 +429,23 @@ export default function AdminDashboard() {
                         ? `${Math.floor(diffMins / 60)}h ${diffMins % 60}m`
                         : `${diffMins} min`;
 
-                    let statusBadge = { label: "Novo", color: "bg-[#9306CF]/10 text-[#9306CF] border-[#9306CF]/20" };
-                    if (order.status === "preparing") {
-                      statusBadge = { label: "Em Preparo", color: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200" };
-                    } else if (order.status === "ready" || order.status === "delivering") {
+                    let statusBadge = { label: "Pendente", color: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200" };
+                    if (order.status === "accepted") {
+                      statusBadge = { label: "Confirmado", color: "bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200" };
+                    } else if (order.status === "preparing") {
+                      statusBadge = { label: "Em Preparo", color: "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300 border-indigo-200" };
+                    } else if (order.status === "ready") {
+                      statusBadge = { label: isPickup ? "Pronto no Balcão" : "Pronto p/ Saída", color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200" };
+                    } else if (order.status === "delivering") {
                       statusBadge = { label: "A Caminho", color: "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200" };
                     }
+
+                    const nextInfo = getNextStageInfo(order.status, isPickup);
 
                     return (
                       <div
                         key={order.id}
-                        className="shrink-0 bg-gray-50/80 dark:bg-[#1A0B1C] border border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/40 rounded-xl p-3 flex flex-col justify-between gap-2.5 min-w-[230px] max-w-[270px] shadow-xs transition-all"
+                        className="shrink-0 bg-gray-50/80 dark:bg-[#1A0B1C] border border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/40 rounded-xl p-3 flex flex-col justify-between gap-2.5 min-w-[240px] max-w-[280px] shadow-xs transition-all"
                       >
                         <div className="flex items-center justify-between gap-1.5">
                           <span className="font-mono font-bold text-xs text-[#9306CF] dark:text-[#C7A9C9]">
@@ -400,12 +475,31 @@ export default function AdminDashboard() {
                           <span className="text-[10px] font-bold text-gray-500">
                             {isPickup ? "🛍️ Balcão" : "🛵 Entrega"}
                           </span>
-                          <Link
-                            href={`/admin/pedidos?orderId=${order.id}`}
-                            className="text-[11px] font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline inline-flex items-center gap-1"
-                          >
-                            <span>Ver na Central ➔</span>
-                          </Link>
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={`/admin/pedidos?orderId=${order.id}`}
+                              className="text-[11px] font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline inline-flex items-center"
+                            >
+                              <span>Central</span>
+                            </Link>
+                            {nextInfo && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setAdvanceModal({
+                                    orderId: order.id,
+                                    targetStatus: nextInfo.targetStatus,
+                                    targetLabel: nextInfo.targetLabel,
+                                    description: nextInfo.description,
+                                  })
+                                }
+                                title={`Avançar para: ${nextInfo.targetLabel}`}
+                                className="p-1.5 rounded-lg bg-[#9306CF] text-white hover:bg-[#7b05ad] active:scale-95 transition-all shadow-xs flex items-center justify-center"
+                              >
+                                <ArrowRight className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -1081,6 +1175,46 @@ export default function AdminDashboard() {
         currentBanner={highlightBanner}
         onSaved={(updated) => setHighlightBanner(updated)}
       />
+
+      {/* Modal Explicativo de Confirmação de Avanço de Pedido */}
+      {advanceModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#1A0B1C] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-[#9306CF]/10 text-[#9306CF] dark:bg-[#9306CF]/20 shrink-0 mt-0.5">
+                <ArrowRight className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9]">
+                  Avançar Pedido #{advanceModal.orderId.substring(0, 6)} para {advanceModal.targetLabel}?
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {advanceModal.description}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100 dark:border-[#512B54]/30">
+              <button
+                type="button"
+                disabled={isAdvancing}
+                onClick={() => setAdvanceModal(null)}
+                className="px-3.5 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isAdvancing}
+                onClick={handleConfirmAdvance}
+                className="px-4 py-1.5 text-xs font-bold bg-[#9306CF] hover:bg-[#7b05ad] text-white rounded-lg shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isAdvancing && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>Confirmar Avanço</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

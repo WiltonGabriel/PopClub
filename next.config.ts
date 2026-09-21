@@ -5,6 +5,20 @@ import os from "os";
 const withPWA = withPWAInit({
   dest: "public",
   disable: process.env.NODE_ENV === "development",
+  extendDefaultRuntimeCaching: true,
+  workboxOptions: {
+    runtimeCaching: [
+      {
+        urlPattern: ({ sameOrigin, url: { pathname } }: { sameOrigin: boolean; url: { pathname: string } }) =>
+          sameOrigin && pathname.startsWith("/api/"),
+        handler: "NetworkOnly",
+        method: "GET",
+        options: {
+          cacheName: "apis",
+        },
+      },
+    ],
+  },
 });
 
 // Coleta dinamicamente os IPs de rede da máquina (Tailscale, Wi-Fi/Ethernet local, etc.)

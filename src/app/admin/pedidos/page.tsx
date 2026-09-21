@@ -148,19 +148,39 @@ export default function AdminPedidosPage() {
       return;
     }
 
-    const stageNames: Record<string, string> = {
-      preparing: "Em Preparo",
-      ready: "Pronto p/ Saída",
-      delivering: "A Caminho / Entrega",
-      completed: "Concluído",
+    const stageDescriptions: Record<string, { name: string; desc: string }> = {
+      accepted: {
+        name: "Confirmado",
+        desc: "Isso confirmará o pedido na esteira da loja e notificará o cliente de que seu pedido foi aceito.",
+      },
+      preparing: {
+        name: "Em Preparo",
+        desc: "Isso notificará o cliente de que o pedido começou a ser preparado na cozinha.",
+      },
+      ready: {
+        name: "Pronto p/ Saída",
+        desc: "O pedido será marcado como pronto para expedição pelo entregador ou retirada no balcão.",
+      },
+      delivering: {
+        name: "A Caminho / Entrega",
+        desc: "Isso notificará o cliente de que o pedido está em rota de entrega.",
+      },
+      completed: {
+        name: "Concluído",
+        desc: "Isso finalizará o atendimento e registrará o pedido como entregue ao cliente.",
+      },
     };
-    const targetName = stageNames[stage.nextStatus] || stage.label;
+
+    const targetInfo = stageDescriptions[stage.nextStatus] || {
+      name: stage.label,
+      desc: `Deseja avançar o pedido #${order.id.substring(0, 6)} para a próxima etapa operacional?`,
+    };
 
     setConfirmDialog({
       open: true,
-      title: "Você tem certeza?",
-      message: `Deseja avançar o pedido #${order.id.substring(0, 6)} para a etapa "${targetName}"?`,
-      confirmText: "Sim, Avançar",
+      title: `Avançar Pedido #${order.id.substring(0, 6)} para ${targetInfo.name}?`,
+      message: targetInfo.desc,
+      confirmText: "Confirmar Avanço",
       isDestructive: false,
       onConfirm: async () => {
         await handleUpdateStatus(order.id, order.status);
@@ -604,8 +624,11 @@ export default function AdminPedidosPage() {
   useEffect(() => {
     fetchOrders();
 
-    // Polling inteligente a cada 10 segundos
+    // Polling saudável a cada 15 segundos, respeitando a visibilidade da aba
     const pollInterval = setInterval(async () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        return; // Pausa se a aba estiver em segundo plano para não sobrecarregar rede e WAF
+      }
       try {
         const [data, shiftsRes] = await Promise.all([
           orderService.getAllOrders(false),
@@ -646,7 +669,7 @@ export default function AdminPedidosPage() {
       } catch (err) {
         console.error("Erro no polling de pedidos:", err);
       }
-    }, 10000);
+    }, 15000);
 
     // Eventos locais imediatos entre abas
     const unsubscribe = subscribeToOrderEvents((event) => {
@@ -745,14 +768,16 @@ export default function AdminPedidosPage() {
   // Próxima etapa operacional
   const getNextStage = (currentStatus: OrderStatus): { nextStatus: OrderStatus; label: string } | null => {
     switch (currentStatus) {
+      case "pending":
+        return { nextStatus: "accepted", label: "Aceitar Pedido" };
       case "accepted":
-        return { nextStatus: "preparing", label: "Iniciar Preparo ➔" };
+        return { nextStatus: "preparing", label: "Iniciar Preparo" };
       case "preparing":
-        return { nextStatus: "ready", label: "Pronto p/ Saída ➔" };
+        return { nextStatus: "ready", label: "Pronto p/ Saída" };
       case "ready":
-        return { nextStatus: "delivering", label: "Despachar Entrega 🛵" };
+        return { nextStatus: "delivering", label: "Despachar Entrega" };
       case "delivering":
-        return { nextStatus: "completed", label: "Finalizar Pedido ✓" };
+        return { nextStatus: "completed", label: "Finalizar Pedido" };
       default:
         return null;
     }
@@ -761,6 +786,8 @@ export default function AdminPedidosPage() {
   // Etapa anterior operacional (Recuo de estágio)
   const getPrevStage = (currentStatus: OrderStatus): { prevStatus: OrderStatus; label: string } | null => {
     switch (currentStatus) {
+      case "accepted":
+        return { prevStatus: "pending", label: "Voltar p/ Pendentes" };
       case "preparing":
         return { prevStatus: "accepted", label: "Voltar p/ Novos" };
       case "ready":
@@ -1233,107 +1260,66 @@ export default function AdminPedidosPage() {
                       </span>
                     </div>
 
-                    {/* Linha 4: Ações Rápidas Operacionais */}
-                    {order.status === "accepted" ? (
-                      <div className="space-y-1.5 pt-1">
-                        <Button
-                          size="sm"
-                          onClick={() => promptUpdateStatus(order, { nextStatus: "preparing", label: "Iniciar Preparo ➔" })}
-                          className="w-full h-7 rounded-lg bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading font-bold text-[10px] uppercase tracking-wider shadow-xs flex items-center justify-center gap-1 cursor-pointer"
+                    {/* Linha 4: Ações Rápidas Operacionais Padronizadas (Sem Textos Longos) */}
+                    <div className="flex items-center justify-between gap-1 pt-1 border-t border-gray-100 dark:border-[#512B54]/30">
+                      {/* Lado Esquerdo: Ficha, Comprovante e Cancelar */}
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedOrderForDrawer(order)}
+                          title="Ver Ficha Completa"
+                          className="w-7 h-7 rounded-lg border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
                         >
-                          <ChefHat className="w-3 h-3" />
-                          <span>👨‍🍳 Iniciar Preparo ➔</span>
-                        </Button>
-                        <div className="flex items-center justify-between gap-1">
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedOrderForDrawer(order)}
-                              title="Ver Ficha Completa"
-                              className="w-7 h-7 rounded-lg border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
-                            >
-                              <FileText className="w-3.5 h-3.5 text-[#9306CF]" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => printThermalReceipt(order)}
-                              title="Imprimir Comprovante (80mm / 58mm)"
-                              className="w-7 h-7 rounded-lg border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
-                            >
-                              <Printer className="w-3.5 h-3.5 text-[#9306CF]" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => promptCancelOrder(order)}
-                              title="Cancelar Pedido"
-                              className="w-7 h-7 rounded-lg border border-red-200 dark:border-red-900/40 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center transition-colors cursor-pointer"
-                            >
-                              <Ban className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
+                          <FileText className="w-3.5 h-3.5 text-[#9306CF]" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => printThermalReceipt(order)}
+                          title="Imprimir Comprovante (80mm / 58mm)"
+                          className="w-7 h-7 rounded-lg border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
+                        >
+                          <Printer className="w-3.5 h-3.5 text-[#9306CF]" />
+                        </button>
+                        {order.status !== "completed" && (
+                          <button
+                            type="button"
+                            onClick={() => promptCancelOrder(order)}
+                            title="Cancelar Pedido"
+                            className="w-7 h-7 rounded-lg border border-red-200 dark:border-red-900/40 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center transition-colors cursor-pointer"
+                          >
+                            <Ban className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
-                    ) : (
-                      <div className="flex items-center justify-between gap-1 pt-1">
-                        {/* Lado Esquerdo: Ficha, Comprovante e Cancelar */}
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedOrderForDrawer(order)}
-                            title="Ver Ficha Completa"
-                            className="w-7 h-7 rounded-lg border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
-                          >
-                            <FileText className="w-3.5 h-3.5 text-[#9306CF]" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => printThermalReceipt(order)}
-                            title="Imprimir Comprovante (80mm / 58mm)"
-                            className="w-7 h-7 rounded-lg border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
-                          >
-                            <Printer className="w-3.5 h-3.5 text-[#9306CF]" />
-                          </button>
-                          {order.status !== "completed" && (
-                            <button
-                              type="button"
-                              onClick={() => promptCancelOrder(order)}
-                              title="Cancelar Pedido"
-                              className="w-7 h-7 rounded-lg border border-red-200 dark:border-red-900/40 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center transition-colors cursor-pointer"
-                            >
-                              <Ban className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
 
-                        {/* Lado Direito: Voltar e Avançar */}
-                        <div className="flex items-center gap-1">
-                          {prevStage && (
-                            <button
-                              type="button"
-                              onClick={() => promptRevertStatus(order, prevStage)}
-                              title={prevStage.label}
-                              className="w-7 h-7 rounded-lg border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
-                            >
-                              <RotateCcw className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                          {nextStage ? (
-                            <button
-                              type="button"
-                              onClick={() => promptUpdateStatus(order, nextStage)}
-                              title={nextStage.label}
-                              className="h-7 px-2 rounded-lg bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-bold text-[10px] flex items-center justify-center gap-1 shadow-xs transition-all cursor-pointer"
-                            >
-                              <span>{nextStage.label}</span>
-                            </button>
-                          ) : (
-                            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-900/30">
-                              ✓ Entregue
-                            </span>
-                          )}
-                        </div>
+                      {/* Lado Direito: Voltar e Avançar (Ícone Compacto de Seta) */}
+                      <div className="flex items-center gap-1">
+                        {prevStage && (
+                          <button
+                            type="button"
+                            onClick={() => promptRevertStatus(order, prevStage)}
+                            title={prevStage.label}
+                            className="w-7 h-7 rounded-lg border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {nextStage ? (
+                          <button
+                            type="button"
+                            onClick={() => promptUpdateStatus(order, nextStage)}
+                            title={`Avançar para ${nextStage.label}`}
+                            className="w-7 h-7 rounded-lg bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white flex items-center justify-center shadow-xs transition-all cursor-pointer"
+                          >
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        ) : (
+                          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-900/30">
+                            ✓ Entregue
+                          </span>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 );
               }
@@ -1545,123 +1531,67 @@ export default function AdminPedidosPage() {
                       </div>
                     </div>
 
-                    {/* Botões Operacionais */}
-                    {order.status === "accepted" ? (
-                      <div className="space-y-2 pt-1">
-                        {/* Ação de Início de Bancada (Largura Total) */}
-                        <Button
-                          onClick={() => promptUpdateStatus(order, { nextStatus: "preparing", label: "Iniciar Preparo ➔" })}
-                          className="w-full h-9 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading font-bold text-xs uppercase tracking-wider shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                    {/* Botões Operacionais Padronizados (Ícone de Seta Compacto) */}
+                    <div className="flex items-center justify-between gap-1 pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+                      {/* Lado Esquerdo: Ficha, Comprovante e Cancelar */}
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedOrderForDrawer(order)}
+                          title="Ver Ficha Completa"
+                          className="w-8 h-8 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
                         >
-                          <ChefHat className="w-4 h-4" />
-                          <span>👨‍🍳 Iniciar Preparo ➔</span>
-                        </Button>
-
-                        {/* Barra Inferior Padronizada de Ações em Ícones */}
-                        <div className="flex items-center justify-between gap-1 pt-0.5">
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedOrderForDrawer(order)}
-                              title="Ver Ficha Completa"
-                              className="w-8 h-8 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
-                            >
-                              <FileText className="w-4 h-4 text-[#9306CF]" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => printThermalReceipt(order)}
-                              title="Imprimir Comprovante (80mm / 58mm)"
-                              className="w-8 h-8 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
-                            >
-                              <Printer className="w-4 h-4 text-[#9306CF]" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => promptCancelOrder(order)}
-                              title="Cancelar Pedido"
-                              className="w-8 h-8 rounded-xl border border-red-200 dark:border-red-900/40 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center transition-colors cursor-pointer"
-                            >
-                              <Ban className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-2 pt-1">
-                        {/* Ação Primária de Avanço ou Badge de Concluído */}
-                        {nextStage ? (
-                          <Button
-                            onClick={() => promptUpdateStatus(order, nextStage)}
-                            className="w-full h-9 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading font-bold text-xs uppercase tracking-wider shadow-md shadow-[#9306CF]/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                          <FileText className="w-4 h-4 text-[#9306CF]" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => printThermalReceipt(order)}
+                          title="Imprimir Comprovante (80mm / 58mm)"
+                          className="w-8 h-8 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
+                        >
+                          <Printer className="w-4 h-4 text-[#9306CF]" />
+                        </button>
+                        {order.status !== "completed" && (
+                          <button
+                            type="button"
+                            onClick={() => promptCancelOrder(order)}
+                            title="Cancelar Pedido"
+                            className="w-8 h-8 rounded-xl border border-red-200 dark:border-red-900/40 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center transition-colors cursor-pointer"
                           >
-                            <span>{nextStage.label}</span>
-                          </Button>
-                        ) : order.status === "completed" ? (
-                          <div className="w-full py-2 text-center text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-900/30 flex items-center justify-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>Pedido Entregue</span>
-                          </div>
-                        ) : null}
-
-                        {/* Barra Inferior Padronizada de Ações em Ícones */}
-                        <div className="flex items-center justify-between gap-1 pt-0.5">
-                          {/* Lado Esquerdo: Ficha, Comprovante e Cancelar */}
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedOrderForDrawer(order)}
-                              title="Ver Ficha Completa"
-                              className="w-8 h-8 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
-                            >
-                              <FileText className="w-4 h-4 text-[#9306CF]" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => printThermalReceipt(order)}
-                              title="Imprimir Comprovante (80mm / 58mm)"
-                              className="w-8 h-8 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
-                            >
-                              <Printer className="w-4 h-4 text-[#9306CF]" />
-                            </button>
-                            {order.status !== "completed" && (
-                              <button
-                                type="button"
-                                onClick={() => promptCancelOrder(order)}
-                                title="Cancelar Pedido"
-                                className="w-8 h-8 rounded-xl border border-red-200 dark:border-red-900/40 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center transition-colors cursor-pointer"
-                              >
-                                <Ban className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Lado Direito: Voltar Etapa e Avançar Etapa (Ícone com Tooltip) */}
-                          <div className="flex items-center gap-1.5">
-                            {prevStage && (
-                              <button
-                                type="button"
-                                onClick={() => promptRevertStatus(order, prevStage)}
-                                title={prevStage.label}
-                                className="w-8 h-8 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
-                              >
-                                <RotateCcw className="w-4 h-4" />
-                              </button>
-                            )}
-                            {nextStage && (
-                              <button
-                                type="button"
-                                onClick={() => promptUpdateStatus(order, nextStage)}
-                                title={nextStage.label}
-                                className="w-8 h-8 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white flex items-center justify-center shadow-xs transition-all cursor-pointer"
-                              >
-                                <ArrowRight className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
+                            <Ban className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
-                    )}
+
+                      {/* Lado Direito: Voltar Etapa e Avançar Etapa (Ícone com Tooltip) */}
+                      <div className="flex items-center gap-1.5">
+                        {prevStage && (
+                          <button
+                            type="button"
+                            onClick={() => promptRevertStatus(order, prevStage)}
+                            title={prevStage.label}
+                            className="w-8 h-8 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </button>
+                        )}
+                        {nextStage ? (
+                          <button
+                            type="button"
+                            onClick={() => promptUpdateStatus(order, nextStage)}
+                            title={`Avançar para ${nextStage.label}`}
+                            className="w-8 h-8 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white flex items-center justify-center shadow-xs transition-all cursor-pointer"
+                          >
+                            <ArrowRight className="w-4 h-4" />
+                          </button>
+                        ) : order.status === "completed" ? (
+                          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 rounded-xl border border-emerald-200 dark:border-emerald-900/30 inline-flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Entregue</span>
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
@@ -2130,7 +2060,7 @@ export default function AdminPedidosPage() {
         {/* Abas do Kanban no Mobile (< md) */}
         <div className="md:hidden flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
           {([
-            { key: "novos" as const, label: "Novos", color: "#9306CF", count: orders.filter((o) => o.status === "accepted").length },
+            { key: "novos" as const, label: "Novos", color: "#9306CF", count: orders.filter((o) => ["pending", "accepted"].includes(o.status)).length },
             { key: "preparo" as const, label: "Preparo", color: "#EAB308", count: orders.filter((o) => ["preparing"].includes(o.status)).length },
             { key: "entrega" as const, label: "Entrega", color: "#940068", count: orders.filter((o) => ["ready", "delivering"].includes(o.status)).length },
             { key: "concluidos" as const, label: "Concluídos", color: "#10B981", count: orders.filter((o) => ["completed"].includes(o.status)).length },
@@ -2165,7 +2095,7 @@ export default function AdminPedidosPage() {
 
         {/* Coluna Ativa do Kanban no Mobile (< md) */}
         <div className="md:hidden space-y-4">
-          {mobileKanbanTab === "novos" && renderKanbanColumn("Novos", ["accepted"], "#9306CF", "novos")}
+          {mobileKanbanTab === "novos" && renderKanbanColumn("Novos", ["pending", "accepted"], "#9306CF", "novos")}
           {mobileKanbanTab === "preparo" && renderKanbanColumn("Em Preparo", ["preparing"], "#EAB308", "preparo")}
           {mobileKanbanTab === "entrega" && renderKanbanColumn("A Caminho / Pronto", ["ready", "delivering"], "#940068", "entrega")}
           {mobileKanbanTab === "concluidos" && renderKanbanColumn("Concluídos", ["completed"], "#10B981", "concluidos")}
@@ -2174,7 +2104,7 @@ export default function AdminPedidosPage() {
 
         {/* Grid Principal do Kanban em 5 Colunas (md+) */}
         <section className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4 overflow-x-auto pb-4 items-start">
-          {renderKanbanColumn("Novos", ["accepted"], "#9306CF", "novos")}
+          {renderKanbanColumn("Novos", ["pending", "accepted"], "#9306CF", "novos")}
           {renderKanbanColumn("Em Preparo", ["preparing"], "#EAB308", "preparo")}
           {renderKanbanColumn("A Caminho / Pronto", ["ready", "delivering"], "#940068", "entrega")}
           {renderKanbanColumn("Concluídos", ["completed"], "#10B981", "concluidos")}
@@ -2733,7 +2663,7 @@ export default function AdminPedidosPage() {
                 onClick={() => setConfirmDialog((prev) => ({ ...prev, open: false }))}
                 className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider h-10 px-5 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
               >
-                Não
+                Cancelar
               </Button>
               <Button
                 type="button"
@@ -2741,13 +2671,14 @@ export default function AdminPedidosPage() {
                   setConfirmDialog((prev) => ({ ...prev, open: false }));
                   await confirmDialog.onConfirm();
                 }}
-                className={`rounded-xl text-xs font-bold uppercase tracking-wider h-10 px-6 shadow-sm cursor-pointer ${
+                className={`rounded-xl text-xs font-bold uppercase tracking-wider h-10 px-6 shadow-sm flex items-center gap-1.5 cursor-pointer ${
                   confirmDialog.isDestructive
                     ? "bg-red-600 hover:bg-red-700 text-white shadow-red-600/20"
                     : "bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white shadow-[#9306CF]/20"
                 }`}
               >
-                {confirmDialog.confirmText || "Sim"}
+                <span>{confirmDialog.confirmText || "Confirmar Avanço"}</span>
+                <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
           </div>

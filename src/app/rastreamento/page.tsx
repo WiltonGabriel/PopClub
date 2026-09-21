@@ -88,7 +88,7 @@ function TrackingContent() {
       .catch(() => {});
   }, []);
 
-  // Busca inicial do pedido (com auto-resolução do último pedido ativo caso a rota seja chamada sem ?id=)
+  // Busca inicial do pedido (com auto-resolução do pedido ativo mais recente caso a rota seja chamada sem ?id=)
   useEffect(() => {
     let isMounted = true;
     async function loadOrder() {
@@ -96,10 +96,15 @@ function TrackingContent() {
         let targetId = orderId;
         if (!targetId) {
           const myOrders = await orderService.getMyOrders();
+          // Ordena decrescente pela data mais recente
+          const sortedOrders = [...myOrders].sort(
+            (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+          // Prioriza o pedido ativo mais recente criado pelo cliente (evita pegar pedidos antigos entregues ou em rota)
           const activeOrder =
-            myOrders.find((o) =>
-              ["delivering", "ready", "preparing", "accepted", "pending"].includes(o.status)
-            ) || myOrders[0];
+            sortedOrders.find((o) =>
+              !["completed", "cancelled"].includes(o.status)
+            ) || sortedOrders[0];
 
           if (activeOrder && isMounted) {
             router.replace(`/rastreamento?id=${activeOrder.id}`);
@@ -131,19 +136,24 @@ function TrackingContent() {
     };
   }, [orderId, router]);
 
-  // Polling a cada 8s para atualizar posição do entregador e status do pedido
+  // Polling saudável a cada 15s para atualizar status e posição de pedidos ativos, pausando em abas ocultas
   useEffect(() => {
-    if (!orderId || !order || order.status !== "delivering") return;
+    if (!orderId || !order || ["completed", "cancelled"].includes(order.status)) return;
 
     const interval = setInterval(async () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        return; // Pausa se a aba estiver em segundo plano para evitar sobrecarga de rede
+      }
       try {
         const refreshed = await orderService.getOrderById(orderId);
-        setOrder(refreshed);
-        setLastPollTime(new Date());
-      } catch (e) {
+        if (refreshed) {
+          setOrder(refreshed);
+          setLastPollTime(new Date());
+        }
+      } catch {
         // Silencioso em caso de oscilação momentânea de rede
       }
-    }, 8000);
+    }, 15000);
 
     return () => clearInterval(interval);
   }, [orderId, order?.status]);
@@ -770,11 +780,16 @@ function TrackingContent() {
 
   // --------------------------------------------------------------------------
   // CASO 2: Pedido em fases anteriores (pending, accepted, preparing, ready)
-  // REGRA ESTRITA: Exibe apenas o Stepper Visual da esteira sem abrir o mapa
+  // REGRA ESTRITA: Exibe Stepper Visual da esteira sem abrir o mapa
   // --------------------------------------------------------------------------
-  const isPreparing = ["pending", "accepted", "preparing", "ready"].includes(order.status);
+  const isPending = order.status === "pending";
+  const isAcceptedOrPreparing = ["accepted", "preparing"].includes(order.status);
+  const isReady = order.status === "ready";
   const isCompleted = order.status === "completed";
   const isCancelled = order.status === "cancelled";
+  const isPickup =
+    !order.delivery_address?.street ||
+    order.delivery_address?.street.toLowerCase().includes("retirada");
 
   return (
     <main className="min-h-screen bg-background flex flex-col">
@@ -798,13 +813,17 @@ function TrackingContent() {
           {/* Header do Card */}
           <div className="text-center space-y-2">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#9306CF] to-[#940068] flex items-center justify-center text-white shadow-xl shadow-[#9306CF]/25 mx-auto text-3xl">
-              {isCompleted ? "🎉" : isCancelled ? "❌" : "🥣"}
+              {isCompleted ? "🎉" : isCancelled ? "❌" : isPending ? "⏳" : isReady ? (isPickup ? "🛍️" : "📦") : "🥣"}
             </div>
             <h1 className="font-heading text-xl sm:text-2xl font-black uppercase tracking-tight text-foreground">
               {isCompleted
                 ? "Pedido Entregue!"
                 : isCancelled
                 ? "Pedido Cancelado"
+                : isPending
+                ? "Pedido Recebido!"
+                : isReady
+                ? (isPickup ? "Pronto para Retirada!" : "Pronto p/ Saída!")
                 : "Preparando seu Pedido"}
             </h1>
             <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
@@ -812,7 +831,13 @@ function TrackingContent() {
                 ? "Seu pedido foi entregue com sucesso. Esperamos que aproveite cada colherada!"
                 : isCancelled
                 ? `Este pedido foi cancelado. Motivo: ${order.cancellation_reason || "Informado pela loja"}`
-                : "Seu pedido está sendo montado com açaí batido na hora e complementos frescos. O rastreamento no mapa será liberado assim que o entregador sair para a entrega!"}
+                : isPending
+                ? "Recebemos seu pedido com sucesso! A loja já foi notificada e vai confirmar o início do preparo em instantes."
+                : isReady
+                ? (isPickup
+                    ? "Seu pedido está embalado e aguardando você no balcão da sorveteria!"
+                    : "Seu pedido está pronto e embalado na expedição, aguardando o entregador iniciar a rota.")
+                : "Seu pedido foi confirmado pela equipe e está sendo montado com todo o capricho na cozinha!"}
             </p>
           </div>
 
@@ -823,60 +848,84 @@ function TrackingContent() {
             </span>
 
             <div className="grid grid-cols-4 gap-1 sm:gap-2 text-center text-[11px]">
-              {/* Etapa 1: Recebido */}
-              <div className="space-y-1.5">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 flex items-center justify-center mx-auto font-bold border border-emerald-300 dark:border-emerald-800">
-                  ✓
-                </div>
-                <span className="font-bold text-foreground block text-[10px] leading-tight">
-                  Recebido
-                </span>
-              </div>
-
-              {/* Etapa 2: Na Cozinha */}
+              {/* Etapa 1: Confirmado / Recebido */}
               <div className="space-y-1.5">
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto font-bold text-xs ${
-                    isPreparing
+                    isPending
+                      ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-700 animate-pulse"
+                      : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                  }`}
+                >
+                  {isPending ? "⏳" : "✓"}
+                </div>
+                <span className={`block text-[10px] leading-tight ${isPending ? "font-bold text-amber-600 dark:text-amber-400" : "font-bold text-foreground"}`}>
+                  {isPending ? "Aguardando" : "Confirmado"}
+                </span>
+              </div>
+
+              {/* Etapa 2: Na Cozinha / Em Preparo */}
+              <div className="space-y-1.5">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto font-bold text-xs ${
+                    isAcceptedOrPreparing
                       ? "bg-[#9306CF] text-white shadow-md shadow-[#9306CF]/30 animate-pulse"
-                      : isCompleted
-                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300"
+                      : isReady || isCompleted
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
                       : "bg-muted text-muted-foreground"
                   }`}
                 >
-                  🥣
+                  {isReady || isCompleted ? "✓" : "🥣"}
                 </div>
                 <span
-                  className={`font-bold block text-[10px] leading-tight ${
-                    isPreparing ? "text-[#9306CF] dark:text-[#C7A9C9]" : "text-muted-foreground"
+                  className={`block text-[10px] leading-tight ${
+                    isAcceptedOrPreparing
+                      ? "font-bold text-[#9306CF] dark:text-[#C7A9C9]"
+                      : isReady || isCompleted
+                      ? "font-bold text-foreground"
+                      : "text-muted-foreground"
                   }`}
                 >
                   Na Cozinha
                 </span>
               </div>
 
-              {/* Etapa 3: A Caminho */}
-              <div className="space-y-1.5 opacity-60">
-                <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center mx-auto font-bold text-xs">
-                  🛵
+              {/* Etapa 3: A Caminho / Pronto Retirada */}
+              <div className="space-y-1.5">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto font-bold text-xs ${
+                    isReady
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-500/30 animate-pulse"
+                      : isCompleted
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300"
+                      : "bg-muted text-muted-foreground opacity-60"
+                  }`}
+                >
+                  {isCompleted ? "✓" : isPickup ? "🛍️" : "🛵"}
                 </div>
-                <span className="font-medium text-muted-foreground block text-[10px] leading-tight">
-                  A Caminho
+                <span
+                  className={`block text-[10px] leading-tight ${
+                    isReady
+                      ? "font-bold text-blue-600 dark:text-blue-400"
+                      : "text-muted-foreground opacity-60"
+                  }`}
+                >
+                  {isPickup ? "No Balcão" : "A Caminho"}
                 </span>
               </div>
 
-              {/* Etapa 4: Entregue */}
-              <div className="space-y-1.5 opacity-60">
+              {/* Etapa 4: Entregue / Concluído */}
+              <div className="space-y-1.5">
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto font-bold text-xs ${
                     isCompleted
-                      ? "bg-emerald-600 text-white"
-                      : "bg-muted text-muted-foreground"
+                      ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/30"
+                      : "bg-muted text-muted-foreground opacity-60"
                   }`}
                 >
                   🎉
                 </div>
-                <span className="font-medium text-muted-foreground block text-[10px] leading-tight">
+                <span className={`block text-[10px] leading-tight ${isCompleted ? "font-bold text-emerald-600 dark:text-emerald-400" : "text-muted-foreground opacity-60"}`}>
                   Entregue
                 </span>
               </div>
