@@ -14,7 +14,7 @@
 
 **Plataforma proprietária de delivery, esteira de produção Kanban e gestão operacional para açaís e sorvetes artesanais.**
 
-[Visão Geral](#-visão-geral) • [Topologia](#-topologia-de-arquitetura) • [Stack](#-stack-tecnológica) • [Setup Local](#-setup-de-desenvolvimento-local) • [Scripts](#-scripts-operacionais) • [GitOps](#-governança-gitops) • [Módulos](#-módulos-da-aplicação)
+[Visão Geral](#-visão-geral) • [Topologia](#-topologia-de-arquitetura) • [Stack](#-stack-tecnológica) • [Setup Local](#-setup-de-desenvolvimento-local) • [Scripts](#-scripts-operacionais) • [GitOps](#-governança-gitops) • [Módulos](#-módulos-da-aplicação) • [Equipe e Governança](#-equipe-e-governança)
 
 </div>
 
@@ -218,13 +218,35 @@ O repositório opera estritamente sob as diretrizes documentadas em [GITOPS.md](
 
 ---
 
-## 👥 Projeto, Equipe e Governança
+## 👥 Equipe e Governança
 
-O projeto **PopClub** é desenvolvido no âmbito da **Equipe ADP**, integrando as atividades de concepção, engenharia de software, arquitetura, design de interfaces e testes.
+O projeto **PopClub** é desenvolvido no âmbito da **Equipe ADP**, com responsabilidades distribuídas de acordo com a atuação principal de cada integrante. Algumas atividades, como testes, validações e apresentações, são realizadas de forma colaborativa pela equipe.
 
-### Estrutura e Continuidade Técnica
-- **Equipe de Desenvolvimento:** Equipe ADP.
-- **Mantenedor Principal:** **Wilton Gabriel**, atuando como referência responsável pela coordenação técnica, administração e manutenção do repositório, organização do código, integração das contribuições e continuidade da plataforma, bem como pela gestão das autorizações relacionadas ao software, seu uso e sua evolução.
+### Funções Atuais
+
+- **Wilton Gabriel — Arquiteto de Software & Mantenedor Principal**  
+  Responsável pela arquitetura da solução, desenvolvimento e implementação do sistema, decisões técnicas, manutenção e evolução do código-fonte. Atua também como referência responsável pela coordenação técnica, administração e manutenção do repositório, organização do código, integração de contribuições e continuidade da plataforma, bem como pela gestão das autorizações relacionadas ao software, seu uso e sua evolução.
+
+- **Adriel Felipe — Analista de Documentação**  
+  Responsável pela elaboração e organização da documentação do projeto, materiais de apoio, registros e preparação dos conteúdos utilizados nas entregas e apresentações.
+
+- **João Lucas — Analista de Qualidade & Relacionamento**  
+  Responsável pela validação funcional da aplicação, apoio aos testes, levantamento e comunicação de problemas identificados durante a utilização e relacionamento com a parte interessada.
+
+### Atividades Compartilhadas
+
+A equipe participa, conforme a necessidade do projeto, de atividades como:
+
+* testes e validação das funcionalidades;
+* identificação e comunicação de problemas;
+* preparação e realização de apresentações;
+* revisão de materiais e documentação;
+* levantamento e discussão de requisitos;
+* acompanhamento das entregas.
+
+A distribuição das atividades acima não altera as responsabilidades principais atribuídas a cada função.
+
+### Diretrizes de Projeto e Licenciamento
 - **Natureza do Repositório:** Privado e restrito (não open-source).
 - **Licenciamento e Direitos:** Questões definitivas de licenciamento, direitos de uso e exploração do software serão formalizadas posteriormente por meio de instrumento próprio adequado. Componentes e bibliotecas de terceiros utilizados no ecossistema permanecem sujeitos às suas respectivas licenças de código aberto.
 
