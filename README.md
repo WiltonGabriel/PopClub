@@ -20,9 +20,9 @@
 
 ---
 
-> [!IMPORTANT]
-> **REPOSITÓRIO PRIVADO E CONFIDENCIAL**  
-> Este software e seu código-fonte são de propriedade estritamente privada da **Pop Shake Sorveteria** e de **Wilton Gabriel (Equipe ADP)**. Todos os direitos reservados.
+> [!NOTE]
+> **REPOSITÓRIO PRIVADO — USO RESTRITO**  
+> Código-fonte e documentação de acesso restrito no âmbito do projeto. Este software não é de código aberto (open-source) e seu uso, reprodução ou distribuição dependem de autorização prévia.
 
 ---
 
@@ -218,6 +218,13 @@ O repositório opera estritamente sob as diretrizes documentadas em [GITOPS.md](
 
 ---
 
-## 🔒 Licença e Confidencialidade
+## 👥 Projeto, Equipe e Governança
 
-Este projeto é um ativo comercial privado. O acesso ao código-fonte é restrito exclusivamente aos mantenedores autorizados da **Pop Shake Sorveteria**.
+O projeto **PopClub** é desenvolvido no âmbito da **Equipe ADP**, integrando as atividades de concepção, engenharia de software, arquitetura, design de interfaces e testes.
+
+### Estrutura e Continuidade Técnica
+- **Equipe de Desenvolvimento:** Equipe ADP.
+- **Mantenedor Principal:** **Wilton Gabriel**, atuando como referência responsável pela coordenação técnica, administração e manutenção do repositório, organização do código, integração das contribuições e continuidade da plataforma, bem como pela gestão das autorizações relacionadas ao software, seu uso e sua evolução.
+- **Natureza do Repositório:** Privado e restrito (não open-source).
+- **Licenciamento e Direitos:** Questões definitivas de licenciamento, direitos de uso e exploração do software serão formalizadas posteriormente por meio de instrumento próprio adequado. Componentes e bibliotecas de terceiros utilizados no ecossistema permanecem sujeitos às suas respectivas licenças de código aberto.
+

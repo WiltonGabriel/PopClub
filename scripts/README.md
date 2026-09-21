@@ -1,4 +1,4 @@
-# Pop Shake — Scripts de Diagnóstico, CI e Utilitários
+# PopClub — Scripts de Diagnóstico, CI e Utilitários
 
 Diretório centralizado de scripts de governança, testes e suporte operacional do projeto.
 

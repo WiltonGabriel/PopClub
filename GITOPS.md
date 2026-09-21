@@ -1,6 +1,6 @@
 # Diretrizes Operacionais e Governança GitOps
 
-**Pop Shake Sorveteria — Plataforma Proprietária de Delivery PWA e Gestão Operacional**
+**PopClub — Plataforma de Delivery PWA e Gestão Operacional**
 
 Este documento estabelece o protocolo oficial de governança, arquitetura e entrega contínua (CI/CD) adotado na infraestrutura **Grein Cloud 01**.
 

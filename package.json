@@ -1,10 +1,10 @@
 {
   "name": "popshake-app",
   "version": "1.0.0",
-  "description": "Pop Shake Sorveteria — Plataforma Proprietária de Delivery PWA e Gestão Operacional",
+  "description": "PopClub — Plataforma de Delivery PWA e Gestão Operacional",
   "private": true,
   "license": "UNLICENSED",
-  "author": "Pop Shake Sorveteria & Wilton Gabriel (Equipe ADP)",
+  "author": "Equipe ADP",
   "scripts": {
     "dev": "next dev -H 0.0.0.0 --webpack",
     "build": "next build --webpack",
