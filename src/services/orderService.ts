@@ -107,7 +107,7 @@ async function safeParseResponse<T>(res: Response, fallbackErrorMessage: string)
     throw new Error(fallbackErrorMessage || "Falha na leitura da resposta do servidor.");
   }
 
-  let parsed: any = null;
+  let parsed: unknown = null;
   if (bodyText) {
     try {
       parsed = JSON.parse(bodyText);
@@ -123,8 +123,12 @@ async function safeParseResponse<T>(res: Response, fallbackErrorMessage: string)
   }
 
   if (!res.ok) {
+    const errObj = (parsed && typeof parsed === "object" ? parsed : {}) as Record<string, unknown>;
     const errorMsg =
-      parsed?.error || parsed?.message || fallbackErrorMessage || `Erro na requisição (${res.status}).`;
+      (typeof errObj.error === "string" ? errObj.error : null) ||
+      (typeof errObj.message === "string" ? errObj.message : null) ||
+      fallbackErrorMessage ||
+      `Erro na requisição (${res.status}).`;
     throw new Error(errorMsg);
   }
 
@@ -140,10 +144,13 @@ export const orderService = {
     const res = await fetch(url, {
       signal: AbortSignal.timeout(10000),
     });
-    const result = await safeParseResponse<any>(res, "Erro ao buscar seus pedidos.");
+    const result = await safeParseResponse<Order[] | { orders?: Order[]; data?: Order[] }>(
+      res,
+      "Erro ao buscar seus pedidos."
+    );
     if (Array.isArray(result)) return result;
-    if (Array.isArray(result?.orders)) return result.orders;
-    if (Array.isArray(result?.data)) return result.data;
+    if ("orders" in result && Array.isArray(result.orders)) return result.orders;
+    if ("data" in result && Array.isArray(result.data)) return result.data;
     return [];
   },
 
@@ -169,10 +176,13 @@ export const orderService = {
     const res = await fetch(url, {
       signal: AbortSignal.timeout(10000),
     });
-    const data = await safeParseResponse<any>(res, "Erro ao listar todos os pedidos.");
+    const data = await safeParseResponse<Order[] | { orders?: Order[]; data?: Order[] }>(
+      res,
+      "Erro ao listar todos os pedidos."
+    );
     if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.orders)) return data.orders;
-    if (Array.isArray(data?.data)) return data.data;
+    if ("orders" in data && Array.isArray(data.orders)) return data.orders;
+    if ("data" in data && Array.isArray(data.data)) return data.data;
     return [];
   },
 
@@ -206,8 +216,8 @@ export const orderService = {
     );
   },
 
-  async createCheckoutOrder(payload: CheckoutPayload): Promise<{ success: boolean; order: any }> {
-    const data = await fetchClient.post<{ success: boolean; order: any }>("/api/checkout", payload, {
+  async createCheckoutOrder(payload: CheckoutPayload): Promise<{ success: boolean; order: Order }> {
+    const data = await fetchClient.post<{ success: boolean; order: Order }>("/api/checkout", payload, {
       timeoutMs: 15000,
     });
 
@@ -225,8 +235,16 @@ export const orderService = {
       body: JSON.stringify({ orderId, status, cancellationReason }),
     });
 
-    const data = await safeParseResponse<any>(res, "Erro ao atualizar status do pedido.");
-    const orderObj = data?.order || data?.data || data;
+    const data = await safeParseResponse<Order | { order?: Order; data?: Order }>(
+      res,
+      "Erro ao atualizar status do pedido."
+    );
+    const orderObj: Order =
+      "order" in data && data.order
+        ? data.order
+        : "data" in data && data.data
+        ? data.data
+        : (data as Order);
 
     dispatchOrderEvent("order_updated", orderObj);
     return orderObj;
@@ -240,8 +258,11 @@ export const orderService = {
     const res = await fetch(`/api/orders?id=${encodeURIComponent(orderId)}`, {
       signal: AbortSignal.timeout(10000),
     });
-    const data = await safeParseResponse<any>(res, "Pedido não encontrado.");
-    return data.data || data.order || data;
+    const data = await safeParseResponse<Order | { order?: Order; data?: Order }>(
+      res,
+      "Pedido não encontrado."
+    );
+    return "data" in data && data.data ? data.data : "order" in data && data.order ? data.order : (data as Order);
   },
 
   async dispatchOrder(
@@ -253,7 +274,11 @@ export const orderService = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ enableGps }),
     });
-    const data = await safeParseResponse<any>(res, "Erro ao despachar pedido.");
+    const data = await safeParseResponse<{
+      order: Order;
+      trackingToken?: string | null;
+      trackingUrl?: string | null;
+    }>(res, "Erro ao despachar pedido.");
     if (data?.order) {
       dispatchOrderEvent("order_updated", data.order);
     }

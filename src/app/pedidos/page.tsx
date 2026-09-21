@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -14,7 +14,6 @@ import {
   AlertTriangle,
   MessageCircle,
   Bike,
-  Store,
   RefreshCw,
   ArrowRight,
 } from "lucide-react";
@@ -117,11 +116,12 @@ export default function PedidosPage() {
         message: "Seu pedido foi cancelado com sucesso.",
         duration: 6000,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Não foi possível cancelar o pedido.";
       showToast({
         type: "error",
         title: "Erro ao cancelar",
-        message: err.message || "Não foi possível cancelar o pedido.",
+        message: msg,
         duration: 7000,
       });
     } finally {

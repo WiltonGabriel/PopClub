@@ -5,24 +5,15 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
-  Bike,
   Clock,
   MapPin,
-  CheckCircle2,
-  AlertTriangle,
   ArrowLeft,
   ShoppingBag,
-  Sparkles,
-  Phone,
-  ShieldCheck,
   RefreshCw,
   Store,
-  ChevronRight,
   ChevronDown,
   ChevronUp,
   MessageCircle,
-  PackageCheck,
-  Check,
   Navigation,
 } from "lucide-react";
 import { Order, orderService } from "@/services/orderService";
@@ -67,7 +58,6 @@ function TrackingContent() {
   const [storeCoords, setStoreCoords] = useState<{ lat: number; lng: number }>(POP_SHAKE_DEFAULT_COORDS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastPollTime, setLastPollTime] = useState<Date>(new Date());
   const [deliveryMetrics, setDeliveryMetrics] = useState<DeliveryMetrics | null>(null);
   const [bottomSheetExpanded, setBottomSheetExpanded] = useState(false);
   const [showPreviewMap, setShowPreviewMap] = useState(false);
@@ -93,7 +83,7 @@ function TrackingContent() {
     let isMounted = true;
     async function loadOrder() {
       try {
-        let targetId = orderId;
+        const targetId = orderId;
         if (!targetId) {
           const myOrders = await orderService.getMyOrders();
           // Ordena decrescente pela data mais recente
@@ -120,9 +110,10 @@ function TrackingContent() {
             setError(null);
           }
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (isMounted) {
-          setError(err.message || "Não foi possível carregar os dados do pedido.");
+          const msg = err instanceof Error ? err.message : "Não foi possível carregar os dados do pedido.";
+          setError(msg);
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -148,7 +139,6 @@ function TrackingContent() {
         const refreshed = await orderService.getOrderById(orderId);
         if (refreshed) {
           setOrder(refreshed);
-          setLastPollTime(new Date());
         }
       } catch {
         // Silencioso em caso de oscilação momentânea de rede
@@ -156,7 +146,7 @@ function TrackingContent() {
     }, 15000);
 
     return () => clearInterval(interval);
-  }, [orderId, order?.status]);
+  }, [orderId, order]);
 
   // Origem do despacho: prioriza a origem gravada no próprio pedido (multilojas/filiais)
   const originCoords = useMemo(() => ({
@@ -242,7 +232,7 @@ function TrackingContent() {
           Nenhum pedido selecionado
         </h1>
         <p className="text-xs text-muted-foreground max-w-sm">
-          Selecione um pedido em andamento na tela de pedidos para acompanhar a entrega ao vivo.
+          {error || "Selecione um pedido em andamento na tela de pedidos para acompanhar a entrega ao vivo."}
         </p>
         <Link href="/pedidos">
           <Button className="h-10 px-6 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] text-white text-xs font-bold uppercase tracking-wider cursor-pointer">
