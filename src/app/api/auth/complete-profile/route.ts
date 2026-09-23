@@ -47,17 +47,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Anti-colisão de e-mail
-    if (email) {
-      const emailInUse = await prisma.user.findUnique({ where: { email } });
-      if (emailInUse && emailInUse.id !== authUser.id) {
-         return NextResponse.json(
-            { error: "Este e-mail já está vinculado a outra conta. Faça login com sua senha ou use outro e-mail." },
-            { status: 400 }
-         );
-      }
-    }
-
     const passwordHash = await hashPassword(password);
 
     // Se o usuário não tiver username, podemos gerar um identificador amigável a partir do e-mail

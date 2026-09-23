@@ -463,8 +463,7 @@ export default function CarrinhoPage() {
       if (inlineName.trim().length >= 3 && cleanPhone.length >= 10) {
         try {
           setInlineLoading(true);
-          // TODO: implement orderType check if required, here bypassing isPickup to undefined
-          const res = await fastAccess(inlineName.trim(), cleanPhone, false);
+          const res = await fastAccess(inlineName.trim(), cleanPhone);
           if (res.status === "new_device_detected") {
             setIsFastAccessModalOpen(true);
             return;

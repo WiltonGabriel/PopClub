@@ -1,21 +1,39 @@
 <<<<<<< SEARCH
-export function formatPhoneInput(value: string): string {
-  const digits = value.replace(/\D/g, "").slice(0, 11);
-  if (digits.length === 0) return "";
-  if (digits.length <= 2) return `(${digits}`;
-  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+export function sanitizeAndNormalizePhone(val: string): string {
+  if (typeof val !== "string") return "";
+  let digits = val.replace(/\D/g, "");
+
+  // Tratamento de DDI: Se começar com 55 e tiver 12 ou 13 dígitos, remove o prefixo 55
+  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) {
+    digits = digits.substring(2);
+  }
+
+  // Caso 10 dígitos (DDD + 8 dígitos): Auto-corrija inserindo o 9 logo após o DDD
+  if (digits.length === 10) {
+    const ddd = digits.substring(0, 2);
+    const body = digits.substring(2);
+    digits = `${ddd}9${body}`;
+  }
+
+  return digits;
 }
 =======
-export function formatPhoneInput(value: string): string {
-  let digits = value.replace(/\D/g, "");
+export function sanitizeAndNormalizePhone(val: string): string {
+  if (typeof val !== "string") return "";
+  let digits = val.replace(/\D/g, "");
+
+  // Tratamento de DDI: Se começar com 55, remove o prefixo 55
   if (digits.length >= 12 && digits.startsWith("55")) {
     digits = digits.replace(/^55/, "");
   }
-  digits = digits.slice(0, 11);
-  if (digits.length === 0) return "";
-  if (digits.length <= 2) return `(${digits}`;
-  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+
+  // Caso 10 dígitos (DDD + 8 dígitos): Auto-corrija inserindo o 9 logo após o DDD
+  if (digits.length === 10) {
+    const ddd = digits.substring(0, 2);
+    const body = digits.substring(2);
+    digits = `${ddd}9${body}`;
+  }
+
+  return digits;
 }
 >>>>>>> REPLACE

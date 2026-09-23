@@ -317,7 +317,7 @@ export default function CourierDeliveryPage({
   const getClientWhatsAppUrl = () => {
     if (!client.phone) return "#";
     const rawDigits = client.phone.replace(/\D/g, "");
-    const digitsNo55 = rawDigits.length >= 12 && rawDigits.startsWith("55")
+    const digitsNo55 = rawDigits.startsWith("55") && (rawDigits.length === 12 || rawDigits.length === 13)
       ? rawDigits.slice(2)
       : rawDigits;
     const finalPhone = `55${digitsNo55}`;

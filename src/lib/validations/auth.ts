@@ -59,14 +59,14 @@ export const fullNameSchema = z
 /**
  * Sanitiza e auto-corrige o número de telefone para o padrão brasileiro:
  * - Remove caracteres não numéricos (\D)
- * - DDI: se começar com 55, remove o prefixo 55
+ * - DDI: se começar com 55 e tiver 12 ou 13 dígitos, remove o prefixo 55
  * - Caso 10 dígitos (DDD + 8 dígitos): auto-corrija inserindo o 9 logo após o DDD (normaliza para 11 dígitos)
  */
 export function sanitizeAndNormalizePhone(val: string): string {
   if (typeof val !== "string") return "";
   let digits = val.replace(/\D/g, "");
 
-  // Tratamento de DDI: Se tiver mais de 11 dígitos e começar com 55, remove o prefixo 55
+  // Tratamento de DDI: Se começar com 55, remove o prefixo 55
   if (digits.length >= 12 && digits.startsWith("55")) {
     digits = digits.replace(/^55/, "");
   }
@@ -84,7 +84,7 @@ export function sanitizeAndNormalizePhone(val: string): string {
 /**
  * Sanitiza e valida o telefone/WhatsApp brasileiro:
  * - Extrai estritamente os dígitos numéricos
- * - DDI: se começar com 55, remove o prefixo 55
+ * - DDI: se começar com 55 e tiver 12 ou 13 dígitos, remove o prefixo 55
  * - Caso 10 dígitos (DDD + 8 dígitos): auto-corrija inserindo o 9 logo após o DDD: DDD + "9" + 8_dígitos
  * - Caso menos de 10 dígitos (Faltou DDD): rejeita com mensagem orientando DDD
  * - Valida DDD brasileiro (11 a 99)
