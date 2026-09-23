@@ -1,7 +1,22 @@
 export class RateLimiter {
   private store = new Map<string, { count: number; resetTime: number }>();
+  private cleanupInterval: NodeJS.Timeout;
 
-  constructor(private windowMs: number, private maxRequests: number) {}
+  constructor(private windowMs: number, private maxRequests: number) {
+    // Automatically clean up expired records to prevent memory leaks
+    this.cleanupInterval = setInterval(() => {
+      const now = Date.now();
+      for (const [key, record] of this.store.entries()) {
+        if (record.resetTime < now) {
+          this.store.delete(key);
+        }
+      }
+    }, windowMs * 2);
+    // Unref the interval to prevent it from keeping the Node.js process alive
+    if (this.cleanupInterval.unref) {
+      this.cleanupInterval.unref();
+    }
+  }
 
   check(key: string): { success: boolean; limit: number; remaining: number; reset: number } {
     const now = Date.now();

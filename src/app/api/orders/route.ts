@@ -71,21 +71,8 @@ export async function GET(request: Request) {
     // Consulta individual por ID (utilizada para rastreamento logístico público em tempo real)
     const singleOrderId = searchParams.get("id")?.trim();
     if (singleOrderId) {
-      // BOLA / IDOR Protection: Add user filtering dynamically unless ADMIN
-      let whereFilter: Prisma.OrderWhereInput = { id: singleOrderId };
-
-      if (authUser?.role !== "admin") {
-         if (authUser?.id) {
-           whereFilter = { id: singleOrderId, userId: authUser.id };
-         } else {
-           // Allow guests to see orders without userId, or we check ownership on the frontend
-           // Better approach is to rely on tracking token for guests, but we enforce BOLA below.
-           whereFilter = { id: singleOrderId };
-         }
-      }
-
       const order = await prisma.order.findUnique({
-        where: whereFilter as Prisma.OrderWhereUniqueInput,
+        where: { id: singleOrderId },
         include: {
           items: { include: { product: true } },
           user: { select: { fullName: true, username: true, email: true, phone: true } },
@@ -96,7 +83,7 @@ export async function GET(request: Request) {
         return apiError("Pedido não encontrado.", 404, "NOT_FOUND");
       }
 
-      // Extra BOLA Check (If order belongs to someone else and requester is not admin)
+      // BOLA / IDOR Protection: Ensure user can only see their own orders unless ADMIN
       if (order.userId && (!authUser || authUser.id !== order.userId) && authUser?.role !== "admin") {
          return apiError("Acesso negado a este pedido.", 403, "FORBIDDEN");
       }
