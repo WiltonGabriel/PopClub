@@ -31,7 +31,7 @@ interface AuthContextType {
   isAdmin: boolean;
   refreshUser: () => Promise<void>;
   signOut: () => Promise<void>;
-  fastAccess: (name: string, phone: string) => Promise<any>;
+  fastAccess: (name: string, phone: string, isPickup?: boolean) => Promise<any>;
   verifyDevice: (payload: {
     phone: string;
     houseNumber?: string;
@@ -98,8 +98,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const fastAccess = useCallback(async (name: string, phone: string) => {
-    const result = await authService.fastAccess(name, phone);
+  const fastAccess = useCallback(async (name: string, phone: string, isPickup?: boolean) => {
+    const result = await authService.fastAccess(name, phone, isPickup);
     if (result.status === "authenticated") {
       await refreshUser();
     }

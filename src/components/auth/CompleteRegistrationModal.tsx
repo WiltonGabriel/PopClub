@@ -130,16 +130,22 @@ export function CompleteRegistrationModal({
                 <p className="text-[9px] text-muted-foreground">Descontos ativos</p>
               </div>
               <div className="p-2 rounded-xl bg-muted/40 border border-border text-center">
+                <Gift className="w-4 h-4 text-purple-500 mx-auto mb-1" />
+                <p className="text-[10px] font-bold text-foreground">Promoções</p>
+                <p className="text-[9px] text-muted-foreground">Exclusivas</p>
+              </div>
+              <div className="p-2 rounded-xl bg-muted/40 border border-border text-center">
                 <Smile className="w-4 h-4 text-primary mx-auto mb-1" />
                 <p className="text-[10px] font-bold text-foreground">Avatares</p>
                 <p className="text-[9px] text-muted-foreground">Personalizados</p>
               </div>
-              <div className="p-2 rounded-xl bg-muted/40 border border-border text-center">
-                <ShieldCheck className="w-4 h-4 text-primary mx-auto mb-1" />
-                <p className="text-[10px] font-bold text-foreground">Multi-dispositivo</p>
-                <p className="text-[9px] text-muted-foreground">Sincronizado</p>
-              </div>
             </div>
+
+            {user?.phone && user?.fullName && (
+               <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-center">
+                  <p className="text-xs font-semibold text-primary">Completando cadastro para: {user.fullName} • {user.phone}</p>
+               </div>
+            )}
 
             {error && (
               <div className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs">
@@ -149,8 +155,14 @@ export function CompleteRegistrationModal({
 
             <form onSubmit={handleSubmit} className="space-y-3.5">
               <div className="space-y-1">
-                <Label htmlFor="complete-email" className="text-xs font-semibold text-foreground">
-                  E-mail
+                <Label htmlFor="complete-email" className="text-xs font-semibold text-foreground flex items-center gap-1 group relative">
+                  E-mail (Opcional)
+                  <span className="w-4 h-4 rounded-full bg-muted flex items-center justify-center text-[10px] text-muted-foreground cursor-help hover:bg-primary/20 hover:text-primary transition-colors">
+                    ℹ️
+                  </span>
+                  <div className="pointer-events-none absolute left-0 bottom-full mb-2 w-48 opacity-0 group-hover:opacity-100 transition-opacity bg-black/90 text-white text-[10px] p-2 rounded-lg shadow-xl z-10 border border-white/10">
+                    O e-mail serve para recuperação da conta caso você esqueça sua senha.
+                  </div>
                 </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

@@ -689,7 +689,7 @@ export default function AccountPage() {
 
           {/* Banner de Incentivo para Completar Cadastro */}
           {user && !user.isRegistered && (
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-900/40 to-pink-900/40 border border-purple-500/30 text-white shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="p-4 rounded-2xl bg-purple-950 bg-gradient-to-r from-purple-900 to-indigo-950 border border-purple-800/50 shadow-sm flex flex-col gap-3">
               <div className="flex items-start gap-3">
                 <div className="p-2 rounded-xl bg-purple-500/20 text-purple-300 shrink-0 mt-0.5">
                   <Sparkles className="w-5 h-5" />
@@ -705,7 +705,7 @@ export default function AccountPage() {
                 type="button"
                 size="sm"
                 onClick={() => setIsCompleteRegModalOpen(true)}
-                className="bg-white hover:bg-purple-50 text-purple-950 font-bold text-xs h-9 px-4 rounded-xl shrink-0 cursor-pointer shadow"
+                className="w-full bg-white hover:bg-purple-50 text-purple-950 font-bold text-xs h-9 px-4 rounded-xl cursor-pointer shadow"
               >
                 Completar Cadastro
               </Button>
@@ -850,12 +850,26 @@ export default function AccountPage() {
                       type="button"
                       variant="outline"
                       onClick={() => {
+                        if (!user?.isRegistered) {
+                          showToast({
+                            type: "warning",
+                            title: "Recurso Exclusivo",
+                            message: "Personalização de avatar disponível após completar o cadastro.",
+                          });
+                          setIsCompleteRegModalOpen(true);
+                          return;
+                        }
                         setModalAvatarChoice(selectedAvatar);
                         setIsAvatarModalOpen(true);
                       }}
                       className="h-9 px-4 rounded-xl border-[#9306CF]/30 text-[#9306CF] dark:text-[#C7A9C9] hover:bg-[#9306CF]/10 text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer"
                     >
-                      <Sparkles className="w-3.5 h-3.5" /> Escolher Avatar
+                      {user?.isRegistered ? (
+                        <Sparkles className="w-3.5 h-3.5" />
+                      ) : (
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                      )}
+                      Escolher Avatar
                     </Button>
                   </div>
                 </div>
@@ -873,16 +887,29 @@ export default function AccountPage() {
                     className="h-12 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#1F0B22] dark:border-[#512B54]/50 dark:text-white focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
                   />
                 </div>
+
+                {/* WhatsApp (ReadOnly) */}
                 <div className="space-y-2">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                    Email
+                    WhatsApp / Celular
+                  </Label>
+                  <Input
+                    value={user?.phone || ""}
+                    disabled
+                    className="h-12 rounded-xl bg-gray-50 border-gray-200 text-gray-500 dark:bg-[#190B1A]/80 dark:border-[#512B54]/30 dark:text-gray-400 cursor-not-allowed"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                    {user?.isRegistered ? "Email" : "E-mail (Opcional)"}
                   </Label>
                   <Input 
                     value={user?.email || ""}
                     disabled
                     className="h-12 rounded-xl bg-gray-50 border-gray-200 text-gray-500 dark:bg-[#190B1A]/80 dark:border-[#512B54]/30 dark:text-gray-400 cursor-not-allowed"
                   />
-                  <p className="text-[11px] text-muted-foreground">O e-mail é o identificador de login da sua conta.</p>
+                  <p className="text-[11px] text-muted-foreground">O e-mail é opcional e serve para recuperação de senha caso esqueça.</p>
                 </div>
 
                 <Button 

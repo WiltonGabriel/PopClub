@@ -16,11 +16,11 @@ export interface AuthUser {
 }
 
 export const authService = {
-  async fastAccess(name: string, phone: string) {
+  async fastAccess(name: string, phone: string, isPickup?: boolean) {
     const res = await fetch("/api/auth/fast-access", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, fullName: name, phone }),
+      body: JSON.stringify({ name, fullName: name, phone, orderType: isPickup ? "retirada" : undefined }),
     });
     const data = await res.json();
     if (!res.ok) {
