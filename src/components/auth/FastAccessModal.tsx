@@ -26,11 +26,7 @@ interface FastAccessModalProps {
 }
 
 export function formatPhoneInput(value: string): string {
-  let digits = value.replace(/\D/g, "");
-  if (digits.length >= 12 && digits.startsWith("55")) {
-    digits = digits.replace(/^55/, "");
-  }
-  digits = digits.slice(0, 11);
+  const digits = value.replace(/\D/g, "").slice(0, 11);
   if (digits.length === 0) return "";
   if (digits.length <= 2) return `(${digits}`;
   if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;

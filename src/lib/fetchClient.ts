@@ -152,7 +152,10 @@ export async function fetchClient<T = any>(
     let message: string =
       data.message || data.error || response.statusText || "Ocorreu um erro ao processar a solicitação.";
 
-    if (status === 503 || code === "DATABASE_UNAVAILABLE") {
+    if (status === 403) {
+      code = "FORBIDDEN";
+      message = "Acesso negado. Por favor, verifique se você não foi bloqueado pelo nosso sistema de segurança (Cloudflare). Se o problema persistir, recarregue a página.";
+    } else if (status === 503 || code === "DATABASE_UNAVAILABLE") {
       code = "DATABASE_UNAVAILABLE";
       message =
         data.message ||

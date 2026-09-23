@@ -105,18 +105,8 @@ async function handleUpdateProfile(request: Request) {
 
     const dataToUpdate: any = {};
     if (body?.full_name !== undefined) dataToUpdate.fullName = body.full_name;
-    if (body?.avatar_url !== undefined || body?.avatar !== undefined) {
-      if (!authUser.isRegistered) {
-        return NextResponse.json(
-          {
-            error: "Personalização de avatar disponível após completar o cadastro.",
-            code: "AVATAR_REQUIRES_REGISTRATION",
-          },
-          { status: 403 }
-        );
-      }
-      dataToUpdate.avatarUrl = body.avatar_url || body.avatar;
-    }
+    if (body?.avatar_url !== undefined) dataToUpdate.avatarUrl = body.avatar_url;
+    if (body?.avatar !== undefined) dataToUpdate.avatarUrl = body.avatar;
     if (body?.phone !== undefined) dataToUpdate.phone = body.phone;
     if (body?.notificationsEnabled !== undefined) dataToUpdate.notificationsEnabled = Boolean(body.notificationsEnabled);
     if (body?.notifications_enabled !== undefined) dataToUpdate.notificationsEnabled = Boolean(body.notifications_enabled);

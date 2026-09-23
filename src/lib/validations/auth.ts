@@ -66,9 +66,9 @@ export function sanitizeAndNormalizePhone(val: string): string {
   if (typeof val !== "string") return "";
   let digits = val.replace(/\D/g, "");
 
-  // Tratamento de DDI: Se começar com 55, remove o prefixo 55
-  if (digits.length >= 12 && digits.startsWith("55")) {
-    digits = digits.replace(/^55/, "");
+  // Tratamento de DDI: Se começar com 55 e tiver 12 ou 13 dígitos, remove o prefixo 55
+  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) {
+    digits = digits.substring(2);
   }
 
   // Caso 10 dígitos (DDD + 8 dígitos): Auto-corrija inserindo o 9 logo após o DDD
@@ -105,8 +105,8 @@ export const phoneSchema = z
     }
     const cleanDigits = val.replace(/\D/g, "");
     let working = cleanDigits;
-    if (working.length >= 12 && working.startsWith("55")) {
-      working = working.replace(/^55/, "");
+    if (working.startsWith("55") && (working.length === 12 || working.length === 13)) {
+      working = working.substring(2);
     }
     // Caso menos de 10 dígitos (Faltou DDD)
     if (working.length < 10) {
