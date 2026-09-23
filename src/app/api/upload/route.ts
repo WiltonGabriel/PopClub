@@ -73,6 +73,21 @@ export async function POST(request: Request) {
     // Garante que o diretório public/uploads existe
     await fs.mkdir(uploadDir, { recursive: true });
 
+    // Validação avançada para prevenir injeção de script em arquivos SVG
+    if (originalExtension === ".svg" || file.type.includes("svg")) {
+      const svgText = buffer.toString("utf-8");
+      if (
+        /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi.test(svgText) ||
+        /\bon\w+\s*=/gi.test(svgText) ||
+        /javascript:/gi.test(svgText)
+      ) {
+        return NextResponse.json(
+          { error: "Upload negado. Arquivos SVG não devem conter scripts ou tratadores de evento (XSS Prevention)." },
+          { status: 400 }
+        );
+      }
+    }
+
     // 4. Tratamento Especial para Favicon (.ico e .svg gravados diretamente; outros convertidos/redimensionados)
     if (targetType === "favicon") {
       if (originalExtension === ".ico" || originalExtension === ".svg") {

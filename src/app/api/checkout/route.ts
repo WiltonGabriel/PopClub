@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { z } from "zod";
 import { handleApiError } from "@/lib/apiResponse";
+import { checkoutLimiter } from "@/lib/rateLimit";
 
 const checkoutSchema = z.object({
   items: z.array(
@@ -38,6 +39,16 @@ const checkoutSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    const limitCheck = checkoutLimiter.check(ip);
+
+    if (!limitCheck.success) {
+      return NextResponse.json(
+        { error: "Muitas tentativas. Por favor, aguarde um momento antes de tentar novamente.", code: "RATE_LIMIT_EXCEEDED" },
+        { status: 429 }
+      );
+    }
+
     let json: any;
     try {
       json = await request.json();
