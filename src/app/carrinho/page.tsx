@@ -1696,7 +1696,42 @@ export default function CarrinhoPage() {
               <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-lg">Na Entrega</span>
             </div>
 
-            {/* Total */}
+            {/* Resumo Financeiro */}
+            <div className="space-y-2.5 font-mono text-xs border-t border-border pt-4">
+              <div className="flex justify-between text-muted-foreground">
+                <span>Subtotal dos Itens:</span>
+                <span className="font-bold text-foreground">R$ {subtotal.toFixed(2).replace(".", ",")}</span>
+              </div>
+
+              {promoDiscount > 0 && (
+                <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                  <span>Desconto Promoções:</span>
+                  <span>- R$ {promoDiscount.toFixed(2).replace(".", ",")}</span>
+                </div>
+              )}
+
+              {couponDiscount > 0 && (
+                <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                  <span>Cupom ({appliedCoupon?.code}):</span>
+                  <span>- R$ {couponDiscount.toFixed(2).replace(".", ",")}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center text-muted-foreground">
+                <span>Taxa de Entrega:</span>
+                {isFreeDelivery ? (
+                  <span className="px-2.5 py-0.5 rounded-full font-bold text-[11px] bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300/50 uppercase tracking-wider">
+                    Grátis
+                  </span>
+                ) : (
+                  <span className="font-mono font-bold text-foreground">
+                    R$ {deliveryFee.toFixed(2).replace(".", ",")}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Total Final */}
             <div className="flex justify-between items-baseline border-t border-border pt-3">
               <span className="font-mono text-sm uppercase tracking-wider font-bold">Total a Pagar:</span>
               <span className="font-heading text-3xl font-black text-primary">

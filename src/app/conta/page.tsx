@@ -689,14 +689,14 @@ export default function AccountPage() {
 
           {/* Banner de Incentivo para Completar Cadastro */}
           {user && !user.isRegistered && (
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-900/40 to-pink-900/40 border border-purple-500/30 text-white shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-[#9306CF] to-[#940068] text-white shadow-md shadow-[#9306CF]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-xl bg-purple-500/20 text-purple-300 shrink-0 mt-0.5">
+                <div className="p-2 rounded-xl bg-white/20 text-white shrink-0 mt-0.5">
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
                   <h4 className="font-bold text-sm text-white">Complete seu cadastro</h4>
-                  <p className="text-xs text-purple-200 mt-0.5 leading-relaxed">
+                  <p className="text-xs text-purple-100 mt-0.5 leading-relaxed">
                     Adicione e-mail e senha para liberar cupons de desconto, personalizar seu avatar e acessar seus pedidos em outros aparelhos.
                   </p>
                 </div>
@@ -705,7 +705,7 @@ export default function AccountPage() {
                 type="button"
                 size="sm"
                 onClick={() => setIsCompleteRegModalOpen(true)}
-                className="bg-white hover:bg-purple-50 text-purple-950 font-bold text-xs h-9 px-4 rounded-xl shrink-0 cursor-pointer shadow"
+                className="bg-white hover:bg-gray-100 text-[#9306CF] font-bold text-xs h-9 px-4 rounded-xl shrink-0 cursor-pointer shadow"
               >
                 Completar Cadastro
               </Button>
