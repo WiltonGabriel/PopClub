@@ -11,6 +11,14 @@ const checkoutSchema = z.object({
       productId: z.string().min(1, "ID do produto inválido"),
       quantity: z.number().int().positive("A quantidade deve ser maior que zero"),
       promotionId: z.string().optional().nullable(),
+      selectedAddons: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          price: z.number().min(0),
+          quantity: z.number().int().positive()
+        })
+      ).optional().nullable(),
     })
   ).min(1, "O carrinho deve ter pelo menos 1 item"),
 
@@ -121,12 +129,14 @@ export async function POST(request: Request) {
 
     let calculatedSubtotal = 0;
     let promoDiscountTotal = 0;
+    let hasCombosInCart = false;
 
     const validatedOrderItems: {
       productId: string;
       quantity: number;
       priceAtTime: number;
       promotionId: string | null;
+      selectedAddons: any;
     }[] = [];
 
     for (const item of items) {
@@ -138,33 +148,61 @@ export async function POST(request: Request) {
         );
       }
 
-      const originalPrice = Number(product.price);
-      let unitPrice = originalPrice;
+      if (product.isCombo) {
+        hasCombosInCart = true;
+      }
 
-      if (item.promotionId) {
+      let addonsTotal = 0;
+      if (item.selectedAddons && item.selectedAddons.length > 0) {
+        // Validação estrita: Busca o preço oficial de cada Addon no Banco de Dados
+        const addonIds = item.selectedAddons.map((a: any) => a.id);
+        const dbAddons = await prisma.productAddon.findMany({
+          where: { id: { in: addonIds } }
+        });
+
+        const dbAddonsMap = new Map(dbAddons.map(a => [a.id, a]));
+
+        for (const addon of item.selectedAddons) {
+          const officialAddon = dbAddonsMap.get(addon.id);
+          // Caso o frontend envie um ID mockado que não existe, aplicamos 0.00
+          // Idealmente, poderíamos lançar erro se não encontrar, mas para retrocompatibilidade:
+          const officialPrice = officialAddon ? Number(officialAddon.price) : 0;
+          addonsTotal += (officialPrice * addon.quantity);
+        }
+      }
+
+      const originalPrice = Number(product.price);
+      let unitPrice = originalPrice + addonsTotal;
+
+      // Promoções aplicam desconto apenas sobre o produto original, não sobre os adicionais (regra comum)
+      // Combos NÃO devem aceitar promoções "De/Por" individuais, pois já são agrupamentos fechados.
+      if (item.promotionId && !product.isCombo) {
         const promo = promotionsMap.get(item.promotionId);
         // Verifica se a promoção existe, está ativa e contém este produto
         const isInPromo = promo?.productId === item.productId;
         if (promo && isInPromo) {
+          let discountOnBase = 0;
           if (promo.discountType === "percentage") {
             const pct = Number(promo.discountValue);
-            unitPrice = Number((originalPrice * (1 - pct / 100)).toFixed(2));
+            discountOnBase = Number((originalPrice * (pct / 100)).toFixed(2));
           } else {
             // Em desconto fixo por produto
             const fixed = Number(promo.discountValue);
-            unitPrice = Math.max(0, Number((originalPrice - fixed).toFixed(2)));
+            discountOnBase = Math.min(originalPrice, fixed); // Não desconta mais que o preço base
           }
-          promoDiscountTotal += (originalPrice - unitPrice) * item.quantity;
+          unitPrice = (originalPrice - discountOnBase) + addonsTotal;
+          promoDiscountTotal += discountOnBase * item.quantity;
         }
       }
 
-      calculatedSubtotal += originalPrice * item.quantity;
+      calculatedSubtotal += (originalPrice + addonsTotal) * item.quantity;
 
       validatedOrderItems.push({
         productId: product.id,
         quantity: item.quantity,
         priceAtTime: unitPrice,
         promotionId: item.promotionId || null,
+        selectedAddons: item.selectedAddons || null,
       });
     }
 
@@ -191,6 +229,14 @@ export async function POST(request: Request) {
 
       if (!coupon || !coupon.isActive) {
         return NextResponse.json({ error: "Cupom de desconto inválido ou inativo." }, { status: 400 });
+      }
+
+      // Regra de Double-Dipping: Proibir cupons globais em carrinhos que já contenham Combos Promocionais
+      // Exceção: Cupons de valor fixo direcionados a produtos específicos que não são combos (tratado adiante)
+      if (hasCombosInCart && coupon.discountType === "percentage" && (!coupon.productIds || coupon.productIds.length === 0)) {
+        return NextResponse.json({
+          error: "Este cupom não pode ser acumulado com pedidos que contenham Combos Promocionais."
+        }, { status: 400 });
       }
 
       if (coupon.expiresAt && new Date() > new Date(coupon.expiresAt)) {
@@ -331,6 +377,7 @@ export async function POST(request: Request) {
               quantity: oi.quantity,
               priceAtTime: oi.priceAtTime,
               promotionId: oi.promotionId,
+              selectedAddons: oi.selectedAddons ? oi.selectedAddons : undefined,
             })),
           },
         },

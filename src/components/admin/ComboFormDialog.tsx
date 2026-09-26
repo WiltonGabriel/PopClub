@@ -507,7 +507,8 @@ export function ComboFormDialog({
                   Regra de Precificação do Combo
                 </Label>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                  Defina se o combo aplica desconto percentual ou um preço promocional fixo.
+                  Defina se o combo aplica desconto percentual ou um preço fixo.
+                  <strong className="text-red-500 ml-1">Nota: Cupons de desconto não abatem o valor de combos.</strong>
                 </p>
               </div>
 

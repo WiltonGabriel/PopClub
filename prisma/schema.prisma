@@ -119,8 +119,32 @@ model Product {
   promotions     Promotion[]
   comboItems     ComboItem[]     @relation("ComboParent")
   partOfCombos   ComboItem[]     @relation("ComboChild")
+  addonCategories ProductAddonCategory[]
 
   @@map("products")
+}
+
+model ProductAddonCategory {
+  id          String   @id @default(uuid())
+  productId   String   @map("product_id")
+  name        String   // Ex: "Acompanhamentos Extras", "Calda"
+  isRequired  Boolean  @default(false) @map("is_required")
+  maxChoices  Int?     @map("max_choices")
+  addons      ProductAddon[]
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_addon_categories")
+}
+
+model ProductAddon {
+  id          String   @id @default(uuid())
+  categoryId  String   @map("category_id")
+  name        String   // Ex: "Nutella", "Leite em Pó"
+  price       Decimal  @default(0) @db.Decimal(10, 2)
+  isAvailable Boolean  @default(true) @map("is_available")
+  category    ProductAddonCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("product_addons")
 }
 
 model Promotion {
@@ -235,6 +259,7 @@ model OrderItem {
   quantity    Int      @default(1)
   priceAtTime Decimal  @db.Decimal(10, 2) @map("price_at_time")
   promotionId String?  @map("promotion_id")
+  selectedAddons Json? @map("selected_addons") // Historiza os addons pagos naquele momento
   createdAt   DateTime @default(now()) @map("created_at")
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product     Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
