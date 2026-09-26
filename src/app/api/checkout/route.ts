@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
+
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { z } from "zod";
 import { handleApiError } from "@/lib/apiResponse";
-import { checkoutLimiter } from "@/lib/rateLimit";
+import { checkoutLimiter, getIpFromRequest } from "@/lib/rateLimit";
 
 const checkoutSchema = z.object({
   items: z.array(
@@ -47,12 +48,11 @@ const checkoutSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    const ip = getIpFromRequest(request);
     const limitCheck = checkoutLimiter.check(ip);
-
     if (!limitCheck.success) {
       return NextResponse.json(
-        { error: "Muitas tentativas. Por favor, aguarde um momento antes de tentar novamente.", code: "RATE_LIMIT_EXCEEDED" },
+        { error: "Você está criando pedidos rápido demais. Aguarde um minuto." },
         { status: 429 }
       );
     }
@@ -165,8 +165,8 @@ export async function POST(request: Request) {
         for (const addon of item.selectedAddons) {
           const officialAddon = dbAddonsMap.get(addon.id);
           // Caso o frontend envie um ID mockado que não existe, aplicamos 0.00
-          // Idealmente, poderíamos lançar erro se não encontrar, mas para retrocompatibilidade:
-          const officialPrice = officialAddon ? Number(officialAddon.price) : 0;
+          const addonDb = await prisma.productAddon.findUnique({ where: { id: addon.id } });
+          const officialPrice = addonDb ? Number(addonDb.price) : (officialAddon ? Number(officialAddon.price) : 0);
           addonsTotal += (officialPrice * addon.quantity);
         }
       }
