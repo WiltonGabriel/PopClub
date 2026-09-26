@@ -26,7 +26,7 @@ export const badgeService = {
       if (!res.ok) {
         return [];
       }
-      return await res.json();
+      return await res.json().catch(() => []);
     } catch {
       return [];
     }
@@ -43,9 +43,11 @@ export const badgeService = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-    const resData = await res.json();
-    if (!res.ok) throw new Error(resData.error || "Erro ao criar selo.");
-    return resData;
+    if (!res.ok) {
+      const resData = await res.json().catch(() => ({}));
+      throw new Error(resData.error || "Erro ao criar selo.");
+    }
+    return await res.json();
   },
 
   async updateBadge(
@@ -62,9 +64,11 @@ export const badgeService = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-    const resData = await res.json();
-    if (!res.ok) throw new Error(resData.error || "Erro ao atualizar selo.");
-    return resData;
+    if (!res.ok) {
+      const resData = await res.json().catch(() => ({}));
+      throw new Error(resData.error || "Erro ao atualizar selo.");
+    }
+    return await res.json();
   },
 
   async addProduct(badgeId: string, productId: string): Promise<CardBadge> {
@@ -73,9 +77,11 @@ export const badgeService = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ addProductId: productId }),
     });
-    const resData = await res.json();
-    if (!res.ok) throw new Error(resData.error || "Erro ao vincular produto ao selo.");
-    return resData;
+    if (!res.ok) {
+      const resData = await res.json().catch(() => ({}));
+      throw new Error(resData.error || "Erro ao vincular produto ao selo.");
+    }
+    return await res.json();
   },
 
   async removeProduct(badgeId: string, productId: string): Promise<CardBadge> {
@@ -84,9 +90,11 @@ export const badgeService = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ removeProductId: productId }),
     });
-    const resData = await res.json();
-    if (!res.ok) throw new Error(resData.error || "Erro ao desvincular produto do selo.");
-    return resData;
+    if (!res.ok) {
+      const resData = await res.json().catch(() => ({}));
+      throw new Error(resData.error || "Erro ao desvincular produto do selo.");
+    }
+    return await res.json();
   },
 
   async deleteBadge(id: string): Promise<void> {
