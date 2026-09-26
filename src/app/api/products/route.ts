@@ -59,6 +59,11 @@ export async function POST(request: Request) {
       return apiError("Acesso negado. Apenas administradores podem cadastrar produtos.", 403, "FORBIDDEN");
     }
 
+    const countProducts = await prisma.product.count({ where: { isAvailable: true } });
+    if (countProducts >= 300) {
+      return apiError("Limite máximo de 300 produtos ativos atingido.", 400, "QUOTA_EXCEEDED");
+    }
+
     let body: any;
     try {
       body = await request.json();
@@ -69,6 +74,12 @@ export async function POST(request: Request) {
 
     if (!name || price === undefined) {
       return apiError("Nome e preço do produto são obrigatórios.", 400, "VALIDATION_ERROR");
+    }
+    if (typeof name === "string" && name.length > 100) {
+      return apiError("O nome do produto não pode exceder 100 caracteres.", 400, "VALIDATION_ERROR");
+    }
+    if (typeof description === "string" && description.length > 1000) {
+      return apiError("A descrição do produto não pode exceder 1000 caracteres.", 400, "VALIDATION_ERROR");
     }
 
     const parsedStock = stock !== undefined && stock !== null && stock !== "" ? Number(stock) : null;

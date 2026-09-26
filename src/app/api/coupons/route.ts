@@ -43,6 +43,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Acesso não autorizado." }, { status: 403 });
     }
 
+    const countCoupons = await prisma.coupon.count({ where: { isActive: true } });
+    if (countCoupons >= 100) {
+      return NextResponse.json({ error: "Limite máximo de 100 cupons ativos atingido." }, { status: 400 });
+    }
+
     interface CreateCouponBody {
       code?: string;
       discountType?: string;
@@ -76,6 +81,9 @@ export async function POST(request: Request) {
 
     if (!code || typeof code !== "string" || !code.trim()) {
       return NextResponse.json({ error: "O código do cupom é obrigatório." }, { status: 400 });
+    }
+    if (code.length > 100) {
+      return NextResponse.json({ error: "O código do cupom não pode exceder 100 caracteres." }, { status: 400 });
     }
 
     if (discountType !== "percentage" && discountType !== "fixed") {

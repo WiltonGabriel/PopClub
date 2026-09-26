@@ -27,6 +27,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
     }
 
+    const countAvatars = await prisma.avatarPreset.count();
+    if (countAvatars >= 30) {
+      return NextResponse.json({ error: "Limite máximo de 30 presets de avatar atingido." }, { status: 400 });
+    }
+
     let body: any;
     try {
       body = await request.json();
@@ -38,6 +43,9 @@ export async function POST(request: Request) {
 
     if (!name || typeof name !== "string" || !name.trim()) {
       return NextResponse.json({ error: "O nome do avatar é obrigatório." }, { status: 400 });
+    }
+    if (name.length > 100) {
+      return NextResponse.json({ error: "O nome do avatar não pode exceder 100 caracteres." }, { status: 400 });
     }
 
     if (!description || typeof description !== "string" || !description.trim()) {
