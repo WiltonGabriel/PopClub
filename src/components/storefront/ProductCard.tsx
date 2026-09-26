@@ -89,13 +89,13 @@ export function ProductCard({
         py-3 px-2 sm:px-3 md:p-0
         border-b md:border border-border/40 last:border-b-0 md:last:border-b md:rounded-2xl
         transition-all duration-200
-        ${isOutOfStock ? "opacity-80 cursor-not-allowed" : "cursor-pointer hover:bg-muted/30 md:hover:bg-card md:hover:shadow-lg md:hover:border-[#9306CF]/40 md:hover:-translate-y-0.5"}
+        ${isOutOfStock ? "opacity-80 cursor-not-allowed" : "cursor-pointer hover:bg-muted/30 md:hover:bg-card md:hover:shadow-lg md:hover:border-primary/40 md:hover:-translate-y-0.5"}
         ${featured ? "md:col-span-2" : ""}
       `}
     >
       {/* Admin Controls */}
       {isAdmin && (
-        <div className="absolute top-2 left-2 z-20 flex gap-1 bg-white/90 dark:bg-[#2B132D]/90 backdrop-blur-sm p-1 rounded-lg shadow-sm border border-purple-200 dark:border-purple-800/60 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-2 left-2 z-20 flex gap-1 bg-white/90 dark:bg-card/90 backdrop-blur-sm p-1 rounded-lg shadow-sm border border-primary/20 dark:border-primary/80/60 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -103,7 +103,7 @@ export function ProductCard({
             }}
             title="Editar produto"
             aria-label="Editar produto"
-            className="p-1.5 text-brand-pop-shake hover:bg-brand-surface-2 dark:hover:bg-purple-900/30 rounded-md transition-colors"
+            className="p-1.5 text-brand-pop-shake hover:bg-brand-surface-2 dark:hover:bg-primary/90/30 rounded-md transition-colors"
           >
             <Edit2 className="w-3.5 h-3.5" />
           </button>

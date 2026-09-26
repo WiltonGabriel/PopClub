@@ -190,7 +190,7 @@ export function SearchAutocomplete({
     return (
       <>
         {before}
-        <span className="font-black text-[#9306CF] dark:text-[#C7A9C9] underline decoration-[#9306CF]/40">
+        <span className="font-black text-primary dark:text-muted-foreground underline decoration-[hsl(var(--primary))]/40">
           {match}
         </span>
         {after}
@@ -252,8 +252,8 @@ export function SearchAutocomplete({
 
       {/* Dropdown Flutuante de Autocomplete com Largura Ampla */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-full min-w-[340px] sm:min-w-[420px] md:min-w-[480px] bg-white dark:bg-[#230E26] shadow-2xl rounded-2xl border border-purple-100 dark:border-purple-900/40 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
-          <div className="py-2.5 px-3.5 border-b border-gray-100 dark:border-[#512B54]/30 bg-gray-50/70 dark:bg-[#1A0B1C]/60 flex items-center justify-between gap-3">
+        <div className="absolute top-full left-0 mt-2 w-full min-w-[340px] sm:min-w-[420px] md:min-w-[480px] bg-white dark:bg-[#230E26] shadow-2xl rounded-2xl border border-primary/10 dark:border-primary/90/40 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+          <div className="py-2.5 px-3.5 border-b border-gray-100 dark:border-border/30 bg-gray-50/70 dark:bg-background/60 flex items-center justify-between gap-3">
             <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 whitespace-nowrap">
               Sugestões Rápidas ({matchedProducts.length})
             </span>
@@ -263,7 +263,7 @@ export function SearchAutocomplete({
           </div>
 
           {/* Lista de Resultados Rápidos */}
-          <div className="divide-y divide-gray-100 dark:divide-[#512B54]/30 max-h-80 overflow-y-auto p-1.5 space-y-0.5">
+          <div className="divide-y divide-gray-100 dark:divide-border/30 max-h-80 overflow-y-auto p-1.5 space-y-0.5">
             {matchedProducts.map((product, idx) => {
               const isSelected = selectedIndex === idx;
               const isJustAdded = addedProductId === product.id;
@@ -277,14 +277,14 @@ export function SearchAutocomplete({
                     flex items-center justify-between gap-3 p-2.5 rounded-xl cursor-pointer transition-colors
                     ${
                       isSelected
-                        ? "bg-[#9306CF]/10 dark:bg-[#9306CF]/20"
-                        : "hover:bg-gray-50 dark:hover:bg-[#2B132D]"
+                        ? "bg-primary/10 dark:bg-primary/20"
+                        : "hover:bg-gray-50 dark:hover:bg-card"
                     }
                   `}
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     {/* Foto ou Placeholder 48x48 */}
-                    <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-[#1A0B1C] border border-gray-200 dark:border-[#512B54]/40 shrink-0 overflow-hidden flex items-center justify-center relative shadow-2xs">
+                    <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-background border border-gray-200 dark:border-border/40 shrink-0 overflow-hidden flex items-center justify-center relative shadow-2xs">
                       {product.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -296,17 +296,17 @@ export function SearchAutocomplete({
                           }}
                         />
                       ) : (
-                        <IceCream className="w-5 h-5 text-[#9306CF]/50" />
+                        <IceCream className="w-5 h-5 text-primary/50" />
                       )}
                     </div>
 
                     {/* Nome, Categoria e Detalhes */}
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs sm:text-sm font-bold text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                      <p className="text-xs sm:text-sm font-bold text-foreground dark:text-foreground truncate">
                         {highlightMatch(product.name, debouncedQuery)}
                       </p>
                       {product.category && (
-                        <span className="inline-block text-[10px] font-semibold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/40 px-1.5 py-0.5 rounded mt-0.5">
+                        <span className="inline-block text-[10px] font-semibold bg-primary/5 dark:bg-primary/95/40 text-primary dark:text-primary/30 border border-primary/20/60 dark:border-primary/80/40 px-1.5 py-0.5 rounded mt-0.5">
                           {product.category}
                         </span>
                       )}
@@ -330,7 +330,7 @@ export function SearchAutocomplete({
                         ${
                           isJustAdded
                             ? "bg-emerald-500 text-white"
-                            : "bg-[#9306CF]/10 hover:bg-[#9306CF] text-[#9306CF] hover:text-white"
+                            : "bg-primary/10 hover:bg-primary text-primary hover:text-white"
                         }
                       `}
                       title="Adicionar ao carrinho"
@@ -348,11 +348,11 @@ export function SearchAutocomplete({
           </div>
 
           {/* Rodapé com Link para a Página Completa de Busca */}
-          <div className="p-3 bg-gray-50 dark:bg-[#1A0B1C]/90 border-t border-gray-100 dark:border-[#512B54]/30">
+          <div className="p-3 bg-gray-50 dark:bg-background/90 border-t border-gray-100 dark:border-border/30">
             <button
               type="button"
               onClick={() => handleNavigateToSearch(query)}
-              className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs font-bold uppercase tracking-wider shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+              className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs font-bold uppercase tracking-wider shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <span>Ver todos os resultados para &ldquo;{query}&rdquo;</span>
               <ArrowRight className="w-3.5 h-3.5" />

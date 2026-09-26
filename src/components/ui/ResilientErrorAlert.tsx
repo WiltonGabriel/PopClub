@@ -217,30 +217,30 @@ export function ResilientErrorAlert({
   if (isValidationOrAddress) {
     return (
       <div
-        className={`relative overflow-hidden rounded-2xl border border-purple-500/30 dark:border-purple-500/40 bg-purple-500/10 dark:bg-purple-950/40 p-5 backdrop-blur-md shadow-lg shadow-purple-500/5 transition-all animate-in fade-in slide-in-from-top-2 ${className}`}
+        className={`relative overflow-hidden rounded-2xl border border-primary/30 dark:border-primary/40 bg-primary/10 dark:bg-primary/95/40 p-5 backdrop-blur-md shadow-lg shadow-primary/5 transition-all animate-in fade-in slide-in-from-top-2 ${className}`}
         role="alert"
       >
         <div className="flex items-start gap-4">
-          <div className="p-2.5 rounded-xl bg-purple-500/20 text-[#9306CF] dark:text-[#E899FF] shrink-0 animate-bounce-subtle">
+          <div className="p-2.5 rounded-xl bg-primary/20 text-primary dark:text-[#E899FF] shrink-0 animate-bounce-subtle">
             <MapPin className="w-5 h-5" />
           </div>
 
           <div className="flex-1 space-y-1.5 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full bg-purple-500/20 dark:bg-purple-500/30 text-purple-700 dark:text-purple-300">
+              <span className="font-mono text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary/30">
                 Atenção ao Preenchimento
               </span>
             </div>
             <h4 className="font-heading text-sm font-black uppercase tracking-tight text-purple-950 dark:text-purple-100">
               Revise as informações do pedido
             </h4>
-            <p className="text-xs text-purple-900/90 dark:text-purple-200/90 leading-relaxed font-sans">
+            <p className="text-xs text-primary/90/90 dark:text-purple-200/90 leading-relaxed font-sans">
               {message}
             </p>
 
             {/* Detalhes de validação se fornecidos */}
             {Array.isArray(details) && details.length > 0 && (
-              <ul className="text-xs text-purple-800 dark:text-purple-300 list-disc list-inside space-y-0.5 pt-1">
+              <ul className="text-xs text-primary/80 dark:text-primary/30 list-disc list-inside space-y-0.5 pt-1">
                 {details.map((d: { field?: string; message?: string }, idx: number) => (
                   <li key={idx}>
                     <strong className="font-semibold">{d.field || "Campo"}:</strong> {d.message}
@@ -254,7 +254,7 @@ export function ResilientErrorAlert({
                 <button
                   type="button"
                   onClick={onReviewAddress}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-heading font-black uppercase tracking-wider bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 active:scale-95 text-white shadow-md shadow-purple-500/20 transition-all cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-heading font-black uppercase tracking-wider bg-gradient-to-r from-primary to-accent hover:opacity-90 active:scale-95 text-white shadow-md shadow-primary/20 transition-all cursor-pointer"
                 >
                   <MapPin className="w-3.5 h-3.5" />
                   Revisar Endereço de Entrega
@@ -266,7 +266,7 @@ export function ResilientErrorAlert({
                   type="button"
                   onClick={onRetry}
                   disabled={isRetrying}
-                  className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-sans font-semibold text-purple-900 dark:text-purple-200 hover:bg-purple-500/10 border border-purple-500/20 transition-colors"
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-sans font-semibold text-primary/90 dark:text-purple-200 hover:bg-primary/10 border border-primary/20 transition-colors"
                 >
                   <RotateCcw className={`w-3.5 h-3.5 ${isRetrying ? "animate-spin" : ""}`} />
                   Tentar Novamente
@@ -279,7 +279,7 @@ export function ResilientErrorAlert({
             <button
               type="button"
               onClick={onDismiss}
-              className="p-1 rounded-lg text-purple-700/60 hover:text-purple-900 dark:text-purple-300/60 dark:hover:text-purple-100 hover:bg-purple-500/10 transition-colors"
+              className="p-1 rounded-lg text-primary/60 hover:text-primary/90 dark:text-primary/30/60 dark:hover:text-purple-100 hover:bg-primary/10 transition-colors"
               aria-label="Fechar alerta"
             >
               <X className="w-4 h-4" />

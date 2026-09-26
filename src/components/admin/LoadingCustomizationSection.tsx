@@ -40,7 +40,7 @@ const THEME_OPTIONS: Array<{
     title: "Preenchimento Líquido Fluido",
     badge: "Mais Popular",
     description: "Textura cremosa de açaí com ondas de luz fluidas (ripple) e barra de progresso em gradiente vibrante.",
-    previewGradient: "from-[#9306CF] via-[#FF007A] to-[#940068]",
+    previewGradient: "from-primary via-[#FF007A] to-accent",
   },
   {
     id: "playful_bounce",
@@ -54,7 +54,7 @@ const THEME_OPTIONS: Array<{
     title: "Minimalista com Pulso Elegante",
     badge: "Clean & Sofisticado",
     description: "Anel giratório esguio e pulso de respiração sereno com tipografia espaçada nobre para uma atmosfera premium.",
-    previewGradient: "from-[#9306CF] to-[#940068]",
+    previewGradient: "from-primary to-accent",
   },
 ];
 
@@ -165,16 +165,16 @@ export function LoadingCustomizationSection() {
   };
 
   return (
-    <div className="space-y-6 pt-6 border-t border-gray-100 dark:border-[#512B54]/30">
+    <div className="space-y-6 pt-6 border-t border-gray-100 dark:border-border/30">
       {/* Cabeçalho da Seção */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-[#4C264F] dark:text-[#F9F5F9]">
-              <Palette className="w-5 h-5 text-[#9306CF]" />
+            <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-foreground dark:text-foreground">
+              <Palette className="w-5 h-5 text-primary" />
               Personalização da Tela de Carregamento (Loading)
             </h3>
-            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20">
+            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary dark:text-muted-foreground border border-primary/20">
               Dinâmico
             </span>
           </div>
@@ -186,7 +186,7 @@ export function LoadingCustomizationSection() {
         <Button
           onClick={handleSave}
           disabled={isSaving || isLoadingInitial}
-          className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-10 px-5 shadow-md shadow-[#9306CF]/20 cursor-pointer self-start sm:self-auto"
+          className="bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-10 px-5 shadow-md shadow-primary/20 cursor-pointer self-start sm:self-auto"
         >
           {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           <span>Salvar Loading</span>
@@ -200,7 +200,7 @@ export function LoadingCustomizationSection() {
           {/* 1. Seleção dos 3 Temas Visuais */}
           <div className="space-y-3">
             <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-[#9306CF]" />
+              <Layers className="w-4 h-4 text-primary" />
               1. Estilo Visual da Animação (3 Temas)
             </Label>
 
@@ -214,8 +214,8 @@ export function LoadingCustomizationSection() {
                     onClick={() => setTheme(opt.id)}
                     className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer relative overflow-hidden group ${
                       isSelected
-                        ? "border-[#9306CF] bg-[#9306CF]/10 ring-2 ring-[#9306CF]/30 shadow-md"
-                        : "border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-50 dark:hover:bg-white/5"
+                        ? "border-primary bg-primary/10 ring-2 ring-primary/30 shadow-md"
+                        : "border-gray-200 dark:border-border/40 hover:bg-gray-50 dark:hover:bg-white/5"
                     }`}
                   >
                     <div
@@ -223,12 +223,12 @@ export function LoadingCustomizationSection() {
                     />
                     <div>
                       <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className="font-heading font-bold text-xs text-[#4C264F] dark:text-[#F9F5F9] leading-tight">
+                        <span className="font-heading font-bold text-xs text-foreground dark:text-foreground leading-tight">
                           {opt.title}
                         </span>
-                        {isSelected && <CheckCircle2 className="w-4 h-4 text-[#9306CF] shrink-0" />}
+                        {isSelected && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
                       </div>
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-[#9306CF] dark:text-[#C7A9C9] block mb-1">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-primary dark:text-muted-foreground block mb-1">
                         {opt.badge}
                       </span>
                       <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-3 leading-snug">
@@ -242,9 +242,9 @@ export function LoadingCustomizationSection() {
           </div>
 
           {/* 2. Ícone / Elemento Gráfico Central */}
-          <div className="space-y-3 p-4 rounded-2xl bg-gray-50/70 dark:bg-[#1A0B1C]/50 border border-gray-200 dark:border-[#512B54]/40">
+          <div className="space-y-3 p-4 rounded-2xl bg-gray-50/70 dark:bg-background/50 border border-gray-200 dark:border-border/40">
             <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-              <Smile className="w-4 h-4 text-[#9306CF]" />
+              <Smile className="w-4 h-4 text-primary" />
               2. Ícone ou Elemento Gráfico Central
             </Label>
             <p className="text-[11px] text-gray-500 dark:text-gray-400">
@@ -259,8 +259,8 @@ export function LoadingCustomizationSection() {
                   onClick={() => setCenterIcon(emoji)}
                   className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center border transition-all cursor-pointer ${
                     centerIcon === emoji
-                      ? "bg-[#9306CF] text-white border-[#9306CF] shadow-sm scale-110"
-                      : "bg-white dark:bg-[#230E26] border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/10"
+                      ? "bg-primary text-white border-primary shadow-sm scale-110"
+                      : "bg-white dark:bg-[#230E26] border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/10"
                   }`}
                 >
                   {emoji}
@@ -275,7 +275,7 @@ export function LoadingCustomizationSection() {
                   value={centerIcon}
                   onChange={(e) => setCenterIcon(e.target.value)}
                   placeholder="Ex: 🍧"
-                  className="w-16 h-10 text-center text-lg font-bold rounded-xl border-gray-200 dark:border-[#512B54]/50 bg-white dark:bg-[#230E26]"
+                  className="w-16 h-10 text-center text-lg font-bold rounded-xl border-gray-200 dark:border-border/50 bg-white dark:bg-[#230E26]"
                 />
               </div>
             </div>
@@ -285,13 +285,13 @@ export function LoadingCustomizationSection() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-[#9306CF]" />
+                <Sparkles className="w-4 h-4 text-primary" />
                 3. Frases Rotativas durante o Carregamento ({phrases.length})
               </Label>
               <button
                 type="button"
                 onClick={handleRestoreDefaultPhrases}
-                className="text-[11px] font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1 cursor-pointer"
+                className="text-[11px] font-bold text-primary dark:text-muted-foreground hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <RotateCcw className="w-3 h-3" /> Restaurar Padrões
               </button>
@@ -310,7 +310,7 @@ export function LoadingCustomizationSection() {
                     handleAddPhrase();
                   }
                 }}
-                className="flex-1 rounded-xl h-10 text-xs border-gray-200 dark:border-[#512B54]/50 bg-white dark:bg-[#230E26]"
+                className="flex-1 rounded-xl h-10 text-xs border-gray-200 dark:border-border/50 bg-white dark:bg-[#230E26]"
               />
               <Button
                 type="button"
@@ -326,10 +326,10 @@ export function LoadingCustomizationSection() {
               {phrases.map((phrase, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between gap-2 p-2.5 rounded-xl border border-gray-200 dark:border-[#512B54]/40 bg-white dark:bg-[#230E26] shadow-xs text-xs transition-colors group hover:border-[#9306CF]/40"
+                  className="flex items-center justify-between gap-2 p-2.5 rounded-xl border border-gray-200 dark:border-border/40 bg-white dark:bg-[#230E26] shadow-xs text-xs transition-colors group hover:border-primary/40"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="w-5 h-5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] font-mono font-bold text-[10px] flex items-center justify-center shrink-0">
+                    <span className="w-5 h-5 rounded-full bg-primary/10 text-primary dark:text-muted-foreground font-mono font-bold text-[10px] flex items-center justify-center shrink-0">
                       {idx + 1}
                     </span>
                     <span className="text-gray-700 dark:text-gray-200 truncate font-medium">
@@ -351,10 +351,10 @@ export function LoadingCustomizationSection() {
           </div>
 
           {/* 4. Tempo e Ritmo de Exibição */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-gray-50/70 dark:bg-[#1A0B1C]/50 border border-gray-200 dark:border-[#512B54]/40">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-gray-50/70 dark:bg-background/50 border border-gray-200 dark:border-border/40">
             <div className="space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-[#9306CF]" />
+                <Clock className="w-3.5 h-3.5 text-primary" />
                 Troca de Frases (Intervalo)
               </Label>
               <p className="text-[10px] text-gray-500 dark:text-gray-400">
@@ -363,7 +363,7 @@ export function LoadingCustomizationSection() {
               <select
                 value={rotationInterval}
                 onChange={(e) => setRotationInterval(Number(e.target.value))}
-                className="w-full h-10 px-3 rounded-xl border border-gray-200 dark:border-[#512B54]/50 bg-white dark:bg-[#230E26] text-xs font-bold text-gray-700 dark:text-gray-200 cursor-pointer"
+                className="w-full h-10 px-3 rounded-xl border border-gray-200 dark:border-border/50 bg-white dark:bg-[#230E26] text-xs font-bold text-gray-700 dark:text-gray-200 cursor-pointer"
               >
                 <option value={1600}>Rápido (1,6 segundos)</option>
                 <option value={2000}>Dinâmico (2,0 segundos)</option>
@@ -375,7 +375,7 @@ export function LoadingCustomizationSection() {
 
             <div className="space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#9306CF]" />
+                <Sparkles className="w-3.5 h-3.5 text-primary" />
                 Tempo Mínimo na Tela
               </Label>
               <p className="text-[10px] text-gray-500 dark:text-gray-400">
@@ -384,7 +384,7 @@ export function LoadingCustomizationSection() {
               <select
                 value={minDuration}
                 onChange={(e) => setMinDuration(Number(e.target.value))}
-                className="w-full h-10 px-3 rounded-xl border border-gray-200 dark:border-[#512B54]/50 bg-white dark:bg-[#230E26] text-xs font-bold text-gray-700 dark:text-gray-200 cursor-pointer"
+                className="w-full h-10 px-3 rounded-xl border border-gray-200 dark:border-border/50 bg-white dark:bg-[#230E26] text-xs font-bold text-gray-700 dark:text-gray-200 cursor-pointer"
               >
                 <option value={400}>Instantâneo (400 ms)</option>
                 <option value={800}>Suave / Padrão (800 ms)</option>
@@ -397,9 +397,9 @@ export function LoadingCustomizationSection() {
 
         {/* COLUNA DIREITA: Pré-Visualização Interativa ao Vivo (5 colunas) */}
         <div className="lg:col-span-5 sticky top-24 space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-[#512B54]/30">
+          <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-border/30">
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-[#4C264F] dark:text-[#F9F5F9] block">
+              <span className="text-xs font-bold uppercase tracking-wider text-foreground dark:text-foreground block">
                 Pré-Visualização ao Vivo
               </span>
               <span className="text-[10px] text-gray-500 dark:text-gray-400">
@@ -426,11 +426,11 @@ export function LoadingCustomizationSection() {
                 onClick={() => setPreviewColorMode("dark")}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
                   previewColorMode === "dark"
-                    ? "bg-[#1E0921] text-purple-200 shadow-xs"
+                    ? "bg-background text-purple-200 shadow-xs"
                     : "text-gray-500 hover:text-gray-200"
                 }`}
               >
-                <Moon className="w-3 h-3 text-purple-400" />
+                <Moon className="w-3 h-3 text-primary/40" />
                 <span>Escuro</span>
               </button>
             </div>
@@ -440,7 +440,7 @@ export function LoadingCustomizationSection() {
           <div
             className={`rounded-3xl border shadow-xl overflow-hidden p-6 transition-colors duration-300 relative flex flex-col items-center justify-center min-h-[380px] ${
               previewColorMode === "dark"
-                ? "bg-[#0E040F] border-[#512B54]/70"
+                ? "bg-background border-border/70"
                 : "bg-gray-100 border-gray-200"
             }`}
           >
@@ -449,8 +449,8 @@ export function LoadingCustomizationSection() {
               <span
                 className={`text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${
                   previewColorMode === "dark"
-                    ? "bg-[#1E0921]/90 text-[#E899FF] border-[#512B54]"
-                    : "bg-white/90 text-purple-800 border-purple-200"
+                    ? "bg-background/90 text-[#E899FF] border-border"
+                    : "bg-white/90 text-primary/80 border-primary/20"
                 }`}
               >
                 {theme === "liquid_cream" && "Líquido Cremoso"}

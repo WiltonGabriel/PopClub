@@ -196,27 +196,27 @@ export function ProductFormDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-full max-w-3xl sm:max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl p-0 bg-white dark:bg-[#1F0B22] border border-gray-200 dark:border-[#512B54]/40 shadow-2xl text-foreground">
-          <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100 dark:divide-[#512B54]/30">
+        <DialogContent className="w-full max-w-3xl sm:max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl p-0 bg-white dark:bg-[#1F0B22] border border-gray-200 dark:border-border/40 shadow-2xl text-foreground">
+          <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100 dark:divide-border/30">
             {/* Lado Esquerdo: Prévia em Tempo Real (Live Preview) */}
-            <div className="p-6 sm:p-8 bg-gray-50/70 dark:bg-[#190B1A]/80 flex flex-col justify-between">
+            <div className="p-6 sm:p-8 bg-gray-50/70 dark:bg-background/80 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-[#9306CF]" />
+                    <Sparkles className="w-3.5 h-3.5 text-primary" />
                     Prévia no Cardápio
                   </span>
                   {selectedCategory && (
-                    <span className="text-[10px] font-semibold bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] px-2 py-0.5 rounded-full border border-[#9306CF]/20 truncate max-w-[130px]">
+                    <span className="text-[10px] font-semibold bg-primary/10 text-primary dark:text-muted-foreground px-2 py-0.5 rounded-full border border-primary/20 truncate max-w-[130px]">
                       {selectedCategory.name}
                     </span>
                   )}
                 </div>
 
                 {/* Card do Produto (Design idêntico ao da Página Inicial) */}
-                <div className="w-full max-w-[270px] mx-auto bg-white dark:bg-[#230E26] rounded-2xl border border-gray-200 dark:border-[#512B54]/40 overflow-hidden shadow-lg transition-transform duration-200 hover:scale-[1.02]">
+                <div className="w-full max-w-[270px] mx-auto bg-white dark:bg-[#230E26] rounded-2xl border border-gray-200 dark:border-border/40 overflow-hidden shadow-lg transition-transform duration-200 hover:scale-[1.02]">
                   {/* Foto do Produto */}
-                  <div className="aspect-square w-full bg-gray-100 dark:bg-[#190B1A] relative flex items-center justify-center overflow-hidden">
+                  <div className="aspect-square w-full bg-gray-100 dark:bg-background relative flex items-center justify-center overflow-hidden">
                     {previewUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -253,20 +253,20 @@ export function ProductFormDialog({
 
                   {/* Detalhes do Produto */}
                   <div className="p-4 flex flex-col gap-1.5">
-                    <h4 className="font-heading font-bold text-base text-[#4C264F] dark:text-[#F9F5F9] line-clamp-1">
+                    <h4 className="font-heading font-bold text-base text-foreground dark:text-foreground line-clamp-1">
                       {name.trim() || "Nome do Produto"}
                     </h4>
                     <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 min-h-[32px] leading-relaxed">
                       {description.trim() || "A descrição apetitosa do produto aparecerá aqui para seus clientes..."}
                     </p>
-                    <div className="flex items-center justify-between pt-3 mt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+                    <div className="flex items-center justify-between pt-3 mt-2 border-t border-gray-100 dark:border-border/30">
                       <div className="flex flex-col">
                         <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Preço</span>
                         <span className="font-heading font-black text-lg text-emerald-600 dark:text-emerald-400">
                           R$ {formattedPrice}
                         </span>
                       </div>
-                      <span className="text-xs font-semibold bg-gradient-to-r from-[#9306CF] to-[#940068] text-white px-3 py-1.5 rounded-xl shadow-sm">
+                      <span className="text-xs font-semibold bg-gradient-to-r from-primary to-accent text-white px-3 py-1.5 rounded-xl shadow-sm">
                         + Adicionar
                       </span>
                     </div>
@@ -282,7 +282,7 @@ export function ProductFormDialog({
             {/* Lado Direito: Formulário com Linguagem Limpa */}
             <div className="p-6 sm:p-8 flex flex-col justify-center bg-white dark:bg-[#1F0B22]">
               <DialogHeader className="mb-6">
-                <DialogTitle className="font-heading text-2xl sm:text-3xl font-bold text-[#4C264F] dark:text-[#F9F5F9]">
+                <DialogTitle className="font-heading text-2xl sm:text-3xl font-bold text-foreground dark:text-foreground">
                   {productToEdit ? "Editar Produto" : "Novo Produto"}
                 </DialogTitle>
                 <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-1">
@@ -301,7 +301,7 @@ export function ProductFormDialog({
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
-                    className="h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#2B132D] dark:border-[#512B54]/50 dark:text-white focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
+                    className="h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-card dark:border-border/50 dark:text-white focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
                     placeholder="Ex: Copo 700ml Especial"
                   />
                 </div>
@@ -317,7 +317,7 @@ export function ProductFormDialog({
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     required
-                    className="w-full rounded-xl p-3 text-sm bg-white border border-gray-200 text-gray-900 dark:bg-[#2B132D] dark:border-[#512B54]/50 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#9306CF]/20 focus:border-[#9306CF] resize-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500 leading-relaxed"
+                    className="w-full rounded-xl p-3 text-sm bg-white border border-gray-200 text-gray-900 dark:bg-card dark:border-border/50 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500 leading-relaxed"
                     placeholder="Ex: Açaí puro batido na hora com banana, morango e granola crocante..."
                   />
                 </div>
@@ -330,7 +330,7 @@ export function ProductFormDialog({
                       Preço de Venda (R$)
                     </Label>
                     <div className="relative flex items-center">
-                      <span className="absolute left-3.5 font-bold text-sm text-[#9306CF] dark:text-[#C7A9C9] pointer-events-none">
+                      <span className="absolute left-3.5 font-bold text-sm text-primary dark:text-muted-foreground pointer-events-none">
                         R$
                       </span>
                       <Input
@@ -341,7 +341,7 @@ export function ProductFormDialog({
                         value={price}
                         onChange={(e) => setPrice(e.target.value)}
                         required
-                        className="h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#2B132D] dark:border-[#512B54]/50 dark:text-white pl-10 focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF] font-semibold"
+                        className="h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-card dark:border-border/50 dark:text-white pl-10 focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary font-semibold"
                         placeholder="0,00"
                       />
                     </div>
@@ -353,12 +353,12 @@ export function ProductFormDialog({
                       Categoria
                     </Label>
                     <Select value={categoryId} onValueChange={(val) => setCategoryId(val || "")} required>
-                      <SelectTrigger className="w-full h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#2B132D] dark:border-[#512B54]/50 dark:text-white focus:border-[#9306CF] focus:ring-2 focus:ring-[#9306CF]/20">
+                      <SelectTrigger className="w-full h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-card dark:border-border/50 dark:text-white focus:border-primary focus:ring-2 focus:ring-primary/20">
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
-                      <SelectContent className="rounded-xl border border-gray-200 dark:border-[#512B54]/50 bg-white dark:bg-[#1F0B22] shadow-xl max-h-60 z-[60]">
+                      <SelectContent className="rounded-xl border border-gray-200 dark:border-border/50 bg-white dark:bg-[#1F0B22] shadow-xl max-h-60 z-[60]">
                         {categories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id} className="cursor-pointer text-sm py-2 hover:bg-[#9306CF]/10">
+                          <SelectItem key={cat.id} value={cat.id} className="cursor-pointer text-sm py-2 hover:bg-primary/10">
                             {cat.name}
                           </SelectItem>
                         ))}
@@ -378,15 +378,15 @@ export function ProductFormDialog({
                     </span>
                   </div>
                   <Select value={cardBadgeId} onValueChange={(val) => setCardBadgeId(val || "none")}>
-                    <SelectTrigger id="card-badge" className="w-full h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#2B132D] dark:border-[#512B54]/50 dark:text-white focus:border-[#9306CF] focus:ring-2 focus:ring-[#9306CF]/20">
+                    <SelectTrigger id="card-badge" className="w-full h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-card dark:border-border/50 dark:text-white focus:border-primary focus:ring-2 focus:ring-primary/20">
                       <SelectValue placeholder="Selecione um selo..." />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border border-gray-200 dark:border-[#512B54]/50 bg-white dark:bg-[#1F0B22] shadow-xl max-h-60 z-[60]">
+                    <SelectContent className="rounded-xl border border-gray-200 dark:border-border/50 bg-white dark:bg-[#1F0B22] shadow-xl max-h-60 z-[60]">
                       <SelectItem value="none" className="cursor-pointer text-sm py-2">
                         <span className="text-muted-foreground">[ Nenhum selo ]</span>
                       </SelectItem>
                       {badges.map((b) => (
-                        <SelectItem key={b.id} value={b.id} className="cursor-pointer text-sm py-2 hover:bg-[#9306CF]/10">
+                        <SelectItem key={b.id} value={b.id} className="cursor-pointer text-sm py-2 hover:bg-primary/10">
                           <div className="flex items-center gap-2">
                             <span
                               style={{ backgroundColor: b.bgColor, color: b.textColor }}
@@ -408,17 +408,17 @@ export function ProductFormDialog({
                     <Label htmlFor="image" className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
                       Foto do Produto
                     </Label>
-                    <span className="text-[10px] font-semibold text-[#9306CF] dark:text-[#C7A9C9] bg-[#9306CF]/10 px-2 py-0.5 rounded-full border border-[#9306CF]/20">
+                    <span className="text-[10px] font-semibold text-primary dark:text-muted-foreground bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
                       1:1 Quadrado • até 10MB
                     </span>
                   </div>
 
-                  <div className="relative border-2 border-dashed border-gray-200 dark:border-[#512B54]/50 hover:border-[#9306CF] dark:hover:border-[#9306CF] bg-gray-50/60 dark:bg-[#2B132D]/40 rounded-xl p-3 transition-colors flex items-center gap-3 cursor-pointer group">
-                    <div className="w-10 h-10 rounded-lg bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <div className="relative border-2 border-dashed border-gray-200 dark:border-border/50 hover:border-primary dark:hover:border-primary bg-gray-50/60 dark:bg-card/40 rounded-xl p-3 transition-colors flex items-center gap-3 cursor-pointer group">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary dark:text-muted-foreground flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                       {file ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <Upload className="w-5 h-5" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                      <p className="text-xs font-semibold text-foreground dark:text-foreground truncate">
                         {file ? file.name : (productToEdit?.imageUrl ? "Foto atual mantida (clique para alterar)" : "Clique para escolher a foto")}
                       </p>
                       <p className="text-[11px] text-gray-500 dark:text-gray-400">
@@ -447,7 +447,7 @@ export function ProductFormDialog({
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-12 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading font-bold text-base uppercase tracking-wider shadow-lg shadow-[#9306CF]/25 transition-all mt-2"
+                  className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading font-bold text-base uppercase tracking-wider shadow-lg shadow-primary/25 transition-all mt-2"
                 >
                   {loading ? (
                     <span className="flex items-center gap-2">

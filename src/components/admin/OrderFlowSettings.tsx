@@ -124,17 +124,17 @@ export function OrderFlowSettings() {
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center text-gray-500">
-        <Loader2 className="w-6 h-6 animate-spin mr-2 text-[#9306CF]" />
+        <Loader2 className="w-6 h-6 animate-spin mr-2 text-primary" />
         <span>Carregando configurações de triagem...</span>
       </div>
     );
   }
 
   return (
-    <div className="bg-white dark:bg-[#1E0921] border border-gray-200 dark:border-[#512B54]/40 rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
-      <div className="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-gray-100 dark:border-[#512B54]/30">
+    <div className="bg-white dark:bg-background border border-gray-200 dark:border-border/40 rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
+      <div className="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-gray-100 dark:border-border/30">
         <div>
-          <h2 className="font-heading font-black text-xl text-[#4C264F] dark:text-[#F9F5F9]">
+          <h2 className="font-heading font-black text-xl text-foreground dark:text-foreground">
             Atendimento & Esteira de Pedidos
           </h2>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -145,7 +145,7 @@ export function OrderFlowSettings() {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading font-bold text-xs uppercase tracking-wider px-5 h-11 flex items-center gap-2 cursor-pointer shadow-md shadow-[#9306CF]/20"
+          className="rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading font-bold text-xs uppercase tracking-wider px-5 h-11 flex items-center gap-2 cursor-pointer shadow-md shadow-primary/20"
         >
           {saving ? (
             <>
@@ -170,11 +170,11 @@ export function OrderFlowSettings() {
         {/* Bloco 1: Presets de Tempo de Entrega */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-primary/5 dark:bg-primary/95/60 text-primary dark:text-muted-foreground flex items-center justify-center">
               <Clock className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9]">
+              <h3 className="font-bold text-sm text-foreground dark:text-foreground">
                 Botões de Tempo Estimado
               </h3>
               <p className="text-[11px] text-gray-500 dark:text-gray-400">
@@ -187,7 +187,7 @@ export function OrderFlowSettings() {
             {timePresets.map((preset, idx) => (
               <span
                 key={idx}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-[#250F29] border border-gray-200 dark:border-[#512B54]/40 rounded-xl text-xs font-mono font-bold text-[#4C264F] dark:text-[#F9F5F9]"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-[#250F29] border border-gray-200 dark:border-border/40 rounded-xl text-xs font-mono font-bold text-foreground dark:text-foreground"
               >
                 <span>{preset}</span>
                 <button
@@ -215,13 +215,13 @@ export function OrderFlowSettings() {
                   handleAddTimePreset();
                 }
               }}
-              className="text-xs rounded-xl bg-gray-50 dark:bg-[#250F29] border-gray-200 dark:border-[#512B54]/40 h-10"
+              className="text-xs rounded-xl bg-gray-50 dark:bg-[#250F29] border-gray-200 dark:border-border/40 h-10"
             />
             <Button
               type="button"
               onClick={handleAddTimePreset}
               disabled={!newTimeInput.trim()}
-              className="h-10 px-4 rounded-xl text-xs font-bold bg-[#9306CF] hover:bg-[#881BAA] text-white shrink-0 cursor-pointer"
+              className="h-10 px-4 rounded-xl text-xs font-bold bg-primary hover:bg-[#881BAA] text-white shrink-0 cursor-pointer"
             >
               <Plus className="w-4 h-4 mr-1" />
               Adicionar
@@ -236,7 +236,7 @@ export function OrderFlowSettings() {
               <AlertTriangle className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9]">
+              <h3 className="font-bold text-sm text-foreground dark:text-foreground">
                 Motivos Frequentes de Recusa
               </h3>
               <p className="text-[11px] text-gray-500 dark:text-gray-400">
@@ -249,7 +249,7 @@ export function OrderFlowSettings() {
             {rejectionPresets.map((reason, idx) => (
               <div
                 key={idx}
-                className="flex items-center justify-between gap-2 p-2.5 bg-gray-50 dark:bg-[#250F29] border border-gray-200 dark:border-[#512B54]/40 rounded-xl text-xs text-gray-700 dark:text-gray-300"
+                className="flex items-center justify-between gap-2 p-2.5 bg-gray-50 dark:bg-[#250F29] border border-gray-200 dark:border-border/40 rounded-xl text-xs text-gray-700 dark:text-gray-300"
               >
                 <span className="truncate">{reason}</span>
                 <button
@@ -277,7 +277,7 @@ export function OrderFlowSettings() {
                   handleAddReasonPreset();
                 }
               }}
-              className="text-xs rounded-xl bg-gray-50 dark:bg-[#250F29] border-gray-200 dark:border-[#512B54]/40 h-10"
+              className="text-xs rounded-xl bg-gray-50 dark:bg-[#250F29] border-gray-200 dark:border-border/40 h-10"
             />
             <Button
               type="button"
@@ -292,13 +292,13 @@ export function OrderFlowSettings() {
         </div>
 
         {/* Bloco 3: Automação de Impressão de Comprovante */}
-        <div className="space-y-3 pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+        <div className="space-y-3 pt-2 border-t border-gray-100 dark:border-border/30">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-primary/5 dark:bg-primary/95/60 text-primary dark:text-muted-foreground flex items-center justify-center">
               <Printer className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9]">
+              <h3 className="font-bold text-sm text-foreground dark:text-foreground">
                 Automação de Impressão de Comprovante
               </h3>
               <p className="text-[11px] text-gray-500 dark:text-gray-400">
@@ -307,9 +307,9 @@ export function OrderFlowSettings() {
             </div>
           </div>
 
-          <label className="flex items-center justify-between p-3.5 bg-gray-50 dark:bg-[#250F29] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl cursor-pointer select-none">
+          <label className="flex items-center justify-between p-3.5 bg-gray-50 dark:bg-[#250F29] border border-gray-200 dark:border-border/40 rounded-2xl cursor-pointer select-none">
             <div className="space-y-0.5 pr-3">
-              <span className="text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9] block">
+              <span className="text-xs font-bold text-foreground dark:text-foreground block">
                 Imprimir comprovante automaticamente ao aceitar
               </span>
               <span className="text-[11px] text-gray-500 dark:text-gray-400 block">
@@ -320,7 +320,7 @@ export function OrderFlowSettings() {
               type="checkbox"
               checked={autoPrintReceipt}
               onChange={(e) => handleToggleAutoPrintReceipt(e.target.checked)}
-              className="w-4 h-4 rounded text-[#9306CF] focus:ring-[#9306CF] border-gray-300 cursor-pointer"
+              className="w-4 h-4 rounded text-primary focus:ring-primary border-gray-300 cursor-pointer"
             />
           </label>
         </div>

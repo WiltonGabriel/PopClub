@@ -117,7 +117,7 @@ const AUDIENCE_OPTIONS: AudienceOption[] = [
     subtitle: "Selecione clientes manualmente ou carregue listas salvas",
     badge: "Custom",
     icon: Users,
-    color: "from-[#9306CF] to-[#940068]",
+    color: "from-primary to-accent",
   },
 ];
 
@@ -312,10 +312,10 @@ export function CommunicationSection() {
   return (
     <div className="space-y-8">
       {/* 1. Cabeçalho da Seção */}
-      <div className="border-b border-gray-100 dark:border-[#512B54]/30 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="border-b border-gray-100 dark:border-border/30 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="font-heading text-xl sm:text-2xl font-bold uppercase tracking-wide flex items-center gap-2.5 text-[#4C264F] dark:text-[#F9F5F9]">
-            <Send className="w-6 h-6 text-[#9306CF]" />
+          <h3 className="font-heading text-xl sm:text-2xl font-bold uppercase tracking-wide flex items-center gap-2.5 text-foreground dark:text-foreground">
+            <Send className="w-6 h-6 text-primary" />
             Comunicação & Mensagens da Loja
           </h3>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
@@ -324,8 +324,8 @@ export function CommunicationSection() {
         </div>
 
         {/* Indicador de Destinatários Elegíveis em Destaque */}
-        <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-purple-50 dark:bg-purple-950/40 border border-[#9306CF]/30 shadow-xs">
-          <div className="w-9 h-9 rounded-xl bg-[#9306CF] text-white flex items-center justify-center font-bold text-sm shadow-xs">
+        <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-primary/5 dark:bg-primary/95/40 border border-primary/30 shadow-xs">
+          <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-sm shadow-xs">
             {loadingCount ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
@@ -336,7 +336,7 @@ export function CommunicationSection() {
             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
               Destinatários Elegíveis
             </span>
-            <span className="font-heading font-black text-sm text-[#4C264F] dark:text-[#F9F5F9]">
+            <span className="font-heading font-black text-sm text-foreground dark:text-foreground">
               {loadingCount ? "Calculando..." : `${audienceCount} cliente(s)`}
             </span>
           </div>
@@ -347,11 +347,11 @@ export function CommunicationSection() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-            <Users className="w-4 h-4 text-[#9306CF]" />
+            <Users className="w-4 h-4 text-primary" />
             1. Escolha o Público Alvo (Segmentação Inteligente)
           </Label>
           <span className="text-xs text-muted-foreground">
-            Filtro atual: <strong className="text-[#9306CF]">{AUDIENCE_OPTIONS.find((a) => a.id === selectedAudience)?.title}</strong>
+            Filtro atual: <strong className="text-primary">{AUDIENCE_OPTIONS.find((a) => a.id === selectedAudience)?.title}</strong>
           </span>
         </div>
 
@@ -373,8 +373,8 @@ export function CommunicationSection() {
                   p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between cursor-pointer
                   ${
                     isSelected
-                      ? "bg-purple-50/90 dark:bg-purple-950/40 border-[#9306CF] ring-2 ring-[#9306CF]/30 shadow-md"
-                      : "bg-white dark:bg-[#1E0921] border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/50 shadow-xs"
+                      ? "bg-primary/5/90 dark:bg-primary/95/40 border-primary ring-2 ring-primary/30 shadow-md"
+                      : "bg-white dark:bg-background border-gray-200 dark:border-border/40 hover:border-primary/50 shadow-xs"
                   }
                 `}
               >
@@ -387,7 +387,7 @@ export function CommunicationSection() {
                   <span
                     className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
                       isSelected
-                        ? "bg-[#9306CF] text-white border-transparent"
+                        ? "bg-primary text-white border-transparent"
                         : "bg-gray-100 dark:bg-white/5 text-gray-500 border-gray-200 dark:border-white/10"
                     }`}
                   >
@@ -396,7 +396,7 @@ export function CommunicationSection() {
                 </div>
 
                 <div>
-                  <h4 className="font-heading font-bold text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9]">
+                  <h4 className="font-heading font-bold text-xs sm:text-sm text-foreground dark:text-foreground">
                     {opt.title}
                   </h4>
                   <p className="text-[11px] text-muted-foreground leading-snug mt-1">
@@ -413,7 +413,7 @@ export function CommunicationSection() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-[#9306CF]" />
+            <Sparkles className="w-4 h-4 text-primary" />
             2. Modelos Prontos & Presets de Mensagem
           </Label>
           <div className="flex items-center gap-2">
@@ -433,7 +433,7 @@ export function CommunicationSection() {
               className={`text-xs font-bold flex items-center gap-1 transition-colors ${
                 templates.length >= 5
                   ? "text-gray-400 cursor-not-allowed"
-                  : "text-[#9306CF] dark:text-[#C7A9C9] hover:underline cursor-pointer"
+                  : "text-primary dark:text-muted-foreground hover:underline cursor-pointer"
               }`}
             >
               <Save className="w-3.5 h-3.5" /> Salvar Mensagem Atual como Preset
@@ -443,7 +443,7 @@ export function CommunicationSection() {
 
         {loadingTemplates ? (
           <div className="p-4 text-center">
-            <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#9306CF]" />
+            <Loader2 className="w-5 h-5 animate-spin mx-auto text-primary" />
           </div>
         ) : (
           <div className="flex flex-wrap gap-2.5">
@@ -457,8 +457,8 @@ export function CommunicationSection() {
                     px-3.5 py-2 rounded-xl border text-xs font-semibold flex items-center gap-2 cursor-pointer transition-all select-none
                     ${
                       isSelected
-                        ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white border-transparent shadow-sm shadow-[#9306CF]/30"
-                        : "bg-white dark:bg-[#1E0921] border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/60 text-[#4C264F] dark:text-gray-200"
+                        ? "bg-gradient-to-r from-primary to-accent text-white border-transparent shadow-sm shadow-primary/30"
+                        : "bg-white dark:bg-background border-gray-200 dark:border-border/40 hover:border-primary/60 text-foreground dark:text-gray-200"
                     }
                   `}
                 >
@@ -485,8 +485,8 @@ export function CommunicationSection() {
       {/* 4. Formulário de Mensagem & Live Preview Lado a Lado */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Coluna Esquerda: Edição da Mensagem */}
-        <div className="lg:col-span-7 space-y-4 p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#1E0921] border border-gray-200 dark:border-[#512B54]/40 shadow-xs">
-          <div className="flex items-center justify-between border-b border-gray-100 dark:border-[#512B54]/30 pb-3">
+        <div className="lg:col-span-7 space-y-4 p-5 sm:p-6 rounded-2xl bg-white dark:bg-background border border-gray-200 dark:border-border/40 shadow-xs">
+          <div className="flex items-center justify-between border-b border-gray-100 dark:border-border/30 pb-3">
             <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
               3. Conteúdo da Mensagem
             </Label>
@@ -496,7 +496,7 @@ export function CommunicationSection() {
               <button
                 type="button"
                 onClick={() => insertVariable("{NOME}")}
-                className="px-2 py-0.5 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] text-[11px] font-mono font-bold hover:bg-purple-200 transition-colors cursor-pointer"
+                className="px-2 py-0.5 rounded-lg bg-primary/10 dark:bg-primary/95/60 text-primary dark:text-muted-foreground text-[11px] font-mono font-bold hover:bg-primary/20 transition-colors cursor-pointer"
                 title="Substitui pelo primeiro nome do cliente (ex: Olá Ana,)"
               >
                 + &#123;NOME&#125;
@@ -504,7 +504,7 @@ export function CommunicationSection() {
               <button
                 type="button"
                 onClick={() => insertVariable("{CUPOM}")}
-                className="px-2 py-0.5 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] text-[11px] font-mono font-bold hover:bg-purple-200 transition-colors cursor-pointer"
+                className="px-2 py-0.5 rounded-lg bg-primary/10 dark:bg-primary/95/60 text-primary dark:text-muted-foreground text-[11px] font-mono font-bold hover:bg-primary/20 transition-colors cursor-pointer"
                 title="Substitui pelo código do cupom anexado (ex: POP10)"
               >
                 + &#123;CUPOM&#125;
@@ -520,7 +520,7 @@ export function CommunicationSection() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ex: Um presente especial para você! 🍧"
-              className="bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-11 text-sm font-semibold rounded-xl"
+              className="bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 text-sm font-semibold rounded-xl"
             />
           </div>
 
@@ -533,7 +533,7 @@ export function CommunicationSection() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Olá {NOME}, preparamos um presente especial para sua primeira experiência com a gente! Aproveite o cupom exclusivo {CUPOM}."
-              className="w-full p-3 text-xs sm:text-sm bg-gray-50 dark:bg-[#190B1A] border border-gray-200 dark:border-[#512B54]/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9306CF] leading-relaxed text-foreground"
+              className="w-full p-3 text-xs sm:text-sm bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary leading-relaxed text-foreground"
             />
             <p className="text-[11px] text-muted-foreground">
               As variáveis <code>&#123;NOME&#125;</code> e <code>&#123;CUPOM&#125;</code> serão substituídas automaticamente para cada destinatário.
@@ -541,10 +541,10 @@ export function CommunicationSection() {
           </div>
 
           {/* Anexo Direto de Cupom */}
-          <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+          <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-border/30">
             <div className="flex items-center justify-between">
               <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                <Ticket className="w-4 h-4 text-[#9306CF]" />
+                <Ticket className="w-4 h-4 text-primary" />
                 Anexo Direto de Cupom (Opcional)
               </Label>
               {selectedCouponId && (
@@ -561,7 +561,7 @@ export function CommunicationSection() {
             <select
               value={selectedCouponId}
               onChange={(e) => setSelectedCouponId(e.target.value)}
-              className="w-full h-11 px-3 bg-gray-50 dark:bg-[#190B1A] border border-gray-200 dark:border-[#512B54]/40 rounded-xl text-xs sm:text-sm font-semibold text-foreground focus:ring-2 focus:ring-[#9306CF] outline-none"
+              className="w-full h-11 px-3 bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl text-xs sm:text-sm font-semibold text-foreground focus:ring-2 focus:ring-primary outline-none"
             >
               <option value="">Nenhum cupom anexado</option>
               {coupons.map((c) => (
@@ -580,7 +580,7 @@ export function CommunicationSection() {
               type="button"
               onClick={handleDispatch}
               disabled={isSending || audienceCount === 0 || !title.trim() || !message.trim()}
-              className="w-full h-12 rounded-xl font-heading font-bold uppercase tracking-widest text-sm bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white shadow-lg shadow-[#9306CF]/30 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full h-12 rounded-xl font-heading font-bold uppercase tracking-widest text-sm bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white shadow-lg shadow-primary/30 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
             >
               {isSending ? (
                 <>
@@ -597,10 +597,10 @@ export function CommunicationSection() {
 
         {/* Coluna Direita: Live Preview na Visão do Cliente */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#1E0921] border border-gray-200 dark:border-[#512B54]/40 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-[#512B54]/30 pb-3">
+          <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-background border border-gray-200 dark:border-border/40 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-border/30 pb-3">
               <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                <Eye className="w-4 h-4 text-[#9306CF]" />
+                <Eye className="w-4 h-4 text-primary" />
                 Live Preview (Visão do Cliente)
               </Label>
               <span className="text-[11px] font-bold text-emerald-600 bg-emerald-100/70 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full">
@@ -609,13 +609,13 @@ export function CommunicationSection() {
             </div>
 
             {/* Simulação do Card no Perfil */}
-            <div className="p-4 rounded-2xl bg-purple-50/70 dark:bg-purple-950/20 border border-[#9306CF]/30 shadow-xs space-y-2">
+            <div className="p-4 rounded-2xl bg-primary/5/70 dark:bg-primary/95/20 border border-primary/30 shadow-xs space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-pink-600 text-white">
                     Nova
                   </span>
-                  <h5 className="font-heading font-bold text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9]">
+                  <h5 className="font-heading font-bold text-xs sm:text-sm text-foreground dark:text-foreground">
                     {title || "Título da notificação"}
                   </h5>
                 </div>
@@ -629,9 +629,9 @@ export function CommunicationSection() {
               </p>
 
               {attachedCoupon && (
-                <div className="mt-3 p-3 rounded-xl bg-white dark:bg-[#190B1A] border border-purple-200 dark:border-purple-800/40 flex flex-col gap-2">
+                <div className="mt-3 p-3 rounded-xl bg-white dark:bg-background border border-primary/20 dark:border-primary/80/40 flex flex-col gap-2">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono font-black text-xs text-[#9306CF] dark:text-[#C7A9C9] bg-purple-50 dark:bg-purple-950/50 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800/30">
+                    <span className="font-mono font-black text-xs text-primary dark:text-muted-foreground bg-primary/5 dark:bg-primary/95/50 px-2 py-0.5 rounded-md border border-primary/20 dark:border-primary/80/30">
                       {attachedCoupon.code}
                     </span>
                     <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400">
@@ -645,7 +645,7 @@ export function CommunicationSection() {
                     <div className="flex-1 py-1 rounded-lg bg-gray-100 dark:bg-white/5 text-[10px] font-bold text-center text-gray-600 dark:text-gray-300">
                       [ Copiar Código ]
                     </div>
-                    <div className="flex-1 py-1 rounded-lg bg-[#9306CF] text-white text-[10px] font-bold text-center">
+                    <div className="flex-1 py-1 rounded-lg bg-primary text-white text-[10px] font-bold text-center">
                       [ Aplicar no Carrinho ]
                     </div>
                   </div>
@@ -653,7 +653,7 @@ export function CommunicationSection() {
               )}
             </div>
 
-            <div className="p-3 rounded-xl bg-gray-50 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/30 text-xs text-muted-foreground space-y-1">
+            <div className="p-3 rounded-xl bg-gray-50 dark:bg-background/80 border border-gray-200 dark:border-border/30 text-xs text-muted-foreground space-y-1">
               <p className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1">
                 <Check className="w-3.5 h-3.5 text-emerald-600" /> Entrega Direta na Caixa de Entrada
               </p>
@@ -668,9 +668,9 @@ export function CommunicationSection() {
       {/* Modal para Salvar como Novo Modelo */}
       {isSaveTemplateModalOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-white dark:bg-[#200B22] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-6 shadow-2xl space-y-4">
-            <h4 className="font-heading font-bold text-base text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
-              <Save className="w-5 h-5 text-[#9306CF]" />
+          <div className="w-full max-w-md bg-white dark:bg-[#200B22] border border-gray-200 dark:border-border/40 rounded-2xl p-6 shadow-2xl space-y-4">
+            <h4 className="font-heading font-bold text-base text-foreground dark:text-foreground flex items-center gap-2">
+              <Save className="w-5 h-5 text-primary" />
               Salvar Mensagem como Modelo (Preset)
             </h4>
 
@@ -686,7 +686,7 @@ export function CommunicationSection() {
                 value={newTemplateTitle}
                 onChange={(e) => setNewTemplateTitle(e.target.value)}
                 placeholder="Ex: Campanha de Aniversário PopShake"
-                className="bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-11 text-sm rounded-xl"
+                className="bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 text-sm rounded-xl"
               />
             </div>
 
@@ -703,7 +703,7 @@ export function CommunicationSection() {
                 type="button"
                 onClick={handleSaveAsPreset}
                 disabled={isSavingTemplate}
-                className="bg-gradient-to-r from-[#9306CF] to-[#940068] text-white rounded-xl h-10 text-xs font-bold"
+                className="bg-gradient-to-r from-primary to-accent text-white rounded-xl h-10 text-xs font-bold"
               >
                 {isSavingTemplate ? "Salvando..." : "Salvar Preset"}
               </Button>

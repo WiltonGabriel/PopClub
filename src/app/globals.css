@@ -9,11 +9,11 @@
    ═══════════════════════════════════════════════ */
 :root {
   /* Brand colors */
-  --color-pop-shake:      #9306CF;
-  --color-magenta:        #940068;
+  --color-pop-shake:      hsl(var(--primary));
+  --color-magenta:        hsl(var(--accent));
   --color-acai-vibrante:  #881BAA;
-  --color-acai-base:      #4C264F;
-  --color-acai-escuro:    #401E3F;
+  --color-acai-base:      hsl(var(--foreground));
+  --color-acai-escuro:    hsl(var(--input));
   --color-folha-acai:     #35A340;
   --color-folha-acai-dk:  #2a8030;
 
@@ -39,16 +39,16 @@
 
 /* ── Dark mode surface overrides ── */
 .dark {
-  --color-surface-0:    #190B1A;
+  --color-surface-0:    hsl(var(--background));
   --color-surface-1:    #2B132D;
   --color-surface-2:    #331735;
-  --color-surface-3:    #401E3F;
-  --color-text-main:    #F9F5F9;
-  --color-text-sub:     #C7A9C9;
-  --color-text-muted:   #C7A9C9;
+  --color-surface-3:    hsl(var(--input));
+  --color-text-main:    hsl(var(--foreground));
+  --color-text-sub:     hsl(var(--muted-foreground));
+  --color-text-muted:   hsl(var(--muted-foreground));
   --shadow-card:        0 2px 16px rgba(0, 0, 0, 0.4);
   --shadow-card-hover:  0 8px 32px rgba(0, 0, 0, 0.6);
-  --color-background:   #190B1A;
+  --color-background:   hsl(var(--background));
   --color-surface:      #2B132D;
 }
 
@@ -99,9 +99,9 @@ a {
    Light HSL values:
      #F8F9FA → 210 17% 98%      (background)
      #FFFFFF → 0 0% 100%        (card)
-     #4C264F → 296 33% 23%      (foreground / text)
-     #9306CF → 277 96% 42%      (primary)
-     #940068 → 318 100% 29%     (secondary)
+     hsl(var(--foreground)) → 296 33% 23%      (foreground / text)
+     hsl(var(--primary)) → 277 96% 42%      (primary)
+     hsl(var(--accent)) → 318 100% 29%     (secondary)
      #881BAA → 284 73% 39%      (accent)
      #35A340 → 127 50% 42%      (success)
      #7B6B7E → 291 7% 45%       (muted-foreground)
@@ -109,20 +109,20 @@ a {
      #E5E5E6 → 240 2% 90%       (border)
 
    Dark HSL values:
-     #190B1A → 298 40% 7%       (background)
+     hsl(var(--background)) → 298 40% 7%       (background)
      #2B132D → 296 40% 13%      (card)
      #331735 → 297 40% 15%      (muted)
-     #F9F5F9 → 300 22% 97%      (foreground)
-     #C7A9C9 → 298 19% 73%      (muted-foreground)
-     #512B54 → 296 33% 25%      (border)
-     #401E3F → 302 36% 18%      (input)
+     hsl(var(--foreground)) → 300 22% 97%      (foreground)
+     hsl(var(--muted-foreground)) → 298 19% 73%      (muted-foreground)
+     hsl(var(--border)) → 296 33% 25%      (border)
+     hsl(var(--input)) → 302 36% 18%      (input)
    ═══════════════════════════════════════════════ */
 
 @layer base {
   :root {
     /* ── Light theme (default) ── */
     --background:             210 17% 98%;
-    --foreground:             296 33% 23%;    /* #4C264F */
+    --foreground:             296 33% 23%;    /* hsl(var(--foreground)) */
 
     --card:                   0 0% 100%;
     --card-foreground:        296 33% 23%;
@@ -130,10 +130,10 @@ a {
     --popover:                0 0% 100%;
     --popover-foreground:     296 33% 23%;
 
-    --primary:                277 96% 42%;    /* #9306CF */
+    --primary:                277 96% 42%;    /* hsl(var(--primary)) */
     --primary-foreground:     0 0% 100%;
 
-    --secondary:              318 100% 29%;   /* #940068 */
+    --secondary:              318 100% 29%;   /* hsl(var(--accent)) */
     --secondary-foreground:   0 0% 100%;
 
     --muted:                  240 5% 96%;     /* #F4F4F5 */
@@ -156,8 +156,8 @@ a {
 
   .dark {
     /* ── Pop Shake Dark Mode — Açaí Ultra Escuro ── */
-    --background:             298 40% 7%;     /* #190B1A */
-    --foreground:             300 22% 97%;    /* #F9F5F9 */
+    --background:             298 40% 7%;     /* hsl(var(--background)) */
+    --foreground:             300 22% 97%;    /* hsl(var(--foreground)) */
 
     --card:                   297 40% 15%;    /* #331735 */
     --card-foreground:        300 22% 97%;
@@ -165,14 +165,14 @@ a {
     --popover:                296 40% 13%;    /* #2B132D */
     --popover-foreground:     300 22% 97%;
 
-    --primary:                277 96% 42%;    /* #9306CF — mantido */
+    --primary:                277 96% 42%;    /* hsl(var(--primary)) — mantido */
     --primary-foreground:     0 0% 100%;
 
-    --secondary:              318 100% 29%;   /* #940068 — mantido */
+    --secondary:              318 100% 29%;   /* hsl(var(--accent)) — mantido */
     --secondary-foreground:   0 0% 100%;
 
     --muted:                  296 40% 13%;    /* #2B132D */
-    --muted-foreground:       298 19% 73%;    /* #C7A9C9 lavanda suave */
+    --muted-foreground:       298 19% 73%;    /* hsl(var(--muted-foreground)) lavanda suave */
 
     --accent:                 284 73% 39%;    /* #881BAA */
     --accent-foreground:      0 0% 100%;
@@ -182,8 +182,8 @@ a {
 
     --success:                127 50% 42%;    /* #35A340 — mantido vibrante */
 
-    --border:                 296 33% 25%;    /* #512B54 */
-    --input:                  302 36% 18%;    /* #401E3F */
+    --border:                 296 33% 25%;    /* hsl(var(--border)) */
+    --input:                  302 36% 18%;    /* hsl(var(--input)) */
     --ring:                   277 96% 42%;
   }
 

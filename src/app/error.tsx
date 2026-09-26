@@ -32,19 +32,19 @@ export default function Error({
   )}`;
 
   return (
-    <div className="min-h-screen bg-[#FAF6F9] dark:bg-[#120713] text-foreground flex flex-col items-center justify-center p-4 relative overflow-hidden transition-colors duration-300">
+    <div className="min-h-screen bg-[#FAF6F9] dark:bg-background text-foreground flex flex-col items-center justify-center p-4 relative overflow-hidden transition-colors duration-300">
       {/* ── AMBIENT GLOW ANIMADO ── */}
       <div
         className="absolute top-1/4 -left-24 w-88 h-88 bg-rose-500/15 dark:bg-rose-500/20 rounded-full blur-3xl animate-pulse-glow pointer-events-none"
         aria-hidden="true"
       />
       <div
-        className="absolute bottom-1/4 -right-24 w-88 h-88 bg-[#9306CF]/15 dark:bg-[#9306CF]/25 rounded-full blur-3xl animate-float-slow pointer-events-none"
+        className="absolute bottom-1/4 -right-24 w-88 h-88 bg-primary/15 dark:bg-primary/25 rounded-full blur-3xl animate-float-slow pointer-events-none"
         aria-hidden="true"
       />
 
       {/* ── CARD PRINCIPAL ── */}
-      <main className="relative z-10 max-w-md w-full text-center space-y-6 bg-white/85 dark:bg-[#1D0A20]/90 backdrop-blur-xl border border-gray-200/90 dark:border-[#512B54]/60 p-8 sm:p-10 rounded-3xl shadow-2xl shadow-purple-500/10 animate-in fade-in zoom-in-95 duration-300">
+      <main className="relative z-10 max-w-md w-full text-center space-y-6 bg-white/85 dark:bg-background/90 backdrop-blur-xl border border-gray-200/90 dark:border-border/60 p-8 sm:p-10 rounded-3xl shadow-2xl shadow-primary/10 animate-in fade-in zoom-in-95 duration-300">
         
         {/* ── ÍCONE ANIMADO COM LEVITAÇÃO E ATENÇÃO ── */}
         <div className="relative inline-block animate-float-gentle">
@@ -66,10 +66,10 @@ export default function Error({
 
         {/* ── TEXTOS ── */}
         <div className="space-y-2.5">
-          <h2 className="text-xl sm:text-2xl font-heading font-black tracking-tight text-[#4C264F] dark:text-[#F9F5F9]">
+          <h2 className="text-xl sm:text-2xl font-heading font-black tracking-tight text-foreground dark:text-foreground">
             Algo inesperado aconteceu
           </h2>
-          <p className="text-xs sm:text-sm text-gray-600 dark:text-[#C7A9C9] leading-relaxed">
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-muted-foreground leading-relaxed">
             Não se preocupe, seus dados e pedidos estão seguros. Tente recarregar a página ou voltar para o início.
           </p>
 
@@ -86,7 +86,7 @@ export default function Error({
             type="button"
             onClick={handleRetry}
             disabled={isRetrying}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#9306CF] via-[#FF007A] to-[#940068] bg-[length:200%_auto] hover:bg-right text-white px-6 py-3.5 rounded-2xl text-xs sm:text-sm font-heading font-bold uppercase tracking-wider shadow-lg shadow-[#9306CF]/25 transition-all active:scale-[0.97] cursor-pointer disabled:opacity-60"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-primary via-[#FF007A] to-accent bg-[length:200%_auto] hover:bg-right text-white px-6 py-3.5 rounded-2xl text-xs sm:text-sm font-heading font-bold uppercase tracking-wider shadow-lg shadow-primary/25 transition-all active:scale-[0.97] cursor-pointer disabled:opacity-60"
           >
             <RefreshCw className={`w-4 h-4 ${isRetrying ? "animate-spin" : ""}`} />
             <span>{isRetrying ? "Recarregando..." : "Tentar Novamente"}</span>
@@ -94,20 +94,20 @@ export default function Error({
 
           <Link
             href="/"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white/80 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-[#4C264F] dark:text-[#F9F5F9] border border-gray-200 dark:border-[#512B54]/60 px-5 py-3.5 rounded-2xl text-xs sm:text-sm font-bold tracking-wide transition-all active:scale-[0.97]"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white/80 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-foreground dark:text-foreground border border-gray-200 dark:border-border/60 px-5 py-3.5 rounded-2xl text-xs sm:text-sm font-bold tracking-wide transition-all active:scale-[0.97]"
           >
-            <Home className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+            <Home className="w-4 h-4 text-primary dark:text-muted-foreground" />
             <span>Página Inicial</span>
           </Link>
         </div>
 
         {/* ── LINK DE SUPORTE WHATSAPP ── */}
-        <div className="pt-4 border-t border-gray-100 dark:border-[#512B54]/40">
+        <div className="pt-4 border-t border-gray-100 dark:border-border/40">
           <a
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-[#C7A9C9] hover:text-[#9306CF] dark:hover:text-[#E899FF] transition-colors group"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-muted-foreground hover:text-primary dark:hover:text-[#E899FF] transition-colors group"
           >
             <div className="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
               <MessageCircle className="w-3.5 h-3.5" />

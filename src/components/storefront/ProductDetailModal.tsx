@@ -203,7 +203,7 @@ export function ProductDetailModal({
         className="
           relative w-full md:max-w-4xl lg:max-w-5xl h-[92vh] md:h-auto md:max-h-[85vh]
           bg-white dark:bg-[#1E0E21] text-foreground
-          border-t md:border border-gray-200 dark:border-[#512B54]/40
+          border-t md:border border-gray-200 dark:border-border/40
           rounded-t-[28px] md:rounded-3xl shadow-2xl
           flex flex-col md:flex-row overflow-hidden
           z-10 animate-in slide-in-from-bottom duration-300 md:zoom-in-95 md:duration-200
@@ -240,7 +240,7 @@ export function ProductDetailModal({
               className="w-full h-full object-cover object-center md:rounded-l-3xl"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#9306CF]/10 to-[#940068]/20 md:rounded-l-3xl">
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/20 md:rounded-l-3xl">
               <span className="font-heading font-black text-6xl gradient-text-brand">
                 {product.name[0]}
               </span>
@@ -259,8 +259,8 @@ export function ProductDetailModal({
               </span>
             )}
             {product.category && (
-              <span className="inline-flex items-center gap-1 bg-white/90 dark:bg-[#230E26]/90 backdrop-blur-md text-[#4C264F] dark:text-[#F9F5F9] font-semibold text-[11px] px-2.5 py-1 rounded-full shadow-sm border border-white/20">
-                <Tag className="w-3 h-3 text-[#9306CF]" />
+              <span className="inline-flex items-center gap-1 bg-white/90 dark:bg-[#230E26]/90 backdrop-blur-md text-foreground dark:text-foreground font-semibold text-[11px] px-2.5 py-1 rounded-full shadow-sm border border-white/20">
+                <Tag className="w-3 h-3 text-primary" />
                 {product.category}
               </span>
             )}
@@ -289,7 +289,7 @@ export function ProductDetailModal({
               Preparo em ~15 min
             </span>
             <span className="flex items-center gap-1 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">
-              <ShieldCheck className="w-3.5 h-3.5 text-purple-300" />
+              <ShieldCheck className="w-3.5 h-3.5 text-primary/30" />
               Embalagem Selada
             </span>
           </div>
@@ -300,11 +300,11 @@ export function ProductDetailModal({
           {/* Painel Rolável */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 scrollbar-thin pb-28 md:pb-6">
             {/* Cabeçalho do Produto */}
-            <div className="space-y-2 border-b border-gray-100 dark:border-[#512B54]/30 pb-4">
+            <div className="space-y-2 border-b border-gray-100 dark:border-border/30 pb-4">
               <div className="flex items-start justify-between gap-3">
                 <h2
                   id="modal-product-title"
-                  className="font-heading font-black text-xl sm:text-2xl text-[#4C264F] dark:text-[#F9F5F9] leading-tight"
+                  className="font-heading font-black text-xl sm:text-2xl text-foreground dark:text-foreground leading-tight"
                 >
                   {product.name}
                 </h2>
@@ -317,7 +317,7 @@ export function ProductDetailModal({
                     <span className="text-xs sm:text-sm font-medium text-muted-foreground line-through">
                       De R$ {config.originalPrice.toFixed(2).replace(".", ",")}
                     </span>
-                    <span className="font-heading font-black text-xl sm:text-2xl text-[#9306CF] dark:text-[#C7A9C9]">
+                    <span className="font-heading font-black text-xl sm:text-2xl text-primary dark:text-muted-foreground">
                       por R$ {product.price.toFixed(2).replace(".", ",")}
                     </span>
                     <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
@@ -326,7 +326,7 @@ export function ProductDetailModal({
                     </span>
                   </>
                 ) : (
-                  <span className="font-heading font-black text-xl sm:text-2xl text-[#9306CF] dark:text-[#C7A9C9]">
+                  <span className="font-heading font-black text-xl sm:text-2xl text-primary dark:text-muted-foreground">
                     R$ {product.price.toFixed(2).replace(".", ",")}
                   </span>
                 )}
@@ -341,9 +341,9 @@ export function ProductDetailModal({
 
               {/* Caixa de Avisos de Preparo da Cozinha */}
               {config.preparationNotice && (
-                <div className="bg-[#9306CF]/5 dark:bg-[#9306CF]/10 border border-[#9306CF]/20 rounded-2xl p-3 flex gap-2.5 items-start mt-3">
-                  <Info className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9] shrink-0 mt-0.5" />
-                  <p className="text-xs text-[#4C264F] dark:text-[#F9F5F9] leading-relaxed">
+                <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-2xl p-3 flex gap-2.5 items-start mt-3">
+                  <Info className="w-4 h-4 text-primary dark:text-muted-foreground shrink-0 mt-0.5" />
+                  <p className="text-xs text-foreground dark:text-foreground leading-relaxed">
                     {config.preparationNotice}
                   </p>
                 </div>
@@ -395,12 +395,12 @@ export function ProductDetailModal({
                 return (
                   <section
                     key={group.id}
-                    className="border border-gray-100 dark:border-[#512B54]/30 rounded-2xl p-3.5 sm:p-4 bg-gray-50/50 dark:bg-white/[0.02]"
+                    className="border border-gray-100 dark:border-border/30 rounded-2xl p-3.5 sm:p-4 bg-gray-50/50 dark:bg-white/[0.02]"
                   >
                     {/* Cabeçalho do Grupo */}
                     <div className="flex items-center justify-between gap-2 mb-3">
                       <div>
-                        <h3 className="font-heading font-bold text-sm sm:text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                        <h3 className="font-heading font-bold text-sm sm:text-base text-foreground dark:text-foreground">
                           {group.name}
                         </h3>
                         <p className="text-xs text-muted-foreground mt-0.5">
@@ -419,7 +419,7 @@ export function ProductDetailModal({
                             className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
                               currentCount >= group.min
                                 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                                : "bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/30 animate-pulse"
+                                : "bg-primary/10 text-primary dark:text-muted-foreground border border-primary/30 animate-pulse"
                             }`}
                           >
                             Obrigatório
@@ -450,10 +450,10 @@ export function ProductDetailModal({
                               border transition-all duration-150 text-left gap-3
                               ${
                                 isSelected
-                                  ? "border-[#9306CF] bg-[#9306CF]/8 dark:bg-[#9306CF]/15 shadow-xs"
+                                  ? "border-primary bg-primary/8 dark:bg-primary/15 shadow-xs"
                                   : isMaxReached
                                   ? "border-transparent opacity-40 cursor-not-allowed bg-transparent"
-                                  : "border-gray-200/70 dark:border-[#512B54]/30 hover:border-[#9306CF]/40 hover:bg-white dark:hover:bg-[#230E26]/60 bg-white/70 dark:bg-[#230E26]/40 cursor-pointer"
+                                  : "border-gray-200/70 dark:border-border/30 hover:border-primary/40 hover:bg-white dark:hover:bg-[#230E26]/60 bg-white/70 dark:bg-[#230E26]/40 cursor-pointer"
                               }
                             `}
                           >
@@ -466,7 +466,7 @@ export function ProductDetailModal({
                                     w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors
                                     ${
                                       isSelected
-                                        ? "border-[#9306CF] bg-[#9306CF]"
+                                        ? "border-primary bg-primary"
                                         : "border-gray-300 dark:border-gray-600 bg-white dark:bg-zinc-900"
                                     }
                                   `}
@@ -479,7 +479,7 @@ export function ProductDetailModal({
                                     w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-colors
                                     ${
                                       isSelected
-                                        ? "border-[#9306CF] bg-[#9306CF] text-white"
+                                        ? "border-primary bg-primary text-white"
                                         : "border-gray-300 dark:border-gray-600 bg-white dark:bg-zinc-900"
                                     }
                                   `}
@@ -492,7 +492,7 @@ export function ProductDetailModal({
                                 <p
                                   className={`text-sm font-medium whitespace-normal leading-snug ${
                                     isSelected
-                                      ? "text-[#4C264F] dark:text-[#F9F5F9] font-semibold"
+                                      ? "text-foreground dark:text-foreground font-semibold"
                                       : "text-foreground"
                                   }`}
                                 >
@@ -509,7 +509,7 @@ export function ProductDetailModal({
                             {/* Lado Direito: Preço Adicional */}
                             <div className="shrink-0 text-xs font-semibold ml-2 text-right">
                               {option.price > 0 ? (
-                                <span className="font-mono text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9]">
+                                <span className="font-mono text-xs font-bold text-primary dark:text-muted-foreground">
                                   + R$ {option.price.toFixed(2).replace(".", ",")}
                                 </span>
                               ) : (
@@ -528,11 +528,11 @@ export function ProductDetailModal({
             </div>
 
             {/* Campo de Observações do Pedido */}
-            <div className="border border-gray-100 dark:border-[#512B54]/30 rounded-2xl p-3.5 sm:p-4 bg-gray-50/50 dark:bg-white/[0.02]">
+            <div className="border border-gray-100 dark:border-border/30 rounded-2xl p-3.5 sm:p-4 bg-gray-50/50 dark:bg-white/[0.02]">
               <div className="flex items-center justify-between mb-2">
                 <label
                   htmlFor="kitchen-notes"
-                  className="font-heading font-bold text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9]"
+                  className="font-heading font-bold text-xs sm:text-sm text-foreground dark:text-foreground"
                 >
                   Observações do Pedido
                 </label>
@@ -550,9 +550,9 @@ export function ProductDetailModal({
                 className="
                   w-full rounded-xl p-3 text-base md:text-sm
                   bg-white dark:bg-[#230E26]/60
-                  border border-gray-200 dark:border-[#512B54]/40
+                  border border-gray-200 dark:border-border/40
                   text-foreground placeholder:text-muted-foreground
-                  outline-none focus:ring-2 focus:ring-[#9306CF]/30 focus:border-[#9306CF]/60
+                  outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60
                   transition-all resize-none
                 "
               />
@@ -564,12 +564,12 @@ export function ProductDetailModal({
             fixed bottom-0 left-0 right-0 p-3.5 sm:p-4
             pb-[calc(1rem+env(safe-area-inset-bottom,0px))]
             bg-white/95 dark:bg-[#1E0E21]/95 backdrop-blur-md
-            border-t border-gray-200 dark:border-[#512B54]/40 z-50
+            border-t border-gray-200 dark:border-border/40 z-50
             md:relative md:bottom-auto md:p-4 md:z-auto md:pb-4
             shrink-0 flex items-center gap-3
           ">
             {/* Contador de Quantidade */}
-            <div className="flex items-center border border-gray-200 dark:border-[#512B54]/50 rounded-full bg-gray-50 dark:bg-[#230E26] p-1 shrink-0 shadow-xs">
+            <div className="flex items-center border border-gray-200 dark:border-border/50 rounded-full bg-gray-50 dark:bg-[#230E26] p-1 shrink-0 shadow-xs">
               <button
                 type="button"
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
@@ -612,7 +612,7 @@ export function ProductDetailModal({
                 ${
                   !isValid || isOutOfStock
                     ? "bg-gray-200 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500 cursor-not-allowed border border-dashed border-gray-300 dark:border-zinc-700"
-                    : "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white active:scale-[0.98] cursor-pointer shadow-[#9306CF]/25"
+                    : "bg-gradient-to-r from-primary to-accent text-white active:scale-[0.98] cursor-pointer shadow-primary/25"
                 }
               `}
             >

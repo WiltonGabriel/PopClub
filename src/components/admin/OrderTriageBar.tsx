@@ -66,7 +66,7 @@ export function OrderTriageBar({
   const count = pendingOrders.length;
 
   return (
-    <div className="bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-pink-500/10 dark:from-amber-950/40 dark:via-purple-950/40 dark:to-pink-950/40 border-2 border-amber-400/80 dark:border-amber-500/50 rounded-2xl p-4 shadow-lg shadow-amber-500/5 animate-in slide-in-from-top-4 duration-300 space-y-3">
+    <div className="bg-gradient-to-r from-amber-500/10 via-primary/10 to-pink-500/10 dark:from-amber-950/40 dark:via-purple-950/40 dark:to-pink-950/40 border-2 border-amber-400/80 dark:border-amber-500/50 rounded-2xl p-4 shadow-lg shadow-amber-500/5 animate-in slide-in-from-top-4 duration-300 space-y-3">
       {/* Barra de Notificação Superior */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2.5">
@@ -78,7 +78,7 @@ export function OrderTriageBar({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-heading font-black text-sm sm:text-base text-[#4C264F] dark:text-[#F9F5F9]">
+              <h3 className="font-heading font-black text-sm sm:text-base text-foreground dark:text-foreground">
                 Inbox de Triagem: {count} {count === 1 ? "pedido aguardando aceite!" : "pedidos aguardando aceite!"}
               </h3>
               <span className="bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-[10px] font-black uppercase px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-800">
@@ -128,7 +128,7 @@ export function OrderTriageBar({
           return (
             <div
               key={order.id}
-              className={`bg-white dark:bg-[#1E0921] border rounded-xl p-3.5 shadow-sm transition-all flex flex-col justify-between gap-3 ${
+              className={`bg-white dark:bg-background border rounded-xl p-3.5 shadow-sm transition-all flex flex-col justify-between gap-3 ${
                 isUrgent
                   ? "border-red-400 dark:border-red-500/80 ring-2 ring-red-400/20"
                   : "border-amber-300/80 dark:border-amber-500/40"
@@ -138,7 +138,7 @@ export function OrderTriageBar({
               <div>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-mono font-bold text-xs bg-purple-100 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800/40">
+                    <span className="font-mono font-bold text-xs bg-primary/10 dark:bg-primary/95/60 text-primary dark:text-muted-foreground px-2 py-0.5 rounded-md border border-primary/20 dark:border-primary/80/40">
                       #{order.id.substring(0, 6)}
                     </span>
                     <span
@@ -159,7 +159,7 @@ export function OrderTriageBar({
                 </div>
 
                 <div className="mt-2">
-                  <h4 className="font-bold text-xs text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                  <h4 className="font-bold text-xs text-foreground dark:text-foreground truncate">
                     {clientName}
                   </h4>
                   <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mt-0.5">
@@ -184,7 +184,7 @@ export function OrderTriageBar({
               </div>
 
               {/* Botões Operacionais de Triagem */}
-              <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+              <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100 dark:border-border/30">
                 <Button
                   size="sm"
                   onClick={() => onAcceptOrder(order)}
@@ -209,7 +209,7 @@ export function OrderTriageBar({
                   size="sm"
                   variant="outline"
                   onClick={() => printThermalReceipt(order)}
-                  className="h-8 px-2 rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 cursor-pointer"
+                  className="h-8 px-2 rounded-lg border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 cursor-pointer"
                   title="Imprimir Comprovante"
                 >
                   <Printer className="w-3.5 h-3.5" />
@@ -219,7 +219,7 @@ export function OrderTriageBar({
                   size="sm"
                   variant="outline"
                   onClick={() => onViewOrderDetails(order)}
-                  className="h-8 px-2 rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 cursor-pointer"
+                  className="h-8 px-2 rounded-lg border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 cursor-pointer"
                   title="Ver Detalhes do Pedido"
                 >
                   <FileText className="w-3.5 h-3.5" />

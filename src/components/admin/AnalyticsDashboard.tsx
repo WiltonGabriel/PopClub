@@ -40,8 +40,8 @@ interface AnalyticsDashboardProps {
 type PeriodFilter = "hoje" | "7dias" | "mes" | "ano" | "tudo";
 
 const BRAND_COLORS = {
-  purple: "#9306CF",
-  magenta: "#940068",
+  purple: "hsl(var(--primary))",
+  magenta: "hsl(var(--accent))",
   emerald: "#10B981",
   amber: "#F59E0B",
   blue: "#3B82F6",
@@ -86,8 +86,8 @@ interface CustomTooltipProps {
 function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white/95 dark:bg-[#1A0B1C]/95 border border-gray-200 dark:border-[#512B54]/70 p-3 rounded-xl shadow-2xl backdrop-blur-md text-xs font-sans space-y-1">
-        <p className="font-bold text-[#4C264F] dark:text-[#F9F5F9] border-b border-gray-100 dark:border-[#512B54]/40 pb-1">
+      <div className="bg-white/95 dark:bg-background/95 border border-gray-200 dark:border-border/70 p-3 rounded-xl shadow-2xl backdrop-blur-md text-xs font-sans space-y-1">
+        <p className="font-bold text-foreground dark:text-foreground border-b border-gray-100 dark:border-border/40 pb-1">
           {label}
         </p>
         {payload.map((entry: TooltipEntry, index: number) => {
@@ -488,21 +488,21 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Barra de Filtro de Período */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-4 rounded-2xl shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 p-4 rounded-2xl shadow-sm">
         <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-[#9306CF]" />
+          <Calendar className="w-4 h-4 text-primary" />
           <span className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
             Período de Análise:
           </span>
         </div>
 
-        <div className="flex items-center flex-wrap gap-1 bg-gray-100 dark:bg-[#1A0B1C] p-1 rounded-xl border border-gray-200 dark:border-[#512B54]/40">
+        <div className="flex items-center flex-wrap gap-1 bg-gray-100 dark:bg-background p-1 rounded-xl border border-gray-200 dark:border-border/40">
           <button
             onClick={() => setPeriod("hoje")}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
               period === "hoje"
-                ? "bg-white dark:bg-[#2B102E] text-[#9306CF] dark:text-[#C7A9C9] shadow-sm font-black"
-                : "text-gray-600 dark:text-gray-400 hover:text-[#4C264F] dark:hover:text-white"
+                ? "bg-white dark:bg-[#2B102E] text-primary dark:text-muted-foreground shadow-sm font-black"
+                : "text-gray-600 dark:text-gray-400 hover:text-foreground dark:hover:text-white"
             }`}
           >
             Hoje
@@ -511,8 +511,8 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
             onClick={() => setPeriod("7dias")}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
               period === "7dias"
-                ? "bg-white dark:bg-[#2B102E] text-[#9306CF] dark:text-[#C7A9C9] shadow-sm font-black"
-                : "text-gray-600 dark:text-gray-400 hover:text-[#4C264F] dark:hover:text-white"
+                ? "bg-white dark:bg-[#2B102E] text-primary dark:text-muted-foreground shadow-sm font-black"
+                : "text-gray-600 dark:text-gray-400 hover:text-foreground dark:hover:text-white"
             }`}
           >
             7 Dias
@@ -521,8 +521,8 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
             onClick={() => setPeriod("mes")}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
               period === "mes"
-                ? "bg-white dark:bg-[#2B102E] text-[#9306CF] dark:text-[#C7A9C9] shadow-sm font-black"
-                : "text-gray-600 dark:text-gray-400 hover:text-[#4C264F] dark:hover:text-white"
+                ? "bg-white dark:bg-[#2B102E] text-primary dark:text-muted-foreground shadow-sm font-black"
+                : "text-gray-600 dark:text-gray-400 hover:text-foreground dark:hover:text-white"
             }`}
           >
             Este Mês
@@ -531,8 +531,8 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
             onClick={() => setPeriod("ano")}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
               period === "ano"
-                ? "bg-white dark:bg-[#2B102E] text-[#9306CF] dark:text-[#C7A9C9] shadow-sm font-black"
-                : "text-gray-600 dark:text-gray-400 hover:text-[#4C264F] dark:hover:text-white"
+                ? "bg-white dark:bg-[#2B102E] text-primary dark:text-muted-foreground shadow-sm font-black"
+                : "text-gray-600 dark:text-gray-400 hover:text-foreground dark:hover:text-white"
             }`}
           >
             Este Ano
@@ -541,8 +541,8 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
             onClick={() => setPeriod("tudo")}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
               period === "tudo"
-                ? "bg-white dark:bg-[#2B102E] text-[#9306CF] dark:text-[#C7A9C9] shadow-sm font-black"
-                : "text-gray-600 dark:text-gray-400 hover:text-[#4C264F] dark:hover:text-white"
+                ? "bg-white dark:bg-[#2B102E] text-primary dark:text-muted-foreground shadow-sm font-black"
+                : "text-gray-600 dark:text-gray-400 hover:text-foreground dark:hover:text-white"
             }`}
           >
             Todo o Período
@@ -553,7 +553,7 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
       {/* 1. CARDS DE KPIS PRINCIPAIS */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* KPI 1: Faturamento Bruto */}
-        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between group hover:border-[#9306CF]/40 transition-colors">
+        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between group hover:border-primary/40 transition-colors">
           <div className="flex justify-between items-start mb-2">
             <span className="text-[11px] uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400">
               Faturamento Bruto
@@ -574,17 +574,17 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
         </div>
 
         {/* KPI 2: Total de Pedidos */}
-        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between group hover:border-[#9306CF]/40 transition-colors">
+        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between group hover:border-primary/40 transition-colors">
           <div className="flex justify-between items-start mb-2">
             <span className="text-[11px] uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400">
               Total de Pedidos
             </span>
-            <div className="w-8 h-8 rounded-xl bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary dark:text-muted-foreground flex items-center justify-center">
               <ShoppingBag className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <span className="font-heading font-black text-2xl sm:text-3xl text-[#4C264F] dark:text-[#F9F5F9]">
+            <span className="font-heading font-black text-2xl sm:text-3xl text-foreground dark:text-foreground">
               {kpis.totalOrdersCount}
             </span>
             <div className="flex items-center gap-2 text-[10px] mt-1 font-semibold">
@@ -599,7 +599,7 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
         </div>
 
         {/* KPI 3: Ticket Médio */}
-        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between group hover:border-[#9306CF]/40 transition-colors">
+        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between group hover:border-primary/40 transition-colors">
           <div className="flex justify-between items-start mb-2">
             <span className="text-[11px] uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400">
               Ticket Médio
@@ -619,7 +619,7 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
         </div>
 
         {/* KPI 4: Tempo Médio de Preparo */}
-        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between group hover:border-[#9306CF]/40 transition-colors">
+        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between group hover:border-primary/40 transition-colors">
           <div className="flex justify-between items-start mb-2">
             <span className="text-[11px] uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400">
               Tempo Médio Preparo
@@ -642,11 +642,11 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
       {/* 2. GRÁFICOS VISUAIS */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Gráfico 1: Vendas por Horário / Dias / Meses */}
-        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-3 border-b border-gray-100 dark:border-border/30">
             <div>
-              <h3 className="font-heading font-bold text-sm sm:text-base text-[#4C264F] dark:text-[#F9F5F9] uppercase tracking-wide flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[#9306CF]" />
+              <h3 className="font-heading font-bold text-sm sm:text-base text-foreground dark:text-foreground uppercase tracking-wide flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-primary" />
                 {period === "hoje"
                   ? "Picos de Venda por Horário"
                   : period === "ano"
@@ -666,7 +666,7 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-mono font-bold text-[#9306CF] dark:text-[#C7A9C9] bg-[#9306CF]/10 px-2.5 py-1 rounded-full whitespace-nowrap">
+              <span className="text-[11px] font-mono font-bold text-primary dark:text-muted-foreground bg-primary/10 px-2.5 py-1 rounded-full whitespace-nowrap">
                 {period === "hoje"
                   ? "Hoje (Hora a Hora)"
                   : period === "7dias"
@@ -681,8 +681,8 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
           </div>
 
           <div className="flex items-center gap-4 text-xs font-semibold mb-2 px-1">
-            <span className="flex items-center gap-1.5 text-[#9306CF] dark:text-[#C7A9C9]">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#9306CF]" /> Faturamento (R$)
+            <span className="flex items-center gap-1.5 text-primary dark:text-muted-foreground">
+              <span className="w-2.5 h-2.5 rounded-full bg-primary" /> Faturamento (R$)
             </span>
             <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Pedidos (Qtd)
@@ -708,7 +708,7 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
                   yAxisId="left"
                   tick={{ fontSize: 10 }}
                   tickFormatter={(val) => `R$ ${val}`}
-                  stroke="#9306CF"
+                  stroke="hsl(var(--primary))"
                   opacity={0.6}
                 />
                 <YAxis
@@ -745,11 +745,11 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
         </div>
 
         {/* Gráfico 2: Top 5 Produtos Mais Vendidos */}
-        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-border/30">
             <div>
-              <h3 className="font-heading font-bold text-sm sm:text-base text-[#4C264F] dark:text-[#F9F5F9] uppercase tracking-wide flex items-center gap-2">
-                <Award className="w-4 h-4 text-[#9306CF]" />
+              <h3 className="font-heading font-bold text-sm sm:text-base text-foreground dark:text-foreground uppercase tracking-wide flex items-center gap-2">
+                <Award className="w-4 h-4 text-primary" />
                 Top 5 Produtos Mais Vendidos
               </h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -789,11 +789,11 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
         </div>
 
         {/* Gráfico 3: Distribuição de Pagamentos */}
-        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-border/30">
             <div>
-              <h3 className="font-heading font-bold text-sm sm:text-base text-[#4C264F] dark:text-[#F9F5F9] uppercase tracking-wide flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-[#9306CF]" />
+              <h3 className="font-heading font-bold text-sm sm:text-base text-foreground dark:text-foreground uppercase tracking-wide flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-primary" />
                 Distribuição de Pagamentos
               </h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -827,11 +827,11 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
         </div>
 
         {/* Gráfico 4: Modalidade de Atendimento (Delivery vs Retirada) */}
-        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-border/30">
             <div>
-              <h3 className="font-heading font-bold text-sm sm:text-base text-[#4C264F] dark:text-[#F9F5F9] uppercase tracking-wide flex items-center gap-2">
-                <Bike className="w-4 h-4 text-[#9306CF]" />
+              <h3 className="font-heading font-bold text-sm sm:text-base text-foreground dark:text-foreground uppercase tracking-wide flex items-center gap-2">
+                <Bike className="w-4 h-4 text-primary" />
                 Modalidade de Atendimento
               </h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">

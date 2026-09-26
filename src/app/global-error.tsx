@@ -25,8 +25,8 @@ export default function GlobalError({
   const bgPage = isDark ? "#120713" : "#FAF6F9";
   const bgCard = isDark ? "rgba(31, 11, 34, 0.9)" : "rgba(255, 255, 255, 0.95)";
   const borderCard = isDark ? "rgba(81, 43, 84, 0.6)" : "rgba(229, 231, 235, 0.9)";
-  const textColor = isDark ? "#F9F5F9" : "#4C264F";
-  const subtextColor = isDark ? "#C7A9C9" : "#6B7280";
+  const textColor = isDark ? "hsl(var(--foreground))" : "hsl(var(--foreground))";
+  const subtextColor = isDark ? "hsl(var(--muted-foreground))" : "#6B7280";
 
   return (
     <html lang="pt-BR">
@@ -115,7 +115,7 @@ export default function GlobalError({
             <button
               onClick={() => reset()}
               style={{
-                background: "linear-gradient(135deg, #9306CF 0%, #940068 100%)",
+                background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)",
                 color: "#FFFFFF",
                 border: "none",
                 borderRadius: "16px",

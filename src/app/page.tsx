@@ -99,21 +99,21 @@ function SectionPositionControlBar({
 }) {
   return (
     <div className="flex justify-end mb-2.5">
-      <div className="inline-flex items-center gap-2 bg-white/95 dark:bg-[#200D22]/95 backdrop-blur-md border border-purple-300/80 dark:border-purple-700/80 rounded-xl px-3 py-1.5 shadow-sm text-xs">
-        <div className="flex items-center gap-1.5 font-semibold text-[#9306CF] dark:text-[#C7A9C9]">
+      <div className="inline-flex items-center gap-2 bg-white/95 dark:bg-background/95 backdrop-blur-md border border-primary/30/80 dark:border-primary/80 rounded-xl px-3 py-1.5 shadow-sm text-xs">
+        <div className="flex items-center gap-1.5 font-semibold text-primary dark:text-muted-foreground">
           <ArrowUpDown className="w-3.5 h-3.5" />
           <span>{title}</span>
           <span className="text-[10px] text-muted-foreground font-mono">
             ({index + 1}/{total})
           </span>
         </div>
-        <div className="h-3.5 w-px bg-purple-200 dark:bg-purple-800" />
+        <div className="h-3.5 w-px bg-primary/20 dark:bg-primary/80" />
         <div className="flex items-center gap-1">
           <button
             type="button"
             disabled={index === 0}
             onClick={onMoveUp}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-purple-100/70 dark:bg-purple-900/40 text-[#9306CF] dark:text-[#C7A9C9] hover:bg-purple-200 dark:hover:bg-purple-800/60 active:scale-95 cursor-pointer disabled:hover:scale-100"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-primary/10/70 dark:bg-primary/90/40 text-primary dark:text-muted-foreground hover:bg-primary/20 dark:hover:bg-primary/80/60 active:scale-95 cursor-pointer disabled:hover:scale-100"
             title={index === 0 ? "Primeira seção da vitrine" : "Subir seção"}
             aria-label={`Subir seção ${title}`}
           >
@@ -124,7 +124,7 @@ function SectionPositionControlBar({
             type="button"
             disabled={index === total - 1}
             onClick={onMoveDown}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-purple-100/70 dark:bg-purple-900/40 text-[#9306CF] dark:text-[#C7A9C9] hover:bg-purple-200 dark:hover:bg-purple-800/60 active:scale-95 cursor-pointer disabled:hover:scale-100"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-primary/10/70 dark:bg-primary/90/40 text-primary dark:text-muted-foreground hover:bg-primary/20 dark:hover:bg-primary/80/60 active:scale-95 cursor-pointer disabled:hover:scale-100"
             title={index === total - 1 ? "Última seção da vitrine" : "Descer seção"}
             aria-label={`Descer seção ${title}`}
           >
@@ -683,11 +683,11 @@ export default function Storefront() {
             {/* 1. [ Meus Pedidos ] — Desktop only */}
             <Link
               href="/pedidos"
-              className="hidden md:flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] border border-border/50 hover:border-[#9306CF]/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full px-3 sm:px-3.5 py-2 transition-all shrink-0 shadow-xs group cursor-pointer"
+              className="hidden md:flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-foreground dark:text-foreground border border-border/50 hover:border-primary/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full px-3 sm:px-3.5 py-2 transition-all shrink-0 shadow-xs group cursor-pointer"
               title="Acompanhar Meus Pedidos"
               aria-label="Ver meus pedidos"
             >
-              <ReceiptText className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9] group-hover:scale-110 transition-transform shrink-0" />
+              <ReceiptText className="w-4 h-4 text-primary dark:text-muted-foreground group-hover:scale-110 transition-transform shrink-0" />
               <span>Meus Pedidos</span>
             </Link>
 
@@ -719,26 +719,26 @@ export default function Storefront() {
                 <button
                   type="button"
                   onClick={() => setUserMenuOpen((prev) => !prev)}
-                  className="flex items-center gap-1.5 sm:gap-2 border border-border/50 hover:border-[#9306CF]/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full p-1.5 md:px-3.5 md:py-2 transition-all shrink-0 group shadow-xs cursor-pointer"
+                  className="flex items-center gap-1.5 sm:gap-2 border border-border/50 hover:border-primary/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full p-1.5 md:px-3.5 md:py-2 transition-all shrink-0 group shadow-xs cursor-pointer"
                   aria-expanded={userMenuOpen}
                   aria-haspopup="true"
                   aria-label="Menu de perfil e entrada"
                 >
-                  <UserIcon className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9] shrink-0" />
-                  <span className="hidden md:inline text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9]">
+                  <UserIcon className="w-4 h-4 text-primary dark:text-muted-foreground shrink-0" />
+                  <span className="hidden md:inline text-xs sm:text-sm font-semibold text-foreground dark:text-foreground">
                     Entrar
                   </span>
                   <ChevronDown
-                    className={`hidden md:inline-flex w-3.5 h-3.5 text-muted-foreground group-hover:text-[#9306CF] transition-transform duration-200 shrink-0 ${
-                      userMenuOpen ? "rotate-180 text-[#9306CF]" : ""
+                    className={`hidden md:inline-flex w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-transform duration-200 shrink-0 ${
+                      userMenuOpen ? "rotate-180 text-primary" : ""
                     }`}
                   />
                 </button>
 
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 sm:w-60 rounded-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/50 shadow-2xl py-2 z-[100] animate-in fade-in slide-in-from-top-2 duration-150">
-                    <div className="px-4 py-2 border-b border-gray-100 dark:border-[#512B54]/30">
-                      <p className="text-xs font-semibold text-[#4C264F] dark:text-[#F9F5F9]">
+                  <div className="absolute right-0 mt-2 w-56 sm:w-60 rounded-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/50 shadow-2xl py-2 z-[100] animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="px-4 py-2 border-b border-gray-100 dark:border-border/30">
+                      <p className="text-xs font-semibold text-foreground dark:text-foreground">
                         Bem-vindo ao PopShake
                       </p>
                       <p className="text-[11px] text-muted-foreground">Identifique-se para fazer seu pedido</p>
@@ -748,25 +748,25 @@ export default function Storefront() {
                       <Link
                         href="/login"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors"
+                        className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
                       >
-                        <UserIcon className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                        <UserIcon className="w-4 h-4 text-primary dark:text-muted-foreground" />
                         Entrar na Conta
                       </Link>
                     </div>
 
-                    <div className="border-t border-gray-100 dark:border-[#512B54]/30 my-1" />
+                    <div className="border-t border-gray-100 dark:border-border/30 my-1" />
 
                     {/* Alterar tema */}
                     <button
                       type="button"
                       onClick={() => toggleTheme()}
-                      className="w-full flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors text-left cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors text-left cursor-pointer"
                     >
                       {theme === "dark" ? (
                         <Sun className="w-4 h-4 text-amber-500 shrink-0" />
                       ) : (
-                        <Moon className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9] shrink-0" />
+                        <Moon className="w-4 h-4 text-primary dark:text-muted-foreground shrink-0" />
                       )}
                       <span>Alterar tema</span>
                     </button>
@@ -778,16 +778,16 @@ export default function Storefront() {
                 <button
                   type="button"
                   onClick={() => setUserMenuOpen((prev) => !prev)}
-                  className="flex items-center gap-1.5 sm:gap-2 border border-border/50 hover:border-[#9306CF]/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full p-1 md:pl-1.5 md:pr-3 md:py-1 transition-all shrink-0 group shadow-xs cursor-pointer"
+                  className="flex items-center gap-1.5 sm:gap-2 border border-border/50 hover:border-primary/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full p-1 md:pl-1.5 md:pr-3 md:py-1 transition-all shrink-0 group shadow-xs cursor-pointer"
                   aria-expanded={userMenuOpen}
                   aria-haspopup="true"
                   aria-label={`Menu do usuário: ${userFirstName}`}
                 >
                   {/* Avatar circular com moldura e micro-badge para Administrador */}
                   <div
-                    className={`relative w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-[#9306CF] to-[#940068] text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0 transition-all ${
+                    className={`relative w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-primary to-accent text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0 transition-all ${
                       isAdmin
-                        ? "ring-2 ring-purple-600 dark:ring-purple-400 ring-offset-2 ring-offset-background"
+                        ? "ring-2 ring-primary dark:ring-purple-400 ring-offset-2 ring-offset-background"
                         : "ring-1 ring-white/20"
                     }`}
                   >
@@ -814,29 +814,29 @@ export default function Storefront() {
                   </div>
 
                   {/* Nome do usuário truncado — Oculto no Mobile (< md) */}
-                  <span className="hidden md:inline-flex text-xs sm:text-sm font-semibold text-[#4C264F] dark:text-[#F9F5F9] max-w-[120px] truncate shrink-0">
+                  <span className="hidden md:inline-flex text-xs sm:text-sm font-semibold text-foreground dark:text-foreground max-w-[120px] truncate shrink-0">
                     {userFirstName}
                   </span>
 
                   {/* Chevron — Oculto no Mobile (< md) */}
                   <ChevronDown
-                    className={`hidden md:inline-flex w-3.5 h-3.5 text-muted-foreground group-hover:text-[#9306CF] transition-transform duration-200 shrink-0 ${
-                      userMenuOpen ? "rotate-180 text-[#9306CF]" : ""
+                    className={`hidden md:inline-flex w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-transform duration-200 shrink-0 ${
+                      userMenuOpen ? "rotate-180 text-primary" : ""
                     }`}
                   />
                 </button>
 
                 {/* Dropdown Menu com z-[100] garantido acima de qualquer barra */}
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 sm:w-60 rounded-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/50 shadow-2xl py-2 z-[100] animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="absolute right-0 mt-2 w-56 sm:w-60 rounded-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/50 shadow-2xl py-2 z-[100] animate-in fade-in slide-in-from-top-2 duration-150">
                     {/* Cabeçalho do Dropdown */}
-                    <div className="px-4 py-2 border-b border-gray-100 dark:border-[#512B54]/30">
-                      <p className="text-xs font-semibold text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                    <div className="px-4 py-2 border-b border-gray-100 dark:border-border/30">
+                      <p className="text-xs font-semibold text-foreground dark:text-foreground truncate">
                         {user.fullName || user.username}
                       </p>
                       <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
                       {isAdmin && (
-                        <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wider bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/30 px-1.5 py-0.5 rounded">
+                        <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary dark:text-muted-foreground border border-primary/30 px-1.5 py-0.5 rounded">
                           Admin
                         </span>
                       )}
@@ -849,45 +849,45 @@ export default function Storefront() {
                           <Link
                             href="/admin"
                             onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors"
+                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
                           >
-                            <LayoutDashboard className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                            <LayoutDashboard className="w-4 h-4 text-primary dark:text-muted-foreground" />
                             Painel Operacional
                           </Link>
 
                           <Link
                             href="/admin/pedidos"
                             onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors"
+                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
                           >
-                            <ClipboardList className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                            <ClipboardList className="w-4 h-4 text-primary dark:text-muted-foreground" />
                             Gerenciar Pedidos
                           </Link>
 
                           <Link
                             href="/admin/historico"
                             onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors"
+                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
                           >
-                            <History className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                            <History className="w-4 h-4 text-primary dark:text-muted-foreground" />
                             Histórico de Pedidos
                           </Link>
 
                           <Link
                             href="/pedidos"
                             onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors"
+                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
                           >
-                            <ReceiptText className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                            <ReceiptText className="w-4 h-4 text-primary dark:text-muted-foreground" />
                             Meus Pedidos
                           </Link>
 
                           <Link
                             href="/conta"
                             onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors"
+                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
                           >
-                            <UserIcon className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                            <UserIcon className="w-4 h-4 text-primary dark:text-muted-foreground" />
                             Meu Perfil
                           </Link>
                         </>
@@ -896,25 +896,25 @@ export default function Storefront() {
                           <Link
                             href="/pedidos"
                             onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors"
+                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
                           >
-                            <ShoppingBag className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                            <ShoppingBag className="w-4 h-4 text-primary dark:text-muted-foreground" />
                             Meus Pedidos
                           </Link>
 
                           <Link
                             href="/conta"
                             onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors"
+                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
                           >
-                            <UserIcon className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                            <UserIcon className="w-4 h-4 text-primary dark:text-muted-foreground" />
                             Meu Perfil
                           </Link>
                         </>
                       )}
                     </div>
 
-                    <div className="border-t border-gray-100 dark:border-[#512B54]/30 my-1" />
+                    <div className="border-t border-gray-100 dark:border-border/30 my-1" />
 
                     {/* 🌓 Alterar tema — Fixo logo acima de Sair */}
                     <button
@@ -922,17 +922,17 @@ export default function Storefront() {
                       onClick={() => {
                         toggleTheme();
                       }}
-                      className="w-full flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF] dark:hover:text-white transition-colors text-left cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors text-left cursor-pointer"
                     >
                       {theme === "dark" ? (
                         <Sun className="w-4 h-4 text-amber-500 shrink-0" />
                       ) : (
-                        <Moon className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9] shrink-0" />
+                        <Moon className="w-4 h-4 text-primary dark:text-muted-foreground shrink-0" />
                       )}
                       <span>Alterar tema</span>
                     </button>
 
-                    <div className="border-t border-gray-100 dark:border-[#512B54]/30 my-1" />
+                    <div className="border-t border-gray-100 dark:border-border/30 my-1" />
 
                     {/* Sair */}
                     <button
@@ -955,7 +955,7 @@ export default function Storefront() {
 
       {/* Banner Informativo de Loja Fechada */}
       {storeSettings && !storeSettings.isOpen && (
-        <div className="bg-gradient-to-r from-red-600 via-rose-600 to-[#940068] text-white px-4 py-2.5 text-center text-xs sm:text-sm font-semibold shadow-md sticky top-[65px] z-30 flex items-center justify-center gap-2">
+        <div className="bg-gradient-to-r from-red-600 via-rose-600 to-accent text-white px-4 py-2.5 text-center text-xs sm:text-sm font-semibold shadow-md sticky top-[65px] z-30 flex items-center justify-center gap-2">
           <Clock className="w-4 h-4 shrink-0 animate-pulse" />
           <span>
             Estamos fechados no momento. Nosso atendimento abrirá em breve! Você pode explorar o cardápio e montar seu pedido.
@@ -999,7 +999,7 @@ export default function Storefront() {
       ───────────────────────────────────────── */}
       <div
         data-category-bar
-        className="hidden md:block sticky top-[55px] sm:top-[61px] z-30 bg-background/95 dark:bg-[#190B1A]/95 backdrop-blur-md border-b border-border/30"
+        className="hidden md:block sticky top-[55px] sm:top-[61px] z-30 bg-background/95 dark:bg-background/95 backdrop-blur-md border-b border-border/30"
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           {/*
@@ -1064,7 +1064,7 @@ export default function Storefront() {
                     />
                     {/* Admin controls on chip */}
                     {canEdit && (
-                      <div className="absolute -top-3 -right-2 hidden group-hover:flex items-center gap-0.5 bg-white dark:bg-[#2B132D] shadow-lg border border-purple-200 dark:border-purple-800 rounded-full p-1 z-30 transition-all scale-95">
+                      <div className="absolute -top-3 -right-2 hidden group-hover:flex items-center gap-0.5 bg-white dark:bg-card shadow-lg border border-primary/20 dark:border-primary/80 rounded-full p-1 z-30 transition-all scale-95">
                         {/* Mover para esquerda */}
                         {catIdx > 0 && (
                           <button
@@ -1073,7 +1073,7 @@ export default function Storefront() {
                               e.stopPropagation();
                               handleMoveCategory(catIdx, "left");
                             }}
-                            className="text-gray-500 hover:text-[#9306CF] hover:bg-purple-100 dark:hover:bg-purple-900/40 p-1 rounded-full transition-colors"
+                            className="text-gray-500 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/90/40 p-1 rounded-full transition-colors"
                             title="Mover para a esquerda"
                             aria-label="Mover categoria para a esquerda"
                           >
@@ -1088,7 +1088,7 @@ export default function Storefront() {
                             setEditingCategory(cat);
                             setCatDialogOpen(true);
                           }}
-                          className="text-[#9306CF] hover:text-[#940068] hover:bg-purple-100 dark:hover:bg-purple-900/40 p-1 rounded-full transition-colors"
+                          className="text-primary hover:text-accent hover:bg-primary/10 dark:hover:bg-primary/90/40 p-1 rounded-full transition-colors"
                           title="Editar emoji e nome (ou botão direito)"
                           aria-label={`Editar categoria ${cat.name}`}
                         >
@@ -1102,7 +1102,7 @@ export default function Storefront() {
                               e.stopPropagation();
                               handleMoveCategory(catIdx, "right");
                             }}
-                            className="text-gray-500 hover:text-[#9306CF] hover:bg-purple-100 dark:hover:bg-purple-900/40 p-1 rounded-full transition-colors"
+                            className="text-gray-500 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/90/40 p-1 rounded-full transition-colors"
                             title="Mover para a direita"
                             aria-label="Mover categoria para a direita"
                           >
@@ -1157,7 +1157,7 @@ export default function Storefront() {
               <button
                 type="button"
                 onClick={handleCloseMobileCategoryView}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#9306CF]/30 bg-[#9306CF]/10 hover:bg-[#9306CF]/20 text-[#9306CF] dark:text-[#C7A9C9] font-heading font-bold text-xs uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-xs"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary dark:text-muted-foreground font-heading font-bold text-xs uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-xs"
                 aria-label="Voltar para a vitrine principal"
               >
                 <ArrowLeft className="w-4 h-4 shrink-0" />
@@ -1199,7 +1199,7 @@ export default function Storefront() {
                   type="button"
                   onClick={handleCloseMobileCategoryView}
                   variant="outline"
-                  className="rounded-xl border-[#9306CF]/40 text-[#9306CF] hover:bg-[#9306CF]/10 cursor-pointer"
+                  className="rounded-xl border-primary/40 text-primary hover:bg-primary/10 cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4 mr-1.5" /> Voltar ao Cardápio
                 </Button>
@@ -1239,14 +1239,14 @@ export default function Storefront() {
                 )}
                 {/* Banner Comercial de Destaque e Apelo de Sabor */}
                 <div
-                  className={`p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#9306CF]/10 via-[#940068]/10 to-[#10B981]/10 border border-[#9306CF]/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-sm ${
+                  className={`p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-primary/10 via-accent/10 to-[#10B981]/10 border border-primary/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-sm ${
                     canEdit ? "group relative" : ""
                   }`}
                 >
                   <div className="flex items-center gap-3.5">
                     <span className="text-3xl shrink-0">{highlightBanner.icon || "🥣"}</span>
                     <div>
-                      <p className="font-heading font-bold text-sm sm:text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                      <p className="font-heading font-bold text-sm sm:text-base text-foreground dark:text-foreground">
                         {highlightBanner.title || "Monte do seu jeito: escolha o tamanho e adicione seus acompanhamentos favoritos"}
                       </p>
                       <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
@@ -1256,7 +1256,7 @@ export default function Storefront() {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-white dark:bg-[#1A0B1C] text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/25 shadow-sm">
+                    <span className="text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-white dark:bg-background text-primary dark:text-muted-foreground border border-primary/25 shadow-sm">
                       {highlightBanner.badge || "Refrescância Artesanal"}
                     </span>
 
@@ -1265,7 +1265,7 @@ export default function Storefront() {
                       <button
                         type="button"
                         onClick={() => setEditBannerModalOpen(true)}
-                        className="bg-white dark:bg-[#2B132D] shadow-md border border-purple-300 dark:border-purple-700 p-2 rounded-full hover:scale-105 transition-all text-[#9306CF] dark:text-[#C7A9C9] hover:text-[#940068] dark:hover:text-white cursor-pointer ml-1"
+                        className="bg-white dark:bg-card shadow-md border border-primary/30 dark:border-primary p-2 rounded-full hover:scale-105 transition-all text-primary dark:text-muted-foreground hover:text-accent dark:hover:text-white cursor-pointer ml-1"
                         title="Editar Faixa Promocional"
                         aria-label="Editar Faixa Promocional"
                       >
@@ -1341,7 +1341,7 @@ export default function Storefront() {
                           {/* Section header */}
                           <div className="flex items-center justify-between mb-4 px-1 flex-wrap gap-2">
                             <div className="flex items-center gap-3">
-                              <h2 className="font-heading text-lg sm:text-xl font-bold text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
+                              <h2 className="font-heading text-lg sm:text-xl font-bold text-foreground dark:text-foreground flex items-center gap-2">
                                 <span className="w-1 h-6 rounded-full bg-gradient-to-b from-brand-pop-shake to-brand-magenta inline-block" />
                                 {cat.name}
                                 <span className="text-sm font-normal text-muted-foreground">
@@ -1351,16 +1351,16 @@ export default function Storefront() {
 
                               {/* Controles de posição da seção da categoria no Modo Edição */}
                               {canEdit && !activeCategory && (
-                                <div className="inline-flex items-center gap-1.5 bg-white/95 dark:bg-[#200D22]/95 backdrop-blur-md border border-purple-300/80 dark:border-purple-700/80 rounded-xl px-2.5 py-1 text-xs shadow-xs">
+                                <div className="inline-flex items-center gap-1.5 bg-white/95 dark:bg-background/95 backdrop-blur-md border border-primary/30/80 dark:border-primary/80 rounded-xl px-2.5 py-1 text-xs shadow-xs">
                                   <span className="text-[10px] text-muted-foreground font-mono">
                                     {catIndex + 1}/{categories.length}
                                   </span>
-                                  <div className="h-3 w-px bg-purple-200 dark:bg-purple-800" />
+                                  <div className="h-3 w-px bg-primary/20 dark:bg-primary/80" />
                                   <button
                                     type="button"
                                     disabled={catIndex === 0}
                                     onClick={() => handleMoveCategory(catIndex, "up")}
-                                    className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:bg-purple-100 dark:hover:bg-purple-900/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                                    className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-bold text-primary dark:text-muted-foreground hover:bg-primary/10 dark:hover:bg-primary/90/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
                                     title={catIndex === 0 ? "Primeira categoria" : "Subir categoria"}
                                     aria-label={`Subir categoria ${cat.name}`}
                                   >
@@ -1371,7 +1371,7 @@ export default function Storefront() {
                                     type="button"
                                     disabled={catIndex === categories.length - 1}
                                     onClick={() => handleMoveCategory(catIndex, "down")}
-                                    className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:bg-purple-100 dark:hover:bg-purple-900/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                                    className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-bold text-primary dark:text-muted-foreground hover:bg-primary/10 dark:hover:bg-primary/90/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
                                     title={catIndex === categories.length - 1 ? "Última categoria" : "Descer categoria"}
                                     aria-label={`Descer categoria ${cat.name}`}
                                   >
@@ -1386,7 +1386,7 @@ export default function Storefront() {
                             {isPreview && catProducts.length > 0 && (
                               <button
                                 onClick={() => scrollToCategory(cat.id)}
-                                className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1 cursor-pointer"
+                                className="text-xs font-bold text-primary dark:text-muted-foreground hover:underline flex items-center gap-1 cursor-pointer"
                               >
                                 Ver todos ({catProducts.length}) <ChevronRight className="w-3.5 h-3.5" />
                               </button>
@@ -1399,7 +1399,7 @@ export default function Storefront() {
                                   setActiveCategory(null);
                                   window.scrollTo({ top: 0, behavior: "smooth" });
                                 }}
-                                className="text-sm font-semibold text-muted-foreground hover:text-[#4C264F] dark:hover:text-[#F9F5F9] hover:underline flex items-center gap-1 min-h-[44px] transition-colors"
+                                className="text-sm font-semibold text-muted-foreground hover:text-foreground dark:hover:text-foreground hover:underline flex items-center gap-1 min-h-[44px] transition-colors"
                               >
                                 Voltar
                               </button>

@@ -243,10 +243,10 @@ export function ComboFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-3xl sm:max-w-3xl max-h-[85vh] overflow-y-auto overflow-x-hidden p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-white dark:bg-[#200B22] border border-gray-200 dark:border-[#512B54]/40 text-foreground shadow-2xl space-y-6">
-        <DialogHeader className="border-b border-gray-100 dark:border-[#512B54]/30 pb-4">
-          <DialogTitle className="text-xl sm:text-2xl font-heading font-black text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#9306CF]/10 dark:bg-[#9306CF]/20 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center shrink-0">
+      <DialogContent className="w-full max-w-3xl sm:max-w-3xl max-h-[85vh] overflow-y-auto overflow-x-hidden p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-white dark:bg-[#200B22] border border-gray-200 dark:border-border/40 text-foreground shadow-2xl space-y-6">
+        <DialogHeader className="border-b border-gray-100 dark:border-border/30 pb-4">
+          <DialogTitle className="text-xl sm:text-2xl font-heading font-black text-foreground dark:text-foreground flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 dark:bg-primary/20 text-primary dark:text-muted-foreground flex items-center justify-center shrink-0">
               <UtensilsCrossed className="w-5 h-5" />
             </div>
             <span>{comboToEdit ? "Editar Combo de Produtos" : "Montar Novo Combo de Produtos"}</span>
@@ -274,7 +274,7 @@ export function ComboFormDialog({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Ex: Duo Galáctico: Açaí 500ml + Pop Shake"
-                className="font-medium bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-11 text-xs sm:text-sm rounded-xl focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
+                className="font-medium bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 text-xs sm:text-sm rounded-xl focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
                 required
               />
             </div>
@@ -287,17 +287,17 @@ export function ComboFormDialog({
                 value={badge || "none"}
                 onValueChange={(val) => setBadge(!val || val === "none" ? "" : val)}
               >
-                <SelectTrigger className="font-bold text-xs sm:text-sm bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-11 rounded-xl">
+                <SelectTrigger className="font-bold text-xs sm:text-sm bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 rounded-xl">
                   <SelectValue placeholder="Selecione um selo..." />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border border-gray-200 dark:border-[#512B54]/50 bg-white dark:bg-[#1F0B22] shadow-xl max-h-60 z-[60]">
+                <SelectContent className="rounded-xl border border-gray-200 dark:border-border/50 bg-white dark:bg-[#1F0B22] shadow-xl max-h-60 z-[60]">
                   <SelectItem value="none" className="cursor-pointer text-sm py-2">
                     <span className="text-muted-foreground">[ Nenhum selo ]</span>
                   </SelectItem>
                   {badges.map((b) => {
                     const badgeValue = b.icon ? `${b.icon} ${b.text}` : b.text;
                     return (
-                      <SelectItem key={b.id} value={badgeValue} className="cursor-pointer text-sm py-2 hover:bg-[#9306CF]/10">
+                      <SelectItem key={b.id} value={badgeValue} className="cursor-pointer text-sm py-2 hover:bg-primary/10">
                         <div className="flex items-center gap-2">
                           <span
                             style={{ backgroundColor: b.bgColor, color: b.textColor }}
@@ -329,30 +329,30 @@ export function ComboFormDialog({
               value={description}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
               placeholder="Descreva o que acompanha este combo e as vantagens para o cliente..."
-              className="w-full rounded-xl p-3 resize-none h-20 text-xs sm:text-sm bg-gray-50 dark:bg-[#190B1A] border border-gray-200 dark:border-[#512B54]/40 outline-none focus:border-[#9306CF] focus:ring-2 focus:ring-[#9306CF]/20 transition-all text-gray-900 dark:text-gray-100"
+              className="w-full rounded-xl p-3 resize-none h-20 text-xs sm:text-sm bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-gray-900 dark:text-gray-100"
             />
           </div>
 
           {/* 3. Seleção de Produtos para Montagem do Combo */}
-          <div className="space-y-4 pt-3 border-t border-gray-100 dark:border-[#512B54]/30">
+          <div className="space-y-4 pt-3 border-t border-gray-100 dark:border-border/30">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
               <div>
                 <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
-                  <UtensilsCrossed className="w-4 h-4 text-[#9306CF]" />
+                  <UtensilsCrossed className="w-4 h-4 text-primary" />
                   Produtos do Combo (Mínimo 2)
                 </Label>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400">
                   Adicione e controle as quantidades dos itens que compõem este combo promocional.
                 </p>
               </div>
-              <span className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1 rounded-full border border-purple-200 dark:border-purple-900/40 shrink-0 w-fit">
+              <span className="text-xs font-bold text-primary dark:text-muted-foreground bg-primary/5 dark:bg-primary/95/40 px-2.5 py-1 rounded-full border border-primary/20 dark:border-primary/90/40 shrink-0 w-fit">
                 {Object.keys(comboItems).length} produto(s) no combo
               </span>
             </div>
 
             {/* Itens Atualmente no Combo */}
             {Object.keys(comboItems).length > 0 ? (
-              <div className="bg-purple-50/40 dark:bg-[#1A0B1C]/80 border border-purple-100 dark:border-[#512B54]/40 rounded-2xl p-3.5 space-y-2.5">
+              <div className="bg-primary/5/40 dark:bg-background/80 border border-primary/10 dark:border-border/40 rounded-2xl p-3.5 space-y-2.5">
                 {Object.entries(comboItems).map(([pId, qty]) => {
                   const p = productsMap.get(pId);
                   if (!p) return null;
@@ -361,7 +361,7 @@ export function ComboFormDialog({
                   return (
                     <div
                       key={pId}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white dark:bg-[#230E26] rounded-xl border border-gray-200 dark:border-[#512B54]/40 shadow-xs"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white dark:bg-[#230E26] rounded-xl border border-gray-200 dark:border-border/40 shadow-xs"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/10 overflow-hidden shrink-0 border border-gray-200/50 dark:border-white/10">
@@ -385,8 +385,8 @@ export function ComboFormDialog({
                       </div>
 
                       {/* Controle de Quantidade e Subtotal */}
-                      <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-[#512B54]/20 w-full sm:w-auto">
-                        <div className="flex items-center bg-gray-50 dark:bg-[#190B1A] border border-gray-200 dark:border-[#512B54]/40 rounded-xl p-1">
+                      <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-border/20 w-full sm:w-auto">
+                        <div className="flex items-center bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl p-1">
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(pId)}
@@ -426,7 +426,7 @@ export function ComboFormDialog({
                 })}
               </div>
             ) : (
-              <div className="p-6 border border-dashed border-gray-200 dark:border-[#512B54]/40 rounded-2xl text-center space-y-1 bg-gray-50/50 dark:bg-[#190B1A]/40">
+              <div className="p-6 border border-dashed border-gray-200 dark:border-border/40 rounded-2xl text-center space-y-1 bg-gray-50/50 dark:bg-background/40">
                 <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
                   Nenhum produto adicionado ainda.
                 </p>
@@ -445,7 +445,7 @@ export function ComboFormDialog({
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
                   placeholder="Pesquisar produto pelo nome no cardápio..."
-                  className="w-full bg-gray-50 dark:bg-[#190B1A] border border-gray-200 dark:border-[#512B54]/40 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm outline-none focus:border-[#9306CF] focus:ring-2 focus:ring-[#9306CF]/20 text-gray-900 dark:text-gray-100 transition-all"
+                  className="w-full bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-gray-900 dark:text-gray-100 transition-all"
                 />
               </div>
 
@@ -455,7 +455,7 @@ export function ComboFormDialog({
                   return (
                     <div
                       key={p.id}
-                      className="flex items-center justify-between gap-2.5 p-2.5 bg-gray-50/80 dark:bg-[#190B1A]/80 border border-gray-200/80 dark:border-[#512B54]/30 hover:border-[#9306CF]/40 rounded-xl transition-all"
+                      className="flex items-center justify-between gap-2.5 p-2.5 bg-gray-50/80 dark:bg-background/80 border border-gray-200/80 dark:border-border/30 hover:border-primary/40 rounded-xl transition-all"
                     >
                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
                         <div className="w-8 h-8 rounded-lg bg-gray-200 dark:bg-white/10 overflow-hidden shrink-0 border border-gray-200/50 dark:border-white/10">
@@ -485,8 +485,8 @@ export function ComboFormDialog({
                         onClick={() => handleAddItem(p.id)}
                         className={`h-8 px-2.5 text-xs rounded-xl shrink-0 gap-1 font-semibold transition-all ${
                           inCombo
-                            ? "bg-purple-100 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] border border-purple-200/50"
-                            : "border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/40"
+                            ? "bg-primary/10 dark:bg-primary/95/60 text-primary dark:text-muted-foreground border border-primary/20/50"
+                            : "border-gray-200 dark:border-border/40 hover:border-primary/40"
                         }`}
                       >
                         <Plus className="w-3.5 h-3.5" />
@@ -500,8 +500,8 @@ export function ComboFormDialog({
           </div>
 
           {/* 4. Precificação e Economia em Tempo Real (Grid 2 Colunas Limpo) */}
-          <div className="bg-gray-50 dark:bg-[#190B1A] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-200/60 dark:border-[#512B54]/30">
+          <div className="bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-2xl p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-200/60 dark:border-border/30">
               <div>
                 <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">
                   Regra de Precificação do Combo
@@ -517,7 +517,7 @@ export function ComboFormDialog({
                   onClick={() => setPricingMode("percentage")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     pricingMode === "percentage"
-                      ? "bg-[#9306CF] text-white shadow-sm"
+                      ? "bg-primary text-white shadow-sm"
                       : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                   }`}
                 >
@@ -528,7 +528,7 @@ export function ComboFormDialog({
                   onClick={() => setPricingMode("fixed_price")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     pricingMode === "fixed_price"
-                      ? "bg-[#9306CF] text-white shadow-sm"
+                      ? "bg-primary text-white shadow-sm"
                       : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                   }`}
                 >
@@ -539,14 +539,14 @@ export function ComboFormDialog({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
               {/* Input de Preço */}
-              <div className="bg-white dark:bg-[#200B22] border border-gray-200 dark:border-[#512B54]/40 rounded-xl p-4 flex flex-col justify-between space-y-3">
+              <div className="bg-white dark:bg-[#200B22] border border-gray-200 dark:border-border/40 rounded-xl p-4 flex flex-col justify-between space-y-3">
                 {pricingMode === "percentage" ? (
                   <div className="space-y-2">
                     <Label className="text-xs font-bold text-gray-700 dark:text-gray-300 block">
                       Percentual de Desconto (%)
                     </Label>
                     <div className="relative">
-                      <Percent className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9306CF]" />
+                      <Percent className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
                       <Input
                         type="number"
                         min="1"
@@ -555,7 +555,7 @@ export function ComboFormDialog({
                         value={discountPercent}
                         onChange={(e) => setDiscountPercent(e.target.value)}
                         placeholder="Ex: 15"
-                        className="pl-10 font-mono font-bold text-base bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-11 rounded-xl"
+                        className="pl-10 font-mono font-bold text-base bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 rounded-xl"
                       />
                     </div>
                     <p className="text-[11px] text-gray-500 dark:text-gray-400">
@@ -576,7 +576,7 @@ export function ComboFormDialog({
                         value={fixedComboPrice}
                         onChange={(e) => setFixedComboPrice(e.target.value)}
                         placeholder={`Ex: ${(originalSum * 0.85).toFixed(2)}`}
-                        className="pl-10 font-mono font-bold text-base bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-11 rounded-xl"
+                        className="pl-10 font-mono font-bold text-base bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 rounded-xl"
                       />
                     </div>
                     <p className="text-[11px] text-gray-500 dark:text-gray-400">
@@ -587,7 +587,7 @@ export function ComboFormDialog({
               </div>
 
               {/* Resumo e Simulação Financeira */}
-              <div className="bg-white dark:bg-[#200B22] border border-gray-200 dark:border-[#512B54]/40 rounded-xl p-4 flex flex-col justify-between space-y-3">
+              <div className="bg-white dark:bg-[#200B22] border border-gray-200 dark:border-border/40 rounded-xl p-4 flex flex-col justify-between space-y-3">
                 <div className="space-y-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
                     Simulação Financeira do Combo
@@ -606,7 +606,7 @@ export function ComboFormDialog({
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-gray-100 dark:border-[#512B54]/20 flex items-center justify-between text-xs text-purple-600 dark:text-purple-400 font-bold bg-purple-50/60 dark:bg-purple-950/20 p-2.5 rounded-xl">
+                <div className="pt-2 border-t border-gray-100 dark:border-border/20 flex items-center justify-between text-xs text-primary dark:text-primary/40 font-bold bg-primary/5/60 dark:bg-primary/95/20 p-2.5 rounded-xl">
                   <span className="flex items-center gap-1.5">
                     <TrendingDown className="w-4 h-4" /> Economia do Cliente:
                   </span>
@@ -619,9 +619,9 @@ export function ComboFormDialog({
           </div>
 
           {/* Escassez e Prazo */}
-          <div className="pt-6 border-t border-gray-100 dark:border-[#512B54]/30">
+          <div className="pt-6 border-t border-gray-100 dark:border-border/30">
             <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-[#9306CF]" /> Regras de Escassez e Prazo
+              <Clock className="w-4 h-4 text-primary" /> Regras de Escassez e Prazo
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
@@ -635,7 +635,7 @@ export function ComboFormDialog({
                   value={durationDays}
                   onChange={(e) => setDurationDays(e.target.value)}
                   placeholder="Ex: 3 (deixe vazio p/ indeterminado)"
-                  className="bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-11 rounded-xl text-sm"
+                  className="bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 rounded-xl text-sm"
                 />
                 {durationDays && (
                   <p className="text-[11px] text-emerald-600 font-medium">
@@ -650,7 +650,7 @@ export function ComboFormDialog({
                     type="checkbox"
                     checked={showDuration}
                     onChange={(e) => setShowDuration(e.target.checked)}
-                    className="w-4 h-4 text-[#9306CF] rounded border-gray-300"
+                    className="w-4 h-4 text-primary rounded border-gray-300"
                   />
                   <Eye className="w-4 h-4 text-gray-500" />
                   Mostrar Escassez para o Cliente
@@ -677,7 +677,7 @@ export function ComboFormDialog({
                               setDurationDisplay(durationDisplay.filter((d) => d !== opt));
                             }
                           }}
-                          className="w-3.5 h-3.5 text-[#9306CF] rounded border-gray-300"
+                          className="w-3.5 h-3.5 text-primary rounded border-gray-300"
                         />
                         {opt}
                       </label>
@@ -689,19 +689,19 @@ export function ComboFormDialog({
           </div>
 
           {/* Botões de Ação */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-[#512B54]/30">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-border/30">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider h-11 px-5 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
+              className="rounded-xl border-gray-200 dark:border-border/40 text-xs font-bold uppercase tracking-wider h-11 px-5 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               disabled={loading}
-              className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs font-bold uppercase tracking-wider rounded-xl h-11 px-6 shadow-md shadow-[#9306CF]/20 flex items-center gap-2 cursor-pointer transition-all"
+              className="bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs font-bold uppercase tracking-wider rounded-xl h-11 px-6 shadow-md shadow-primary/20 flex items-center gap-2 cursor-pointer transition-all"
             >
               {loading ? (
                 <>

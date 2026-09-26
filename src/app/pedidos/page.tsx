@@ -37,13 +37,13 @@ const STATUS_CONFIG: Record<
 > = {
   pending: {
     label: "Recebido",
-    badgeClass: "bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200 dark:border-purple-900/40",
+    badgeClass: "bg-primary/10 text-primary dark:bg-primary/95/40 dark:text-primary/30 border-primary/20 dark:border-primary/90/40",
     toastMsg: "recebido pela loja",
     description: "Recebemos seu pedido! A cozinha já vai iniciar o preparo.",
   },
   accepted: {
     label: "Confirmado",
-    badgeClass: "bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200 dark:border-purple-900/40",
+    badgeClass: "bg-primary/10 text-primary dark:bg-primary/95/40 dark:text-primary/30 border-primary/20 dark:border-primary/90/40",
     toastMsg: "confirmado pela cozinha",
     description: "Pedido confirmado! A equipe está separando seus acompanhamentos.",
   },
@@ -61,7 +61,7 @@ const STATUS_CONFIG: Record<
   },
   delivering: {
     label: "Saiu para Entrega",
-    badgeClass: "bg-[#9306CF]/15 text-[#9306CF] dark:text-[#C7A9C9] border-[#9306CF]/30 animate-pulse",
+    badgeClass: "bg-primary/15 text-primary dark:text-muted-foreground border-primary/30 animate-pulse",
     toastMsg: "saiu para entrega! 🛵",
     description: "Saiu para entrega! O motoboy está a caminho do seu endereço.",
   },
@@ -146,7 +146,7 @@ export default function PedidosPage() {
   if (authLoading || (ordersLoading && orders.length === 0)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#9306CF]" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -229,13 +229,13 @@ export default function PedidosPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/"
-            className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 border border-gray-200 dark:border-[#512B54]/40 transition-colors"
+            className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 border border-gray-200 dark:border-border/40 transition-colors"
             title="Voltar para a Loja"
           >
-            <ChevronLeft className="w-5 h-5 text-[#9306CF]" />
+            <ChevronLeft className="w-5 h-5 text-primary" />
           </Link>
           <div>
-            <h1 className="text-lg sm:text-xl font-heading font-black tracking-tight text-[#4C264F] dark:text-[#F9F5F9]">
+            <h1 className="text-lg sm:text-xl font-heading font-black tracking-tight text-foreground dark:text-foreground">
               Meus Pedidos
             </h1>
             <span className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1">
@@ -250,17 +250,17 @@ export default function PedidosPage() {
             variant="outline"
             size="sm"
             onClick={() => refreshOrders(false)}
-            className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold gap-1.5 h-9"
+            className="rounded-xl border-gray-200 dark:border-border/40 text-xs font-bold gap-1.5 h-9"
           >
-            <RefreshCw className="w-3.5 h-3.5 text-[#9306CF]" />
+            <RefreshCw className="w-3.5 h-3.5 text-primary" />
             <span className="hidden sm:inline">Atualizar</span>
           </Button>
 
           <Link
             href="/carrinho"
-            className="hidden sm:flex items-center gap-1.5 border border-gray-200 dark:border-[#512B54]/40 px-3 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-xs font-bold text-gray-700 dark:text-gray-200 transition-colors"
+            className="hidden sm:flex items-center gap-1.5 border border-gray-200 dark:border-border/40 px-3 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-xs font-bold text-gray-700 dark:text-gray-200 transition-colors"
           >
-            <ShoppingBag className="w-4 h-4 text-[#9306CF]" />
+            <ShoppingBag className="w-4 h-4 text-primary" />
             <span className="hidden sm:inline">Carrinho</span>
           </Link>
         </div>
@@ -272,7 +272,7 @@ export default function PedidosPage() {
 
         {/* Aviso Discreto para quem está em Acesso Rápido */}
         {user && !user.isRegistered && (
-          <div className="p-3.5 rounded-2xl bg-purple-50 dark:bg-purple-950/25 border border-purple-200/60 dark:border-purple-900/40 text-xs text-purple-800 dark:text-purple-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs">
+          <div className="p-3.5 rounded-2xl bg-primary/5 dark:bg-primary/95/25 border border-primary/20/60 dark:border-primary/90/40 text-xs text-primary/80 dark:text-primary/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs">
             <div className="flex items-center gap-2">
               <span className="text-base shrink-0">💡</span>
               <p className="leading-relaxed">
@@ -282,7 +282,7 @@ export default function PedidosPage() {
             <button
               type="button"
               onClick={() => setIsCompleteRegModalOpen(true)}
-              className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline shrink-0 text-left sm:text-right cursor-pointer"
+              className="text-xs font-bold text-primary dark:text-muted-foreground hover:underline shrink-0 text-left sm:text-right cursor-pointer"
             >
               Completar Cadastro &rarr;
             </button>
@@ -290,11 +290,11 @@ export default function PedidosPage() {
         )}
 
         {/* Seletor de Abas */}
-        <div className="flex bg-gray-200/70 dark:bg-[#2A102E]/60 p-1 rounded-2xl border border-gray-200 dark:border-[#512B54]/40">
+        <div className="flex bg-gray-200/70 dark:bg-[#2A102E]/60 p-1 rounded-2xl border border-gray-200 dark:border-border/40">
           <button
             className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold tracking-wide transition-all ${
               activeTab === "ativos"
-                ? "bg-white dark:bg-[#1F0B22] text-[#4C264F] dark:text-[#F9F5F9] shadow-sm"
+                ? "bg-white dark:bg-[#1F0B22] text-foreground dark:text-foreground shadow-sm"
                 : "text-gray-500 dark:text-gray-400 hover:text-foreground"
             }`}
             onClick={() => setActiveTab("ativos")}
@@ -304,7 +304,7 @@ export default function PedidosPage() {
           <button
             className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold tracking-wide transition-all ${
               activeTab === "historico"
-                ? "bg-white dark:bg-[#1F0B22] text-[#4C264F] dark:text-[#F9F5F9] shadow-sm"
+                ? "bg-white dark:bg-[#1F0B22] text-foreground dark:text-foreground shadow-sm"
                 : "text-gray-500 dark:text-gray-400 hover:text-foreground"
             }`}
             onClick={() => setActiveTab("historico")}
@@ -334,7 +334,7 @@ export default function PedidosPage() {
                 return (
                   <div
                     key={order.id}
-                    className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3 transition-all"
+                    className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3 transition-all"
                   >
                     {/* ── LINHA 1: Status com bolinha colorida + Horário / ID do Pedido ── */}
                     <div className="flex justify-between items-center gap-2">
@@ -353,7 +353,7 @@ export default function PedidosPage() {
                             minute: "2-digit",
                           })}
                         </span>
-                        <span className="font-bold text-[#9306CF] dark:text-[#C7A9C9] bg-[#9306CF]/10 px-2 py-0.5 rounded border border-[#9306CF]/20">
+                        <span className="font-bold text-primary dark:text-muted-foreground bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
                           #{order.id.substring(0, 6)}
                         </span>
                       </div>
@@ -373,11 +373,11 @@ export default function PedidosPage() {
                     </div>
 
                     {/* ── LINHA 3: Botão Ver Detalhes (Accordion) + Ações ── */}
-                    <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-[#512B54]/30">
+                    <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-border/30">
                       <button
                         type="button"
                         onClick={() => toggleOrderExpanded(order.id)}
-                        className="text-xs font-semibold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1 py-1 cursor-pointer"
+                        className="text-xs font-semibold text-primary dark:text-muted-foreground hover:underline flex items-center gap-1 py-1 cursor-pointer"
                       >
                         <span>{isExpanded ? "Ocultar detalhes" : "Ver detalhes do pedido"}</span>
                         <ChevronDown
@@ -391,7 +391,7 @@ export default function PedidosPage() {
                         <Link href={`/rastreamento?id=${order.id}`}>
                           <Button
                             size="sm"
-                            className="h-8 px-3 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs font-bold uppercase tracking-wider shadow-sm shadow-[#9306CF]/20 flex items-center gap-1.5 animate-pulse cursor-pointer"
+                            className="h-8 px-3 rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs font-bold uppercase tracking-wider shadow-sm shadow-primary/20 flex items-center gap-1.5 animate-pulse cursor-pointer"
                           >
                             <span>Rastrear Entrega</span>
                             <span>🛵</span>
@@ -402,9 +402,9 @@ export default function PedidosPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-8 px-3 rounded-xl border-[#9306CF]/30 text-[#9306CF] dark:text-[#C7A9C9] hover:bg-[#9306CF]/10 font-heading text-xs font-bold tracking-wider flex items-center gap-1.5 cursor-pointer"
+                            className="h-8 px-3 rounded-xl border-primary/30 text-primary dark:text-muted-foreground hover:bg-primary/10 font-heading text-xs font-bold tracking-wider flex items-center gap-1.5 cursor-pointer"
                           >
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#9306CF] animate-ping" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
                             <span>
                               {order.status === "pending"
                                 ? "Aguardando Loja"
@@ -420,7 +420,7 @@ export default function PedidosPage() {
 
                     {/* ── CANCELAMENTO CONDICIONAL ── */}
                     {order.status === "pending" && (
-                      <div className="pt-2 border-t border-gray-100 dark:border-[#512B54]/30 flex items-center justify-between gap-3">
+                      <div className="pt-2 border-t border-gray-100 dark:border-border/30 flex items-center justify-between gap-3">
                         <p className="text-[11px] text-gray-500 dark:text-gray-400">
                           Ainda não confirmado pela loja. Você ainda pode cancelar.
                         </p>
@@ -442,7 +442,7 @@ export default function PedidosPage() {
 
                     {/* Aviso de contato via WhatsApp quando não é mais possível cancelar */}
                     {["accepted", "preparing", "ready", "delivering"].includes(order.status) && (
-                      <div className="pt-2 border-t border-gray-100 dark:border-[#512B54]/30 flex items-start gap-2">
+                      <div className="pt-2 border-t border-gray-100 dark:border-border/30 flex items-start gap-2">
                         <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                         <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
                           Pedido já em preparo. Para cancelar, entre em contato diretamente com a loja:
@@ -461,13 +461,13 @@ export default function PedidosPage() {
 
                     {/* ── DETALHES DO PEDIDO EXPANDÍVEIS (ACCORDION) ── */}
                     {isExpanded && (
-                      <div className="pt-3 border-t border-gray-100 dark:border-[#512B54]/30 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="pt-3 border-t border-gray-100 dark:border-border/30 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
                         {/* Lista Completa de Itens */}
                         <div className="space-y-2 py-1">
                           {order.items?.map((item, idx) => (
                             <div key={idx} className="flex justify-between items-start text-xs gap-2">
-                              <span className="text-[#4C264F] dark:text-[#F9F5F9] font-medium flex items-center gap-2">
-                                <span className="text-[#9306CF] font-black">{item.quantity}x</span>
+                              <span className="text-foreground dark:text-foreground font-medium flex items-center gap-2">
+                                <span className="text-primary font-black">{item.quantity}x</span>
                                 <span>{item.product?.name || "Item"}</span>
                               </span>
                               <span className="font-mono text-gray-600 dark:text-gray-300 shrink-0">
@@ -482,8 +482,8 @@ export default function PedidosPage() {
 
                         {/* Endereço */}
                         {order.delivery_address && (
-                          <div className="bg-gray-50 dark:bg-white/5 p-3 rounded-xl text-xs text-gray-600 dark:text-gray-300 flex items-start gap-2 border border-gray-100 dark:border-[#512B54]/20">
-                            <Bike className="w-4 h-4 text-[#9306CF] shrink-0 mt-0.5" />
+                          <div className="bg-gray-50 dark:bg-white/5 p-3 rounded-xl text-xs text-gray-600 dark:text-gray-300 flex items-start gap-2 border border-gray-100 dark:border-border/20">
+                            <Bike className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                             <span>
                               Entrega: {order.delivery_address.street}, {order.delivery_address.number}
                               {order.delivery_address.neighborhood ? ` - ${order.delivery_address.neighborhood}` : ""}
@@ -519,9 +519,9 @@ export default function PedidosPage() {
                 );
               })
             ) : (
-              <div className="text-center py-16 text-gray-500 dark:text-gray-400 bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-8 space-y-3">
-                <ShoppingBag className="w-12 h-12 mx-auto text-[#9306CF]/40" />
-                <h3 className="font-heading font-bold text-base text-[#4C264F] dark:text-[#F9F5F9]">
+              <div className="text-center py-16 text-gray-500 dark:text-gray-400 bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-8 space-y-3">
+                <ShoppingBag className="w-12 h-12 mx-auto text-primary/40" />
+                <h3 className="font-heading font-bold text-base text-foreground dark:text-foreground">
                   Nenhum pedido em andamento
                 </h3>
                 <p className="text-xs max-w-sm mx-auto">
@@ -529,7 +529,7 @@ export default function PedidosPage() {
                 </p>
                 <Link
                   href="/"
-                  className="inline-block mt-2 bg-gradient-to-r from-[#9306CF] to-[#940068] text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider shadow-md shadow-[#9306CF]/20 hover:opacity-95 transition-opacity"
+                  className="inline-block mt-2 bg-gradient-to-r from-primary to-accent text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider shadow-md shadow-primary/20 hover:opacity-95 transition-opacity"
                 >
                   Ir para a Página Inicial
                 </Link>
@@ -556,7 +556,7 @@ export default function PedidosPage() {
                     className={`bg-white dark:bg-[#230E26] border rounded-2xl p-4 sm:p-5 shadow-sm space-y-3 transition-colors ${
                       isCancelled
                         ? "border-red-200 dark:border-red-900/50"
-                        : "border-gray-200 dark:border-[#512B54]/40"
+                        : "border-gray-200 dark:border-border/40"
                     }`}
                   >
                     {/* ── LINHA 1: Status + Data/Hora e ID ── */}
@@ -581,7 +581,7 @@ export default function PedidosPage() {
                           className={`font-bold px-2 py-0.5 rounded border ${
                             isCancelled
                               ? "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 border-red-200 dark:border-red-900/40"
-                              : "bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border-[#9306CF]/20"
+                              : "bg-primary/10 text-primary dark:text-muted-foreground border-primary/20"
                           }`}
                         >
                           #{order.id.substring(0, 6)}
@@ -594,7 +594,7 @@ export default function PedidosPage() {
                       <p className="font-semibold text-foreground truncate flex-1">
                         {itemsSummary}
                       </p>
-                      <span className="font-mono font-bold text-base text-[#4C264F] dark:text-[#F9F5F9] shrink-0">
+                      <span className="font-mono font-bold text-base text-foreground dark:text-foreground shrink-0">
                         {new Intl.NumberFormat("pt-BR", {
                           style: "currency",
                           currency: "BRL",
@@ -603,11 +603,11 @@ export default function PedidosPage() {
                     </div>
 
                     {/* ── LINHA 3: Botão Ver Detalhes (Accordion) + Pedir Novamente ── */}
-                    <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-[#512B54]/30">
+                    <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-border/30">
                       <button
                         type="button"
                         onClick={() => toggleOrderExpanded(order.id)}
-                        className="text-xs font-semibold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1 py-1 cursor-pointer"
+                        className="text-xs font-semibold text-primary dark:text-muted-foreground hover:underline flex items-center gap-1 py-1 cursor-pointer"
                       >
                         <span>{isExpanded ? "Ocultar detalhes" : "Ver detalhes do pedido"}</span>
                         <ChevronDown
@@ -623,7 +623,7 @@ export default function PedidosPage() {
                         size="sm"
                         onClick={() => handleReorder(order)}
                         disabled={reorderingOrderId === order.id}
-                        className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold text-[#9306CF] hover:bg-[#9306CF]/10 gap-1.5 h-8 px-3 cursor-pointer"
+                        className="rounded-xl border-gray-200 dark:border-border/40 text-xs font-bold text-primary hover:bg-primary/10 gap-1.5 h-8 px-3 cursor-pointer"
                       >
                         {reorderingOrderId === order.id ? (
                           <>
@@ -641,7 +641,7 @@ export default function PedidosPage() {
 
                     {/* ── DETALHES DO HISTÓRICO EXPANDÍVEIS (ACCORDION) ── */}
                     {isExpanded && (
-                      <div className="pt-3 border-t border-gray-100 dark:border-[#512B54]/30 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="pt-3 border-t border-gray-100 dark:border-border/30 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
                         {/* ALERTA EM DESTAQUE SE O PEDIDO FOI CANCELADO */}
                         {isCancelled && (
                           <div className="bg-red-50/90 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl p-3.5 space-y-2.5">
@@ -675,8 +675,8 @@ export default function PedidosPage() {
                         <div className="space-y-2 py-1">
                           {order.items?.map((item, idx) => (
                             <div key={idx} className="flex justify-between items-start text-xs gap-2">
-                              <span className="text-[#4C264F] dark:text-[#F9F5F9] font-medium flex items-center gap-2">
-                                <span className="text-[#9306CF] font-black">{item.quantity}x</span>
+                              <span className="text-foreground dark:text-foreground font-medium flex items-center gap-2">
+                                <span className="text-primary font-black">{item.quantity}x</span>
                                 <span>{item.product?.name || "Item"}</span>
                               </span>
                               <span className="font-mono text-gray-600 dark:text-gray-300 shrink-0">
@@ -691,8 +691,8 @@ export default function PedidosPage() {
 
                         {/* Endereço se houver */}
                         {order.delivery_address && (
-                          <div className="bg-gray-50 dark:bg-white/5 p-3 rounded-xl text-xs text-gray-600 dark:text-gray-300 flex items-start gap-2 border border-gray-100 dark:border-[#512B54]/20">
-                            <Bike className="w-4 h-4 text-[#9306CF] shrink-0 mt-0.5" />
+                          <div className="bg-gray-50 dark:bg-white/5 p-3 rounded-xl text-xs text-gray-600 dark:text-gray-300 flex items-start gap-2 border border-gray-100 dark:border-border/20">
+                            <Bike className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                             <span>
                               Entrega: {order.delivery_address.street}, {order.delivery_address.number}
                               {order.delivery_address.neighborhood ? ` - ${order.delivery_address.neighborhood}` : ""}
@@ -705,7 +705,7 @@ export default function PedidosPage() {
                 );
               })
             ) : (
-              <div className="text-center py-12 text-gray-400 font-medium bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-6">
+              <div className="text-center py-12 text-gray-400 font-medium bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-6">
                 Nenhum pedido no histórico até o momento.
               </div>
             )

@@ -159,7 +159,7 @@ export default function AdminHistoricoPage() {
         );
       case "delivering":
         return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40 animate-pulse">
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-primary/5 text-primary dark:bg-primary/95/40 dark:text-primary/30 border border-primary/20 dark:border-primary/80/40 animate-pulse">
             <Bike className="w-3 h-3" /> A Caminho
           </span>
         );
@@ -190,14 +190,14 @@ export default function AdminHistoricoPage() {
       <MobileOrientationBanner />
 
       {/* Header */}
-      <header className="bg-white/85 dark:bg-[#1F0B22]/90 backdrop-blur-xl border-b border-gray-200 dark:border-[#512B54]/40 px-6 py-4 flex justify-between items-center sticky top-0 z-40 shadow-sm">
+      <header className="bg-white/85 dark:bg-[#1F0B22]/90 backdrop-blur-xl border-b border-gray-200 dark:border-border/40 px-6 py-4 flex justify-between items-center sticky top-0 z-40 shadow-sm">
         <div className="flex items-center gap-3">
           <Link href="/" className="font-heading font-black text-xl tracking-tight flex items-center gap-1.5 select-none hover:opacity-85 transition-opacity">
             <div className="flex items-center gap-1">
-              <span className="text-[#4C264F] dark:text-[#F9F5F9]">Pop</span>
+              <span className="text-foreground dark:text-foreground">Pop</span>
               <span
                 style={{
-                  background: "linear-gradient(135deg, #9306CF 0%, #940068 100%)",
+                  background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   backgroundClip: "text",
@@ -205,7 +205,7 @@ export default function AdminHistoricoPage() {
               >
                 Shake
               </span>
-              <span className="ml-1 text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20">
+              <span className="ml-1 text-xs font-bold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-muted-foreground border border-primary/20">
                 Histórico & Auditoria
               </span>
             </div>
@@ -215,33 +215,33 @@ export default function AdminHistoricoPage() {
         <div className="flex items-center gap-2.5">
           <Link
             href="/admin/pedidos"
-            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 hover:text-[#9306CF] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 hover:text-primary border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
           >
-            <LayoutDashboard className="w-4 h-4 text-[#9306CF]" />
+            <LayoutDashboard className="w-4 h-4 text-primary" />
             <span className="hidden sm:inline">Central da Esteira</span>
           </Link>
 
           <Link
             href="/admin"
-            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 hover:text-[#9306CF] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 hover:text-primary border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
           >
-            <TrendingUp className="w-4 h-4 text-[#9306CF]" />
+            <TrendingUp className="w-4 h-4 text-primary" />
             <span className="hidden sm:inline">Painel Operacional</span>
           </Link>
 
           <Link
             href="/conta"
-            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 hover:text-[#9306CF] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 hover:text-primary border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
           >
-            <User className="w-4 h-4 text-[#9306CF]" />
+            <User className="w-4 h-4 text-primary" />
             <span className="hidden sm:inline">Meu Perfil</span>
           </Link>
 
           <Link
             href="/"
-            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 hover:text-[#9306CF] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 hover:text-primary border border-gray-200 dark:border-border/40 rounded-xl px-3 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
           >
-            <Store className="w-4 h-4 text-[#9306CF]" />
+            <Store className="w-4 h-4 text-primary" />
             <span className="hidden sm:inline">Página Inicial</span>
           </Link>
         </div>
@@ -251,8 +251,8 @@ export default function AdminHistoricoPage() {
         {/* Título e Ações de Topo */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="font-heading text-xl sm:text-2xl font-bold uppercase tracking-wide flex items-center gap-2 text-[#4C264F] dark:text-[#F9F5F9]">
-              <History className="w-6 h-6 text-[#9306CF]" /> Histórico Geral de Pedidos
+            <h1 className="font-heading text-xl sm:text-2xl font-bold uppercase tracking-wide flex items-center gap-2 text-foreground dark:text-foreground">
+              <History className="w-6 h-6 text-primary" /> Histórico Geral de Pedidos
             </h1>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Consulte pedidos arquivados de turnos anteriores, audite pagamentos e reimprima comprovantes térmicos.
@@ -263,7 +263,7 @@ export default function AdminHistoricoPage() {
             variant="outline"
             onClick={() => fetchHistoricalOrders(page)}
             disabled={fetching}
-            className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider flex items-center gap-2 h-10 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors shrink-0"
+            className="rounded-xl border-gray-200 dark:border-border/40 text-xs font-bold uppercase tracking-wider flex items-center gap-2 h-10 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors shrink-0"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${fetching ? "animate-spin" : ""}`} />
             <span>Atualizar Lista</span>
@@ -272,21 +272,21 @@ export default function AdminHistoricoPage() {
 
         {/* Cards de Métricas do Filtro */}
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white/95 dark:bg-[#230E26]/95 backdrop-blur-md border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 min-h-[105px] shadow-sm flex items-center justify-between gap-4 overflow-hidden">
+          <div className="bg-white/95 dark:bg-[#230E26]/95 backdrop-blur-md border border-gray-200 dark:border-border/40 rounded-2xl p-5 min-h-[105px] shadow-sm flex items-center justify-between gap-4 overflow-hidden">
             <div className="flex-1 min-w-0 flex flex-col justify-center">
               <span className="text-[11px] sm:text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block mb-1 truncate">
                 Total de Pedidos
               </span>
-              <span className="font-heading font-black text-2xl sm:text-3xl text-[#4C264F] dark:text-[#F9F5F9] leading-tight sm:leading-normal block truncate">
+              <span className="font-heading font-black text-2xl sm:text-3xl text-foreground dark:text-foreground leading-tight sm:leading-normal block truncate">
                 {total}
               </span>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-[#9306CF]/10 text-[#9306CF] flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
               <ShoppingBag className="w-6 h-6" />
             </div>
           </div>
 
-          <div className="bg-white/95 dark:bg-[#230E26]/95 backdrop-blur-md border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 min-h-[105px] shadow-sm flex items-center justify-between gap-4 overflow-hidden">
+          <div className="bg-white/95 dark:bg-[#230E26]/95 backdrop-blur-md border border-gray-200 dark:border-border/40 rounded-2xl p-5 min-h-[105px] shadow-sm flex items-center justify-between gap-4 overflow-hidden">
             <div className="flex-1 min-w-0 flex flex-col justify-center">
               <span className="text-[11px] sm:text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block mb-1 truncate">
                 Faturamento do Filtro
@@ -300,24 +300,24 @@ export default function AdminHistoricoPage() {
             </div>
           </div>
 
-          <div className="bg-white/95 dark:bg-[#230E26]/95 backdrop-blur-md border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 min-h-[105px] shadow-sm flex items-center justify-between gap-4 overflow-hidden">
+          <div className="bg-white/95 dark:bg-[#230E26]/95 backdrop-blur-md border border-gray-200 dark:border-border/40 rounded-2xl p-5 min-h-[105px] shadow-sm flex items-center justify-between gap-4 overflow-hidden">
             <div className="flex-1 min-w-0 flex flex-col justify-center">
               <span className="text-[11px] sm:text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block mb-1 truncate">
                 Ticket Médio
               </span>
-              <span className="font-heading font-black text-2xl sm:text-3xl text-purple-600 dark:text-purple-400 font-mono tracking-tight leading-tight sm:leading-normal block truncate">
+              <span className="font-heading font-black text-2xl sm:text-3xl text-primary dark:text-primary/40 font-mono tracking-tight leading-tight sm:leading-normal block truncate">
                 {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(averageTicket)}
               </span>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
               <TrendingUp className="w-6 h-6" />
             </div>
           </div>
         </section>
 
         {/* Barra de Filtros e Busca */}
-        <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-gray-100 dark:border-[#512B54]/30">
+        <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-gray-100 dark:border-border/30">
             {/* Seletor de Intervalo Rápido */}
             <div className="flex items-center gap-1.5 flex-wrap">
               {[
@@ -334,8 +334,8 @@ export default function AdminHistoricoPage() {
                   onClick={() => setDateRangeOption(opt.key as DateRangeOption)}
                   className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all ${
                     dateRangeOption === opt.key
-                      ? "bg-[#9306CF] text-white border-[#9306CF] shadow-xs"
-                      : "bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100"
+                      ? "bg-primary text-white border-primary shadow-xs"
+                      : "bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-border/40 hover:bg-gray-100"
                   }`}
                 >
                   {opt.label}
@@ -349,7 +349,7 @@ export default function AdminHistoricoPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-gray-50 dark:bg-[#1A0B1C] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-foreground focus:outline-none focus:border-[#9306CF]"
+                className="bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-foreground focus:outline-none focus:border-primary"
               >
                 <option value="all">Todos os Status</option>
                 <option value="completed">Concluídos / Entregues</option>
@@ -370,7 +370,7 @@ export default function AdminHistoricoPage() {
                 placeholder="Buscar por cliente, telefone, rua ou código #XXXXXX..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 h-10 text-xs rounded-xl bg-gray-50/70 dark:bg-[#1A0B1C] border-gray-200 dark:border-[#512B54]/40"
+                className="pl-9 h-10 text-xs rounded-xl bg-gray-50/70 dark:bg-background border-gray-200 dark:border-border/40"
               />
             </div>
 
@@ -380,21 +380,21 @@ export default function AdminHistoricoPage() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="h-10 text-xs rounded-xl bg-gray-50/70 dark:bg-[#1A0B1C] border-gray-200 dark:border-[#512B54]/40"
+                  className="h-10 text-xs rounded-xl bg-gray-50/70 dark:bg-background border-gray-200 dark:border-border/40"
                 />
                 <span className="text-xs text-gray-400 font-mono">até</span>
                 <Input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="h-10 text-xs rounded-xl bg-gray-50/70 dark:bg-[#1A0B1C] border-gray-200 dark:border-[#512B54]/40"
+                  className="h-10 text-xs rounded-xl bg-gray-50/70 dark:bg-background border-gray-200 dark:border-border/40"
                 />
               </div>
             )}
 
             <Button
               type="submit"
-              className="h-10 px-5 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white text-xs font-bold uppercase tracking-wider shrink-0 w-full sm:w-auto shadow-sm shadow-[#9306CF]/20"
+              className="h-10 px-5 rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white text-xs font-bold uppercase tracking-wider shrink-0 w-full sm:w-auto shadow-sm shadow-primary/20"
             >
               Filtrar
             </Button>
@@ -404,12 +404,12 @@ export default function AdminHistoricoPage() {
         {/* Lista Paginada de Pedidos */}
         <section className="space-y-3">
           {fetching ? (
-            <div className="py-16 text-center text-xs text-gray-500 bg-white dark:bg-[#230E26] rounded-2xl border border-gray-200 dark:border-[#512B54]/40">
-              <RefreshCw className="w-6 h-6 animate-spin mx-auto text-[#9306CF] mb-2" />
+            <div className="py-16 text-center text-xs text-gray-500 bg-white dark:bg-[#230E26] rounded-2xl border border-gray-200 dark:border-border/40">
+              <RefreshCw className="w-6 h-6 animate-spin mx-auto text-primary mb-2" />
               <span>Carregando histórico de pedidos...</span>
             </div>
           ) : orders.length === 0 ? (
-            <div className="py-16 text-center text-xs text-gray-500 bg-white dark:bg-[#230E26] rounded-2xl border border-dashed border-gray-200 dark:border-[#512B54]/40">
+            <div className="py-16 text-center text-xs text-gray-500 bg-white dark:bg-[#230E26] rounded-2xl border border-dashed border-gray-200 dark:border-border/40">
               <p className="font-heading font-bold text-sm text-foreground mb-1">Nenhum pedido encontrado</p>
               <p>Tente ajustar os filtros de data, status ou o termo pesquisado.</p>
             </div>
@@ -426,12 +426,12 @@ export default function AdminHistoricoPage() {
               return (
                 <div
                   key={order.id}
-                  className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:border-[#9306CF]/30"
+                  className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:border-primary/30"
                 >
                   {/* Coluna 1: ID, Data, Badges e Cliente */}
                   <div className="space-y-2 flex-1 min-w-0">
                     <div className="flex items-center gap-2.5 flex-wrap">
-                      <span className="font-mono font-bold text-xs text-[#9306CF] dark:text-[#C7A9C9] bg-[#9306CF]/10 px-2 py-0.5 rounded-md border border-[#9306CF]/20">
+                      <span className="font-mono font-bold text-xs text-primary dark:text-muted-foreground bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
                         #{order.id.substring(0, 6)}
                       </span>
 
@@ -449,7 +449,7 @@ export default function AdminHistoricoPage() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <h4 className="font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                      <h4 className="font-bold text-sm text-foreground dark:text-foreground truncate">
                         {clientName}
                       </h4>
                       {order.user?.phone && (
@@ -466,7 +466,7 @@ export default function AdminHistoricoPage() {
                   </div>
 
                   {/* Coluna 2: Pagamento e Valor */}
-                  <div className="flex items-center justify-between sm:justify-end gap-5 border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100 dark:border-[#512B54]/30">
+                  <div className="flex items-center justify-between sm:justify-end gap-5 border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100 dark:border-border/30">
                     <div className="text-left sm:text-right">
                       <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 block">
                         Forma de Pagamento
@@ -494,10 +494,10 @@ export default function AdminHistoricoPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => printThermalReceipt(order)}
-                        className="h-9 px-2.5 rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold gap-1 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
+                        className="h-9 px-2.5 rounded-xl border-gray-200 dark:border-border/40 text-xs font-bold gap-1 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
                         title="Imprimir Comprovante (80mm / 58mm)"
                       >
-                        <Printer className="w-3.5 h-3.5 text-[#9306CF]" />
+                        <Printer className="w-3.5 h-3.5 text-primary" />
                         <span className="hidden sm:inline">Comprovante</span>
                       </Button>
 
@@ -505,7 +505,7 @@ export default function AdminHistoricoPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => setSelectedOrder(order)}
-                        className="h-9 px-3 rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold hover:bg-gray-100 dark:hover:bg-white/5"
+                        className="h-9 px-3 rounded-xl border-gray-200 dark:border-border/40 text-xs font-bold hover:bg-gray-100 dark:hover:bg-white/5"
                       >
                         Ver Ficha
                       </Button>
@@ -519,7 +519,7 @@ export default function AdminHistoricoPage() {
 
         {/* Barra de Paginação */}
         {totalPages > 1 && (
-          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
             <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
               Mostrando {(page - 1) * 15 + 1}–{Math.min(page * 15, total)} de {total} pedidos
             </span>
@@ -530,7 +530,7 @@ export default function AdminHistoricoPage() {
                 size="sm"
                 onClick={() => handlePageChange(page - 1)}
                 disabled={page <= 1}
-                className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold gap-1 h-9 px-3"
+                className="rounded-xl border-gray-200 dark:border-border/40 text-xs font-bold gap-1 h-9 px-3"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
                 <span>Anterior</span>
@@ -545,7 +545,7 @@ export default function AdminHistoricoPage() {
                 size="sm"
                 onClick={() => handlePageChange(page + 1)}
                 disabled={page >= totalPages}
-                className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold gap-1 h-9 px-3"
+                className="rounded-xl border-gray-200 dark:border-border/40 text-xs font-bold gap-1 h-9 px-3"
               >
                 <span>Próximo</span>
                 <ChevronRight className="w-3.5 h-3.5" />

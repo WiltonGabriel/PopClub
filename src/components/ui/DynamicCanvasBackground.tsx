@@ -79,12 +79,12 @@ export function DynamicCanvasBackground({
     const getPalette = () => {
       if (isDark) {
         return style === "constellation"
-          ? ["#FF007A", "#9306CF", "#E899FF", "#C7A9C9", "#00F0FF"]
-          : ["#9306CF", "#FF007A", "#940068", "#E899FF", "#C7A9C9"];
+          ? ["#FF007A", "hsl(var(--primary))", "#E899FF", "hsl(var(--muted-foreground))", "#00F0FF"]
+          : ["hsl(var(--primary))", "#FF007A", "hsl(var(--accent))", "#E899FF", "hsl(var(--muted-foreground))"];
       } else {
         return style === "constellation"
-          ? ["#9306CF", "#940068", "#FF007A", "#7B1FA2", "#881BAA"]
-          : ["#9306CF", "#FF007A", "#FF70A6", "#B388FF", "#FFB5E8"];
+          ? ["hsl(var(--primary))", "hsl(var(--accent))", "#FF007A", "#7B1FA2", "#881BAA"]
+          : ["hsl(var(--primary))", "#FF007A", "#FF70A6", "#B388FF", "#FFB5E8"];
       }
     };
 

@@ -1,1053 +1,204 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
-import {
-  Palette,
-  Sparkles,
-  Sun,
-  Moon,
-  Check,
-  RotateCcw,
-  Plus,
-  Trash2,
-  Clock,
-  Layers,
-  Wand2,
-  Eye,
-  Sliders,
-  CheckCircle2,
-  Globe,
-  Upload,
-  Lock,
-  Info,
-  Image as ImageIcon,
-} from "lucide-react";
+import { useEffect, useState } from "react";
 import {
   loadingSettingsService,
   LoadingSettingsData,
-  LoadingTheme,
-  BackgroundType,
-  DEFAULT_LOADING_SETTINGS,
-  LOADING_UPDATED_EVENT,
-  LIGHT_GRADIENT_PRESETS,
-  DARK_GRADIENT_PRESETS,
-  LIGHT_PATTERN_PRESETS,
-  DARK_PATTERN_PRESETS,
-  DYNAMIC_CANVAS_PRESETS,
-  resolveBackgroundCss,
+  AdvancedConfig
 } from "@/services/loadingSettingsService";
-import { PopShakeLoading } from "@/components/ui/PopShakeLoading";
-import { DynamicCanvasBackground } from "@/components/ui/DynamicCanvasBackground";
 import { useToast } from "@/components/ui/ToastNotification";
+import { PresetToolbar, StorefrontConfig, SplashScreenConfig, LivePreview } from "./visual-identity";
 
-const ICON_PRESETS = ["🥣", "🍧", "🍦", "🥤", "🍓", "✨", "🍨", "🥞", "🍒", "🍫"];
-
-const SOLID_LIGHT_SWATCHES = [
-  { label: "Branco Puro", hex: "#FFFFFF" },
-  { label: "Lavanda Suave", hex: "#FBF8FD" },
-  { label: "Creme Baunilha", hex: "#FFFDF9" },
-  { label: "Rosa Algodão", hex: "#FFF5FA" },
-  { label: "Menta Claro", hex: "#F2FBF6" },
-];
-
-const SOLID_DARK_SWATCHES = [
-  { label: "Açaí Aveludado", hex: "#22082B" },
-  { label: "Vinho Nobre", hex: "#2E0A28" },
-  { label: "Roxo Neon Noturno", hex: "#1D0524" },
-  { label: "Menta Profundo", hex: "#0B2118" },
-  { label: "Cacau & Ameixa", hex: "#250F1E" },
-];
+const DEFAULT_ADVANCED: AdvancedConfig = {
+  storefront: {
+    light: { baseColor: "#FBF8FD", gradient: "", texture: "none", textureOpacity: 0.1, headerBg: "#FFFFFF", footerBg: "#FBF8FD" },
+    dark: { baseColor: "#190B1A", gradient: "", texture: "none", textureOpacity: 0.1, headerBg: "#120713", footerBg: "#190B1A" }
+  },
+  splashScreen: { enabled: true, backgroundType: "gradient", backgroundValue: "preset_cream", progressBarColor: "#9306CF" },
+  presets: []
+};
 
 export function VisualIdentitySection() {
-  const { showToast } = useToast();
-  const [settings, setSettings] = useState<LoadingSettingsData>(
-    loadingSettingsService.getCachedLoadingSettings()
-  );
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [settings, setSettings] = useState<LoadingSettingsData>(loadingSettingsService.getCachedLoadingSettings());
+  const [advancedConfig, setAdvancedConfig] = useState<AdvancedConfig>(DEFAULT_ADVANCED);
+  const [mode, setMode] = useState<"light" | "dark">("light");
 
-  // Referência para o container de Live Preview (para o canvas rastrear o mouse no mockup)
-  const previewContainerRef = useRef<HTMLDivElement | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const toast = useToast();
 
-  // Modo de cor exclusivo para o Mock de Pré-Visualização
-  const [previewMode, setPreviewMode] = useState<"light" | "dark">("light");
-
-  // Sub-aba ativa na personalização de fundo: 'light' ou 'dark'
-  const [activeBgTab, setActiveBgTab] = useState<"light" | "dark">("light");
-
-  // Estado para inserção de nova frase
-  const [newPhraseInput, setNewPhraseInput] = useState("");
-
-  // Estados e controle de upload do Favicon
-  const faviconInputRef = useRef<HTMLInputElement | null>(null);
-  const [uploadingFavicon, setUploadingFavicon] = useState(false);
-  const [isFaviconDragging, setIsFaviconDragging] = useState(false);
-
-  // Upload de Favicon para o servidor
-  const handleUploadFavicon = async (file: File) => {
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      showToast({
-        title: "Arquivo Muito Grande",
-        message: "O ícone deve ter até 5MB.",
-        type: "error",
-      });
-      return;
-    }
-
-    setUploadingFavicon(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("type", "favicon");
-
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || "Falha ao processar o favicon no servidor.");
-      }
-
-      const uploadResult = await res.json();
-      const newFaviconUrl = uploadResult.url;
-
-      setSettings((prev) => {
-        const nextSettings = { ...prev, faviconUrl: newFaviconUrl };
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(
-            new CustomEvent(LOADING_UPDATED_EVENT, { detail: nextSettings })
-          );
-        }
-        return nextSettings;
-      });
-
-      showToast({
-        title: "Favicon Carregado!",
-        message: "O ícone da aba do navegador foi atualizado com sucesso. Salve as alterações para fixar.",
-        type: "success",
-      });
-    } catch (err: any) {
-      showToast({
-        title: "Erro no Upload",
-        message: err.message || "Não foi possível carregar o favicon.",
-        type: "error",
-      });
-    } finally {
-      setUploadingFavicon(false);
-    }
-  };
-
-  // Restaurar Favicon Padrão
-  const handleResetFavicon = () => {
-    setSettings((prev) => {
-      const nextSettings = { ...prev, faviconUrl: "/favicon.ico" };
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent(LOADING_UPDATED_EVENT, { detail: nextSettings })
-        );
-      }
-      return nextSettings;
-    });
-    showToast({
-      title: "Favicon Restaurado",
-      message: "O ícone padrão da loja foi redefinido. Salve para confirmar.",
-      type: "info",
-    });
-  };
-
-  // Busca inicial das preferências
   useEffect(() => {
-    let isMounted = true;
-    loadingSettingsService
-      .getLoadingSettings()
-      .then((data) => {
-        if (isMounted) {
-          setSettings(data);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (isMounted) setLoading(false);
-      });
-    return () => {
-      isMounted = false;
-    };
+    loadingSettingsService.getLoadingSettings().then((remote) => {
+      setSettings(remote);
+      if (remote.advancedConfig && Object.keys(remote.advancedConfig).length > 0) {
+        setAdvancedConfig(remote.advancedConfig);
+      } else {
+        setAdvancedConfig(DEFAULT_ADVANCED);
+      }
+    });
   }, []);
 
-  // Adicionar Frase
-  const handleAddPhrase = () => {
-    const trimmed = newPhraseInput.trim();
-    if (!trimmed) return;
-    setSettings((prev) => ({
-      ...prev,
-      phrases: [...prev.phrases, trimmed],
-    }));
-    setNewPhraseInput("");
-  };
+  const handleSaveToSlot = (idx: number, name: string) => {
+    setAdvancedConfig((prev) => {
+      const presets = [...(prev.presets || [])];
+      while (presets.length < 4) presets.push({ name: `Slot \${presets.length + 1}`, config: null });
 
-  // Remover Frase
-  const handleRemovePhrase = (indexToRemove: number) => {
-    if (settings.phrases.length <= 1) {
-      showToast({
-        title: "Atenção",
-        message: "Mantenha ao menos uma mensagem de carregamento ativa.",
-        type: "warning",
-      });
-      return;
-    }
-    setSettings((prev) => ({
-      ...prev,
-      phrases: prev.phrases.filter((_, idx) => idx !== indexToRemove),
-    }));
-  };
-
-  // Atualizar Frase existente
-  const handleUpdatePhrase = (index: number, val: string) => {
-    setSettings((prev) => {
-      const nextPhrases = [...prev.phrases];
-      nextPhrases[index] = val;
-      return { ...prev, phrases: nextPhrases };
+      const { presets: _omit, ...restConfig } = prev;
+      presets[idx] = { name, config: { settings, advancedConfig: restConfig } };
+      return { ...prev, presets };
     });
+    // Optimistic toast
+    toast.showToast(`Identidade salva no \${name} com sucesso.`, "success");
+
+    // Automatically save to API (silently) so preset doesn't get lost on refresh
+    saveToApi(true);
   };
 
-  // Restaurar frases padrão
-  const handleResetPhrases = () => {
-    setSettings((prev) => ({
-      ...prev,
-      phrases: [...DEFAULT_LOADING_SETTINGS.phrases],
-    }));
-    showToast({
-      title: "Mensagens Restauradas",
-      message: "Frases originais da Pop Shake redefinidas.",
-      type: "info",
-    });
+  const handleLoadSlot = (config: any) => {
+    if (!config) return;
+    if (config.settings) setSettings(config.settings);
+    if (config.advancedConfig) setAdvancedConfig(config.advancedConfig);
+    toast.showToast("Preset carregado para edição. Não esqueça de publicar se desejar ativar.", "success");
   };
 
-  // Salvar Toda a Identidade Visual
-  const handleSaveAll = async () => {
-    if (settings.phrases.length === 0 || settings.phrases.every((p) => !p.trim())) {
-      showToast({
-        title: "Mensagem Obrigatória",
-        message: "Adicione ao menos uma mensagem de carregamento antes de salvar.",
-        type: "error",
-      });
-      return;
-    }
+  const handleDiscard = () => {
+    setSettings(loadingSettingsService.getCachedLoadingSettings());
+    const cached = loadingSettingsService.getCachedLoadingSettings();
+    setAdvancedConfig(cached.advancedConfig || DEFAULT_ADVANCED);
+    toast.showToast("Alterações descartadas.", "info");
+  };
 
-    setSaving(true);
+  const requestSave = () => {
+    setShowConfirm(true);
+    setConfirmText("");
+  };
+
+  const saveToApi = async (silent = false) => {
     try {
-      await loadingSettingsService.updateLoadingSettings(settings);
-      showToast({
-        title: "Identidade Visual Salva!",
-        message: "As configurações de fundo e loading foram atualizadas com sucesso.",
-        type: "success",
+      if (!silent) setIsSaving(true);
+      await loadingSettingsService.updateLoadingSettings({
+        ...settings,
+        advancedConfig
       });
+      if (!silent) {
+        toast.showToast("Identidade visual publicada com sucesso!", "success");
+        setShowConfirm(false);
+      }
     } catch (err: any) {
-      showToast({
-        title: "Erro ao Salvar",
-        message: err.message || "Não foi possível salvar as configurações visuais.",
-        type: "error",
-      });
+      toast.showToast(err.message || "Erro ao salvar identidade.", "error");
     } finally {
-      setSaving(false);
+      if (!silent) setIsSaving(false);
     }
   };
-
-  // Computa o CSS de fundo a ser exibido no Live Preview Mock
-  const activePreviewBackground = useMemo(() => {
-    return resolveBackgroundCss(settings, previewMode === "dark");
-  }, [settings, previewMode]);
 
   return (
-    <div className="space-y-6">
-      {/* ── CABEÇALHO DO MÓDULO UNIFICADO ── */}
-      <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 sm:p-6 shadow-xs">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-[#9306CF] dark:text-[#E899FF]">
-            <Palette className="w-5 h-5" />
-          </span>
-          <h2 className="font-heading font-bold text-lg sm:text-xl text-[#4C264F] dark:text-[#F9F5F9] uppercase tracking-wide">
-            Aparência & Identidade Visual
-          </h2>
-          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800 font-mono">
-            Live Customizer
-          </span>
-        </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 max-w-2xl">
-          Personalize a estética de fundo da vitrine e a animação da tela de carregamento com adaptação independente para os modos Claro e Escuro.
-        </p>
-      </div>
+    <div className="w-full max-w-7xl mx-auto space-y-6 animate-in fade-in zoom-in-95 duration-300">
 
-      {/* ── GRID PRINCIPAL: CONFIGURAÇÕES (ESQ) + LIVE PREVIEW MOCK (DIR) ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* COLUNA ESQUERDA: CONTROLES DE FUNDO E LOADING (7/12) */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* ══════════════════════════════════════════
-              CARD 1: PERSONALIZAÇÃO DE FUNDO (BACKGROUND)
-              ══════════════════════════════════════════ */}
-          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 shadow-xs space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2 border-b border-gray-100 dark:border-[#512B54]/30 pb-3">
-              <div className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-[#9306CF]" />
-                <h3 className="font-heading font-bold text-sm uppercase tracking-wide text-[#4C264F] dark:text-[#F9F5F9]">
-                  Fundo da Vitrine & Aplicação
-                </h3>
-              </div>
+      {/* 1. Dedicated Preset Bar */}
+      <PresetToolbar
+        advancedConfig={advancedConfig}
+        onLoadPreset={handleLoadSlot}
+        onSavePreset={handleSaveToSlot}
+      />
 
-              {/* Sub-abas: Modo Claro vs Modo Escuro */}
-              <div className="flex items-center p-0.5 rounded-xl bg-gray-100 dark:bg-[#180A1A] border border-gray-200 dark:border-[#512B54]/40 text-xs font-bold">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveBgTab("light");
-                    setPreviewMode("light");
-                  }}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                    activeBgTab === "light"
-                      ? "bg-white dark:bg-[#2F1333] text-amber-700 dark:text-amber-300 shadow-xs"
-                      : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
-                  }`}
-                >
-                  <Sun className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Modo Claro</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveBgTab("dark");
-                    setPreviewMode("dark");
-                  }}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                    activeBgTab === "dark"
-                      ? "bg-white dark:bg-[#2F1333] text-purple-700 dark:text-purple-300 shadow-xs"
-                      : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
-                  }`}
-                >
-                  <Moon className="w-3.5 h-3.5 text-[#9306CF] dark:text-[#E899FF]" />
-                  <span>Modo Escuro</span>
-                </button>
-              </div>
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-            {/* SELEÇÃO DO TIPO DE FUNDO PARA A ABA ATIVA */}
-            {(() => {
-              const isDark = activeBgTab === "dark";
-              const currentType = isDark ? settings.bgTypeDark : settings.bgTypeLight;
-              const currentValue = isDark ? settings.bgValueDark : settings.bgValueLight;
-              const currentCustom = isDark ? (settings.bgCustomDark || "#190B1A") : (settings.bgCustomLight || "#FBF8FD");
+        {/* Left Side: Controls */}
+        <div className="lg:col-span-7 space-y-8">
 
-              const updateType = (t: BackgroundType) => {
-                setSettings((prev) => {
-                  const currentVal = isDark ? prev.bgValueDark : prev.bgValueLight;
-                  const nextVal =
-                    t === "dynamic" && currentVal !== "constellation" && currentVal !== "aurora_orbs"
-                      ? "constellation"
-                      : currentVal;
-                  return isDark
-                    ? { ...prev, bgTypeDark: t, bgValueDark: nextVal }
-                    : { ...prev, bgTypeLight: t, bgValueLight: nextVal };
-                });
-              };
-
-              const updateValue = (v: string) => {
-                setSettings((prev) =>
-                  isDark ? { ...prev, bgValueDark: v } : { ...prev, bgValueLight: v }
-                );
-              };
-
-              const updateCustom = (c: string) => {
-                setSettings((prev) =>
-                  isDark ? { ...prev, bgCustomDark: c } : { ...prev, bgCustomLight: c }
-                );
-              };
-
-              return (
-                <div className="space-y-4">
-                  {/* Seletor de Tipo: Gradiente / Dinâmico / Sólido / Textura */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">
-                      Estilo de Fundo ({isDark ? "Modo Escuro" : "Modo Claro"}):
-                    </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {[
-                        { type: "gradient" as BackgroundType, label: "Gradiente", icon: Wand2 },
-                        { type: "dynamic" as BackgroundType, label: "✨ Dinâmico", icon: Sparkles },
-                        { type: "solid" as BackgroundType, label: "Cor Sólida", icon: Palette },
-                        { type: "pattern" as BackgroundType, label: "Textura", icon: Layers },
-                      ].map(({ type, label, icon: Icon }) => (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() => updateType(type)}
-                          className={`p-2.5 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
-                            currentType === type
-                              ? "border-[#9306CF] bg-purple-50/70 dark:bg-purple-950/30 text-[#9306CF] dark:text-[#E899FF] ring-2 ring-[#9306CF]/20"
-                              : "border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300"
-                          }`}
-                        >
-                          <Icon className="w-4 h-4" />
-                          <span>{label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* OPÇÃO A: GRADIENTES TEMÁTICOS */}
-                  {currentType === "gradient" && (
-                    <div className="space-y-2">
-                      <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
-                        Selecione um gradiente harmonioso da marca:
-                      </span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {(isDark ? DARK_GRADIENT_PRESETS : LIGHT_GRADIENT_PRESETS).map((p) => {
-                          const isSelected = currentValue === p.id;
-                          return (
-                            <div
-                              key={p.id}
-                              onClick={() => updateValue(p.id)}
-                              className={`p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all ${
-                                isSelected
-                                  ? "border-[#9306CF] bg-purple-50/60 dark:bg-purple-950/30 ring-2 ring-[#9306CF]/30"
-                                  : "border-gray-200 dark:border-[#512B54]/30 hover:border-gray-300 dark:hover:border-[#512B54]/70"
-                              }`}
-                            >
-                              <div
-                                className="w-9 h-9 rounded-lg shrink-0 border border-black/10 shadow-xs"
-                                style={{ background: p.previewBg }}
-                              />
-                              <div className="min-w-0 flex-1">
-                                <div className="text-xs font-bold text-gray-900 dark:text-gray-100 flex items-center justify-between">
-                                  <span>{p.label}</span>
-                                  {isSelected && <Check className="w-3.5 h-3.5 text-[#9306CF]" />}
-                                </div>
-                                <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
-                                  {p.description}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* OPÇÃO B: FUNDOS DINÂMICOS & ANIMADOS COM CANVAS */}
-                  {currentType === "dynamic" && (
-                    <div className="space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
-                          Selecione um estilo de animação interativa com Canvas:
-                        </span>
-                        <span className="text-[9px] font-bold font-mono px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">
-                          60 FPS • Zero Bloqueio
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {DYNAMIC_CANVAS_PRESETS.map((p) => {
-                          const isSelected = currentValue === p.id;
-                          return (
-                            <div
-                              key={p.id}
-                              onClick={() => updateValue(p.id)}
-                              className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
-                                isSelected
-                                  ? "border-[#9306CF] bg-purple-50/60 dark:bg-purple-950/30 ring-2 ring-[#9306CF]/30 shadow-xs"
-                                  : "border-gray-200 dark:border-[#512B54]/30 hover:border-gray-300 dark:hover:border-[#512B54]/70"
-                              }`}
-                            >
-                              <div
-                                className="w-10 h-10 rounded-xl shrink-0 border border-black/10 shadow-xs flex items-center justify-center text-lg relative overflow-hidden"
-                                style={{ background: isDark ? p.previewBgDark : p.previewBgLight }}
-                              >
-                                <span>{p.id === "constellation" ? "✨" : "🫧"}</span>
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="text-xs font-bold text-gray-900 dark:text-gray-100 flex items-center justify-between gap-1">
-                                  <span>{p.label}</span>
-                                  {isSelected && <Check className="w-3.5 h-3.5 text-[#9306CF] shrink-0" />}
-                                </div>
-                                <span className="inline-block text-[9px] font-bold text-[#9306CF] dark:text-[#E899FF] mb-0.5">
-                                  {p.badge}
-                                </span>
-                                <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">
-                                  {p.description}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* OPÇÃO C: COR SÓLIDA PERSONALIZADA */}
-                  {currentType === "solid" && (
-                    <div className="space-y-3">
-                      <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
-                        Escolha uma cor sólida ou digite o valor hexadecimal:
-                      </span>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {(isDark ? SOLID_DARK_SWATCHES : SOLID_LIGHT_SWATCHES).map((swatch) => (
-                          <button
-                            key={swatch.hex}
-                            type="button"
-                            onClick={() => updateCustom(swatch.hex)}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium cursor-pointer transition-all ${
-                              currentCustom.toLowerCase() === swatch.hex.toLowerCase()
-                                ? "border-[#9306CF] ring-2 ring-[#9306CF]/30 bg-purple-50/50 dark:bg-purple-950/30 font-bold"
-                                : "border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-50 dark:hover:bg-white/5"
-                            }`}
-                          >
-                            <span
-                              className="w-3 h-3 rounded-full border border-black/15 shadow-xs"
-                              style={{ backgroundColor: swatch.hex }}
-                            />
-                            <span>{swatch.label}</span>
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Seletor Livre Hexadecimal */}
-                      <div className="flex items-center gap-3 pt-1">
-                        <input
-                          type="color"
-                          value={currentCustom.startsWith("#") && currentCustom.length === 7 ? currentCustom : (isDark ? "#190B1A" : "#FFFFFF")}
-                          onChange={(e) => updateCustom(e.target.value)}
-                          className="w-10 h-10 rounded-xl cursor-pointer border border-gray-300 dark:border-[#512B54]/60 bg-transparent p-0.5 shadow-xs"
-                          title="Seletor de cor livre"
-                        />
-                        <div className="flex-1">
-                          <input
-                            type="text"
-                            value={currentCustom}
-                            onChange={(e) => updateCustom(e.target.value)}
-                            placeholder={isDark ? "#190B1A" : "#FFFFFF"}
-                            className="w-full text-xs font-mono px-3 py-2 rounded-xl border border-gray-200 dark:border-[#512B54]/50 bg-gray-50 dark:bg-[#1A0A1C] text-gray-900 dark:text-gray-100"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* OPÇÃO C: TEXTURAS SUTIS DA MARCA */}
-                  {currentType === "pattern" && (
-                    <div className="space-y-2">
-                      <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
-                        Selecione uma textura sutil de fundo:
-                      </span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {(isDark ? DARK_PATTERN_PRESETS : LIGHT_PATTERN_PRESETS).map((p) => {
-                          const isSelected = currentValue === p.id;
-                          return (
-                            <div
-                              key={p.id}
-                              onClick={() => updateValue(p.id)}
-                              className={`p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all ${
-                                isSelected
-                                  ? "border-[#9306CF] bg-purple-50/60 dark:bg-purple-950/30 ring-2 ring-[#9306CF]/30"
-                                  : "border-gray-200 dark:border-[#512B54]/30 hover:border-gray-300 dark:hover:border-[#512B54]/70"
-                              }`}
-                            >
-                              <div
-                                className="w-9 h-9 rounded-lg shrink-0 border border-black/15 shadow-xs"
-                                style={{ background: p.previewBg }}
-                              />
-                              <div className="min-w-0 flex-1">
-                                <div className="text-xs font-bold text-gray-900 dark:text-gray-100 flex items-center justify-between">
-                                  <span>{p.label}</span>
-                                  {isSelected && <Check className="w-3.5 h-3.5 text-[#9306CF]" />}
-                                </div>
-                                <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
-                                  {p.description}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+            <h2 className="text-xl font-heading font-black text-foreground mb-6">Vitrine & Componentes</h2>
+            <StorefrontConfig
+              advancedConfig={advancedConfig}
+              setAdvancedConfig={setAdvancedConfig}
+              mode={mode}
+            />
           </div>
 
-          {/* ══════════════════════════════════════════
-              CARD 2: ÍCONE DO NAVEGADOR (FAVICON)
-              ══════════════════════════════════════════ */}
-          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 shadow-xs space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2 border-b border-gray-100 dark:border-[#512B54]/30 pb-3">
-              <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-[#9306CF]" />
-                <h3 className="font-heading font-bold text-sm uppercase tracking-wide text-[#4C264F] dark:text-[#F9F5F9]">
-                  Ícone do Navegador (Favicon)
-                </h3>
-              </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 font-mono">
-                Aba do Navegador
-              </span>
-            </div>
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+            <SplashScreenConfig
+              settings={settings}
+              setSettings={setSettings}
+              advancedConfig={advancedConfig}
+              setAdvancedConfig={setAdvancedConfig}
+              mode={mode}
+            />
+          </div>
 
-            {/* Aviso e Requisitos Visuais */}
-            <div className="p-3 rounded-xl bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200/70 dark:border-purple-900/40 flex items-start gap-2.5 text-xs text-purple-950 dark:text-purple-200">
-              <Info className="w-4 h-4 text-[#9306CF] shrink-0 mt-0.5" />
-              <p className="leading-relaxed">
-                Formatos aceitos: <strong>ICO, PNG, SVG, JPG e GIF</strong>. Recomendado: proporção 1:1 (quadrado), tamanho sugerido 32x32px ou 64x64px.
-              </p>
-            </div>
+        </div>
 
-            {/* Área de Upload com Drag & Drop */}
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setIsFaviconDragging(true);
-              }}
-              onDragLeave={() => setIsFaviconDragging(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setIsFaviconDragging(false);
-                const file = e.dataTransfer.files?.[0];
-                if (file) handleUploadFavicon(file);
-              }}
-              className={`p-4 rounded-2xl border-2 border-dashed transition-all flex flex-col sm:flex-row items-center gap-4 ${
-                isFaviconDragging
-                  ? "border-[#9306CF] bg-purple-50/80 dark:bg-purple-950/40 scale-[1.01]"
-                  : "border-gray-200 dark:border-[#512B54]/40 bg-gray-50/50 dark:bg-[#1A0A1C]/50 hover:bg-gray-50 dark:hover:bg-[#1A0A1C]"
-              }`}
-            >
+        {/* Right Side: Live Preview Inspector */}
+        <div className="lg:col-span-5 h-[600px] lg:h-auto lg:sticky lg:top-6">
+          <LivePreview
+            settings={settings}
+            advancedConfig={advancedConfig}
+            previewMode={mode}
+            setPreviewMode={setMode}
+            onDiscard={handleDiscard}
+          />
+        </div>
+      </div>
+
+      {/* Sticky Save Bar */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t border-border shadow-[0_-4px_12px_rgba(0,0,0,0.05)] z-40 flex justify-end">
+        <div className="w-full max-w-7xl mx-auto flex justify-between items-center px-4">
+          <div className="text-sm font-semibold text-muted-foreground">
+            Atenção: Ao salvar, as alterações serão aplicadas instantaneamente para todos os usuários.
+          </div>
+          <button
+            onClick={requestSave}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2.5 rounded-xl font-bold shadow-md shadow-primary/20 transition-all hover:-translate-y-0.5 active:translate-y-0"
+          >
+            Salvar Identidade Visual
+          </button>
+        </div>
+      </div>
+
+      {/* Confirmation Modal */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-card w-full max-w-md rounded-2xl p-6 shadow-2xl border border-border animate-in zoom-in-95">
+            <h3 className="text-xl font-black font-heading text-destructive mb-2">Atenção! Publicação em Produção</h3>
+            <p className="text-sm text-foreground/80 mb-6">
+              Você está prestes a alterar a aparência do site para <strong>todos os clientes ao vivo</strong>.
+              Verifique a legibilidade (contraste de texto e botões) antes de publicar.
+            </p>
+
+            <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-xl mb-6">
+              <label className="block text-sm font-bold text-destructive mb-2">
+                Digite "Sim" para confirmar
+              </label>
               <input
-                ref={faviconInputRef}
-                type="file"
-                accept=".ico,.png,.svg,.jpg,.jpeg,.gif,.webp,image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleUploadFavicon(file);
-                }}
+                type="text"
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                placeholder="Sim"
+                className="w-full h-11 bg-background border border-border rounded-lg px-3 font-bold text-foreground focus:ring-2 focus:ring-destructive/50"
+                autoFocus
               />
-
-              {/* Miniatura do Favicon Atual */}
-              <div className="w-14 h-14 rounded-2xl bg-white dark:bg-[#2A0E2E] border border-gray-200 dark:border-[#512B54]/60 p-2 flex items-center justify-center shrink-0 shadow-sm relative group">
-                <img
-                  src={settings.faviconUrl || "/favicon.ico"}
-                  alt="Favicon Atual"
-                  className="w-8 h-8 object-contain"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = "/favicon.ico";
-                  }}
-                />
-                {uploadingFavicon && (
-                  <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center">
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  </div>
-                )}
-              </div>
-
-              {/* Ações e Texto */}
-              <div className="flex-1 text-center sm:text-left space-y-1">
-                <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                  {uploadingFavicon ? "Processando imagem..." : "Personalize o ícone que identifica a sua loja"}
-                </p>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                  Arraste e solte o arquivo aqui ou clique no botão abaixo para selecionar.
-                </p>
-
-                <div className="flex items-center gap-2 pt-1 flex-wrap justify-center sm:justify-start">
-                  <button
-                    type="button"
-                    onClick={() => faviconInputRef.current?.click()}
-                    disabled={uploadingFavicon}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#9306CF] hover:bg-[#8005b5] text-white text-xs font-bold shadow-xs cursor-pointer transition-all active:scale-95 disabled:opacity-50"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>{uploadingFavicon ? "Enviando..." : "Escolher Imagem"}</span>
-                  </button>
-
-                  {settings.faviconUrl && settings.faviconUrl !== "/favicon.ico" && (
-                    <button
-                      type="button"
-                      onClick={handleResetFavicon}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 text-xs font-medium cursor-pointer transition-all"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5 text-gray-400" />
-                      <span>Restaurar Padrão</span>
-                    </button>
-                  )}
-                </div>
-              </div>
             </div>
 
-            {/* Mockup de Aba de Navegador Simulada com Preview Imediato */}
-            <div className="space-y-1.5 pt-1">
-              <span className="text-[11px] font-semibold text-gray-600 dark:text-gray-300 block">
-                Pré-visualização na Aba do Navegador:
-              </span>
-
-              <div className="rounded-xl border border-gray-200 dark:border-[#512B54]/60 bg-gray-100 dark:bg-[#120514] overflow-hidden shadow-xs">
-                {/* Barra superior com abas do browser */}
-                <div className="flex items-center gap-2 px-3 pt-2 bg-gray-200/90 dark:bg-[#0D030E] border-b border-gray-300/60 dark:border-[#512B54]/40">
-                  {/* Bolinhas estilo janela (Fechar, Minimizar, Expandir) */}
-                  <div className="flex items-center gap-1.5 shrink-0 mr-1">
-                    <span className="w-2.5 h-2.5 rounded-full bg-red-400/90 inline-block" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400/90 inline-block" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/90 inline-block" />
-                  </div>
-
-                  {/* Aba Ativa Simulada */}
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-t-lg bg-white dark:bg-[#1E0921] border-t border-x border-gray-300/80 dark:border-[#512B54]/60 text-xs shadow-xs min-w-0 max-w-[260px] sm:max-w-[320px]">
-                    <img
-                      src={settings.faviconUrl || "/favicon.ico"}
-                      alt="Favicon da Loja"
-                      className="w-4 h-4 object-contain shrink-0 rounded-xs"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src = "/favicon.ico";
-                      }}
-                    />
-                    <span className="truncate font-semibold text-[11px] text-gray-800 dark:text-gray-200">
-                      Pop Shake Sorveteria - Cardápio Digital
-                    </span>
-                    <span className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs font-bold leading-none cursor-default ml-auto">
-                      ×
-                    </span>
-                  </div>
-
-                  <span className="text-gray-400 text-xs px-1 select-none font-bold">+</span>
-                </div>
-
-                {/* Barra de Endereço URL com Cadeado */}
-                <div className="px-3 py-2 bg-white dark:bg-[#18081B] flex items-center gap-2">
-                  <div className="flex-1 flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gray-50 dark:bg-[#120514] border border-gray-200 dark:border-[#512B54]/40 text-gray-600 dark:text-gray-300 font-mono text-[11px]">
-                    <Lock className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span className="text-emerald-700 dark:text-emerald-400 font-bold">https://</span>
-                    <span className="text-gray-800 dark:text-gray-200 font-medium">popshakesorveteria.com.br</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ══════════════════════════════════════════
-              CARD 3: GESTÃO DA TELA DE CARREGAMENTO (LOADING)
-              ══════════════════════════════════════════ */}
-          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 border-b border-gray-100 dark:border-[#512B54]/30 pb-3">
-              <Sparkles className="w-4 h-4 text-[#9306CF]" />
-              <h3 className="font-heading font-bold text-sm uppercase tracking-wide text-[#4C264F] dark:text-[#F9F5F9]">
-                Tela de Carregamento (Loading Screen)
-              </h3>
-            </div>
-
-            {/* SELEÇÃO DOS 3 TEMAS VISUAIS */}
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300">
-                Estilo Visual da Animação (3 Temas com Modo Claro & Escuro):
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                {[
-                  {
-                    id: "liquid_cream" as LoadingTheme,
-                    title: "Líquido & Fluido",
-                    desc: "Ondas e preenchimento cremoso artesanal",
-                    badge: "Padrão Pop",
-                  },
-                  {
-                    id: "playful_bounce" as LoadingTheme,
-                    title: "Flutuação & Bounce",
-                    desc: "Animação saltitante e alegre em órbita",
-                    badge: "Divertido",
-                  },
-                  {
-                    id: "minimal_pulse" as LoadingTheme,
-                    title: "Minimalista",
-                    desc: "Linhas finas, anel sutil e pulso elegante",
-                    badge: "Refinado",
-                  },
-                ].map((item) => {
-                  const isSelected = settings.theme === item.id;
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => setSettings((prev) => ({ ...prev, theme: item.id }))}
-                      className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
-                        isSelected
-                          ? "border-[#9306CF] bg-purple-50/70 dark:bg-purple-950/30 ring-2 ring-[#9306CF]/30 shadow-xs"
-                          : "border-gray-200 dark:border-[#512B54]/30 hover:border-gray-300 dark:hover:border-[#512B54]/70"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className="text-xs font-bold text-gray-900 dark:text-gray-100">
-                          {item.title}
-                        </span>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-[#9306CF]" />}
-                      </div>
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">
-                        {item.desc}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* ELEMENTO GRÁFICO CENTRAL */}
-            <div className="space-y-2 pt-1">
-              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300">
-                Elemento Gráfico Central (Emoji ou Símbolo):
-              </label>
-              <div className="flex items-center gap-2 flex-wrap">
-                {ICON_PRESETS.map((icon) => (
-                  <button
-                    key={icon}
-                    type="button"
-                    onClick={() => setSettings((prev) => ({ ...prev, centerIcon: icon }))}
-                    className={`w-9 h-9 text-lg rounded-xl flex items-center justify-center transition-all cursor-pointer border ${
-                      settings.centerIcon === icon
-                        ? "border-[#9306CF] bg-purple-50 dark:bg-purple-950/40 ring-2 ring-[#9306CF]/30 scale-105"
-                        : "border-gray-200 dark:border-[#512B54]/30 hover:bg-gray-100 dark:hover:bg-white/5"
-                    }`}
-                  >
-                    {icon}
-                  </button>
-                ))}
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="text"
-                    maxLength={4}
-                    value={settings.centerIcon}
-                    onChange={(e) => setSettings((prev) => ({ ...prev, centerIcon: e.target.value }))}
-                    className="w-14 text-center text-sm px-2 py-1.5 rounded-xl border border-gray-200 dark:border-[#512B54]/50 bg-gray-50 dark:bg-[#1A0A1C]"
-                    placeholder="Outro"
-                  />
-                  <span className="text-[10px] text-gray-400">Custom</span>
-                </div>
-              </div>
-            </div>
-
-            {/* GERENCIAMENTO DE MENSAGENS ROTATIVAS */}
-            <div className="space-y-2.5 pt-1">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300">
-                  Frases Rotativas Dinâmicas ({settings.phrases.length}):
-                </label>
-                <button
-                  type="button"
-                  onClick={handleResetPhrases}
-                  className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-600 dark:text-purple-300 hover:underline cursor-pointer"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>Restaurar Frases Padrão</span>
-                </button>
-              </div>
-
-              {/* Lista de frases existentes */}
-              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                {settings.phrases.map((phrase, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono text-gray-400 w-4 text-right">
-                      {idx + 1}.
-                    </span>
-                    <input
-                      type="text"
-                      value={phrase}
-                      onChange={(e) => handleUpdatePhrase(idx, e.target.value)}
-                      className="flex-1 text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-[#512B54]/40 bg-gray-50/80 dark:bg-[#1A0A1C] text-gray-900 dark:text-gray-100"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleRemovePhrase(idx)}
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer"
-                      title="Excluir frase"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              {/* Inserir nova frase */}
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="text"
-                  value={newPhraseInput}
-                  onChange={(e) => setNewPhraseInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAddPhrase()}
-                  placeholder="Ex: Finalizando a calda especial de morango..."
-                  className="flex-1 text-xs px-3 py-2 rounded-xl border border-gray-200 dark:border-[#512B54]/50 bg-white dark:bg-[#1A0A1C]"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddPhrase}
-                  className="inline-flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-xl bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200 hover:bg-purple-200 cursor-pointer transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Adicionar</span>
-                </button>
-              </div>
-            </div>
-
-            {/* TEMPOS E RITMO */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-gray-100 dark:border-[#512B54]/30">
-              <div>
-                <label className="block text-[11px] font-semibold text-gray-600 dark:text-gray-300 mb-1 flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-[#9306CF]" />
-                  <span>Troca de Frases:</span>
-                </label>
-                <select
-                  value={settings.rotationInterval}
-                  onChange={(e) => setSettings((prev) => ({ ...prev, rotationInterval: Number(e.target.value) }))}
-                  className="w-full text-xs px-2.5 py-1.5 rounded-xl border border-gray-200 dark:border-[#512B54]/50 bg-gray-50 dark:bg-[#1A0A1C]"
-                >
-                  <option value={1500}>1.5 segundos (Ágil)</option>
-                  <option value={2000}>2.0 segundos (Rápido)</option>
-                  <option value={2400}>2.4 segundos (Recomendado)</option>
-                  <option value={3000}>3.0 segundos (Tranquilo)</option>
-                  <option value={4000}>4.0 segundos (Suave)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-gray-600 dark:text-gray-300 mb-1 flex items-center gap-1">
-                  <Sliders className="w-3 h-3 text-[#9306CF]" />
-                  <span>Duração Mínima (Anti-flicker):</span>
-                </label>
-                <select
-                  value={settings.minDuration}
-                  onChange={(e) => setSettings((prev) => ({ ...prev, minDuration: Number(e.target.value) }))}
-                  className="w-full text-xs px-2.5 py-1.5 rounded-xl border border-gray-200 dark:border-[#512B54]/50 bg-gray-50 dark:bg-[#1A0A1C]"
-                >
-                  <option value={400}>400ms (Mínimo)</option>
-                  <option value={600}>600ms (Leve)</option>
-                  <option value={800}>800ms (Recomendado)</option>
-                  <option value={1200}>1.2s (Elegante)</option>
-                  <option value={1600}>1.6s (Prolongado)</option>
-                </select>
-              </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="px-5 py-2.5 rounded-xl font-bold text-foreground bg-secondary hover:bg-secondary/80 transition-colors"
+                disabled={isSaving}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => saveToApi()}
+                disabled={confirmText.trim().toLowerCase() !== "sim" || isSaving}
+                className="px-5 py-2.5 rounded-xl font-bold text-primary-foreground bg-primary disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors flex items-center gap-2"
+              >
+                {isSaving ? "Publicando..." : "Confirmar e Publicar"}
+              </button>
             </div>
           </div>
         </div>
+      )}
 
-        {/* COLUNA DIREITA: LIVE PREVIEW MOCK INTERATIVO (5/12) */}
-        <div className="lg:col-span-5 sticky top-24 space-y-3">
-          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 shadow-sm space-y-3">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <Eye className="w-4 h-4 text-[#9306CF]" />
-                <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-[#4C264F] dark:text-[#F9F5F9]">
-                  Live Preview em Tempo Real
-                </h4>
-              </div>
-
-              {/* Botão Alternador Claro / Escuro do Mock */}
-              <div className="inline-flex items-center p-0.5 rounded-xl bg-gray-100 dark:bg-[#180A1A] border border-gray-200 dark:border-[#512B54]/40 text-xs font-bold">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPreviewMode("light");
-                    setActiveBgTab("light");
-                  }}
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                    previewMode === "light"
-                      ? "bg-white text-amber-600 shadow-xs"
-                      : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-100"
-                  }`}
-                  title="Testar em Modo Claro"
-                >
-                  <Sun className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Claro</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPreviewMode("dark");
-                    setActiveBgTab("dark");
-                  }}
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                    previewMode === "dark"
-                      ? "bg-[#2F1333] text-purple-300 shadow-xs"
-                      : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-100"
-                  }`}
-                  title="Testar em Modo Escuro"
-                >
-                  <Moon className="w-3.5 h-3.5 text-[#9306CF] dark:text-[#E899FF]" />
-                  <span>Escuro</span>
-                </button>
-              </div>
-            </div>
-
-            {/* QUADRO MOCK DA APLICAÇÃO (COM O FUNDO ESCOLHIDO + LOADING) */}
-            {(() => {
-              const isDarkPreview = previewMode === "dark";
-              const activeBgType = isDarkPreview ? settings.bgTypeDark : settings.bgTypeLight;
-              const activeBgValue = isDarkPreview ? settings.bgValueDark : settings.bgValueLight;
-
-              return (
-                <div
-                  ref={previewContainerRef}
-                  className={`relative rounded-2xl p-6 min-h-[360px] flex flex-col items-center justify-center shadow-inner overflow-hidden transition-all duration-300 ${
-                    isDarkPreview
-                      ? "border border-purple-900/40"
-                      : "border border-gray-300/70"
-                  }`}
-                  style={{ background: activePreviewBackground }}
-                >
-                  {/* Canvas Dinâmico se o tipo for 'dynamic' */}
-                  {activeBgType === "dynamic" && (
-                    <DynamicCanvasBackground
-                      style={activeBgValue === "aurora_orbs" ? "aurora_orbs" : "constellation"}
-                      isDark={isDarkPreview}
-                      previewContainerRef={previewContainerRef}
-                      className="absolute inset-0 w-full h-full pointer-events-auto"
-                    />
-                  )}
-
-                  {/* Badge indicando simulação */}
-                  <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/50 text-white text-[9px] font-mono backdrop-blur-xs pointer-events-none">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>Simulação: Vitrine + Loading</span>
-                  </div>
-
-                  {/* Card simulado de Loading (sem moldura branca no modo escuro) */}
-                  <div
-                    className={`relative z-10 w-full max-w-xs rounded-3xl backdrop-blur-md shadow-2xl p-2 transition-colors duration-200 ${
-                      isDarkPreview
-                        ? "bg-[#160718]/90 border border-purple-900/40 text-[#F9F5F9]"
-                        : "bg-white/90 border border-purple-200/80 text-[#4C264F]"
-                    }`}
-                  >
-                    <PopShakeLoading
-                      overrideSettings={settings}
-                      previewColorMode={previewMode}
-                    />
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* Botão de Salvar no Mock */}
-            <button
-              type="button"
-              onClick={handleSaveAll}
-              disabled={saving || loading}
-              className="w-full inline-flex items-center justify-center gap-2 font-bold px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 active:scale-[0.98] text-white text-xs uppercase tracking-wider shadow-md shadow-[#9306CF]/20 transition-all cursor-pointer disabled:opacity-50"
-            >
-              {saving ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Salvando Identidade Visual...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>SALVAR IDENTIDADE VISUAL</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

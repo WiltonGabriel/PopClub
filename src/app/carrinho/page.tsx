@@ -620,13 +620,13 @@ export default function CarrinhoPage() {
             className="p-2 rounded-xl bg-muted/60 hover:bg-muted text-foreground border border-border/40 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
             aria-label="Voltar para o cardápio"
           >
-            <ChevronLeft className="w-5 h-5 text-[#9306CF] dark:text-[#C7A9C9]" />
+            <ChevronLeft className="w-5 h-5 text-primary dark:text-muted-foreground" />
           </Link>
           <div>
             <h1 className="text-base sm:text-lg font-heading font-black tracking-tight uppercase text-foreground flex items-center gap-2">
               <span>Meu Carrinho</span>
               {items.length > 0 && (
-                <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20">
+                <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary dark:text-muted-foreground border border-primary/20">
                   {items.reduce((s, i) => s + i.quantity, 0)} {items.reduce((s, i) => s + i.quantity, 0) === 1 ? "item" : "itens"}
                 </span>
               )}
@@ -665,10 +665,10 @@ export default function CarrinhoPage() {
         )}
 
         {items.length === 0 ? (
-          <div className="bg-white/80 dark:bg-[#230E26]/80 backdrop-blur-md border border-gray-200/80 dark:border-[#512B54]/50 rounded-3xl p-8 sm:p-14 text-center space-y-6 shadow-xl shadow-[#9306CF]/5 animate-in fade-in duration-300">
+          <div className="bg-white/80 dark:bg-[#230E26]/80 backdrop-blur-md border border-gray-200/80 dark:border-border/50 rounded-3xl p-8 sm:p-14 text-center space-y-6 shadow-xl shadow-primary/5 animate-in fade-in duration-300">
             <div className="relative mx-auto w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#9306CF]/20 via-[#940068]/15 to-transparent blur-xl animate-pulse" />
-              <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800/60 flex items-center justify-center text-4xl sm:text-5xl shadow-inner">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-primary/20 via-accent/15 to-transparent blur-xl animate-pulse" />
+              <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-primary/5 dark:bg-primary/95/60 border border-primary/20 dark:border-primary/80/60 flex items-center justify-center text-4xl sm:text-5xl shadow-inner">
                 🥣
                 <span className="absolute -top-1 -right-1 text-xl animate-bounce-subtle">✨</span>
                 <span className="absolute -bottom-1 -left-1 text-base">🍧</span>
@@ -687,7 +687,7 @@ export default function CarrinhoPage() {
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
                 href="/"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-[#9306CF] via-[#940068] to-[#9306CF] bg-[length:200%_auto] hover:bg-right text-white font-heading font-bold text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-[#9306CF]/25 active:scale-95 transition-all cursor-pointer border border-white/20"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] hover:bg-right text-white font-heading font-bold text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-primary/25 active:scale-95 transition-all cursor-pointer border border-white/20"
               >
                 <span>Explorar Cardápio Pop Shake</span>
                 <ArrowRight className="w-4 h-4" />
@@ -695,23 +695,23 @@ export default function CarrinhoPage() {
             </div>
 
             {/* Atalhos rápidos de categorias populares */}
-            <div className="pt-4 border-t border-gray-100 dark:border-[#512B54]/30 flex flex-wrap items-center justify-center gap-2">
+            <div className="pt-4 border-t border-gray-100 dark:border-border/30 flex flex-wrap items-center justify-center gap-2">
               <span className="text-[11px] font-semibold text-muted-foreground mr-1">Sugestões rápidas:</span>
               <Link
                 href="/?categoria=acai"
-                className="text-xs px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-800/40 text-[#9306CF] dark:text-[#C7A9C9] font-medium hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
+                className="text-xs px-3 py-1.5 rounded-xl bg-primary/5 dark:bg-primary/95/40 border border-primary/20/60 dark:border-primary/80/40 text-primary dark:text-muted-foreground font-medium hover:bg-primary/10 dark:hover:bg-primary/90/40 transition-colors"
               >
                 🍧 Açaí no Copo
               </Link>
               <Link
                 href="/?categoria=sorvete"
-                className="text-xs px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-800/40 text-[#9306CF] dark:text-[#C7A9C9] font-medium hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
+                className="text-xs px-3 py-1.5 rounded-xl bg-primary/5 dark:bg-primary/95/40 border border-primary/20/60 dark:border-primary/80/40 text-primary dark:text-muted-foreground font-medium hover:bg-primary/10 dark:hover:bg-primary/90/40 transition-colors"
               >
                 🍦 Sorvetes Especiais
               </Link>
               <Link
                 href="/?categoria=combos"
-                className="text-xs px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-800/40 text-[#9306CF] dark:text-[#C7A9C9] font-medium hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
+                className="text-xs px-3 py-1.5 rounded-xl bg-primary/5 dark:bg-primary/95/40 border border-primary/20/60 dark:border-primary/80/40 text-primary dark:text-muted-foreground font-medium hover:bg-primary/10 dark:hover:bg-primary/90/40 transition-colors"
               >
                 🔥 Promoções & Combos
               </Link>
@@ -720,12 +720,12 @@ export default function CarrinhoPage() {
         ) : (
           <>
             {/* 1. Identificação (Acesso Rápido) */}
-            <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-[#512B54]/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+            <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-border/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
               {!user ? (
                 <>
-                  <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+                  <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-border/30">
                     <h3 className="font-heading text-base sm:text-lg font-bold uppercase tracking-wide flex items-center gap-2.5 text-foreground">
-                      <div className="w-8 h-8 rounded-xl bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary dark:text-muted-foreground flex items-center justify-center">
                         <User className="w-4 h-4" />
                       </div>
                       <span>1. Identificação (Acesso Rápido)</span>
@@ -783,10 +783,10 @@ export default function CarrinhoPage() {
                     </div>
                   </div>
 
-                  <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-gray-100 dark:border-[#512B54]/30">
+                  <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-gray-100 dark:border-border/30">
                     <Link
                       href="/login?tab=password"
-                      className="text-xs text-[#9306CF] dark:text-[#C7A9C9] font-medium hover:underline flex items-center gap-1"
+                      className="text-xs text-primary dark:text-muted-foreground font-medium hover:underline flex items-center gap-1"
                     >
                       Já tem cadastro completo? <span className="font-bold underline">Entrar com senha</span>
                     </Link>
@@ -811,7 +811,7 @@ export default function CarrinhoPage() {
                           }
                         }}
                         disabled={inlineLoading}
-                        className="rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] text-white text-xs font-bold px-4 h-9 shadow-sm cursor-pointer"
+                        className="rounded-xl bg-gradient-to-r from-primary to-accent text-white text-xs font-bold px-4 h-9 shadow-sm cursor-pointer"
                       >
                         {inlineLoading ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -843,7 +843,7 @@ export default function CarrinhoPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => signOut()}
-                    className="rounded-xl text-xs font-bold h-8 px-3 border-gray-200 dark:border-[#512B54]/40 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 cursor-pointer"
+                    className="rounded-xl text-xs font-bold h-8 px-3 border-gray-200 dark:border-border/40 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 cursor-pointer"
                   >
                     Trocar
                   </Button>
@@ -852,10 +852,10 @@ export default function CarrinhoPage() {
             </section>
 
             {/* 2. Lista de Itens */}
-            <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-[#512B54]/40 rounded-3xl p-4 sm:p-6 shadow-sm space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+            <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-border/40 rounded-3xl p-4 sm:p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-border/30">
                 <h2 className="font-heading text-base sm:text-lg font-bold uppercase tracking-wide flex items-center gap-2 text-foreground">
-                  <div className="w-8 h-8 rounded-xl bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary dark:text-muted-foreground flex items-center justify-center">
                     <ShoppingBag className="w-4 h-4" />
                   </div>
                   <span>Itens Selecionados</span>
@@ -872,13 +872,13 @@ export default function CarrinhoPage() {
                   return (
                     <div
                       key={item.id}
-                      className="bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200/70 dark:border-[#512B54]/40 rounded-2xl p-3.5 sm:p-4 shadow-xs transition-all hover:border-[#9306CF]/30 space-y-3"
+                      className="bg-gray-50/70 dark:bg-background/80 border border-gray-200/70 dark:border-border/40 rounded-2xl p-3.5 sm:p-4 shadow-xs transition-all hover:border-primary/30 space-y-3"
                     >
                       {/* Top Row: Imagem + Título + Preço unitário + Botão Remover */}
                       <div className="flex items-start gap-3 justify-between">
                         <div className="flex items-start gap-3 min-w-0 flex-1">
                           {/* Miniatura do Produto */}
-                          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-purple-50 dark:bg-purple-950/60 border border-purple-100 dark:border-purple-900/30 overflow-hidden shrink-0 relative flex items-center justify-center shadow-xs">
+                          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-primary/5 dark:bg-primary/95/60 border border-primary/10 dark:border-primary/90/30 overflow-hidden shrink-0 relative flex items-center justify-center shadow-xs">
                             {item.imageUrl ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
@@ -896,7 +896,7 @@ export default function CarrinhoPage() {
                                 {item.name}
                               </h4>
                               {item.promotionId && (
-                                <span className="bg-gradient-to-r from-[#9306CF] to-[#940068] text-white text-[9px] font-heading font-bold uppercase px-2 py-0.5 rounded-full shadow-xs shrink-0">
+                                <span className="bg-gradient-to-r from-primary to-accent text-white text-[9px] font-heading font-bold uppercase px-2 py-0.5 rounded-full shadow-xs shrink-0">
                                   PROMO
                                 </span>
                               )}
@@ -930,13 +930,13 @@ export default function CarrinhoPage() {
 
                       {/* Middle Row: Adicionais, Caldas e Observações */}
                       {((item.selectedOptions && item.selectedOptions.length > 0) || item.notes) && (
-                        <div className="pt-2 border-t border-gray-200/60 dark:border-[#512B54]/30 space-y-2">
+                        <div className="pt-2 border-t border-gray-200/60 dark:border-border/30 space-y-2">
                           {item.selectedOptions && item.selectedOptions.length > 0 && (
                             <div className="flex flex-wrap gap-1.5">
                               {item.selectedOptions.map((opt, idx) => (
                                 <span
                                   key={idx}
-                                  className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg bg-purple-50/80 dark:bg-purple-950/50 border border-purple-200/50 dark:border-purple-900/40 text-[#9306CF] dark:text-[#C7A9C9] font-medium"
+                                  className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg bg-primary/5/80 dark:bg-primary/95/50 border border-primary/20/50 dark:border-primary/90/40 text-primary dark:text-muted-foreground font-medium"
                                 >
                                   <span>{opt.name}</span>
                                   {opt.price > 0 && (
@@ -959,9 +959,9 @@ export default function CarrinhoPage() {
                       )}
 
                       {/* Bottom Row: Stepper Touch-Friendly de Quantidade e Total da Linha */}
-                      <div className="flex items-center justify-between pt-2 border-t border-gray-200/60 dark:border-[#512B54]/30">
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-200/60 dark:border-border/30">
                         {/* Stepper com alta ergonomia para mobile */}
-                        <div className="flex items-center gap-1 bg-white dark:bg-[#230E26] border border-gray-300 dark:border-[#512B54]/60 rounded-xl p-1 shadow-xs">
+                        <div className="flex items-center gap-1 bg-white dark:bg-[#230E26] border border-gray-300 dark:border-border/60 rounded-xl p-1 shadow-xs">
                           <button
                             type="button"
                             onClick={() => updateQuantity(item.id, -1)}
@@ -990,7 +990,7 @@ export default function CarrinhoPage() {
                           <span className="text-[10px] uppercase font-bold text-muted-foreground block">
                             Subtotal
                           </span>
-                          <span className="font-mono font-black text-base sm:text-lg text-[#9306CF] dark:text-[#C7A9C9]">
+                          <span className="font-mono font-black text-base sm:text-lg text-primary dark:text-muted-foreground">
                             R$ {lineTotal.toFixed(2).replace(".", ",")}
                           </span>
                         </div>
@@ -1002,9 +1002,9 @@ export default function CarrinhoPage() {
             </section>
 
             {/* 2. Cupom de Desconto */}
-            <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-[#512B54]/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+            <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-border/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
               <h3 className="font-heading text-base sm:text-lg font-bold uppercase tracking-wide flex items-center gap-2.5 text-foreground">
-                <div className="w-8 h-8 rounded-xl bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary dark:text-muted-foreground flex items-center justify-center">
                   <Tag className="w-4 h-4" />
                 </div>
                 <span>Cupom de Desconto</span>
@@ -1039,12 +1039,12 @@ export default function CarrinhoPage() {
                     value={couponInput}
                     onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                     placeholder="Ex: BEMVINDO10"
-                    className="rounded-xl border-gray-300 dark:border-[#512B54]/60 bg-white dark:bg-[#190B1A] font-mono text-base md:text-sm uppercase flex-1 h-11 px-3.5"
+                    className="rounded-xl border-gray-300 dark:border-border/60 bg-white dark:bg-background font-mono text-base md:text-sm uppercase flex-1 h-11 px-3.5"
                   />
                   <Button
                     type="submit"
                     disabled={validatingCoupon || !couponInput.trim()}
-                    className="rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider font-bold px-6 h-11 shadow-sm shadow-[#9306CF]/20 cursor-pointer"
+                    className="rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider font-bold px-6 h-11 shadow-sm shadow-primary/20 cursor-pointer"
                   >
                     {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
                   </Button>
@@ -1071,10 +1071,10 @@ export default function CarrinhoPage() {
             </section>
 
             {/* 3. Endereço de Entrega */}
-            <section ref={addressSectionRef} className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-[#512B54]/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+            <section ref={addressSectionRef} className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-border/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-border/30">
                 <h3 className="font-heading text-base sm:text-lg font-bold uppercase tracking-wide flex items-center gap-2.5 text-foreground">
-                  <div className="w-8 h-8 rounded-xl bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary dark:text-muted-foreground flex items-center justify-center">
                     <MapPin className="w-4 h-4" />
                   </div>
                   <span>Endereço de Entrega</span>
@@ -1085,7 +1085,7 @@ export default function CarrinhoPage() {
                   <button
                     type="button"
                     onClick={openAddressModal}
-                    className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/40 px-3 py-2 rounded-xl transition-colors cursor-pointer"
+                    className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-primary dark:text-muted-foreground bg-primary/5 dark:bg-primary/95/40 border border-primary/20 dark:border-primary/80 hover:bg-primary/10 dark:hover:bg-primary/90/40 px-3 py-2 rounded-xl transition-colors cursor-pointer"
                   >
                     <MapPin className="w-3.5 h-3.5" />
                     <span>Selecionar / Alterar</span>
@@ -1096,7 +1096,7 @@ export default function CarrinhoPage() {
                     type="button"
                     onClick={handleGetLocation}
                     disabled={isLocating}
-                    className="inline-flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 px-3.5 py-2 rounded-xl shadow-xs shadow-[#9306CF]/20 transition-all cursor-pointer disabled:opacity-60 shrink-0"
+                    className="inline-flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-primary to-accent hover:opacity-95 px-3.5 py-2 rounded-xl shadow-xs shadow-primary/20 transition-all cursor-pointer disabled:opacity-60 shrink-0"
                   >
                     {isLocating ? (
                       <>
@@ -1123,7 +1123,7 @@ export default function CarrinhoPage() {
                     <button
                       type="button"
                       onClick={openAddressModal}
-                      className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline"
+                      className="text-xs font-bold text-primary dark:text-muted-foreground hover:underline"
                     >
                       Ver todos ({addresses.length})
                     </button>
@@ -1137,8 +1137,8 @@ export default function CarrinhoPage() {
                           onClick={() => setActiveAddressId(addr.id)}
                           className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between gap-2 ${
                             isSelected
-                              ? "border-[#9306CF] bg-[#9306CF]/5 dark:bg-[#9306CF]/10 shadow-xs"
-                              : "border-border/60 hover:border-[#9306CF]/40 bg-card"
+                              ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-xs"
+                              : "border-border/60 hover:border-primary/40 bg-card"
                           }`}
                         >
                           <div className="min-w-0">
@@ -1150,7 +1150,7 @@ export default function CarrinhoPage() {
                             </span>
                           </div>
                           {isSelected && (
-                            <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#9306CF] text-white">
+                            <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary text-white">
                               Ativo
                             </span>
                           )}
@@ -1163,7 +1163,7 @@ export default function CarrinhoPage() {
 
               {/* Feedback Visual e Inteligente de Precisão (UX) */}
               {isLocating && (
-                <div className="flex items-center gap-2.5 p-3 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/40 rounded-xl text-xs font-medium text-[#9306CF] dark:text-[#C7A9C9] animate-pulse">
+                <div className="flex items-center gap-2.5 p-3 bg-primary/5 dark:bg-primary/95/40 border border-primary/20 dark:border-primary/80/40 rounded-xl text-xs font-medium text-primary dark:text-muted-foreground animate-pulse">
                   <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                   <span>Obtendo coordenadas do dispositivo e consultando dados da rua via satélite...</span>
                 </div>
@@ -1271,7 +1271,7 @@ export default function CarrinhoPage() {
                     value={number}
                     onChange={(e) => handleNumberChange(e.target.value)}
                     placeholder="Ex: 1420"
-                    className="rounded-xl border border-input text-base md:text-sm h-11 px-3 focus-visible:ring-2 focus-visible:ring-[#9306CF]/30"
+                    className="rounded-xl border border-input text-base md:text-sm h-11 px-3 focus-visible:ring-2 focus-visible:ring-primary/30"
                     required
                   />
                 </div>
@@ -1344,9 +1344,9 @@ export default function CarrinhoPage() {
             </section>
 
             {/* 4. Forma de Pagamento & AVISO VISUAL DESTACADO */}
-            <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-[#512B54]/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+            <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-border/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
               <h3 className="font-heading text-base sm:text-lg font-bold uppercase tracking-wide flex items-center gap-2.5 text-foreground">
-                <div className="w-8 h-8 rounded-xl bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary dark:text-muted-foreground flex items-center justify-center">
                   <CreditCard className="w-4 h-4" />
                 </div>
                 <span>Forma de Pagamento na Entrega</span>
@@ -1373,16 +1373,16 @@ export default function CarrinhoPage() {
                   onClick={() => setPaymentType("pix_entrega")}
                   className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
                     paymentType === "pix_entrega"
-                      ? "border-[#9306CF] bg-purple-50/70 dark:bg-[#9306CF]/20 shadow-sm ring-1 ring-[#9306CF]/30"
-                      : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#190B1A]/60"
+                      ? "border-primary bg-primary/5/70 dark:bg-primary/20 shadow-sm ring-1 ring-primary/30"
+                      : "border-gray-200 dark:border-border/40 hover:border-gray-300 dark:hover:border-border/80 bg-white dark:bg-background/60"
                   }`}
                 >
                   <div className="flex items-start justify-between w-full mb-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center shrink-0">
+                    <div className="w-9 h-9 rounded-xl bg-primary/10 dark:bg-primary/95/60 text-primary dark:text-muted-foreground flex items-center justify-center shrink-0">
                       <QrCode className="w-4 h-4" />
                     </div>
                     {paymentType === "pix_entrega" && (
-                      <span className="w-5 h-5 rounded-full bg-[#9306CF] text-white flex items-center justify-center shadow-xs">
+                      <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shadow-xs">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                       </span>
                     )}
@@ -1403,16 +1403,16 @@ export default function CarrinhoPage() {
                   onClick={() => setPaymentType("cartao_maquininha")}
                   className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
                     paymentType === "cartao_maquininha"
-                      ? "border-[#9306CF] bg-purple-50/70 dark:bg-[#9306CF]/20 shadow-sm ring-1 ring-[#9306CF]/30"
-                      : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#190B1A]/60"
+                      ? "border-primary bg-primary/5/70 dark:bg-primary/20 shadow-sm ring-1 ring-primary/30"
+                      : "border-gray-200 dark:border-border/40 hover:border-gray-300 dark:hover:border-border/80 bg-white dark:bg-background/60"
                   }`}
                 >
                   <div className="flex items-start justify-between w-full mb-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center shrink-0">
+                    <div className="w-9 h-9 rounded-xl bg-primary/10 dark:bg-primary/95/60 text-primary dark:text-muted-foreground flex items-center justify-center shrink-0">
                       <CreditCard className="w-4 h-4" />
                     </div>
                     {paymentType === "cartao_maquininha" && (
-                      <span className="w-5 h-5 rounded-full bg-[#9306CF] text-white flex items-center justify-center shadow-xs">
+                      <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shadow-xs">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                       </span>
                     )}
@@ -1433,8 +1433,8 @@ export default function CarrinhoPage() {
                   onClick={() => setPaymentType("dinheiro")}
                   className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
                     paymentType === "dinheiro"
-                      ? "border-[#9306CF] bg-purple-50/70 dark:bg-[#9306CF]/20 shadow-sm ring-1 ring-[#9306CF]/30"
-                      : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#190B1A]/60"
+                      ? "border-primary bg-primary/5/70 dark:bg-primary/20 shadow-sm ring-1 ring-primary/30"
+                      : "border-gray-200 dark:border-border/40 hover:border-gray-300 dark:hover:border-border/80 bg-white dark:bg-background/60"
                   }`}
                 >
                   <div className="flex items-start justify-between w-full mb-2.5">
@@ -1442,7 +1442,7 @@ export default function CarrinhoPage() {
                       <Banknote className="w-4 h-4" />
                     </div>
                     {paymentType === "dinheiro" && (
-                      <span className="w-5 h-5 rounded-full bg-[#9306CF] text-white flex items-center justify-center shadow-xs">
+                      <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shadow-xs">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                       </span>
                     )}
@@ -1474,7 +1474,7 @@ export default function CarrinhoPage() {
                         placeholder={`Ex: ${(Math.ceil(finalTotal / 10) * 10 + 10).toFixed(2)}`}
                         value={changeFor}
                         onChange={(e) => setChangeFor(e.target.value)}
-                        className="pl-9 rounded-xl border-gray-300 dark:border-[#512B54]/60 bg-white dark:bg-[#190B1A] text-sm font-mono h-10"
+                        className="pl-9 rounded-xl border-gray-300 dark:border-border/60 bg-white dark:bg-background text-sm font-mono h-10"
                       />
                     </div>
                     {changeFor && (
@@ -1494,15 +1494,15 @@ export default function CarrinhoPage() {
             </section>
 
             {/* 5. Resumo de Valores e Envio */}
-            <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-[#512B54]/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+            <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-border/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
               <h3 className="font-heading text-base sm:text-lg font-bold uppercase tracking-wide flex items-center gap-2.5 text-foreground">
-                <div className="w-8 h-8 rounded-xl bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary dark:text-muted-foreground flex items-center justify-center">
                   <ShoppingBag className="w-4 h-4" />
                 </div>
                 <span>Resumo do Pedido</span>
               </h3>
 
-              <div className="space-y-2.5 font-mono text-xs border-b border-gray-100 dark:border-[#512B54]/30 pb-3">
+              <div className="space-y-2.5 font-mono text-xs border-b border-gray-100 dark:border-border/30 pb-3">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Subtotal dos Itens:</span>
                   <span className="font-bold text-foreground">R$ {subtotal.toFixed(2).replace(".", ",")}</span>
@@ -1536,7 +1536,7 @@ export default function CarrinhoPage() {
                 </div>
 
                 {amountToFreeShipping > 0 && (
-                  <div className="mt-2 p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200/60 dark:border-purple-900/40 text-[11px] text-[#9306CF] dark:text-[#C7A9C9] flex items-center gap-2">
+                  <div className="mt-2 p-2.5 rounded-xl bg-primary/5 dark:bg-primary/95/30 border border-primary/20/60 dark:border-primary/90/40 text-[11px] text-primary dark:text-muted-foreground flex items-center gap-2">
                     <Sparkles className="w-3.5 h-3.5 shrink-0" />
                     <span>
                       Adicione mais <strong>R$ {amountToFreeShipping.toFixed(2).replace(".", ",")}</strong> para ganhar <strong>Entrega Grátis</strong>!
@@ -1549,7 +1549,7 @@ export default function CarrinhoPage() {
                 <span className="font-heading font-black text-xs sm:text-sm uppercase tracking-wider text-muted-foreground">
                   Total a Pagar na Entrega:
                 </span>
-                <span className="font-heading text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#9306CF] to-[#940068]">
+                <span className="font-heading text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
                   R$ {finalTotal.toFixed(2).replace(".", ",")}
                 </span>
               </div>
@@ -1560,7 +1560,7 @@ export default function CarrinhoPage() {
 
       {/* Barra de Ação Fixa Inferior */}
       {items.length > 0 && (
-        <div className="fixed bottom-0 left-0 w-full bg-white/95 dark:bg-[#190B1A]/95 backdrop-blur-md border-t border-border/40 p-4 z-40 shadow-2xl pb-safe">
+        <div className="fixed bottom-0 left-0 w-full bg-white/95 dark:bg-background/95 backdrop-blur-md border-t border-border/40 p-4 z-40 shadow-2xl pb-safe">
           <div className="max-w-4xl mx-auto space-y-2">
             {storeSettings && !storeSettings.isOpen && (
               <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/40 rounded-2xl p-3 text-xs text-red-700 dark:text-red-300 flex items-center gap-2">
@@ -1573,7 +1573,7 @@ export default function CarrinhoPage() {
                 <span className="text-[10px] font-mono uppercase text-muted-foreground block">
                   Total (Pague na Entrega)
                 </span>
-                <span className="font-heading text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#9306CF] to-[#940068]">
+                <span className="font-heading text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
                   R$ {finalTotal.toFixed(2).replace(".", ",")}
                 </span>
               </div>
@@ -1615,7 +1615,7 @@ export default function CarrinhoPage() {
                 className={`h-12 px-6 sm:px-8 rounded-2xl font-heading text-sm uppercase tracking-wider font-black shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 transition-all ${
                   storeSettings && !storeSettings.isOpen
                     ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed text-white dark:bg-gray-700"
-                    : "bg-gradient-to-r from-[#9306CF] via-[#940068] to-[#9306CF] bg-[length:200%_auto] hover:bg-right text-white shadow-[#9306CF]/25 border border-white/20"
+                    : "bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] hover:bg-right text-white shadow-primary/25 border border-white/20"
                 }`}
               >
                 {submitting ? (

@@ -152,7 +152,7 @@ export function OrderRejectDialog({
               <AlertTriangle className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-heading font-black text-lg text-[#4C264F] dark:text-[#F9F5F9]">
+              <h3 className="font-heading font-black text-lg text-foreground dark:text-foreground">
                 Recusar Pedido #{order.id.substring(0, 6)}
               </h3>
               <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -170,7 +170,7 @@ export function OrderRejectDialog({
 
         {/* Resumo do Pedido */}
         <div className="bg-gray-50 dark:bg-[#2A0E18] p-3.5 rounded-2xl border border-gray-100 dark:border-red-900/30 space-y-2">
-          <div className="flex items-center justify-between text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9]">
+          <div className="flex items-center justify-between text-xs font-bold text-foreground dark:text-foreground">
             <div className="flex items-center gap-1.5 truncate">
               <span>{clientName}</span>
               <span className="text-gray-400">•</span>
@@ -207,7 +207,7 @@ export function OrderRejectDialog({
             <button
               type="button"
               onClick={() => setIsManagingPresets(!isManagingPresets)}
-              className="text-[11px] font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1"
+              className="text-[11px] font-bold text-primary dark:text-muted-foreground hover:underline flex items-center gap-1"
             >
               <Settings className="w-3 h-3" />
               <span>{isManagingPresets ? "Fechar Gestão" : "Gerenciar Motivos"}</span>
@@ -318,7 +318,7 @@ export function OrderRejectDialog({
 
         {/* Textarea com Justificativa Obrigatória */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9] flex items-center justify-between">
+          <label className="text-xs font-bold text-foreground dark:text-foreground flex items-center justify-between">
             <span>Justificativa Obrigatória:</span>
             <span className={`text-[10px] font-mono font-bold ${
               reasonRemaining <= 20
@@ -349,7 +349,7 @@ export function OrderRejectDialog({
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
-            className="flex-1 rounded-xl h-11 text-xs font-bold uppercase tracking-wider border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5"
+            className="flex-1 rounded-xl h-11 text-xs font-bold uppercase tracking-wider border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5"
           >
             Voltar
           </Button>

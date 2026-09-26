@@ -196,10 +196,10 @@ export function CouponFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl w-[95vw] max-h-[92vh] overflow-y-auto bg-white dark:bg-[#200B22] border-gray-200 dark:border-[#512B54]/40 text-foreground p-5 sm:p-7 rounded-2xl shadow-2xl">
-        <DialogHeader className="border-b border-gray-100 dark:border-[#512B54]/30 pb-4">
-          <DialogTitle className="text-lg sm:text-xl font-heading font-black text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
-            <Ticket className="w-5 h-5 text-[#9306CF]" />
+      <DialogContent className="sm:max-w-xl w-[95vw] max-h-[92vh] overflow-y-auto bg-white dark:bg-[#200B22] border-gray-200 dark:border-border/40 text-foreground p-5 sm:p-7 rounded-2xl shadow-2xl">
+        <DialogHeader className="border-b border-gray-100 dark:border-border/30 pb-4">
+          <DialogTitle className="text-lg sm:text-xl font-heading font-black text-foreground dark:text-foreground flex items-center gap-2">
+            <Ticket className="w-5 h-5 text-primary" />
             {couponToEdit ? "Editar Cupom de Desconto" : "Criar Novo Cupom de Desconto"}
           </DialogTitle>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -227,7 +227,7 @@ export function CouponFormDialog({
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase())}
                   placeholder="Ex: POPSHAKE10"
-                  className="pl-9 font-mono font-bold text-sm tracking-wider uppercase bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-11"
+                  className="pl-9 font-mono font-bold text-sm tracking-wider uppercase bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11"
                   required
                 />
               </div>
@@ -235,7 +235,7 @@ export function CouponFormDialog({
                 type="button"
                 variant="outline"
                 onClick={handleGenerateCode}
-                className="h-11 px-3.5 border-gray-200 dark:border-[#512B54]/40 text-xs font-bold text-[#9306CF] hover:bg-purple-50 dark:hover:bg-purple-950/30 flex items-center gap-1.5"
+                className="h-11 px-3.5 border-gray-200 dark:border-border/40 text-xs font-bold text-primary hover:bg-primary/5 dark:hover:bg-primary/95/30 flex items-center gap-1.5"
                 title="Gerar código aleatório"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
@@ -258,8 +258,8 @@ export function CouponFormDialog({
                     py-2 px-2 rounded-xl border text-xs font-medium flex items-center justify-center gap-1 transition-all
                     ${
                       discountType === "percentage"
-                        ? "bg-[#9306CF] text-white border-[#9306CF] shadow-xs"
-                        : "bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 text-gray-700 dark:text-gray-300 hover:bg-gray-100"
+                        ? "bg-primary text-white border-primary shadow-xs"
+                        : "bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 text-gray-700 dark:text-gray-300 hover:bg-gray-100"
                     }
                   `}
                 >
@@ -274,8 +274,8 @@ export function CouponFormDialog({
                     py-2 px-2 rounded-xl border text-xs font-medium flex items-center justify-center gap-1 transition-all
                     ${
                       discountType === "fixed"
-                        ? "bg-[#9306CF] text-white border-[#9306CF] shadow-xs"
-                        : "bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 text-gray-700 dark:text-gray-300 hover:bg-gray-100"
+                        ? "bg-primary text-white border-primary shadow-xs"
+                        : "bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 text-gray-700 dark:text-gray-300 hover:bg-gray-100"
                     }
                   `}
                 >
@@ -297,7 +297,7 @@ export function CouponFormDialog({
                 value={discountValue}
                 onChange={(e) => setDiscountValue(e.target.value)}
                 placeholder={discountType === "percentage" ? "Ex: 15" : "Ex: 10.00"}
-                className="font-mono font-bold bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-11"
+                className="font-mono font-bold bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11"
                 required
               />
             </div>
@@ -318,7 +318,7 @@ export function CouponFormDialog({
                   value={minOrderValue}
                   onChange={(e) => setMinOrderValue(e.target.value)}
                   placeholder="0,00 (Opcional)"
-                  className="font-mono text-sm bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-10.5 rounded-xl truncate"
+                  className="font-mono text-sm bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-10.5 rounded-xl truncate"
                 />
                 <p className="text-[11px] text-muted-foreground">Valor mínimo para ativar.</p>
               </div>
@@ -334,7 +334,7 @@ export function CouponFormDialog({
                   value={maxUses}
                   onChange={(e) => setMaxUses(e.target.value)}
                   placeholder="Ilimitado"
-                  className="font-mono text-sm bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-10.5 rounded-xl truncate"
+                  className="font-mono text-sm bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-10.5 rounded-xl truncate"
                 />
                 <p className="text-[11px] text-muted-foreground">Máx. de resgates totais.</p>
               </div>
@@ -344,34 +344,34 @@ export function CouponFormDialog({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-[#9306CF]" /> Validade do Cupom
+                  <Calendar className="w-3.5 h-3.5 text-primary" /> Validade do Cupom
                 </Label>
                 <Input
                   type="datetime-local"
                   value={expiresAt}
                   onChange={(e) => setExpiresAt(e.target.value)}
-                  className="text-xs sm:text-sm bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-10.5 rounded-xl"
+                  className="text-xs sm:text-sm bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-10.5 rounded-xl"
                 />
                 <p className="text-[11px] text-muted-foreground">Deixe em branco se o cupom não tiver data de expiração.</p>
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#9306CF]" /> Regra por Cliente
+                  <ShieldCheck className="w-3.5 h-3.5 text-primary" /> Regra por Cliente
                 </Label>
                 <label className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
                   oncePerUser 
-                    ? "bg-purple-50/80 dark:bg-purple-950/30 border-[#9306CF] shadow-xs" 
-                    : "bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/70"
+                    ? "bg-primary/5/80 dark:bg-primary/95/30 border-primary shadow-xs"
+                    : "bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 hover:border-gray-300 dark:hover:border-border/70"
                 }`}>
                   <input
                     type="checkbox"
                     checked={oncePerUser}
                     onChange={(e) => setOncePerUser(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#9306CF] focus:ring-[#9306CF] cursor-pointer"
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                   />
                   <div className="flex-1 min-w-0">
-                    <span className="text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9] block">
+                    <span className="text-xs font-bold text-foreground dark:text-foreground block">
                       Limitar a 1 uso por cliente
                     </span>
                     <span className="text-[11px] text-muted-foreground block mt-0.5 leading-snug">
@@ -384,10 +384,10 @@ export function CouponFormDialog({
           </div>
 
           {/* 4. Escopo de Aplicação Flexível */}
-          <div className="space-y-3 pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+          <div className="space-y-3 pt-2 border-t border-gray-100 dark:border-border/30">
             <div className="flex items-center justify-between">
               <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                <Layers className="w-4 h-4 text-[#9306CF]" />
+                <Layers className="w-4 h-4 text-primary" />
                 Escopo de Aplicação do Desconto
               </Label>
               <span className="text-[11px] font-medium text-gray-500">
@@ -403,13 +403,13 @@ export function CouponFormDialog({
                   p-3 rounded-xl border text-left transition-all
                   ${
                     scope === "all"
-                      ? "bg-purple-50/70 dark:bg-purple-950/30 border-[#9306CF] text-[#4C264F] dark:text-[#F9F5F9]"
-                      : "bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 text-gray-600 dark:text-gray-400 hover:border-gray-300"
+                      ? "bg-primary/5/70 dark:bg-primary/95/30 border-primary text-foreground dark:text-foreground"
+                      : "bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 text-gray-600 dark:text-gray-400 hover:border-gray-300"
                   }
                 `}
               >
                 <div className="flex items-center gap-2">
-                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${scope === "all" ? "border-[#9306CF] bg-[#9306CF]" : "border-gray-400"}`}>
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${scope === "all" ? "border-primary bg-primary" : "border-gray-400"}`}>
                     {scope === "all" && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
                   </div>
                   <span className="text-xs font-bold">Toda a Loja</span>
@@ -426,13 +426,13 @@ export function CouponFormDialog({
                   p-3 rounded-xl border text-left transition-all
                   ${
                     scope === "specific"
-                      ? "bg-purple-50/70 dark:bg-purple-950/30 border-[#9306CF] text-[#4C264F] dark:text-[#F9F5F9]"
-                      : "bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 text-gray-600 dark:text-gray-400 hover:border-gray-300"
+                      ? "bg-primary/5/70 dark:bg-primary/95/30 border-primary text-foreground dark:text-foreground"
+                      : "bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 text-gray-600 dark:text-gray-400 hover:border-gray-300"
                   }
                 `}
               >
                 <div className="flex items-center gap-2">
-                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${scope === "specific" ? "border-[#9306CF] bg-[#9306CF]" : "border-gray-400"}`}>
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${scope === "specific" ? "border-primary bg-primary" : "border-gray-400"}`}>
                     {scope === "specific" && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
                   </div>
                   <span className="text-xs font-bold">Produtos Específicos</span>
@@ -445,7 +445,7 @@ export function CouponFormDialog({
 
             {/* Listagem de produtos para seleção restrita */}
             {scope === "specific" && (
-              <div className="bg-gray-50 dark:bg-[#190B1A] border border-gray-200 dark:border-[#512B54]/40 rounded-xl p-3 space-y-2.5 animate-in fade-in duration-150">
+              <div className="bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl p-3 space-y-2.5 animate-in fade-in duration-150">
                 <div className="flex items-center justify-between gap-2">
                   <div className="relative flex-1">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -454,14 +454,14 @@ export function CouponFormDialog({
                       value={productSearch}
                       onChange={(e) => setProductSearch(e.target.value)}
                       placeholder="Filtrar por nome ou categoria..."
-                      className="w-full bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-lg pl-8 pr-3 py-1.5 text-xs outline-none focus:border-[#9306CF]"
+                      className="w-full bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-lg pl-8 pr-3 py-1.5 text-xs outline-none focus:border-primary"
                     />
                   </div>
                   <div className="flex gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={handleSelectAll}
-                      className="text-[11px] font-bold text-[#9306CF] hover:underline px-1.5 py-1"
+                      className="text-[11px] font-bold text-primary hover:underline px-1.5 py-1"
                     >
                       Marcar Todos
                     </button>
@@ -476,7 +476,7 @@ export function CouponFormDialog({
                   </div>
                 </div>
 
-                <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1 divide-y divide-gray-100 dark:divide-[#512B54]/20">
+                <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1 divide-y divide-gray-100 dark:divide-border/20">
                   {filteredProducts.map((p) => {
                     const isChecked = selectedProductIds.includes(p.id);
                     return (
@@ -484,7 +484,7 @@ export function CouponFormDialog({
                         key={p.id}
                         className={`
                           flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors
-                          ${isChecked ? "bg-purple-100/50 dark:bg-purple-900/30" : "hover:bg-white dark:hover:bg-white/5"}
+                          ${isChecked ? "bg-primary/10/50 dark:bg-primary/90/30" : "hover:bg-white dark:hover:bg-white/5"}
                         `}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -492,7 +492,7 @@ export function CouponFormDialog({
                             type="checkbox"
                             checked={isChecked}
                             onChange={() => toggleProduct(p.id)}
-                            className="w-4 h-4 rounded text-[#9306CF] focus:ring-[#9306CF]/30 border-gray-300 dark:border-[#512B54]"
+                            className="w-4 h-4 rounded text-primary focus:ring-primary/30 border-gray-300 dark:border-border"
                           />
                           <div className="w-7 h-7 rounded-md bg-gray-200 dark:bg-white/10 overflow-hidden shrink-0">
                             {p.imageUrl && (
@@ -505,7 +505,7 @@ export function CouponFormDialog({
                               {p.name}
                             </p>
                             {p.category && (
-                              <span className="text-[9px] text-purple-600 dark:text-purple-400">
+                              <span className="text-[9px] text-primary dark:text-primary/40">
                                 {p.category}
                               </span>
                             )}
@@ -524,9 +524,9 @@ export function CouponFormDialog({
           </div>
 
           {/* 5. Ativo / Inativo Switch */}
-          <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+          <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-border/30">
             <div>
-              <span className="text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9] block">
+              <span className="text-xs font-bold text-foreground dark:text-foreground block">
                 Status do Cupom
               </span>
               <span className="text-[11px] text-gray-500 dark:text-gray-400">
@@ -552,19 +552,19 @@ export function CouponFormDialog({
           </div>
 
           {/* Botões de Ação */}
-          <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-100 dark:border-[#512B54]/30">
+          <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-100 dark:border-border/30">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider h-11 px-4"
+              className="rounded-xl border-gray-200 dark:border-border/40 text-xs font-bold uppercase tracking-wider h-11 px-4"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               disabled={loading}
-              className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs font-bold uppercase tracking-wider rounded-xl h-11 px-6 shadow-md shadow-[#9306CF]/20 flex items-center gap-2"
+              className="bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs font-bold uppercase tracking-wider rounded-xl h-11 px-6 shadow-md shadow-primary/20 flex items-center gap-2"
             >
               {loading ? (
                 <>

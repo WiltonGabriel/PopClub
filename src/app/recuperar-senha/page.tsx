@@ -49,11 +49,11 @@ function AuthInput({ id, type, value, onChange, placeholder, required, autoCompl
         className="
           w-full h-12 rounded-xl
           border border-gray-200 bg-white text-gray-900 
-          dark:border-[#512B54]/50 dark:bg-[#1F0B22] dark:text-white
+          dark:border-border/50 dark:bg-[#1F0B22] dark:text-white
           pl-10 pr-10
           text-sm placeholder-[#7A587D] dark:placeholder-[#957498]
           outline-none
-          focus:border-[#9306CF] dark:focus:border-[#9306CF]/70 focus:ring-2 focus:ring-[#9306CF]/20
+          focus:border-primary dark:focus:border-primary/70 focus:ring-2 focus:ring-primary/20
           transition-all duration-200
         "
       />
@@ -71,7 +71,7 @@ function EyeToggle({ show, onToggle }: { show: boolean; onToggle: () => void }) 
     <button
       type="button"
       onClick={onToggle}
-      className="text-[#7A587D] dark:text-[#957498] hover:text-[#4C264F] dark:hover:text-[#C7A9C9] transition-colors"
+      className="text-[#7A587D] dark:text-[#957498] hover:text-foreground dark:hover:text-muted-foreground transition-colors"
       aria-label={show ? "Ocultar senha" : "Mostrar senha"}
     >
       {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -156,14 +156,14 @@ export default function RecuperarSenhaPage() {
     <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-4 relative">
       {/* Decorative ambient blobs */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
-        <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-[#9306CF]/5 dark:bg-[#9306CF]/10 blur-3xl" />
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-[#940068]/5 dark:bg-[#940068]/10 blur-3xl" />
+        <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-primary/5 dark:bg-primary/10 blur-3xl" />
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-accent/5 dark:bg-accent/10 blur-3xl" />
       </div>
 
       {/* Back link */}
       <Link
         href="/login"
-        className="absolute top-6 left-6 flex items-center gap-1.5 text-[#7A587D] dark:text-[#C7A9C9] hover:text-[#4C264F] dark:hover:text-[#F9F5F9] transition-colors text-sm font-medium group"
+        className="absolute top-6 left-6 flex items-center gap-1.5 text-[#7A587D] dark:text-muted-foreground hover:text-foreground dark:hover:text-foreground transition-colors text-sm font-medium group"
         aria-label="Voltar para o login"
       >
         <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
@@ -171,15 +171,15 @@ export default function RecuperarSenhaPage() {
       </Link>
 
       <div className="relative z-10 w-full max-w-md">
-        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-3xl shadow-2xl p-6 sm:p-8">
+        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-3xl shadow-2xl p-6 sm:p-8">
           
           {/* Logo / Brand */}
           <div className="flex flex-col items-center mb-6 text-center">
             <span className="font-heading font-black text-3xl tracking-tight mb-2">
-              <span className="text-[#4C264F] dark:text-[#F9F5F9]">Pop</span>
+              <span className="text-foreground dark:text-foreground">Pop</span>
               <span
                 style={{
-                  background: "linear-gradient(135deg, #9306CF 0%, #940068 100%)",
+                  background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   backgroundClip: "text",
@@ -188,7 +188,7 @@ export default function RecuperarSenhaPage() {
                 Shake
               </span>
             </span>
-            <h1 className="text-[#4C264F] dark:text-[#F9F5F9] text-xl font-bold tracking-tight">Recuperar Senha</h1>
+            <h1 className="text-foreground dark:text-foreground text-xl font-bold tracking-tight">Recuperar Senha</h1>
             {step === 1 && <p className="text-[#7A587D] dark:text-[#957498] text-sm mt-1">Insira seu e-mail para receber um código de 6 dígitos.</p>}
             {step === 2 && <p className="text-[#7A587D] dark:text-[#957498] text-sm mt-1">Enviamos um código para {email}</p>}
             {step === 3 && <p className="text-[#35A340] text-sm mt-1">Sua senha foi alterada com sucesso!</p>}
@@ -200,7 +200,7 @@ export default function RecuperarSenhaPage() {
           {step === 1 && (
             <form onSubmit={handleRequestCode} className="space-y-4">
               <div className="space-y-1.5">
-                <label htmlFor="email" className="block text-sm font-medium text-[#7A587D] dark:text-[#C7A9C9]">
+                <label htmlFor="email" className="block text-sm font-medium text-[#7A587D] dark:text-muted-foreground">
                   E-mail
                 </label>
                 <AuthInput
@@ -221,11 +221,11 @@ export default function RecuperarSenhaPage() {
                 className="
                   w-full h-12 rounded-xl mt-4
                   font-semibold text-sm text-white
-                  bg-gradient-to-r from-[#9306CF] to-[#940068]
+                  bg-gradient-to-r from-primary to-accent
                   hover:from-[#a30de8] hover:to-[#b0007c]
                   active:scale-[0.98]
                   transition-all duration-200
-                  shadow-lg shadow-[#9306CF]/30
+                  shadow-lg shadow-primary/30
                   disabled:opacity-50 disabled:cursor-not-allowed
                   flex items-center justify-center gap-2
                 "
@@ -239,7 +239,7 @@ export default function RecuperarSenhaPage() {
           {step === 2 && (
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div className="space-y-1.5">
-                <label htmlFor="code" className="block text-sm font-medium text-[#7A587D] dark:text-[#C7A9C9]">
+                <label htmlFor="code" className="block text-sm font-medium text-[#7A587D] dark:text-muted-foreground">
                   Código de 6 dígitos
                 </label>
                 <AuthInput
@@ -255,7 +255,7 @@ export default function RecuperarSenhaPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label htmlFor="newPassword" className="block text-sm font-medium text-[#7A587D] dark:text-[#C7A9C9]">
+                <label htmlFor="newPassword" className="block text-sm font-medium text-[#7A587D] dark:text-muted-foreground">
                   Nova Senha
                 </label>
                 <AuthInput
@@ -272,7 +272,7 @@ export default function RecuperarSenhaPage() {
                 />
                 
                 {newPassword.length > 0 && (
-                  <div className="bg-[#F8F9FA] dark:bg-[#190B1A] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-4 py-3 space-y-2 mt-2">
+                  <div className="bg-[#F8F9FA] dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl px-4 py-3 space-y-2 mt-2">
                     <p className="text-[10px] font-semibold text-[#7A587D] dark:text-[#957498] uppercase tracking-wider mb-1">
                       Requisitos
                     </p>
@@ -284,7 +284,7 @@ export default function RecuperarSenhaPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#7A587D] dark:text-[#C7A9C9]">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#7A587D] dark:text-muted-foreground">
                   Confirmar Nova Senha
                 </label>
                 <AuthInput
@@ -312,11 +312,11 @@ export default function RecuperarSenhaPage() {
                 className="
                   w-full h-12 rounded-xl mt-4
                   font-semibold text-sm text-white
-                  bg-gradient-to-r from-[#9306CF] to-[#940068]
+                  bg-gradient-to-r from-primary to-accent
                   hover:from-[#a30de8] hover:to-[#b0007c]
                   active:scale-[0.98]
                   transition-all duration-200
-                  shadow-lg shadow-[#9306CF]/30
+                  shadow-lg shadow-primary/30
                   disabled:opacity-50 disabled:cursor-not-allowed
                   flex items-center justify-center gap-2
                 "
@@ -340,11 +340,11 @@ export default function RecuperarSenhaPage() {
                 className="
                   inline-flex w-full h-12 rounded-xl mt-4
                   font-semibold text-sm text-white
-                  bg-gradient-to-r from-[#9306CF] to-[#940068]
+                  bg-gradient-to-r from-primary to-accent
                   hover:from-[#a30de8] hover:to-[#b0007c]
                   active:scale-[0.98]
                   transition-all duration-200
-                  shadow-lg shadow-[#9306CF]/30
+                  shadow-lg shadow-primary/30
                   items-center justify-center gap-2
                 "
               >

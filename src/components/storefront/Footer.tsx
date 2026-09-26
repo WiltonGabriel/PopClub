@@ -47,10 +47,10 @@ export function Footer() {
           {/* Coluna 1: Marca & Propósito */}
           <div className="space-y-3">
             <div className="flex items-center gap-1.5 select-none">
-              <span className="font-heading font-black text-2xl tracking-tight text-[#4C264F] dark:text-[#F9F5F9]">
+              <span className="font-heading font-black text-2xl tracking-tight text-foreground dark:text-foreground">
                 Pop<span className="gradient-text-brand">Shake</span>
               </span>
-              <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20">
+              <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary dark:text-muted-foreground border border-primary/20">
                 Sorveteria
               </span>
             </div>
@@ -71,14 +71,14 @@ export function Footer() {
             </h3>
             <ul className="space-y-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               <li className="flex items-start gap-2">
-                <Clock className="w-4 h-4 text-[#9306CF] shrink-0 mt-0.5" />
+                <Clock className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <div>
                   <span className="font-semibold text-foreground block">Todos os dias</span>
                   <span>13:00 às 23:30</span>
                 </div>
               </li>
               <li className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-[#9306CF] shrink-0 mt-0.5" />
+                <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <span>Atendimento presencial no balcão e entrega em domicílio</span>
               </li>
             </ul>
@@ -109,15 +109,15 @@ export function Footer() {
               Formas de Pagamento
             </h3>
             <div className="flex flex-wrap gap-2 text-xs text-gray-600 dark:text-gray-300">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-[#512B54]/30 font-medium">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-border/30 font-medium">
                 <QrCode className="w-3.5 h-3.5 text-emerald-500" />
                 <span>Pix na Entrega</span>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-[#512B54]/30 font-medium">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-border/30 font-medium">
                 <CreditCard className="w-3.5 h-3.5 text-blue-500" />
                 <span>Cartão (Maquininha)</span>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-[#512B54]/30 font-medium">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-border/30 font-medium">
                 <Banknote className="w-3.5 h-3.5 text-amber-500" />
                 <span>Dinheiro</span>
               </div>
@@ -126,7 +126,7 @@ export function Footer() {
         </div>
 
         {/* Linha Divisória */}
-        <div className="border-t border-gray-200/80 dark:border-[#512B54]/40 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+        <div className="border-t border-gray-200/80 dark:border-border/40 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           {/* Copyright Oficial */}
           <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
             © 2026 Pop Shake Sorveteria. Todos os direitos reservados.
@@ -135,7 +135,7 @@ export function Footer() {
           {/* Créditos Equipe ADP */}
           <p className="text-xs text-gray-400 dark:text-gray-500 font-normal">
             Desenvolvido pela{" "}
-            <span className="font-bold text-gray-600 dark:text-gray-300 hover:text-[#9306CF] transition-colors">
+            <span className="font-bold text-gray-600 dark:text-gray-300 hover:text-primary transition-colors">
               Equipe ADP
             </span>
           </p>

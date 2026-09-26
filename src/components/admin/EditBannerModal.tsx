@@ -72,10 +72,10 @@ export function EditBannerModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl w-full rounded-2xl sm:rounded-3xl bg-white dark:bg-[#1F0B22] text-foreground border border-gray-200 dark:border-[#512B54]/40 shadow-2xl p-6 sm:p-7 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-xl w-full rounded-2xl sm:rounded-3xl bg-white dark:bg-[#1F0B22] text-foreground border border-gray-200 dark:border-border/40 shadow-2xl p-6 sm:p-7 max-h-[90vh] overflow-y-auto">
         <DialogHeader className="mb-4">
-          <DialogTitle className="font-heading text-xl sm:text-2xl font-bold text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-[#9306CF]" />
+          <DialogTitle className="font-heading text-xl sm:text-2xl font-bold text-foreground dark:text-foreground flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-primary" />
             <span>Editar Faixa Promocional</span>
           </DialogTitle>
           <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -94,11 +94,11 @@ export function EditBannerModal({
           <Label className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
             Pré-visualização em Tempo Real
           </Label>
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-[#9306CF]/10 via-[#940068]/10 to-[#10B981]/10 border border-[#9306CF]/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-xs transition-all">
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-primary/10 via-accent/10 to-[#10B981]/10 border border-primary/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-xs transition-all">
             <div className="flex items-center gap-3">
               <span className="text-3xl shrink-0">{icon || "🥣"}</span>
               <div className="min-w-0">
-                <p className="font-heading font-bold text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9] leading-snug">
+                <p className="font-heading font-bold text-xs sm:text-sm text-foreground dark:text-foreground leading-snug">
                   {title || "Monte do seu jeito: escolha o tamanho e adicione seus acompanhamentos favoritos"}
                 </p>
                 <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-0.5 leading-snug">
@@ -107,7 +107,7 @@ export function EditBannerModal({
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white dark:bg-[#1A0B1C] text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/25 shadow-xs">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white dark:bg-background text-primary dark:text-muted-foreground border border-primary/25 shadow-xs">
                 {badge || "Refrescância Artesanal"}
               </span>
             </div>
@@ -125,7 +125,7 @@ export function EditBannerModal({
                 id="banner-icon"
                 value={icon}
                 onChange={(e) => setIcon(e.target.value)}
-                className="h-11 text-center text-xl rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#2B132D] dark:border-[#512B54]/50 dark:text-white focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
+                className="h-11 text-center text-xl rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-card dark:border-border/50 dark:text-white focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
                 placeholder="🥣"
                 maxLength={8}
                 required
@@ -141,7 +141,7 @@ export function EditBannerModal({
                 id="banner-badge"
                 value={badge}
                 onChange={(e) => setBadge(e.target.value)}
-                className="h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#2B132D] dark:border-[#512B54]/50 dark:text-white focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
+                className="h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-card dark:border-border/50 dark:text-white focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
                 placeholder="Ex: REFRESCÂNCIA ARTESANAL"
                 required
               />
@@ -157,7 +157,7 @@ export function EditBannerModal({
               id="banner-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#2B132D] dark:border-[#512B54]/50 dark:text-white focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
+              className="h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-card dark:border-border/50 dark:text-white focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
               placeholder="Ex: Monte do seu jeito: escolha o tamanho e adicione..."
               required
             />
@@ -172,27 +172,27 @@ export function EditBannerModal({
               id="banner-subtitle"
               value={subtitle}
               onChange={(e) => setSubtitle(e.target.value)}
-              className="h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#2B132D] dark:border-[#512B54]/50 dark:text-white focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
+              className="h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-card dark:border-border/50 dark:text-white focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
               placeholder="Ex: Açaí puro batido na hora, cremoso e com acompanhamentos..."
               required
             />
           </div>
 
           {/* Botões de Ação */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 dark:border-[#512B54]/30">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 dark:border-border/30">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={loading}
-              className="h-11 px-5 rounded-xl border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-xs font-bold uppercase tracking-wider"
+              className="h-11 px-5 rounded-xl border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 text-xs font-bold uppercase tracking-wider"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               disabled={loading}
-              className="h-11 px-6 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs font-bold uppercase tracking-wider shadow-md shadow-[#9306CF]/20 flex items-center gap-2"
+              className="h-11 px-6 rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs font-bold uppercase tracking-wider shadow-md shadow-primary/20 flex items-center gap-2"
             >
               {loading ? (
                 <>

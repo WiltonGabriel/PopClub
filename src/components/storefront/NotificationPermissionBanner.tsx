@@ -81,15 +81,15 @@ export function NotificationPermissionBanner({
 
   return (
     <div
-      className={`relative p-4 sm:p-4.5 rounded-2xl bg-gradient-to-r from-[#9306CF]/10 via-[#940068]/10 to-purple-500/5 dark:from-[#9306CF]/20 dark:via-[#940068]/20 dark:to-transparent border-2 border-[#9306CF]/30 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 animate-in fade-in slide-in-from-top-2 duration-200 ${className}`}
+      className={`relative p-4 sm:p-4.5 rounded-2xl bg-gradient-to-r from-primary/10 via-accent/10 to-primary/5 dark:from-primary/20 dark:via-accent/20 dark:to-transparent border-2 border-primary/30 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 animate-in fade-in slide-in-from-top-2 duration-200 ${className}`}
     >
       <div className="flex items-start gap-3 min-w-0">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#9306CF] to-[#940068] text-white flex items-center justify-center shrink-0 shadow-md shadow-[#9306CF]/20 mt-0.5">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent text-white flex items-center justify-center shrink-0 shadow-md shadow-primary/20 mt-0.5">
           <Bell className="w-5 h-5 animate-bounce" />
         </div>
 
         <div className="space-y-0.5 min-w-0">
-          <h4 className="font-heading font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9] leading-tight">
+          <h4 className="font-heading font-bold text-sm text-foreground dark:text-foreground leading-tight">
             Acompanhamento em Tempo Real
           </h4>
           <p className="text-xs text-muted-foreground leading-relaxed">
@@ -111,7 +111,7 @@ export function NotificationPermissionBanner({
           type="button"
           disabled={requesting}
           onClick={handleEnableNotifications}
-          className="px-4 py-2 bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-bold text-xs rounded-xl shadow-sm shadow-[#9306CF]/20 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-60"
+          className="px-4 py-2 bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-bold text-xs rounded-xl shadow-sm shadow-primary/20 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-60"
         >
           <Bell className="w-3.5 h-3.5" />
           <span>{requesting ? "Ativando..." : "Ativar Notificações"}</span>

@@ -45,13 +45,13 @@ export function HeaderAddressButton({
         onClick={openAddressModal}
         title={fullAddressText}
         aria-label={`Endereço de entrega: ${displayText}. Clique para alterar.`}
-        className={`group flex items-center justify-center gap-1.5 text-xs text-[#4C264F] dark:text-[#F9F5F9] hover:text-[#9306CF] dark:hover:text-white transition-all border border-border/50 hover:border-[#9306CF]/50 bg-white/80 dark:bg-[#230E26]/80 hover:bg-muted/90 rounded-full px-2.5 xs:px-3 py-1.5 shrink min-w-0 shadow-xs cursor-pointer active:scale-95 ${className}`}
+        className={`group flex items-center justify-center gap-1.5 text-xs text-foreground dark:text-foreground hover:text-primary dark:hover:text-white transition-all border border-border/50 hover:border-primary/50 bg-white/80 dark:bg-[#230E26]/80 hover:bg-muted/90 rounded-full px-2.5 xs:px-3 py-1.5 shrink min-w-0 shadow-xs cursor-pointer active:scale-95 ${className}`}
       >
-        <MapPin className="w-3.5 h-3.5 text-[#9306CF] dark:text-[#C7A9C9] shrink-0 group-hover:scale-110 transition-transform" />
+        <MapPin className="w-3.5 h-3.5 text-primary dark:text-muted-foreground shrink-0 group-hover:scale-110 transition-transform" />
         <span className={`font-semibold truncate text-center text-xs leading-tight ${spanClassName || "max-w-[130px] xs:max-w-[180px] sm:max-w-[220px]"}`}>
           {displayText}
         </span>
-        <ChevronDown className="w-3 h-3 text-muted-foreground group-hover:text-[#9306CF] shrink-0 transition-colors" />
+        <ChevronDown className="w-3 h-3 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />
       </button>
     );
   }
@@ -62,13 +62,13 @@ export function HeaderAddressButton({
       onClick={openAddressModal}
       title={fullAddressText}
       aria-label={`Endereço de entrega: ${displayText}. Clique para alterar.`}
-      className={`group flex items-center gap-1.5 text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9] hover:text-[#9306CF] dark:hover:text-white transition-all border border-border/50 hover:border-[#9306CF]/50 bg-white/70 dark:bg-[#230E26]/70 hover:bg-muted/80 rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 shrink-0 shadow-xs cursor-pointer active:scale-95 ${className}`}
+      className={`group flex items-center gap-1.5 text-xs sm:text-sm text-foreground dark:text-foreground hover:text-primary dark:hover:text-white transition-all border border-border/50 hover:border-primary/50 bg-white/70 dark:bg-[#230E26]/70 hover:bg-muted/80 rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 shrink-0 shadow-xs cursor-pointer active:scale-95 ${className}`}
     >
-      <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#9306CF] dark:text-[#C7A9C9] shrink-0 group-hover:scale-110 transition-transform" />
+      <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary dark:text-muted-foreground shrink-0 group-hover:scale-110 transition-transform" />
       <span className={`font-medium truncate text-left ${spanClassName || "max-w-[110px] xs:max-w-[150px] sm:max-w-[180px] md:max-w-[240px]"}`}>
         {displayText}
       </span>
-      <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted-foreground group-hover:text-[#9306CF] shrink-0 transition-colors" />
+      <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />
     </button>
   );
 }

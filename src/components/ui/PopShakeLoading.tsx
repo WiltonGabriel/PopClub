@@ -110,13 +110,13 @@ export function PopShakeLoading({
         <div className="relative mb-5 flex items-center justify-center">
           {/* Ondas concêntricas de luz líquida (Ripple) */}
           <div
-            className={`absolute rounded-full bg-[#9306CF]/20 dark:bg-[#9306CF]/35 blur-xl animate-ripple pointer-events-none ${
+            className={`absolute rounded-full bg-primary/20 dark:bg-primary/35 blur-xl animate-ripple pointer-events-none ${
               compact ? "w-20 h-20" : "w-32 h-32"
             }`}
             aria-hidden="true"
           />
           <div
-            className={`absolute rounded-full bg-gradient-to-tr from-[#9306CF]/30 via-[#FF007A]/20 to-[#940068]/30 blur-2xl animate-pulse-glow pointer-events-none ${
+            className={`absolute rounded-full bg-gradient-to-tr from-primary/30 via-[#FF007A]/20 to-accent/30 blur-2xl animate-pulse-glow pointer-events-none ${
               compact ? "w-28 h-28" : "w-40 h-40"
             }`}
             aria-hidden="true"
@@ -124,7 +124,7 @@ export function PopShakeLoading({
 
           {/* Card central com reflexo cremoso e levitação suave */}
           <div
-            className={`relative rounded-3xl bg-white/95 dark:bg-[#200A23]/95 backdrop-blur-xl border border-purple-200/80 dark:border-[#512B54]/70 shadow-2xl shadow-purple-500/15 flex items-center justify-center animate-float-gentle transition-colors ${
+            className={`relative rounded-3xl bg-white/95 dark:bg-[#200A23]/95 backdrop-blur-xl border border-primary/20/80 dark:border-border/70 shadow-2xl shadow-primary/15 flex items-center justify-center animate-float-gentle transition-colors ${
               compact ? "w-16 h-16" : "w-24 h-24 sm:w-28 sm:h-28"
             }`}
           >
@@ -137,12 +137,12 @@ export function PopShakeLoading({
             </span>
 
             {/* Sparkle orbital animado */}
-            <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-gradient-to-tr from-[#9306CF] via-[#FF007A] to-[#940068] text-white flex items-center justify-center shadow-lg shadow-[#9306CF]/30 animate-spin-slow">
+            <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-gradient-to-tr from-primary via-[#FF007A] to-accent text-white flex items-center justify-center shadow-lg shadow-primary/30 animate-spin-slow">
               <Sparkles className="w-3.5 h-3.5" />
             </div>
 
             {/* Mini-badge decorativo */}
-            <div className="absolute -bottom-1.5 -left-1.5 w-6 h-6 rounded-full bg-white dark:bg-[#2E1133] border border-purple-200 dark:border-purple-800/60 shadow-md flex items-center justify-center text-xs animate-pulse">
+            <div className="absolute -bottom-1.5 -left-1.5 w-6 h-6 rounded-full bg-white dark:bg-card border border-primary/20 dark:border-primary/80/60 shadow-md flex items-center justify-center text-xs animate-pulse">
               ✨
             </div>
           </div>
@@ -198,7 +198,7 @@ export function PopShakeLoading({
       <div className="relative mb-5 flex items-center justify-center">
         {/* Pulso calmo e elegante de fundo */}
         <div
-          className={`absolute rounded-full bg-[#9306CF]/15 dark:bg-[#9306CF]/25 blur-2xl animate-pulse-glow pointer-events-none ${
+          className={`absolute rounded-full bg-primary/15 dark:bg-primary/25 blur-2xl animate-pulse-glow pointer-events-none ${
             compact ? "w-20 h-20" : "w-32 h-32"
           }`}
           aria-hidden="true"
@@ -206,12 +206,12 @@ export function PopShakeLoading({
 
         {/* Anel fino pontilhado giratório ao redor do ícone */}
         <div
-          className={`relative rounded-full border-2 border-dashed border-[#9306CF]/50 dark:border-[#C7A9C9]/40 bg-white/90 dark:bg-[#150617]/90 backdrop-blur-md shadow-lg shadow-[#9306CF]/5 flex items-center justify-center transition-all ${
+          className={`relative rounded-full border-2 border-dashed border-primary/50 dark:border-muted-foreground/40 bg-white/90 dark:bg-background/90 backdrop-blur-md shadow-lg shadow-primary/5 flex items-center justify-center transition-all ${
             compact ? "w-16 h-16" : "w-24 h-24 sm:w-28 sm:h-28"
           }`}
         >
           {/* Anel giratório sutil */}
-          <div className="absolute inset-0 rounded-full border border-purple-300/40 dark:border-purple-600/30 animate-spin-slow" />
+          <div className="absolute inset-0 rounded-full border border-primary/30/40 dark:border-primary/30 animate-spin-slow" />
 
           <span
             className={`select-none filter drop-shadow-xs animate-float-gentle ${
@@ -230,11 +230,11 @@ export function PopShakeLoading({
     if (activeTheme === "liquid_cream") {
       return (
         <div
-          className={`relative rounded-full bg-purple-100/80 dark:bg-[#140616] overflow-hidden border border-purple-200/60 dark:border-[#512B54]/50 my-3 shadow-inner ${
+          className={`relative rounded-full bg-primary/10/80 dark:bg-background overflow-hidden border border-primary/20/60 dark:border-border/50 my-3 shadow-inner ${
             compact ? "w-36 h-1.5" : "w-48 sm:w-60 h-2"
           }`}
         >
-          <div className="absolute inset-0 w-1/2 bg-gradient-to-r from-[#9306CF] via-[#FF007A] to-[#940068] rounded-full animate-loading-bar shadow-xs shadow-[#9306CF]/50" />
+          <div className="absolute inset-0 w-1/2 bg-gradient-to-r from-primary via-[#FF007A] to-accent rounded-full animate-loading-bar shadow-xs shadow-primary/50" />
         </div>
       );
     }
@@ -254,11 +254,11 @@ export function PopShakeLoading({
     // activeTheme === "minimal_pulse"
     return (
       <div
-        className={`relative rounded-full bg-gray-100 dark:bg-[#1A091C] overflow-hidden my-3 ${
+        className={`relative rounded-full bg-gray-100 dark:bg-background overflow-hidden my-3 ${
           compact ? "w-32 h-1" : "w-44 sm:w-52 h-1"
         }`}
       >
-        <div className="absolute inset-0 w-1/3 bg-gradient-to-r from-[#9306CF] to-[#940068] rounded-full animate-loading-bar" />
+        <div className="absolute inset-0 w-1/3 bg-gradient-to-r from-primary to-accent rounded-full animate-loading-bar" />
       </div>
     );
   };
@@ -274,7 +274,7 @@ export function PopShakeLoading({
 
       {/* Nome da Marca com Efeito Shimmer */}
       <h3
-        className={`font-heading font-black uppercase tracking-wider bg-gradient-to-r from-[#9306CF] via-[#FF007A] to-[#9306CF] bg-clip-text text-transparent animate-shimmer ${
+        className={`font-heading font-black uppercase tracking-wider bg-gradient-to-r from-primary via-[#FF007A] to-primary bg-clip-text text-transparent animate-shimmer ${
           compact ? "text-xs sm:text-sm" : "text-base sm:text-lg mb-1"
         }`}
       >
@@ -297,7 +297,7 @@ export function PopShakeLoading({
                   isCurrent
                     ? activeTheme === "playful_bounce"
                       ? "bg-pink-100 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300 border border-pink-300 dark:border-pink-800 scale-105"
-                      : "bg-[#9306CF]/15 text-[#9306CF] dark:bg-[#9306CF]/30 dark:text-[#E899FF] border border-[#9306CF]/30 scale-105"
+                      : "bg-primary/15 text-primary dark:bg-primary/30 dark:text-[#E899FF] border border-primary/30 scale-105"
                     : isDone
                     ? "text-muted-foreground/60 line-through opacity-50"
                     : "text-muted-foreground/40"
@@ -312,7 +312,7 @@ export function PopShakeLoading({
 
       {/* Mensagem Rotativa com Transição Suave */}
       <p
-        className={`text-xs sm:text-sm font-medium text-muted-foreground dark:text-[#C7A9C9] max-w-xs transition-opacity duration-300 min-h-[36px] flex items-center justify-center leading-snug ${
+        className={`text-xs sm:text-sm font-medium text-muted-foreground dark:text-muted-foreground max-w-xs transition-opacity duration-300 min-h-[36px] flex items-center justify-center leading-snug ${
           fadeState === "in" ? "opacity-100" : "opacity-0"
         }`}
       >
@@ -332,8 +332,8 @@ export function PopShakeLoading({
     <div
       className={`${
         previewColorMode === "dark"
-          ? "dark bg-[#120713] text-[#F9F5F9]"
-          : "bg-white text-[#4C264F]"
+          ? "dark bg-background text-foreground"
+          : "bg-white text-foreground"
       } rounded-2xl p-2 transition-colors duration-200`}
     >
       {mainContent}
@@ -344,8 +344,8 @@ export function PopShakeLoading({
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-[#0E040F]/85 backdrop-blur-md animate-in fade-in duration-300">
-        <div className="relative max-w-sm w-full mx-4 rounded-3xl bg-white/95 dark:bg-[#1E0921]/95 border border-purple-200/80 dark:border-[#512B54]/60 shadow-2xl p-2 animate-in zoom-in-95 duration-200">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-background/85 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="relative max-w-sm w-full mx-4 rounded-3xl bg-white/95 dark:bg-background/95 border border-primary/20/80 dark:border-border/60 shadow-2xl p-2 animate-in zoom-in-95 duration-200">
           {wrappedContent}
         </div>
       </div>

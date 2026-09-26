@@ -80,9 +80,9 @@ export function CategoryFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md w-full rounded-3xl bg-white dark:bg-[#1F0B22] text-foreground border border-gray-200 dark:border-[#512B54]/40 shadow-2xl p-6">
+      <DialogContent className="sm:max-w-md w-full rounded-3xl bg-white dark:bg-[#1F0B22] text-foreground border border-gray-200 dark:border-border/40 shadow-2xl p-6">
         <DialogHeader className="mb-3">
-          <DialogTitle className="font-heading text-xl font-bold text-[#4C264F] dark:text-[#F9F5F9]">
+          <DialogTitle className="font-heading text-xl font-bold text-foreground dark:text-foreground">
             {categoryToEdit ? "Editar Categoria & Ícone" : "Nova Categoria"}
           </DialogTitle>
           <p className="text-xs text-muted-foreground">
@@ -98,7 +98,7 @@ export function CategoryFormDialog({
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Ícone da Categoria (Emoji)
             </Label>
-            <div className="flex flex-wrap gap-1.5 p-2 bg-gray-50 dark:bg-[#2B132D]/50 rounded-2xl border border-gray-100 dark:border-[#512B54]/30">
+            <div className="flex flex-wrap gap-1.5 p-2 bg-gray-50 dark:bg-card/50 rounded-2xl border border-gray-100 dark:border-border/30">
               {POPULAR_EMOJIS.map((emoji) => (
                 <button
                   key={emoji}
@@ -109,7 +109,7 @@ export function CategoryFormDialog({
                     transition-all duration-150 cursor-pointer
                     ${
                       selectedEmoji === emoji
-                        ? "bg-[#9306CF] text-white scale-110 shadow-sm ring-2 ring-[#9306CF]/40"
+                        ? "bg-primary text-white scale-110 shadow-sm ring-2 ring-primary/40"
                         : "hover:bg-gray-200 dark:hover:bg-white/10"
                     }
                   `}
@@ -140,20 +140,20 @@ export function CategoryFormDialog({
               id="cat-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="h-11 rounded-xl bg-white border-gray-200 text-foreground dark:bg-[#2B132D] dark:border-[#512B54]/50 focus-visible:ring-2 focus-visible:ring-[#9306CF]/30 focus-visible:border-[#9306CF]"
+              className="h-11 rounded-xl bg-white border-gray-200 text-foreground dark:bg-card dark:border-border/50 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:border-primary"
               placeholder="Ex: Explosão de Recheio, Açaí Tradicional..."
               required
             />
           </div>
 
           {/* Prévia Instantânea da Pílula */}
-          <div className="p-3 bg-gray-50 dark:bg-white/[0.02] rounded-2xl border border-gray-100 dark:border-[#512B54]/30 flex items-center justify-between">
+          <div className="p-3 bg-gray-50 dark:bg-white/[0.02] rounded-2xl border border-gray-100 dark:border-border/30 flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">
               Pré-visualização da Pílula:
             </span>
-            <div className="flex flex-col items-center justify-center min-w-[76px] px-3.5 py-2 rounded-2xl bg-white dark:bg-[#230E26] border border-[#9306CF]/50 shadow-xs">
+            <div className="flex flex-col items-center justify-center min-w-[76px] px-3.5 py-2 rounded-2xl bg-white dark:bg-[#230E26] border border-primary/50 shadow-xs">
               <span className="text-lg leading-none mb-0.5">{selectedEmoji || "🍧"}</span>
-              <span className="text-[10px] font-bold uppercase text-[#4C264F] dark:text-[#F9F5F9] whitespace-nowrap">
+              <span className="text-[10px] font-bold uppercase text-foreground dark:text-foreground whitespace-nowrap">
                 {name || "Categoria"}
               </span>
             </div>
@@ -167,7 +167,7 @@ export function CategoryFormDialog({
 
           <Button
             type="submit"
-            className="w-full h-11 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading font-bold text-xs uppercase tracking-wider shadow-md shadow-[#9306CF]/20 transition-all cursor-pointer"
+            className="w-full h-11 rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading font-bold text-xs uppercase tracking-wider shadow-md shadow-primary/20 transition-all cursor-pointer"
             disabled={loading}
           >
             {loading ? (

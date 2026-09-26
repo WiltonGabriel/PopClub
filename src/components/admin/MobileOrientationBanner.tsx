@@ -42,7 +42,7 @@ export function MobileOrientationBanner() {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-[#1a1a2e] w-full max-w-sm rounded-2xl shadow-2xl border border-purple-500/20 overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-[#1a1a2e] w-full max-w-sm rounded-2xl shadow-2xl border border-primary/20 overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="relative p-6 flex flex-col items-center text-center">
           <button
             onClick={handleDismiss}
@@ -52,7 +52,7 @@ export function MobileOrientationBanner() {
             <X className="w-5 h-5" />
           </button>
           
-          <div className="relative w-16 h-16 rounded-2xl bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-4">
+          <div className="relative w-16 h-16 rounded-2xl bg-primary/10 dark:bg-primary/90/30 text-primary dark:text-primary/40 flex items-center justify-center mb-4">
             <Smartphone className="w-8 h-8 animate-pulse" />
             <RotateCw className="w-5 h-5 absolute -bottom-1 -right-1 text-pink-500 animate-spin-slow" />
           </div>
@@ -67,7 +67,7 @@ export function MobileOrientationBanner() {
           
           <button
             onClick={handleDismiss}
-            className="w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl transition-colors active:scale-95 cursor-pointer"
+            className="w-full py-3 px-4 bg-primary hover:bg-primary text-white font-medium rounded-xl transition-colors active:scale-95 cursor-pointer"
           >
             Continuar na Vertical
           </button>

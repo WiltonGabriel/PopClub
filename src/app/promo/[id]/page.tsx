@@ -78,7 +78,7 @@ export default function PromotionDetailPage({
     );
   }
 
-  const bgGradient = `linear-gradient(135deg, ${promo.gradientStart || "#9306CF"}, ${promo.gradientEnd || "#881BAA"})`;
+  const bgGradient = `linear-gradient(135deg, ${promo.gradientStart || "hsl(var(--primary))"}, ${promo.gradientEnd || "#881BAA"})`;
 
   const originalPrice = promo.product?.price || 0;
   let finalPrice = originalPrice;

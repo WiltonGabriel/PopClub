@@ -573,7 +573,7 @@ export default function AdminPedidosPage() {
         return {
           label: "Pronto / Despacho",
           icon: PackageCheck,
-          color: "bg-purple-100 text-purple-900 border-purple-300 dark:bg-purple-950/60 dark:text-purple-200 dark:border-purple-800",
+          color: "bg-primary/10 text-primary/90 border-primary/30 dark:bg-primary/95/60 dark:text-purple-200 dark:border-primary/80",
         };
       case "delivering":
         return {
@@ -1057,7 +1057,7 @@ export default function AdminPedidosPage() {
         className={`rounded-2xl border p-3.5 shadow-sm flex flex-col min-w-[270px] xl:min-w-[250px] transition-colors ${
           isCancelColumn
             ? "bg-red-50/40 dark:bg-[#1E0911]/60 border-red-200/80 dark:border-red-900/40"
-            : "bg-white/85 dark:bg-[#230E26]/80 border-gray-200 dark:border-[#512B54]/40"
+            : "bg-white/85 dark:bg-[#230E26]/80 border-gray-200 dark:border-border/40"
         }`}
       >
         {/* Cabeçalho da Coluna */}
@@ -1065,12 +1065,12 @@ export default function AdminPedidosPage() {
           className={`flex items-center justify-between pb-3 mb-3 border-b ${
             isCancelColumn
               ? "border-red-200/60 dark:border-red-900/30"
-              : "border-gray-100 dark:border-[#512B54]/30"
+              : "border-gray-100 dark:border-border/30"
           }`}
         >
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: accentColor }} />
-            <h3 className="font-heading font-bold text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9] uppercase tracking-wide">
+            <h3 className="font-heading font-bold text-xs sm:text-sm text-foreground dark:text-foreground uppercase tracking-wide">
               {title}
             </h3>
           </div>
@@ -1120,7 +1120,7 @@ export default function AdminPedidosPage() {
                   return (
                     <div
                       key={order.id}
-                      className="bg-white dark:bg-[#1A0B1C] border border-red-200/90 dark:border-red-900/50 rounded-xl p-3 shadow-xs hover:shadow-md transition-all flex flex-col gap-2 relative group hover:border-red-400"
+                      className="bg-white dark:bg-background border border-red-200/90 dark:border-red-900/50 rounded-xl p-3 shadow-xs hover:shadow-md transition-all flex flex-col gap-2 relative group hover:border-red-400"
                     >
                       {/* Linha 1: ID, Horário e Badges */}
                       <div className="flex items-center justify-between gap-1.5 flex-wrap">
@@ -1146,7 +1146,7 @@ export default function AdminPedidosPage() {
                       {/* Linha 2: Cliente + Motivo */}
                       <div className="flex items-center justify-between gap-1.5">
                         <div className="min-w-0">
-                          <p className="font-bold text-xs text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                          <p className="font-bold text-xs text-foreground dark:text-foreground truncate">
                             {clientName}
                           </p>
                           <p className="text-[10px] text-red-500 dark:text-red-400 truncate italic mt-0.5">
@@ -1167,7 +1167,7 @@ export default function AdminPedidosPage() {
                       </div>
 
                       {/* Linha 3: Resumo dos Itens e Valor */}
-                      <div className="flex items-center justify-between text-xs pt-1 border-t border-gray-100 dark:border-[#512B54]/30">
+                      <div className="flex items-center justify-between text-xs pt-1 border-t border-gray-100 dark:border-border/30">
                         <span className="text-gray-400 dark:text-gray-500 truncate text-[11px] max-w-[140px]">
                           {totalItems} item(ns)
                         </span>
@@ -1182,19 +1182,19 @@ export default function AdminPedidosPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => setSelectedOrderForDrawer(order)}
-                          className="flex-1 h-7 text-[10px] font-bold rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center gap-1 cursor-pointer"
+                          className="flex-1 h-7 text-[10px] font-bold rounded-lg border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center gap-1 cursor-pointer"
                         >
-                          <FileText className="w-3 h-3 text-[#9306CF]" />
+                          <FileText className="w-3 h-3 text-primary" />
                           <span>Ver Ficha</span>
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => printThermalReceipt(order)}
-                          className="h-7 px-2 text-[10px] font-bold rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center cursor-pointer"
+                          className="h-7 px-2 text-[10px] font-bold rounded-lg border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center cursor-pointer"
                           title="Imprimir Comprovante (80mm / 58mm)"
                         >
-                          <Printer className="w-3 h-3 text-[#9306CF]" />
+                          <Printer className="w-3 h-3 text-primary" />
                         </Button>
                       </div>
                     </div>
@@ -1205,12 +1205,12 @@ export default function AdminPedidosPage() {
                 return (
                   <div
                     key={order.id}
-                    className="bg-white dark:bg-[#1A0B1C] border border-gray-200/90 dark:border-[#512B54]/50 rounded-xl p-3 shadow-xs hover:shadow-md transition-all flex flex-col gap-2 relative group hover:border-[#9306CF]/40"
+                    className="bg-white dark:bg-background border border-gray-200/90 dark:border-border/50 rounded-xl p-3 shadow-xs hover:shadow-md transition-all flex flex-col gap-2 relative group hover:border-primary/40"
                   >
                     {/* Linha 1: ID, Horário e Badges */}
                     <div className="flex items-center justify-between gap-1.5 flex-wrap">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-mono font-bold text-xs text-[#9306CF] dark:text-[#C7A9C9] bg-[#9306CF]/10 px-2 py-0.5 rounded-md border border-[#9306CF]/20">
+                        <span className="font-mono font-bold text-xs text-primary dark:text-muted-foreground bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
                           #{order.id.substring(0, 6)}
                         </span>
                         <span className="text-[11px] font-mono text-gray-500 dark:text-gray-400">
@@ -1229,7 +1229,7 @@ export default function AdminPedidosPage() {
                     {/* Linha 2: Cliente + Bairro + WhatsApp */}
                     <div className="flex items-center justify-between gap-1.5">
                       <div className="min-w-0">
-                        <p className="font-bold text-xs text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                        <p className="font-bold text-xs text-foreground dark:text-foreground truncate">
                           {clientName}
                         </p>
                         <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium truncate block">
@@ -1251,7 +1251,7 @@ export default function AdminPedidosPage() {
                     </div>
 
                     {/* Linha 3: Resumo dos Itens e Valor */}
-                    <div className="flex items-center justify-between text-xs pt-1 border-t border-gray-100 dark:border-[#512B54]/30">
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-gray-100 dark:border-border/30">
                       <span className="text-gray-500 dark:text-gray-400 truncate text-[11px] max-w-[140px]">
                         {totalItems} item(ns) • {firstItemName}
                       </span>
@@ -1261,24 +1261,24 @@ export default function AdminPedidosPage() {
                     </div>
 
                     {/* Linha 4: Ações Rápidas Operacionais Padronizadas (Sem Textos Longos) */}
-                    <div className="flex items-center justify-between gap-1 pt-1 border-t border-gray-100 dark:border-[#512B54]/30">
+                    <div className="flex items-center justify-between gap-1 pt-1 border-t border-gray-100 dark:border-border/30">
                       {/* Lado Esquerdo: Ficha, Comprovante e Cancelar */}
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
                           onClick={() => setSelectedOrderForDrawer(order)}
                           title="Ver Ficha Completa"
-                          className="w-7 h-7 rounded-lg border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
+                          className="w-7 h-7 rounded-lg border border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
                         >
-                          <FileText className="w-3.5 h-3.5 text-[#9306CF]" />
+                          <FileText className="w-3.5 h-3.5 text-primary" />
                         </button>
                         <button
                           type="button"
                           onClick={() => printThermalReceipt(order)}
                           title="Imprimir Comprovante (80mm / 58mm)"
-                          className="w-7 h-7 rounded-lg border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
+                          className="w-7 h-7 rounded-lg border border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
                         >
-                          <Printer className="w-3.5 h-3.5 text-[#9306CF]" />
+                          <Printer className="w-3.5 h-3.5 text-primary" />
                         </button>
                         {order.status !== "completed" && (
                           <button
@@ -1299,7 +1299,7 @@ export default function AdminPedidosPage() {
                             type="button"
                             onClick={() => promptRevertStatus(order, prevStage)}
                             title={prevStage.label}
-                            className="w-7 h-7 rounded-lg border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
+                            className="w-7 h-7 rounded-lg border border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
                           >
                             <RotateCcw className="w-3.5 h-3.5" />
                           </button>
@@ -1309,7 +1309,7 @@ export default function AdminPedidosPage() {
                             type="button"
                             onClick={() => promptUpdateStatus(order, nextStage)}
                             title={`Avançar para ${nextStage.label}`}
-                            className="w-7 h-7 rounded-lg bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white flex items-center justify-center shadow-xs transition-all cursor-pointer"
+                            className="w-7 h-7 rounded-lg bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white flex items-center justify-center shadow-xs transition-all cursor-pointer"
                           >
                             <ArrowRight className="w-3.5 h-3.5" />
                           </button>
@@ -1331,7 +1331,7 @@ export default function AdminPedidosPage() {
                 return (
                   <div
                     key={order.id}
-                    className="bg-white dark:bg-[#1A0B1C] border border-red-200 dark:border-red-900/40 rounded-xl p-3 shadow-xs hover:shadow-md transition-all flex flex-col gap-2.5"
+                    className="bg-white dark:bg-background border border-red-200 dark:border-red-900/40 rounded-xl p-3 shadow-xs hover:shadow-md transition-all flex flex-col gap-2.5"
                   >
                     <div className="flex items-center justify-between gap-1.5 flex-wrap">
                       <span className="font-mono font-bold text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-2 py-0.5 rounded-md border border-red-200 dark:border-red-900/40">
@@ -1343,7 +1343,7 @@ export default function AdminPedidosPage() {
                     </div>
 
                     <div>
-                      <h4 className="font-bold text-xs text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                      <h4 className="font-bold text-xs text-foreground dark:text-foreground truncate">
                         {clientName}
                       </h4>
                       <p className="font-mono font-bold text-xs text-gray-600 dark:text-gray-300 mt-0.5">
@@ -1367,19 +1367,19 @@ export default function AdminPedidosPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => setSelectedOrderForDrawer(order)}
-                        className="flex-1 text-[11px] font-bold h-8 rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer flex items-center justify-center gap-1"
+                        className="flex-1 text-[11px] font-bold h-8 rounded-lg border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer flex items-center justify-center gap-1"
                       >
-                        <FileText className="w-3 h-3 text-[#9306CF]" />
+                        <FileText className="w-3 h-3 text-primary" />
                         <span>Ver Ficha Completa</span>
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => printThermalReceipt(order)}
-                        className="h-8 px-2.5 rounded-lg border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 cursor-pointer flex items-center justify-center"
+                        className="h-8 px-2.5 rounded-lg border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 cursor-pointer flex items-center justify-center"
                         title="Imprimir Comprovante"
                       >
-                        <Printer className="w-3.5 h-3.5 text-[#9306CF]" />
+                        <Printer className="w-3.5 h-3.5 text-primary" />
                       </Button>
                     </div>
                   </div>
@@ -1392,12 +1392,12 @@ export default function AdminPedidosPage() {
               return (
                 <div
                   key={order.id}
-                  className="bg-white dark:bg-[#1A0B1C] border border-gray-200/90 dark:border-[#512B54]/50 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all flex flex-col gap-3 relative group"
+                  className="bg-white dark:bg-background border border-gray-200/90 dark:border-border/50 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all flex flex-col gap-3 relative group"
                 >
                   {/* 1. Cabeçalho do Card */}
                   <div className="flex items-center justify-between gap-1.5 flex-wrap">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-xs text-[#9306CF] dark:text-[#C7A9C9] bg-[#9306CF]/10 px-2.5 py-0.5 rounded-md border border-[#9306CF]/20">
+                      <span className="font-mono font-bold text-xs text-primary dark:text-muted-foreground bg-primary/10 px-2.5 py-0.5 rounded-md border border-primary/20">
                         #{order.id.substring(0, 6)}
                       </span>
                       <span className="text-[11px] font-mono text-gray-500 dark:text-gray-400">
@@ -1414,7 +1414,7 @@ export default function AdminPedidosPage() {
                           <span>Balcão</span>
                         </span>
                       ) : (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-[#9306CF] dark:bg-purple-950/40 dark:text-[#C7A9C9] border border-purple-200 dark:border-purple-900/40 flex items-center gap-1">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/5 text-primary dark:bg-primary/95/40 dark:text-muted-foreground border border-primary/20 dark:border-primary/90/40 flex items-center gap-1">
                           <ShoppingBag className="w-2.5 h-2.5" />
                           <span>Entrega</span>
                         </span>
@@ -1426,10 +1426,10 @@ export default function AdminPedidosPage() {
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-6 h-6 rounded-full bg-[#9306CF]/10 flex items-center justify-center text-[#9306CF] shrink-0">
+                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
                           <User className="w-3.5 h-3.5" />
                         </div>
-                        <h4 className="font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                        <h4 className="font-bold text-sm text-foreground dark:text-foreground truncate">
                           {clientName}
                         </h4>
                       </div>
@@ -1449,7 +1449,7 @@ export default function AdminPedidosPage() {
                     </div>
 
                     {/* Tag de Recorrência */}
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-[#9306CF] dark:text-[#C7A9C9]">
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-primary dark:text-muted-foreground">
                       <Sparkles className="w-3 h-3" />
                       <span>{recurrence.label}</span>
                     </div>
@@ -1461,8 +1461,8 @@ export default function AdminPedidosPage() {
                         <span>Retirada no Balcão da Loja</span>
                       </div>
                     ) : (
-                      <div className="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-300 bg-gray-50/80 dark:bg-white/5 p-2 rounded-xl border border-gray-100 dark:border-[#512B54]/20">
-                        <MapPin className="w-3.5 h-3.5 text-[#9306CF] shrink-0 mt-0.5" />
+                      <div className="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-300 bg-gray-50/80 dark:bg-white/5 p-2 rounded-xl border border-gray-100 dark:border-border/20">
+                        <MapPin className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
                         <div className="leading-relaxed">
                           <span>
                             {order.delivery_address?.street}, {order.delivery_address?.number}
@@ -1470,7 +1470,7 @@ export default function AdminPedidosPage() {
                             {order.delivery_address?.complement ? ` (${order.delivery_address.complement})` : ""}
                           </span>
                           {order.delivery_address?.reference && (
-                            <span className="block text-[11px] text-[#9306CF] dark:text-[#C7A9C9] font-medium mt-0.5">
+                            <span className="block text-[11px] text-primary dark:text-muted-foreground font-medium mt-0.5">
                               Ref: {order.delivery_address.reference}
                             </span>
                           )}
@@ -1480,13 +1480,13 @@ export default function AdminPedidosPage() {
                   </div>
 
                   {/* 3. Lista de Itens do Pedido */}
-                  <div className="bg-gray-50/80 dark:bg-[#190B1A]/80 rounded-xl p-2.5 space-y-1.5 border border-gray-100 dark:border-[#512B54]/30 max-h-36 overflow-y-auto">
+                  <div className="bg-gray-50/80 dark:bg-background/80 rounded-xl p-2.5 space-y-1.5 border border-gray-100 dark:border-border/30 max-h-36 overflow-y-auto">
                     {order.items && order.items.length > 0 ? (
                       order.items.map((it) => (
                         <div key={it.id} className="text-xs">
-                          <div className="flex items-center justify-between font-semibold text-[#4C264F] dark:text-[#F9F5F9]">
+                          <div className="flex items-center justify-between font-semibold text-foreground dark:text-foreground">
                             <span className="flex items-center gap-1.5 truncate">
-                              <span className="text-[#9306CF] font-black">{it.quantity}x</span>
+                              <span className="text-primary font-black">{it.quantity}x</span>
                               <span className="truncate">{it.product?.name || "Produto"}</span>
                             </span>
                             <span className="text-gray-500 dark:text-gray-400 font-mono text-[11px] shrink-0 ml-2">
@@ -1506,7 +1506,7 @@ export default function AdminPedidosPage() {
                   </div>
 
                   {/* 4. Rodapé do Card (Valor + Pagamento + Ações de Triagem ou Avanço) */}
-                  <div className="space-y-2 pt-1 border-t border-gray-100 dark:border-[#512B54]/30">
+                  <div className="space-y-2 pt-1 border-t border-gray-100 dark:border-border/30">
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col">
                         <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400">Total</span>
@@ -1532,24 +1532,24 @@ export default function AdminPedidosPage() {
                     </div>
 
                     {/* Botões Operacionais Padronizados (Ícone de Seta Compacto) */}
-                    <div className="flex items-center justify-between gap-1 pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+                    <div className="flex items-center justify-between gap-1 pt-2 border-t border-gray-100 dark:border-border/30">
                       {/* Lado Esquerdo: Ficha, Comprovante e Cancelar */}
                       <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => setSelectedOrderForDrawer(order)}
                           title="Ver Ficha Completa"
-                          className="w-8 h-8 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
+                          className="w-8 h-8 rounded-xl border border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
                         >
-                          <FileText className="w-4 h-4 text-[#9306CF]" />
+                          <FileText className="w-4 h-4 text-primary" />
                         </button>
                         <button
                           type="button"
                           onClick={() => printThermalReceipt(order)}
                           title="Imprimir Comprovante (80mm / 58mm)"
-                          className="w-8 h-8 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
+                          className="w-8 h-8 rounded-xl border border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
                         >
-                          <Printer className="w-4 h-4 text-[#9306CF]" />
+                          <Printer className="w-4 h-4 text-primary" />
                         </button>
                         {order.status !== "completed" && (
                           <button
@@ -1570,7 +1570,7 @@ export default function AdminPedidosPage() {
                             type="button"
                             onClick={() => promptRevertStatus(order, prevStage)}
                             title={prevStage.label}
-                            className="w-8 h-8 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
+                            className="w-8 h-8 rounded-xl border border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors cursor-pointer"
                           >
                             <RotateCcw className="w-4 h-4" />
                           </button>
@@ -1580,7 +1580,7 @@ export default function AdminPedidosPage() {
                             type="button"
                             onClick={() => promptUpdateStatus(order, nextStage)}
                             title={`Avançar para ${nextStage.label}`}
-                            className="w-8 h-8 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white flex items-center justify-center shadow-xs transition-all cursor-pointer"
+                            className="w-8 h-8 rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white flex items-center justify-center shadow-xs transition-all cursor-pointer"
                           >
                             <ArrowRight className="w-4 h-4" />
                           </button>
@@ -1608,14 +1608,14 @@ export default function AdminPedidosPage() {
       <MobileOrientationBanner />
 
       {/* Header Dedicado de Gestão de Pedidos */}
-      <header className="bg-white/85 dark:bg-[#1F0B22]/90 backdrop-blur-xl border-b border-gray-200 dark:border-[#512B54]/40 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center sticky top-0 z-40 shadow-sm">
+      <header className="bg-white/85 dark:bg-[#1F0B22]/90 backdrop-blur-xl border-b border-gray-200 dark:border-border/40 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center sticky top-0 z-40 shadow-sm">
         <div className="flex items-center gap-2 sm:gap-3">
           <Link href="/" className="font-heading font-black text-lg sm:text-xl tracking-tight flex items-center gap-1.5 select-none hover:opacity-85 transition-opacity">
             <div className="flex items-center gap-1">
-              <span className="text-[#4C264F] dark:text-[#F9F5F9]">Pop</span>
+              <span className="text-foreground dark:text-foreground">Pop</span>
               <span
                 style={{
-                  background: "linear-gradient(135deg, #9306CF 0%, #940068 100%)",
+                  background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   backgroundClip: "text",
@@ -1623,7 +1623,7 @@ export default function AdminPedidosPage() {
               >
                 Shake
               </span>
-              <span className="ml-1 text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20">
+              <span className="ml-1 text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/10 text-primary dark:text-muted-foreground border border-primary/20">
                 Gestão
               </span>
             </div>
@@ -1634,33 +1634,33 @@ export default function AdminPedidosPage() {
           {/* Links Desktop (sm+) */}
           <Link
             href="/admin/historico"
-            className="hidden sm:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            className="hidden sm:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
           >
-            <History className="w-4 h-4 text-[#9306CF]" />
+            <History className="w-4 h-4 text-primary" />
             <span>Histórico</span>
           </Link>
 
           <Link
             href="/admin"
-            className="hidden sm:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            className="hidden sm:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
           >
-            <BarChart3 className="w-4 h-4 text-[#9306CF]" />
+            <BarChart3 className="w-4 h-4 text-primary" />
             <span>Painel Operacional</span>
           </Link>
 
           <Link
             href="/conta"
-            className="hidden sm:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            className="hidden sm:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
           >
-            <User className="w-4 h-4 text-[#9306CF]" />
+            <User className="w-4 h-4 text-primary" />
             <span>Meu Perfil</span>
           </Link>
 
           <Link
             href="/"
-            className="hidden sm:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            className="hidden sm:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
           >
-            <Store className="w-4 h-4 text-[#9306CF]" />
+            <Store className="w-4 h-4 text-primary" />
             <span>Página Inicial</span>
           </Link>
 
@@ -1668,12 +1668,12 @@ export default function AdminPedidosPage() {
             onClick={toggleTheme}
             aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
             title={theme === "dark" ? "Modo claro" : "Modo escuro"}
-            className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             {theme === "dark" ? (
               <Sun className="w-4 h-4 text-amber-500" />
             ) : (
-              <Moon className="w-4 h-4 text-[#9306CF]" />
+              <Moon className="w-4 h-4 text-primary" />
             )}
           </button>
 
@@ -1692,46 +1692,46 @@ export default function AdminPedidosPage() {
               type="button"
               onClick={() => setMobileMenuOpen((prev) => !prev)}
               aria-label="Abrir menu de navegação"
-              className="flex items-center justify-center w-8 h-8 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer"
+              className="flex items-center justify-center w-8 h-8 rounded-xl border border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer"
             >
-              {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4 text-[#9306CF]" />}
+              {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4 text-primary" />}
             </button>
 
             {mobileMenuOpen && (
-              <div className="absolute right-0 top-10 z-50 w-52 bg-white dark:bg-[#1E0921] border border-gray-200 dark:border-[#512B54]/60 rounded-2xl p-2 shadow-2xl space-y-1 animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute right-0 top-10 z-50 w-52 bg-white dark:bg-background border border-gray-200 dark:border-border/60 rounded-2xl p-2 shadow-2xl space-y-1 animate-in fade-in zoom-in-95 duration-150">
                 <Link
                   href="/admin/historico"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF]"
+                  className="flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary"
                 >
-                  <History className="w-4 h-4 text-[#9306CF]" />
+                  <History className="w-4 h-4 text-primary" />
                   <span>Histórico</span>
                 </Link>
                 <Link
                   href="/admin"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF]"
+                  className="flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary"
                 >
-                  <BarChart3 className="w-4 h-4 text-[#9306CF]" />
+                  <BarChart3 className="w-4 h-4 text-primary" />
                   <span>Painel Operacional</span>
                 </Link>
                 <Link
                   href="/conta"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF]"
+                  className="flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary"
                 >
-                  <User className="w-4 h-4 text-[#9306CF]" />
+                  <User className="w-4 h-4 text-primary" />
                   <span>Meu Perfil</span>
                 </Link>
                 <Link
                   href="/"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-200 hover:bg-[#9306CF]/10 hover:text-[#9306CF]"
+                  className="flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary"
                 >
-                  <Store className="w-4 h-4 text-[#9306CF]" />
+                  <Store className="w-4 h-4 text-primary" />
                   <span>Página Inicial</span>
                 </Link>
-                <div className="border-t border-gray-100 dark:border-[#512B54]/30 my-1" />
+                <div className="border-t border-gray-100 dark:border-border/30 my-1" />
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
@@ -1753,8 +1753,8 @@ export default function AdminPedidosPage() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="font-heading text-xl sm:text-2xl font-bold uppercase tracking-wide flex items-center gap-2 text-[#4C264F] dark:text-[#F9F5F9]">
-                <LayoutDashboard className="w-6 h-6 text-[#9306CF]" /> Central Operacional da Cozinha e Despacho
+              <h1 className="font-heading text-xl sm:text-2xl font-bold uppercase tracking-wide flex items-center gap-2 text-foreground dark:text-foreground">
+                <LayoutDashboard className="w-6 h-6 text-primary" /> Central Operacional da Cozinha e Despacho
               </h1>
               {/* Bloco 1: Badge de Status da Loja Exclusivo */}
               {shiftData?.isOpen ? (
@@ -1779,10 +1779,10 @@ export default function AdminPedidosPage() {
             <button
               type="button"
               onClick={() => setIsAdjustDeliveryModalOpen(true)}
-              className="inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-xl bg-purple-50 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-xs hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-xl bg-primary/5 text-primary/80 dark:bg-primary/95/40 dark:text-primary/30 border border-primary/20 dark:border-primary/80 shadow-xs hover:bg-primary/10 dark:hover:bg-primary/90/40 transition-colors cursor-pointer"
               title="Ajustar tempo estimado de entrega"
             >
-              <Clock className="w-4 h-4 text-[#9306CF] dark:text-[#E899FF]" />
+              <Clock className="w-4 h-4 text-primary dark:text-[#E899FF]" />
               <span className="font-mono font-bold text-xs">
                 {shiftData?.estimatedDeliveryTime?.replace(" min", "m")?.replace("min", "m") || "30-50m"}
               </span>
@@ -1833,14 +1833,14 @@ export default function AdminPedidosPage() {
                 }}
                 className={`rounded-xl border text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 h-10 transition-all cursor-pointer ${
                   adminViewMode === "compact"
-                    ? "border-[#9306CF] bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9]"
-                    : "border-gray-200 dark:border-[#512B54]/40 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5"
+                    ? "border-primary bg-primary/10 text-primary dark:text-muted-foreground"
+                    : "border-gray-200 dark:border-border/40 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5"
                 }`}
                 title="Alternar densidade de visualização da esteira"
               >
-                <SlidersHorizontal className="w-3.5 h-3.5 text-[#9306CF]" />
+                <SlidersHorizontal className="w-3.5 h-3.5 text-primary" />
                 <span className="hidden sm:inline">Exibição</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-[#9306CF]/15 text-[#9306CF] dark:text-[#C7A9C9]">
+                <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-primary/15 text-primary dark:text-muted-foreground">
                   {adminViewMode === "compact" ? "Compacto" : "Padrão"}
                 </span>
                 <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${isCompactDropdownOpen ? "rotate-180" : ""}`} />
@@ -1849,12 +1849,12 @@ export default function AdminPedidosPage() {
               {isCompactDropdownOpen && (
                 <div
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute right-0 top-full mt-2 z-[9999] w-72 bg-white dark:bg-[#1E0921] border border-gray-200 dark:border-[#512B54]/60 rounded-2xl p-3.5 shadow-2xl space-y-3 animate-in fade-in zoom-in-95 duration-150"
+                  className="absolute right-0 top-full mt-2 z-[9999] w-72 bg-white dark:bg-background border border-gray-200 dark:border-border/60 rounded-2xl p-3.5 shadow-2xl space-y-3 animate-in fade-in zoom-in-95 duration-150"
                 >
                   {/* Cabeçalho */}
-                  <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-[#512B54]/30">
+                  <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-border/30">
                     <div>
-                      <span className="text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9] block">
+                      <span className="text-xs font-bold text-foreground dark:text-foreground block">
                         Densidade da Esteira
                       </span>
                       <span className="text-[10px] text-gray-400 dark:text-gray-400">
@@ -1878,20 +1878,20 @@ export default function AdminPedidosPage() {
                       onClick={() => handleChangeViewMode("detailed")}
                       className={`w-full p-2.5 rounded-xl border text-left flex items-start gap-2.5 transition-all cursor-pointer ${
                         adminViewMode === "detailed"
-                          ? "border-[#9306CF] bg-[#9306CF]/10 ring-1 ring-[#9306CF]/30"
-                          : "border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-50 dark:hover:bg-white/5"
+                          ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                          : "border-gray-200 dark:border-border/40 hover:bg-gray-50 dark:hover:bg-white/5"
                       }`}
                     >
-                      <div className={`p-1.5 rounded-lg mt-0.5 ${adminViewMode === "detailed" ? "bg-[#9306CF] text-white" : "bg-gray-100 dark:bg-white/10 text-gray-500"}`}>
+                      <div className={`p-1.5 rounded-lg mt-0.5 ${adminViewMode === "detailed" ? "bg-primary text-white" : "bg-gray-100 dark:bg-white/10 text-gray-500"}`}>
                         <LayoutList className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9]">
+                          <span className="text-xs font-bold text-foreground dark:text-foreground">
                             Modo Padrão / Detalhado
                           </span>
                           {adminViewMode === "detailed" && (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-[#9306CF]" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
                           )}
                         </div>
                         <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">
@@ -1905,20 +1905,20 @@ export default function AdminPedidosPage() {
                       onClick={() => handleChangeViewMode("compact")}
                       className={`w-full p-2.5 rounded-xl border text-left flex items-start gap-2.5 transition-all cursor-pointer ${
                         adminViewMode === "compact"
-                          ? "border-[#9306CF] bg-[#9306CF]/10 ring-1 ring-[#9306CF]/30"
-                          : "border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-50 dark:hover:bg-white/5"
+                          ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                          : "border-gray-200 dark:border-border/40 hover:bg-gray-50 dark:hover:bg-white/5"
                       }`}
                     >
-                      <div className={`p-1.5 rounded-lg mt-0.5 ${adminViewMode === "compact" ? "bg-[#9306CF] text-white" : "bg-gray-100 dark:bg-white/10 text-gray-500"}`}>
+                      <div className={`p-1.5 rounded-lg mt-0.5 ${adminViewMode === "compact" ? "bg-primary text-white" : "bg-gray-100 dark:bg-white/10 text-gray-500"}`}>
                         <LayoutGrid className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9]">
+                          <span className="text-xs font-bold text-foreground dark:text-foreground">
                             Modo Compacto (Alta Densidade)
                           </span>
                           {adminViewMode === "compact" && (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-[#9306CF]" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
                           )}
                         </div>
                         <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">
@@ -1929,8 +1929,8 @@ export default function AdminPedidosPage() {
                   </div>
 
                   {/* Controle de Impressão Automática */}
-                  <div className="pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
-                    <span className="text-[11px] font-bold text-[#4C264F] dark:text-[#F9F5F9] block mb-1">
+                  <div className="pt-2 border-t border-gray-100 dark:border-border/30">
+                    <span className="text-[11px] font-bold text-foreground dark:text-foreground block mb-1">
                       Impressão Operacional
                     </span>
                     <label className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer text-xs select-none">
@@ -1938,7 +1938,7 @@ export default function AdminPedidosPage() {
                         type="checkbox"
                         checked={autoPrintReceipt}
                         onChange={(e) => handleToggleAutoPrintReceipt(e.target.checked)}
-                        className="w-4 h-4 rounded text-[#9306CF] focus:ring-[#9306CF] border-gray-300 cursor-pointer"
+                        className="w-4 h-4 rounded text-primary focus:ring-primary border-gray-300 cursor-pointer"
                       />
                       <span className="text-gray-700 dark:text-gray-300 font-medium text-[11px] leading-tight">
                         Imprimir comprovante automaticamente ao aceitar
@@ -1953,7 +1953,7 @@ export default function AdminPedidosPage() {
             <Button
               onClick={() => fetchOrders(true)}
               disabled={isRefreshing}
-              className="rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white flex items-center justify-center w-10 h-10 p-0 shadow-md shadow-[#9306CF]/20 transition-all cursor-pointer shrink-0"
+              className="rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white flex items-center justify-center w-10 h-10 p-0 shadow-md shadow-primary/20 transition-all cursor-pointer shrink-0"
               title="Atualizar Esteira"
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
@@ -1963,7 +1963,7 @@ export default function AdminPedidosPage() {
 
         {/* Banner de Loja Fechada / Turno Inativo */}
         {shiftData && !shiftData.isOpen && (
-          <div className="bg-gradient-to-r from-red-500/10 via-amber-500/10 to-purple-500/10 border border-red-200 dark:border-red-900/50 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="bg-gradient-to-r from-red-500/10 via-amber-500/10 to-primary/10 border border-red-200 dark:border-red-900/50 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-950/50 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0">
                 <Power className="w-5 h-5" />
@@ -2000,7 +2000,7 @@ export default function AdminPedidosPage() {
 
         {/* Métricas Rápidas Operacionais */}
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
-          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-sm flex items-center justify-between">
+          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-sm flex items-center justify-between">
             <div className="min-w-0">
               <span className="text-[10px] sm:text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block truncate">
                 Faturamento
@@ -2014,7 +2014,7 @@ export default function AdminPedidosPage() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-sm flex items-center justify-between">
+          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-sm flex items-center justify-between">
             <div className="min-w-0">
               <span className="text-[10px] sm:text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block truncate">
                 Ativos
@@ -2028,21 +2028,21 @@ export default function AdminPedidosPage() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-sm flex items-center justify-between">
+          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-sm flex items-center justify-between">
             <div className="min-w-0">
               <span className="text-[10px] sm:text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block truncate">
                 Total Hoje
               </span>
-              <span className="font-heading font-black text-base sm:text-2xl text-[#4C264F] dark:text-[#F9F5F9]">
+              <span className="font-heading font-black text-base sm:text-2xl text-foreground dark:text-foreground">
                 {todayOrders.length}
               </span>
             </div>
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-[#9306CF]/10 flex items-center justify-center text-[#9306CF] shrink-0 ml-1">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0 ml-1">
               <PackageSearch className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-sm flex items-center justify-between">
+          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-sm flex items-center justify-between">
             <div className="min-w-0">
               <span className="text-[10px] sm:text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block truncate">
                 Cancelados
@@ -2060,9 +2060,9 @@ export default function AdminPedidosPage() {
         {/* Abas do Kanban no Mobile (< md) */}
         <div className="md:hidden flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
           {([
-            { key: "novos" as const, label: "Novos", color: "#9306CF", count: orders.filter((o) => ["pending", "accepted"].includes(o.status)).length },
+            { key: "novos" as const, label: "Novos", color: "hsl(var(--primary))", count: orders.filter((o) => ["pending", "accepted"].includes(o.status)).length },
             { key: "preparo" as const, label: "Preparo", color: "#EAB308", count: orders.filter((o) => ["preparing"].includes(o.status)).length },
-            { key: "entrega" as const, label: "Entrega", color: "#940068", count: orders.filter((o) => ["ready", "delivering"].includes(o.status)).length },
+            { key: "entrega" as const, label: "Entrega", color: "hsl(var(--accent))", count: orders.filter((o) => ["ready", "delivering"].includes(o.status)).length },
             { key: "concluidos" as const, label: "Concluídos", color: "#10B981", count: orders.filter((o) => ["completed"].includes(o.status)).length },
             { key: "cancelados" as const, label: "Cancelados", color: "#EF4444", count: orders.filter((o) => ["cancelled"].includes(o.status)).length },
           ]).map((tab) => {
@@ -2074,8 +2074,8 @@ export default function AdminPedidosPage() {
                 onClick={() => setMobileKanbanTab(tab.key)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                   isActive
-                    ? "bg-[#9306CF] text-white shadow-sm scale-[1.02]"
-                    : "bg-white dark:bg-[#230E26] text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-50 dark:hover:bg-white/5"
+                    ? "bg-primary text-white shadow-sm scale-[1.02]"
+                    : "bg-white dark:bg-[#230E26] text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-border/40 hover:bg-gray-50 dark:hover:bg-white/5"
                 }`}
               >
                 <span>{tab.label}</span>
@@ -2095,18 +2095,18 @@ export default function AdminPedidosPage() {
 
         {/* Coluna Ativa do Kanban no Mobile (< md) */}
         <div className="md:hidden space-y-4">
-          {mobileKanbanTab === "novos" && renderKanbanColumn("Novos", ["pending", "accepted"], "#9306CF", "novos")}
+          {mobileKanbanTab === "novos" && renderKanbanColumn("Novos", ["pending", "accepted"], "hsl(var(--primary))", "novos")}
           {mobileKanbanTab === "preparo" && renderKanbanColumn("Em Preparo", ["preparing"], "#EAB308", "preparo")}
-          {mobileKanbanTab === "entrega" && renderKanbanColumn("A Caminho / Pronto", ["ready", "delivering"], "#940068", "entrega")}
+          {mobileKanbanTab === "entrega" && renderKanbanColumn("A Caminho / Pronto", ["ready", "delivering"], "hsl(var(--accent))", "entrega")}
           {mobileKanbanTab === "concluidos" && renderKanbanColumn("Concluídos", ["completed"], "#10B981", "concluidos")}
           {mobileKanbanTab === "cancelados" && renderKanbanColumn("Cancelados", ["cancelled"], "#EF4444", "cancelados", true)}
         </div>
 
         {/* Grid Principal do Kanban em 5 Colunas (md+) */}
         <section className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4 overflow-x-auto pb-4 items-start">
-          {renderKanbanColumn("Novos", ["pending", "accepted"], "#9306CF", "novos")}
+          {renderKanbanColumn("Novos", ["pending", "accepted"], "hsl(var(--primary))", "novos")}
           {renderKanbanColumn("Em Preparo", ["preparing"], "#EAB308", "preparo")}
-          {renderKanbanColumn("A Caminho / Pronto", ["ready", "delivering"], "#940068", "entrega")}
+          {renderKanbanColumn("A Caminho / Pronto", ["ready", "delivering"], "hsl(var(--accent))", "entrega")}
           {renderKanbanColumn("Concluídos", ["completed"], "#10B981", "concluidos")}
           {renderKanbanColumn("Cancelados", ["cancelled"], "#EF4444", "cancelados", true)}
         </section>
@@ -2189,14 +2189,14 @@ export default function AdminPedidosPage() {
       {/* Modal 1: Iniciar Esteira / Abrir Loja */}
       {isOpenStoreModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#1F0B22] border border-gray-200 dark:border-[#512B54]/60 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+          <div className="bg-white dark:bg-[#1F0B22] border border-gray-200 dark:border-border/60 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-border/30">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                   <Play className="w-5 h-5 fill-current" />
                 </div>
                 <div>
-                  <h3 className="font-heading font-black text-lg text-[#4C264F] dark:text-[#F9F5F9]">
+                  <h3 className="font-heading font-black text-lg text-foreground dark:text-foreground">
                     Iniciar Esteira / Abrir Loja
                   </h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -2225,8 +2225,8 @@ export default function AdminPedidosPage() {
                       onClick={() => setDeliveryTimeInput(preset)}
                       className={`text-xs py-2 px-3 rounded-xl font-bold border transition-all ${
                         deliveryTimeInput === preset
-                          ? "bg-[#9306CF] text-white border-[#9306CF] shadow-xs"
-                          : "bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-[#512B54]/40 text-gray-700 dark:text-gray-300 hover:bg-gray-100"
+                          ? "bg-primary text-white border-primary shadow-xs"
+                          : "bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-border/40 text-gray-700 dark:text-gray-300 hover:bg-gray-100"
                       }`}
                     >
                       {preset}
@@ -2238,7 +2238,7 @@ export default function AdminPedidosPage() {
                   value={deliveryTimeInput}
                   onChange={(e) => setDeliveryTimeInput(e.target.value)}
                   placeholder="Ex: 35-50 min"
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#512B54]/50 bg-gray-50 dark:bg-white/5 text-foreground text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-[#9306CF]"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-border/50 bg-gray-50 dark:bg-white/5 text-foreground text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-primary"
                 />
               </div>
 
@@ -2252,11 +2252,11 @@ export default function AdminPedidosPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100 dark:border-border/30">
               <Button
                 variant="outline"
                 onClick={() => setIsOpenStoreModalOpen(false)}
-                className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider"
+                className="rounded-xl border-gray-200 dark:border-border/40 text-xs font-bold uppercase tracking-wider"
               >
                 Cancelar
               </Button>
@@ -2283,13 +2283,13 @@ export default function AdminPedidosPage() {
           {pendingOrdersInBoard.length > 0 ? (
             /* CENÁRIO A: Modal de Alerta e Bloqueio Operacional com Pedidos Ativos */
             <div className="bg-white dark:bg-[#1F0B22] border-2 border-amber-400 dark:border-amber-600/70 rounded-3xl p-6 sm:p-7 max-w-xl w-full shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
-              <div className="flex items-start justify-between pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+              <div className="flex items-start justify-between pb-3 border-b border-gray-100 dark:border-border/30">
                 <div className="flex items-center gap-3">
                   <div className="w-11 h-11 rounded-2xl bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700/60 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
                     <ShieldAlert className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="font-heading font-black text-lg text-[#4C264F] dark:text-[#F9F5F9]">
+                    <h3 className="font-heading font-black text-lg text-foreground dark:text-foreground">
                       Atenção: Não é possível encerrar o turno agora
                     </h3>
                     <p className="text-xs text-amber-800 dark:text-amber-300 font-medium">
@@ -2324,42 +2324,42 @@ export default function AdminPedidosPage() {
 
                 {/* 4 Cards das Etapas */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                  <div className="bg-white/90 dark:bg-[#1A0B1C] p-2.5 rounded-xl border border-amber-200 dark:border-amber-800/40 text-center">
+                  <div className="bg-white/90 dark:bg-background p-2.5 rounded-xl border border-amber-200 dark:border-amber-800/40 text-center">
                     <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-amber-800 dark:text-amber-300 mb-0.5">
                       <Inbox className="w-3.5 h-3.5" />
                       <span>Inbox</span>
                     </div>
-                    <span className="font-heading font-black text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                    <span className="font-heading font-black text-base text-foreground dark:text-foreground">
                       {pendingBreakdown.inbox.length}
                     </span>
                   </div>
 
-                  <div className="bg-white/90 dark:bg-[#1A0B1C] p-2.5 rounded-xl border border-blue-200 dark:border-blue-800/40 text-center">
+                  <div className="bg-white/90 dark:bg-background p-2.5 rounded-xl border border-blue-200 dark:border-blue-800/40 text-center">
                     <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-blue-800 dark:text-blue-300 mb-0.5">
                       <ChefHat className="w-3.5 h-3.5" />
                       <span>Cozinha</span>
                     </div>
-                    <span className="font-heading font-black text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                    <span className="font-heading font-black text-base text-foreground dark:text-foreground">
                       {pendingBreakdown.preparing.length}
                     </span>
                   </div>
 
-                  <div className="bg-white/90 dark:bg-[#1A0B1C] p-2.5 rounded-xl border border-purple-200 dark:border-purple-800/40 text-center">
-                    <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-purple-800 dark:text-purple-300 mb-0.5">
+                  <div className="bg-white/90 dark:bg-background p-2.5 rounded-xl border border-primary/20 dark:border-primary/80/40 text-center">
+                    <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-primary/80 dark:text-primary/30 mb-0.5">
                       <PackageCheck className="w-3.5 h-3.5" />
                       <span>Pronto</span>
                     </div>
-                    <span className="font-heading font-black text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                    <span className="font-heading font-black text-base text-foreground dark:text-foreground">
                       {pendingBreakdown.ready.length}
                     </span>
                   </div>
 
-                  <div className="bg-white/90 dark:bg-[#1A0B1C] p-2.5 rounded-xl border border-orange-200 dark:border-orange-800/40 text-center">
+                  <div className="bg-white/90 dark:bg-background p-2.5 rounded-xl border border-orange-200 dark:border-orange-800/40 text-center">
                     <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-orange-800 dark:text-orange-300 mb-0.5">
                       <Bike className="w-3.5 h-3.5" />
                       <span>A Caminho</span>
                     </div>
-                    <span className="font-heading font-black text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                    <span className="font-heading font-black text-base text-foreground dark:text-foreground">
                       {pendingBreakdown.delivering.length}
                     </span>
                   </div>
@@ -2379,11 +2379,11 @@ export default function AdminPedidosPage() {
                   return (
                     <div
                       key={p.id}
-                      className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-[#512B54]/40 hover:border-purple-300 dark:hover:border-purple-700 transition-colors"
+                      className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-border/40 hover:border-primary/30 dark:hover:border-primary transition-colors"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <span className="font-mono font-bold text-xs text-[#4C264F] dark:text-[#F9F5F9]">
+                          <span className="font-mono font-bold text-xs text-foreground dark:text-foreground">
                             #{p.id.substring(0, 6)}
                           </span>
                           <span className="font-bold text-xs text-gray-800 dark:text-gray-200 truncate max-w-[160px]">
@@ -2416,7 +2416,7 @@ export default function AdminPedidosPage() {
                           setIsCloseShiftModalOpen(false);
                           setSelectedOrderForDrawer(p);
                         }}
-                        className="rounded-xl h-8 px-2.5 text-xs font-bold text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/60 hover:bg-purple-50 dark:hover:bg-purple-950/40 shrink-0 flex items-center gap-1 cursor-pointer"
+                        className="rounded-xl h-8 px-2.5 text-xs font-bold text-primary dark:text-primary/30 border-primary/20 dark:border-primary/80/60 hover:bg-primary/5 dark:hover:bg-primary/95/40 shrink-0 flex items-center gap-1 cursor-pointer"
                         title="Visualizar pedido na esteira para avançar ou finalizar"
                       >
                         <span>Ver Pedido</span>
@@ -2428,13 +2428,13 @@ export default function AdminPedidosPage() {
               </div>
 
               {/* Botões do Modal A */}
-              <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-[#512B54]/30">
+              <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-border/30">
                 <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1">
                   🔒 Fechamento travado ({pendingOrdersInBoard.length} pendências)
                 </span>
                 <Button
                   onClick={() => setIsCloseShiftModalOpen(false)}
-                  className="rounded-xl bg-[#4C264F] hover:bg-[#68356C] text-white text-xs font-bold uppercase tracking-wider px-5 shadow-md cursor-pointer"
+                  className="rounded-xl bg-foreground hover:bg-[#68356C] text-white text-xs font-bold uppercase tracking-wider px-5 shadow-md cursor-pointer"
                 >
                   Voltar para a Esteira
                 </Button>
@@ -2442,14 +2442,14 @@ export default function AdminPedidosPage() {
             </div>
           ) : (
             /* CENÁRIO B: Modal de Confirmação de Encerramento Seguro */
-            <div className="bg-white dark:bg-[#1F0B22] border border-gray-200 dark:border-[#512B54]/60 rounded-3xl p-6 sm:p-7 max-w-xl w-full shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+            <div className="bg-white dark:bg-[#1F0B22] border border-gray-200 dark:border-border/60 rounded-3xl p-6 sm:p-7 max-w-xl w-full shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-border/30">
                 <div className="flex items-center gap-3">
                   <div className="w-11 h-11 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="font-heading font-black text-lg text-[#4C264F] dark:text-[#F9F5F9]">
+                    <h3 className="font-heading font-black text-lg text-foreground dark:text-foreground">
                       Confirmar Encerramento de Turno
                     </h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -2480,35 +2480,35 @@ export default function AdminPedidosPage() {
                 </div>
 
                 {/* Resumo do Turno / Fechamento de Caixa */}
-                <div className="bg-gray-50/80 dark:bg-white/5 border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-4 space-y-3">
-                  <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
-                    <Coins className="w-4 h-4 text-[#9306CF]" />
+                <div className="bg-gray-50/80 dark:bg-white/5 border border-gray-200 dark:border-border/40 rounded-2xl p-4 space-y-3">
+                  <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-foreground dark:text-foreground flex items-center gap-2">
+                    <Coins className="w-4 h-4 text-primary" />
                     Resumo Financeiro da Sessão (Concluídos)
                   </h4>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="bg-white dark:bg-[#1A0B1C] p-3 rounded-xl border border-gray-100 dark:border-[#512B54]/30">
+                    <div className="bg-white dark:bg-background p-3 rounded-xl border border-gray-100 dark:border-border/30">
                       <span className="text-[10px] uppercase font-bold text-gray-500 block">Total Faturado</span>
                       <span className="font-heading font-black text-base text-emerald-600 dark:text-emerald-400">
                         {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(shiftRevenueTotal)}
                       </span>
                     </div>
 
-                    <div className="bg-white dark:bg-[#1A0B1C] p-3 rounded-xl border border-gray-100 dark:border-[#512B54]/30">
+                    <div className="bg-white dark:bg-background p-3 rounded-xl border border-gray-100 dark:border-border/30">
                       <span className="text-[10px] uppercase font-bold text-gray-500 block">💵 Dinheiro</span>
-                      <span className="font-heading font-black text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                      <span className="font-heading font-black text-base text-foreground dark:text-foreground">
                         {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(shiftCashTotal)}
                       </span>
                     </div>
 
-                    <div className="bg-white dark:bg-[#1A0B1C] p-3 rounded-xl border border-gray-100 dark:border-[#512B54]/30">
+                    <div className="bg-white dark:bg-background p-3 rounded-xl border border-gray-100 dark:border-border/30">
                       <span className="text-[10px] uppercase font-bold text-gray-500 block">📱 Pix</span>
-                      <span className="font-heading font-black text-base text-purple-600 dark:text-purple-400">
+                      <span className="font-heading font-black text-base text-primary dark:text-primary/40">
                         {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(shiftPixTotal)}
                       </span>
                     </div>
 
-                    <div className="bg-white dark:bg-[#1A0B1C] p-3 rounded-xl border border-gray-100 dark:border-[#512B54]/30">
+                    <div className="bg-white dark:bg-background p-3 rounded-xl border border-gray-100 dark:border-border/30">
                       <span className="text-[10px] uppercase font-bold text-gray-500 block">💳 Cartão Maq.</span>
                       <span className="font-heading font-black text-base text-blue-600 dark:text-blue-400">
                         {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(shiftCardTotal)}
@@ -2524,18 +2524,18 @@ export default function AdminPedidosPage() {
                 </div>
 
                 {/* Informação sobre o Arquivamento dos Pedidos e Alertas */}
-                <div className="text-xs text-gray-500 dark:text-gray-400 bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/30 rounded-2xl p-3.5 leading-relaxed">
+                <div className="text-xs text-gray-500 dark:text-gray-400 bg-primary/5/50 dark:bg-primary/95/20 border border-primary/10 dark:border-primary/90/30 rounded-2xl p-3.5 leading-relaxed">
                   <p>
                     📦 <strong>Arquivamento da Esteira:</strong> Ao confirmar o encerramento, todos os pedidos concluídos e cancelados serão arquivados da esteira ativa para que o próximo turno comece 100% limpo. Os alertas sonoros de novos pedidos serão pausados e todos os dados consolidados no <strong>Histórico de Pedidos</strong>.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 dark:border-[#512B54]/30">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 dark:border-border/30">
                 <Button
                   variant="outline"
                   onClick={() => setIsCloseShiftModalOpen(false)}
-                  className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider"
+                  className="rounded-xl border-gray-200 dark:border-border/40 text-xs font-bold uppercase tracking-wider"
                 >
                   Cancelar
                 </Button>
@@ -2560,11 +2560,11 @@ export default function AdminPedidosPage() {
       {/* Modal 3: Ajuste Rápido de Previsão de Entrega */}
       {isAdjustDeliveryModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#1F0B22] border border-gray-200 dark:border-[#512B54]/60 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+          <div className="bg-white dark:bg-[#1F0B22] border border-gray-200 dark:border-border/60 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-border/30">
               <div className="flex items-center gap-2.5">
-                <Clock className="w-5 h-5 text-[#9306CF]" />
-                <h3 className="font-heading font-black text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                <Clock className="w-5 h-5 text-primary" />
+                <h3 className="font-heading font-black text-base text-foreground dark:text-foreground">
                   Ajustar Previsão de Entrega
                 </h3>
               </div>
@@ -2588,8 +2588,8 @@ export default function AdminPedidosPage() {
                     onClick={() => setDeliveryTimeInput(preset)}
                     className={`text-xs py-2 px-3 rounded-xl font-bold border transition-all ${
                       deliveryTimeInput === preset
-                        ? "bg-[#9306CF] text-white border-[#9306CF] shadow-xs"
-                        : "bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-[#512B54]/40 text-gray-700 dark:text-gray-300 hover:bg-gray-100"
+                        ? "bg-primary text-white border-primary shadow-xs"
+                        : "bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-border/40 text-gray-700 dark:text-gray-300 hover:bg-gray-100"
                     }`}
                   >
                     {preset}
@@ -2601,21 +2601,21 @@ export default function AdminPedidosPage() {
                 value={deliveryTimeInput}
                 onChange={(e) => setDeliveryTimeInput(e.target.value)}
                 placeholder="Ex: 30-50 min"
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#512B54]/50 bg-gray-50 dark:bg-white/5 text-foreground text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-[#9306CF]"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-border/50 bg-gray-50 dark:bg-white/5 text-foreground text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-primary"
               />
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100 dark:border-border/30">
               <Button
                 variant="outline"
                 onClick={() => setIsAdjustDeliveryModalOpen(false)}
-                className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider"
+                className="rounded-xl border-gray-200 dark:border-border/40 text-xs font-bold uppercase tracking-wider"
               >
                 Cancelar
               </Button>
               <Button
                 onClick={handleUpdateEstimatedDelivery}
-                className="rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white text-xs font-bold uppercase tracking-wider px-5 shadow-md"
+                className="rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white text-xs font-bold uppercase tracking-wider px-5 shadow-md"
               >
                 Salvar Previsão
               </Button>
@@ -2627,23 +2627,23 @@ export default function AdminPedidosPage() {
       {/* Modal de Confirmação Contextual: "Você tem certeza?" */}
       {confirmDialog.open && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#1E0921] border border-gray-200 dark:border-[#512B54]/60 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+          <div className="bg-white dark:bg-background border border-gray-200 dark:border-border/60 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
             <div className="flex items-center gap-3">
               <div
                 className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
                   confirmDialog.isDestructive
                     ? "bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400"
-                    : "bg-[#9306CF]/15 text-[#9306CF] dark:text-[#C7A9C9]"
+                    : "bg-primary/15 text-primary dark:text-muted-foreground"
                 }`}
               >
                 {confirmDialog.isDestructive ? (
                   <Ban className="w-5 h-5" />
                 ) : (
-                  <AlertTriangle className="w-5 h-5 text-[#9306CF] dark:text-[#C7A9C9]" />
+                  <AlertTriangle className="w-5 h-5 text-primary dark:text-muted-foreground" />
                 )}
               </div>
               <div className="min-w-0">
-                <h3 className="font-heading font-black text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                <h3 className="font-heading font-black text-base text-foreground dark:text-foreground">
                   {confirmDialog.title}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -2656,12 +2656,12 @@ export default function AdminPedidosPage() {
               {confirmDialog.message}
             </p>
 
-            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-gray-100 dark:border-border/30">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setConfirmDialog((prev) => ({ ...prev, open: false }))}
-                className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider h-10 px-5 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
+                className="rounded-xl border-gray-200 dark:border-border/40 text-xs font-bold uppercase tracking-wider h-10 px-5 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
               >
                 Cancelar
               </Button>
@@ -2674,7 +2674,7 @@ export default function AdminPedidosPage() {
                 className={`rounded-xl text-xs font-bold uppercase tracking-wider h-10 px-6 shadow-sm flex items-center gap-1.5 cursor-pointer ${
                   confirmDialog.isDestructive
                     ? "bg-red-600 hover:bg-red-700 text-white shadow-red-600/20"
-                    : "bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white shadow-[#9306CF]/20"
+                    : "bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white shadow-primary/20"
                 }`}
               >
                 <span>{confirmDialog.confirmText || "Confirmar Avanço"}</span>

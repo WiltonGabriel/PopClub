@@ -207,18 +207,18 @@ function SearchContent() {
           <div className="flex items-center gap-3 shrink-0">
             <Link
               href="/"
-              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-2.5 sm:px-3 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-2.5 sm:px-3 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
               title="Voltar para a Página Inicial"
             >
-              <ArrowLeft className="w-4 h-4 text-[#9306CF]" />
+              <ArrowLeft className="w-4 h-4 text-primary" />
               <span className="hidden sm:inline">Início</span>
             </Link>
 
             <Link href="/" className="font-heading font-black text-xl tracking-tight hidden md:flex items-center gap-1">
-              <span className="text-[#4C264F] dark:text-[#F9F5F9]">Pop</span>
+              <span className="text-foreground dark:text-foreground">Pop</span>
               <span
                 style={{
-                  background: "linear-gradient(135deg, #9306CF 0%, #940068 100%)",
+                  background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   backgroundClip: "text",
@@ -245,9 +245,9 @@ function SearchContent() {
             {/* Meus Pedidos */}
             <Link
               href="/pedidos"
-              className="hidden lg:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors shrink-0"
+              className="hidden lg:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors shrink-0"
             >
-              <ReceiptText className="w-4 h-4 text-[#9306CF] shrink-0" />
+              <ReceiptText className="w-4 h-4 text-primary shrink-0" />
               <span>Meus Pedidos</span>
             </Link>
 
@@ -272,13 +272,13 @@ function SearchContent() {
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 pt-6 pb-32 sm:pb-36 space-y-6">
         {/* Cabeçalho de Resultados e Ações */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 dark:border-[#512B54]/40 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 dark:border-border/40 pb-4">
           <div>
-            <h1 className="font-heading text-xl sm:text-2xl font-bold text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
+            <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground dark:text-foreground flex items-center gap-2">
               {searchTerm ? (
                 <>
                   <span>Resultados para</span>
-                  <span className="text-[#9306CF] dark:text-[#C7A9C9]">&ldquo;{searchTerm}&rdquo;</span>
+                  <span className="text-primary dark:text-muted-foreground">&ldquo;{searchTerm}&rdquo;</span>
                 </>
               ) : (
                 <span>Todos os Produtos do Cardápio</span>
@@ -296,9 +296,9 @@ function SearchContent() {
             <Button
               variant="outline"
               onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
-              className="lg:hidden rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 h-10 hover:bg-gray-100 dark:hover:bg-white/5"
+              className="lg:hidden rounded-xl border-gray-200 dark:border-border/40 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 h-10 hover:bg-gray-100 dark:hover:bg-white/5"
             >
-              <Filter className="w-3.5 h-3.5 text-[#9306CF]" />
+              <Filter className="w-3.5 h-3.5 text-primary" />
               <span>Filtros {activeFilterCount > 0 ? `(${activeFilterCount})` : ""}</span>
             </Button>
 
@@ -308,7 +308,7 @@ function SearchContent() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="h-10 px-3 rounded-xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 text-xs font-semibold text-foreground outline-none focus:border-[#9306CF] transition-colors cursor-pointer"
+                className="h-10 px-3 rounded-xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 text-xs font-semibold text-foreground outline-none focus:border-primary transition-colors cursor-pointer"
               >
                 <option value="relevance">Relevância</option>
                 <option value="price_asc">Menor Preço</option>
@@ -324,13 +324,13 @@ function SearchContent() {
           {/* Sidebar de Filtros (Desktop) / Sanfona (Mobile) */}
           <aside
             className={`
-              lg:block bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 shadow-sm space-y-6
+              lg:block bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm space-y-6
               ${mobileFiltersOpen ? "block" : "hidden"}
             `}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
-              <h3 className="font-heading font-bold text-sm uppercase tracking-wider text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4 text-[#9306CF]" />
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-border/30">
+              <h3 className="font-heading font-bold text-sm uppercase tracking-wider text-foreground dark:text-foreground flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-primary" />
                 Filtros Avançados
               </h3>
 
@@ -360,14 +360,14 @@ function SearchContent() {
                   return (
                     <label
                       key={cat.id}
-                      className="flex items-center justify-between text-xs text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-white cursor-pointer select-none py-1"
+                      className="flex items-center justify-between text-xs text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-white cursor-pointer select-none py-1"
                     >
                       <div className="flex items-center gap-2">
                         <input
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => toggleCategory(cat.id)}
-                          className="w-4 h-4 rounded text-[#9306CF] focus:ring-[#9306CF]/30 border-gray-300 dark:border-[#512B54]"
+                          className="w-4 h-4 rounded text-primary focus:ring-primary/30 border-gray-300 dark:border-border"
                         />
                         <span>{cat.name}</span>
                       </div>
@@ -379,7 +379,7 @@ function SearchContent() {
             </div>
 
             {/* 2. Faixa de Preço */}
-            <div className="space-y-2.5 pt-4 border-t border-gray-100 dark:border-[#512B54]/30">
+            <div className="space-y-2.5 pt-4 border-t border-gray-100 dark:border-border/30">
               <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block">
                 Faixa de Preço (R$)
               </span>
@@ -393,7 +393,7 @@ function SearchContent() {
                     value={minPrice}
                     onChange={(e) => setMinPrice(e.target.value)}
                     placeholder="R$ 0"
-                    className="w-full h-9 px-2.5 rounded-xl bg-gray-50 dark:bg-[#1A0B1C] border border-gray-200 dark:border-[#512B54]/40 text-xs font-mono outline-none focus:border-[#9306CF]"
+                    className="w-full h-9 px-2.5 rounded-xl bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 text-xs font-mono outline-none focus:border-primary"
                   />
                 </div>
                 <div>
@@ -405,7 +405,7 @@ function SearchContent() {
                     value={maxPrice}
                     onChange={(e) => setMaxPrice(e.target.value)}
                     placeholder="R$ 50"
-                    className="w-full h-9 px-2.5 rounded-xl bg-gray-50 dark:bg-[#1A0B1C] border border-gray-200 dark:border-[#512B54]/40 text-xs font-mono outline-none focus:border-[#9306CF]"
+                    className="w-full h-9 px-2.5 rounded-xl bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 text-xs font-mono outline-none focus:border-primary"
                   />
                 </div>
               </div>
@@ -422,13 +422,13 @@ function SearchContent() {
               </div>
             ) : filteredProducts.length === 0 ? (
               /* Estado Vazio (Empty State) */
-              <div className="bg-white dark:bg-[#230E26] border border-dashed border-gray-200 dark:border-[#512B54]/40 rounded-3xl p-8 sm:p-12 text-center space-y-4 shadow-xs">
-                <div className="w-16 h-16 rounded-full bg-purple-50 dark:bg-purple-950/40 text-[#9306CF] flex items-center justify-center mx-auto shadow-inner text-2xl">
+              <div className="bg-white dark:bg-[#230E26] border border-dashed border-gray-200 dark:border-border/40 rounded-3xl p-8 sm:p-12 text-center space-y-4 shadow-xs">
+                <div className="w-16 h-16 rounded-full bg-primary/5 dark:bg-primary/95/40 text-primary flex items-center justify-center mx-auto shadow-inner text-2xl">
                   🥣
                 </div>
 
                 <div className="max-w-md mx-auto space-y-2">
-                  <h3 className="font-heading font-bold text-lg sm:text-xl text-[#4C264F] dark:text-[#F9F5F9]">
+                  <h3 className="font-heading font-bold text-lg sm:text-xl text-foreground dark:text-foreground">
                     Nenhum produto encontrado {searchTerm ? `para "${searchTerm}"` : "com esses filtros"}
                   </h3>
                   <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
@@ -441,7 +441,7 @@ function SearchContent() {
                     <Button
                       variant="outline"
                       onClick={handleResetFilters}
-                      className="rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider h-10 px-4"
+                      className="rounded-xl border-gray-200 dark:border-border/40 text-xs font-bold uppercase tracking-wider h-10 px-4"
                     >
                       <RotateCcw className="w-3.5 h-3.5 mr-1" />
                       Limpar Filtros
@@ -450,7 +450,7 @@ function SearchContent() {
 
                   <Link
                     href="/"
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs font-bold uppercase tracking-wider h-10 px-5 shadow-md shadow-[#9306CF]/20 transition-all"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs font-bold uppercase tracking-wider h-10 px-5 shadow-md shadow-primary/20 transition-all"
                   >
                     <Store className="w-3.5 h-3.5" />
                     <span>Voltar ao Início</span>
@@ -521,7 +521,7 @@ export default function SearchPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-transparent">
-          <div className="w-8 h-8 rounded-full border-2 border-[#9306CF] border-t-transparent animate-spin" />
+          <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
         </div>
       }
     >

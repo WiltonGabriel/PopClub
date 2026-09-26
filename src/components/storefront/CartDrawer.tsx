@@ -61,15 +61,15 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
         className={`
           fixed right-0 top-0 bottom-0 z-50
           w-full max-w-sm
-          bg-white dark:bg-[#190B1A] text-foreground
-          border-l border-border/30 dark:border-[#512B54]/50 shadow-2xl
+          bg-white dark:bg-background text-foreground
+          border-l border-border/30 dark:border-border/50 shadow-2xl
           flex flex-col
           transition-transform duration-300 ease-out
           ${open ? "translate-x-0" : "translate-x-full"}
         `}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border/30 dark:border-[#512B54]/40">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border/30 dark:border-border/40">
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-5 h-5 text-brand-pop-shake" />
             <h2 className="font-heading font-bold text-foreground text-lg">
@@ -94,7 +94,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
         <div className="flex-1 overflow-y-auto py-4 px-5 space-y-3">
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-4 py-16 text-center">
-              <div className="w-16 h-16 rounded-full bg-brand-surface-2 dark:bg-[#2B132D] flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-brand-surface-2 dark:bg-card flex items-center justify-center">
                 <ShoppingBag className="w-8 h-8 text-muted-foreground/50" />
               </div>
               <div>
@@ -122,10 +122,10 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
               return (
                 <article
                   key={item.id}
-                  className="flex gap-3 bg-brand-surface-1 dark:bg-[#230E26] rounded-2xl p-3 border border-border/20 dark:border-[#512B54]/40"
+                  className="flex gap-3 bg-brand-surface-1 dark:bg-[#230E26] rounded-2xl p-3 border border-border/20 dark:border-border/40"
                 >
                   {/* Image */}
-                  <div className="w-14 h-14 rounded-xl overflow-hidden bg-brand-surface-2 dark:bg-[#331735] shrink-0">
+                  <div className="w-14 h-14 rounded-xl overflow-hidden bg-brand-surface-2 dark:bg-accent shrink-0">
                     {item.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -156,10 +156,10 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                       <div className="mt-1 space-y-0.5">
                         {item.selectedOptions.map((opt, idx) => (
                           <p key={idx} className="text-[11px] text-muted-foreground flex items-center gap-1 leading-tight">
-                            <span className="w-1 h-1 rounded-full bg-[#9306CF] shrink-0" />
+                            <span className="w-1 h-1 rounded-full bg-primary shrink-0" />
                             <span className="truncate">{opt.name}</span>
                             {opt.price > 0 && (
-                              <span className="text-[#9306CF] dark:text-[#C7A9C9] font-mono text-[10px] shrink-0">
+                              <span className="text-primary dark:text-muted-foreground font-mono text-[10px] shrink-0">
                                 (+R$ {opt.price.toFixed(2).replace(".", ",")})
                               </span>
                             )}
@@ -217,7 +217,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
 
         {/* Footer — totals + CTA */}
         {items.length > 0 && (
-          <div className="border-t border-border/30 dark:border-[#512B54]/40 px-5 py-4 space-y-3 bg-white dark:bg-[#190B1A]">
+          <div className="border-t border-border/30 dark:border-border/40 px-5 py-4 space-y-3 bg-white dark:bg-background">
             {discountTotal > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Desconto</span>

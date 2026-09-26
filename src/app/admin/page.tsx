@@ -255,7 +255,7 @@ export default function AdminDashboard() {
   if (fetching && orders.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center min-h-screen bg-transparent">
-        <Loader2 className="w-8 h-8 animate-spin text-[#9306CF]" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -266,14 +266,14 @@ export default function AdminDashboard() {
       <MobileOrientationBanner />
 
       {/* Header do Painel */}
-      <header className="bg-white/80 dark:bg-[#1F0B22]/90 backdrop-blur-xl border-b border-gray-200 dark:border-[#512B54]/40 px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+      <header className="bg-white/80 dark:bg-[#1F0B22]/90 backdrop-blur-xl border-b border-gray-200 dark:border-border/40 px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
         <div className="flex items-center gap-3">
           <Link href="/" className="font-heading font-black text-xl tracking-tight flex items-center gap-1.5 select-none hover:opacity-85 transition-opacity">
             <div className="flex items-center gap-1">
-              <span className="text-[#4C264F] dark:text-[#F9F5F9]">Pop</span>
+              <span className="text-foreground dark:text-foreground">Pop</span>
               <span
                 style={{
-                  background: "linear-gradient(135deg, #9306CF 0%, #940068 100%)",
+                  background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   backgroundClip: "text",
@@ -281,7 +281,7 @@ export default function AdminDashboard() {
               >
                 Shake
               </span>
-              <span className="ml-1 text-xs font-bold px-2 py-0.5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20">
+              <span className="ml-1 text-xs font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary dark:text-muted-foreground border border-primary/20">
                 Sorveteria • Gestão
               </span>
             </div>
@@ -291,15 +291,15 @@ export default function AdminDashboard() {
         <div className="flex items-center gap-2.5">
           <Link
             href="/admin/historico"
-            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
           >
-            <History className="w-4 h-4 text-[#9306CF]" />
+            <History className="w-4 h-4 text-primary" />
             <span className="hidden sm:inline">Histórico</span>
           </Link>
 
           <Link
             href="/admin/pedidos"
-            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 rounded-xl px-3.5 py-2 shadow-sm shadow-[#9306CF]/20 transition-all"
+            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-primary to-accent hover:opacity-95 rounded-xl px-3.5 py-2 shadow-sm shadow-primary/20 transition-all"
           >
             <LayoutDashboard className="w-4 h-4" />
             <span>Gerenciar Pedidos</span>
@@ -307,17 +307,17 @@ export default function AdminDashboard() {
 
           <Link
             href="/conta"
-            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
           >
-            <User className="w-4 h-4 text-[#9306CF]" />
+            <User className="w-4 h-4 text-primary" />
             <span className="hidden sm:inline">Meu Perfil</span>
           </Link>
 
           <Link
             href="/"
-            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-[#9306CF] dark:hover:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
           >
-            <Store className="w-4 h-4 text-[#9306CF]" />
+            <Store className="w-4 h-4 text-primary" />
             <span className="hidden sm:inline">Página Inicial</span>
           </Link>
 
@@ -325,12 +325,12 @@ export default function AdminDashboard() {
             onClick={toggleTheme}
             aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
             title={theme === "dark" ? "Modo claro" : "Modo escuro"}
-            className="flex items-center justify-center w-9 h-9 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="flex items-center justify-center w-9 h-9 rounded-xl border border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             {theme === "dark" ? (
               <Sun className="w-4 h-4 text-amber-500" />
             ) : (
-              <Moon className="w-4 h-4 text-[#9306CF]" />
+              <Moon className="w-4 h-4 text-primary" />
             )}
           </button>
 
@@ -349,7 +349,7 @@ export default function AdminDashboard() {
         {(() => {
           const activeOrders = orders.filter((o) => !["completed", "cancelled"].includes(o.status));
           return (
-            <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 shadow-sm space-y-3.5">
+            <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm space-y-3.5">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2.5 flex-wrap">
                   {storeSettings?.isOpen ? (
@@ -360,7 +360,7 @@ export default function AdminDashboard() {
                   ) : (
                     <span className="h-2.5 w-2.5 rounded-full bg-red-500"></span>
                   )}
-                  <h3 className="font-heading font-bold text-sm sm:text-base text-[#4C264F] dark:text-[#F9F5F9] uppercase tracking-wide flex items-center gap-2">
+                  <h3 className="font-heading font-bold text-sm sm:text-base text-foreground dark:text-foreground uppercase tracking-wide flex items-center gap-2">
                     Mini Esteira Live
                     <span className="text-xs font-normal text-gray-500 dark:text-gray-400 normal-case">
                       ({activeOrders.length} {activeOrders.length === 1 ? "pedido em andamento" : "pedidos em andamento"})
@@ -380,12 +380,12 @@ export default function AdminDashboard() {
                   )}
 
                   {/* Bloco 2: Card de Tempo Médio Independente com Botão Ajustar */}
-                  <div className="inline-flex items-center gap-2 text-xs font-bold px-3 py-1 rounded-xl bg-purple-50 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-xs">
-                    <Clock className="w-3.5 h-3.5 text-[#9306CF] dark:text-[#E899FF]" />
-                    <span>Tempo Médio: <strong className="font-mono text-purple-900 dark:text-purple-200">{storeSettings?.estimatedDeliveryTime || "30-50 min"}</strong></span>
+                  <div className="inline-flex items-center gap-2 text-xs font-bold px-3 py-1 rounded-xl bg-primary/5 text-primary/80 dark:bg-primary/95/50 dark:text-primary/30 border border-primary/20 dark:border-primary/80 shadow-xs">
+                    <Clock className="w-3.5 h-3.5 text-primary dark:text-[#E899FF]" />
+                    <span>Tempo Médio: <strong className="font-mono text-primary/90 dark:text-purple-200">{storeSettings?.estimatedDeliveryTime || "30-50 min"}</strong></span>
                     <Link
                       href="/admin/pedidos"
-                      className="text-[10px] uppercase font-bold text-[#9306CF] dark:text-[#E899FF] hover:underline bg-purple-100 dark:bg-purple-900/40 px-2 py-0.5 rounded-lg transition-colors border border-purple-200/60 dark:border-purple-800/60"
+                      className="text-[10px] uppercase font-bold text-primary dark:text-[#E899FF] hover:underline bg-primary/10 dark:bg-primary/90/40 px-2 py-0.5 rounded-lg transition-colors border border-primary/20/60 dark:border-primary/80/60"
                       title="Ajustar tempo médio na central de pedidos"
                     >
                       Ajustar
@@ -399,7 +399,7 @@ export default function AdminDashboard() {
                   </span>
                   <Link
                     href="/admin/pedidos"
-                    className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline inline-flex items-center gap-1"
+                    className="text-xs font-bold text-primary dark:text-muted-foreground hover:underline inline-flex items-center gap-1"
                   >
                     <span>Abrir Esteira Completa</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -408,7 +408,7 @@ export default function AdminDashboard() {
               </div>
 
               {activeOrders.length === 0 ? (
-                <div className="py-6 text-center text-xs text-gray-500 dark:text-gray-400 bg-gray-50/70 dark:bg-[#190B1A]/60 rounded-xl border border-dashed border-gray-200 dark:border-[#512B54]/30 flex items-center justify-center gap-2">
+                <div className="py-6 text-center text-xs text-gray-500 dark:text-gray-400 bg-gray-50/70 dark:bg-background/60 rounded-xl border border-dashed border-gray-200 dark:border-border/30 flex items-center justify-center gap-2">
                   <span>🍳 Tudo tranquilo na cozinha! Nenhum pedido ativo no momento.</span>
                 </div>
               ) : (
@@ -431,7 +431,7 @@ export default function AdminDashboard() {
 
                     let statusBadge = { label: "Pendente", color: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200" };
                     if (order.status === "accepted") {
-                      statusBadge = { label: "Confirmado", color: "bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200" };
+                      statusBadge = { label: "Confirmado", color: "bg-primary/10 text-primary/80 dark:bg-primary/95/40 dark:text-primary/30 border-primary/20" };
                     } else if (order.status === "preparing") {
                       statusBadge = { label: "Em Preparo", color: "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300 border-indigo-200" };
                     } else if (order.status === "ready") {
@@ -445,10 +445,10 @@ export default function AdminDashboard() {
                     return (
                       <div
                         key={order.id}
-                        className="shrink-0 bg-gray-50/80 dark:bg-[#1A0B1C] border border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/40 rounded-xl p-3 flex flex-col justify-between gap-2.5 min-w-[240px] max-w-[280px] shadow-xs transition-all"
+                        className="shrink-0 bg-gray-50/80 dark:bg-background border border-gray-200 dark:border-border/40 hover:border-primary/40 rounded-xl p-3 flex flex-col justify-between gap-2.5 min-w-[240px] max-w-[280px] shadow-xs transition-all"
                       >
                         <div className="flex items-center justify-between gap-1.5">
-                          <span className="font-mono font-bold text-xs text-[#9306CF] dark:text-[#C7A9C9]">
+                          <span className="font-mono font-bold text-xs text-primary dark:text-muted-foreground">
                             #{order.id.substring(0, 6)}
                           </span>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusBadge.color}`}>
@@ -457,7 +457,7 @@ export default function AdminDashboard() {
                         </div>
 
                         <div>
-                          <p className="font-bold text-xs text-[#4C264F] dark:text-[#F9F5F9] truncate" title={clientName}>
+                          <p className="font-bold text-xs text-foreground dark:text-foreground truncate" title={clientName}>
                             {clientName}
                           </p>
                           <div className="flex items-center justify-between mt-1 text-[11px] text-gray-500 dark:text-gray-400">
@@ -471,14 +471,14 @@ export default function AdminDashboard() {
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-[#512B54]/30">
+                        <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-border/30">
                           <span className="text-[10px] font-bold text-gray-500">
                             {isPickup ? "🛍️ Balcão" : "🛵 Entrega"}
                           </span>
                           <div className="flex items-center gap-2">
                             <Link
                               href={`/admin/pedidos?orderId=${order.id}`}
-                              className="text-[11px] font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline inline-flex items-center"
+                              className="text-[11px] font-bold text-primary dark:text-muted-foreground hover:underline inline-flex items-center"
                             >
                               <span>Central</span>
                             </Link>
@@ -494,7 +494,7 @@ export default function AdminDashboard() {
                                   })
                                 }
                                 title={`Avançar para: ${nextInfo.targetLabel}`}
-                                className="p-1.5 rounded-lg bg-[#9306CF] text-white hover:bg-[#7b05ad] active:scale-95 transition-all shadow-xs flex items-center justify-center"
+                                className="p-1.5 rounded-lg bg-primary text-white hover:bg-[#7b05ad] active:scale-95 transition-all shadow-xs flex items-center justify-center"
                               >
                                 <ArrowRight className="w-3.5 h-3.5" />
                               </button>
@@ -518,13 +518,13 @@ export default function AdminDashboard() {
           return (
             <div className="space-y-6">
               {/* Barra de Abas */}
-              <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl shadow-xs">
+              <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl shadow-xs">
                 <button
                   type="button"
                   onClick={() => setActiveTab("metrics")}
                   className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
                     activeTab === "metrics"
-                      ? "bg-[#9306CF] text-white shadow-sm"
+                      ? "bg-primary text-white shadow-sm"
                       : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
                   }`}
                 >
@@ -537,7 +537,7 @@ export default function AdminDashboard() {
                   onClick={() => setActiveTab("combos")}
                   className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
                     activeTab === "combos"
-                      ? "bg-[#9306CF] text-white shadow-sm"
+                      ? "bg-primary text-white shadow-sm"
                       : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
                   }`}
                 >
@@ -559,7 +559,7 @@ export default function AdminDashboard() {
                   onClick={() => setActiveTab("promotions")}
                   className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
                     activeTab === "promotions"
-                      ? "bg-[#9306CF] text-white shadow-sm"
+                      ? "bg-primary text-white shadow-sm"
                       : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
                   }`}
                 >
@@ -581,7 +581,7 @@ export default function AdminDashboard() {
                   onClick={() => setActiveTab("banners")}
                   className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
                     activeTab === "banners"
-                      ? "bg-[#9306CF] text-white shadow-sm"
+                      ? "bg-primary text-white shadow-sm"
                       : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
                   }`}
                 >
@@ -603,7 +603,7 @@ export default function AdminDashboard() {
                   onClick={() => setActiveTab("appearance")}
                   className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
                     activeTab === "appearance"
-                      ? "bg-[#9306CF] text-white shadow-sm"
+                      ? "bg-primary text-white shadow-sm"
                       : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
                   }`}
                 >
@@ -616,7 +616,7 @@ export default function AdminDashboard() {
                   onClick={() => setActiveTab("coupons")}
                   className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
                     activeTab === "coupons"
-                      ? "bg-[#9306CF] text-white shadow-sm"
+                      ? "bg-primary text-white shadow-sm"
                       : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
                   }`}
                 >
@@ -629,7 +629,7 @@ export default function AdminDashboard() {
                   onClick={() => setActiveTab("messages")}
                   className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
                     activeTab === "messages"
-                      ? "bg-[#9306CF] text-white shadow-sm"
+                      ? "bg-primary text-white shadow-sm"
                       : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
                   }`}
                 >
@@ -642,7 +642,7 @@ export default function AdminDashboard() {
                   onClick={() => setActiveTab("delivery")}
                   className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
                     activeTab === "delivery"
-                      ? "bg-[#9306CF] text-white shadow-sm"
+                      ? "bg-primary text-white shadow-sm"
                       : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
                   }`}
                 >
@@ -655,7 +655,7 @@ export default function AdminDashboard() {
                   onClick={() => setActiveTab("avatars")}
                   className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
                     activeTab === "avatars"
-                      ? "bg-[#9306CF] text-white shadow-sm"
+                      ? "bg-primary text-white shadow-sm"
                       : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
                   }`}
                 >
@@ -673,11 +673,11 @@ export default function AdminDashboard() {
 
               {/* CONTEÚDO DA ABA 2: COMBOS */}
               {activeTab === "combos" && (
-                <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 sm:p-7 shadow-sm space-y-6 animate-in fade-in duration-150">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-[#512B54]/30">
+                <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 sm:p-7 shadow-sm space-y-6 animate-in fade-in duration-150">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-border/30">
                     <div>
-                      <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-[#4C264F] dark:text-[#F9F5F9]">
-                        <Zap className="w-5 h-5 text-[#9306CF]" />
+                      <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-foreground dark:text-foreground">
+                        <Zap className="w-5 h-5 text-primary" />
                         Combos & Kits Especiais
                       </h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -690,18 +690,18 @@ export default function AdminDashboard() {
                         setComboToEdit(null);
                         setComboDialogOpen(true);
                       }}
-                      className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-5 shadow-md shadow-[#9306CF]/20 cursor-pointer"
+                      className="bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-5 shadow-md shadow-primary/20 cursor-pointer"
                     >
                       <Plus className="w-4 h-4" /> Novo Combo
                     </Button>
                   </div>
 
                   {combos.length === 0 ? (
-                    <div className="p-10 text-center border border-dashed border-gray-200 dark:border-[#512B54]/40 rounded-2xl space-y-3 bg-gray-50/50 dark:bg-[#190B1A]/40">
-                      <div className="w-14 h-14 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-[#9306CF] flex items-center justify-center mx-auto text-2xl">
+                    <div className="p-10 text-center border border-dashed border-gray-200 dark:border-border/40 rounded-2xl space-y-3 bg-gray-50/50 dark:bg-background/40">
+                      <div className="w-14 h-14 rounded-2xl bg-primary/5 dark:bg-primary/95/40 text-primary flex items-center justify-center mx-auto text-2xl">
                         ⚡
                       </div>
-                      <h4 className="font-heading font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9]">
+                      <h4 className="font-heading font-bold text-sm text-foreground dark:text-foreground">
                         Nenhum combo cadastrado ainda
                       </h4>
                       <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
@@ -718,12 +718,12 @@ export default function AdminDashboard() {
                         return (
                           <div
                             key={combo.id}
-                            className="bg-white dark:bg-[#190B1A] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-[#9306CF]/50 transition-all"
+                            className="bg-white dark:bg-background border border-gray-200 dark:border-border/40 rounded-2xl flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-primary/50 transition-all"
                           >
                             <div
                               className="h-1.5 w-full absolute top-0 left-0"
                               style={{
-                                background: `linear-gradient(to right, #9306CF, #940068)`,
+                                background: `linear-gradient(to right, hsl(var(--primary)), hsl(var(--accent)))`,
                               }}
                             />
                             <div className="p-5 flex flex-col h-full">
@@ -733,7 +733,7 @@ export default function AdminDashboard() {
                                 </span>
                               </div>
 
-                              <h4 className="font-heading font-bold text-base leading-snug text-[#4C264F] dark:text-[#F9F5F9] line-clamp-2">
+                              <h4 className="font-heading font-bold text-base leading-snug text-foreground dark:text-foreground line-clamp-2">
                                 {combo.name}
                               </h4>
                               {combo.description && (
@@ -743,7 +743,7 @@ export default function AdminDashboard() {
                               )}
 
                               {/* Itens do Combo */}
-                              <div className="mt-4 space-y-2 bg-gray-50 dark:bg-[#200B22] rounded-xl p-3 border border-gray-100 dark:border-[#512B54]/30">
+                              <div className="mt-4 space-y-2 bg-gray-50 dark:bg-[#200B22] rounded-xl p-3 border border-gray-100 dark:border-border/30">
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block">
                                   Itens Inclusos ({combo.comboItems?.length || 0}):
                                 </span>
@@ -770,7 +770,7 @@ export default function AdminDashboard() {
                                   R$ {finalPrice.toFixed(2).replace(".", ",")}
                                 </span>
                                 {savings > 0 && (
-                                  <span className="text-[11px] font-bold text-purple-600 dark:text-purple-400">
+                                  <span className="text-[11px] font-bold text-primary dark:text-primary/40">
                                     (-R$ {savings.toFixed(2).replace(".", ",")})
                                   </span>
                                 )}
@@ -778,10 +778,10 @@ export default function AdminDashboard() {
                             </div>
 
                             {/* Ações */}
-                            <div className="flex justify-between items-center mt-5 pt-3.5 border-t border-gray-200 dark:border-[#512B54]/30">
+                            <div className="flex justify-between items-center mt-5 pt-3.5 border-t border-gray-200 dark:border-border/30">
                               <Link
                                 href={`/promo/${combo.id}`}
-                                className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1"
+                                className="text-xs font-bold text-primary dark:text-muted-foreground hover:underline flex items-center gap-1"
                               >
                                 Ver Página <ChevronRight className="w-3.5 h-3.5" />
                               </Link>
@@ -793,7 +793,7 @@ export default function AdminDashboard() {
                                     setComboToEdit(combo);
                                     setComboDialogOpen(true);
                                   }}
-                                  className="p-2 text-[#9306CF] hover:bg-[#9306CF]/10 rounded-xl transition-colors cursor-pointer"
+                                  className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-colors cursor-pointer"
                                   title="Editar Combo"
                                 >
                                   <Edit2 className="w-4 h-4" />
@@ -818,11 +818,11 @@ export default function AdminDashboard() {
 
               {/* CONTEÚDO DA ABA 3: PROMOÇÕES (Descontos diretos e ofertas relâmpago) */}
               {activeTab === "promotions" && (
-                <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 sm:p-7 shadow-sm space-y-6 animate-in fade-in duration-150">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-[#512B54]/30">
+                <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 sm:p-7 shadow-sm space-y-6 animate-in fade-in duration-150">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-border/30">
                     <div>
-                      <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-[#4C264F] dark:text-[#F9F5F9]">
-                        <Tag className="w-5 h-5 text-[#9306CF]" />
+                      <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-foreground dark:text-foreground">
+                        <Tag className="w-5 h-5 text-primary" />
                         Promoções do Cardápio & Ofertas Relâmpago
                       </h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -835,18 +835,18 @@ export default function AdminDashboard() {
                         setPromoToEdit(null);
                         setPromoDialogOpen(true);
                       }}
-                      className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-5 shadow-md shadow-[#9306CF]/20 cursor-pointer"
+                      className="bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-5 shadow-md shadow-primary/20 cursor-pointer"
                     >
                       <Plus className="w-4 h-4" /> Nova Promoção
                     </Button>
                   </div>
 
                   {directPromos.length === 0 ? (
-                    <div className="p-10 text-center border border-dashed border-gray-200 dark:border-[#512B54]/40 rounded-2xl space-y-3 bg-gray-50/50 dark:bg-[#190B1A]/40">
-                      <div className="w-14 h-14 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-[#9306CF] flex items-center justify-center mx-auto text-2xl">
+                    <div className="p-10 text-center border border-dashed border-gray-200 dark:border-border/40 rounded-2xl space-y-3 bg-gray-50/50 dark:bg-background/40">
+                      <div className="w-14 h-14 rounded-2xl bg-primary/5 dark:bg-primary/95/40 text-primary flex items-center justify-center mx-auto text-2xl">
                         🏷️
                       </div>
-                      <h4 className="font-heading font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9]">
+                      <h4 className="font-heading font-bold text-sm text-foreground dark:text-foreground">
                         Nenhuma promoção de item ativa
                       </h4>
                       <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
@@ -858,18 +858,18 @@ export default function AdminDashboard() {
                       {directPromos.map((promo) => (
                         <div
                           key={promo.id}
-                          className="bg-gray-50/80 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-[#9306CF]/50 transition-all"
+                          className="bg-gray-50/80 dark:bg-background/80 border border-gray-200 dark:border-border/40 rounded-2xl p-5 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-primary/50 transition-all"
                         >
                           <div
                             className="h-1.5 w-full absolute top-0 left-0"
                             style={{
-                              background: `linear-gradient(to right, ${promo.gradientStart || "#9306CF"}, ${promo.gradientEnd || "#940068"})`,
+                              background: `linear-gradient(to right, ${promo.gradientStart || "hsl(var(--primary))"}, ${promo.gradientEnd || "hsl(var(--accent))"})`,
                             }}
                           />
 
                           <div className="space-y-3 pt-1">
                             <div className="flex justify-between items-start gap-2">
-                              <span className="bg-purple-100 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg border border-purple-200/60 shadow-xs">
+                              <span className="bg-primary/10 dark:bg-primary/95/60 text-primary dark:text-muted-foreground text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg border border-primary/20/60 shadow-xs">
                                 {promo.badge || "OFERTA"}
                               </span>
                               <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-lg border border-emerald-200/50">
@@ -880,7 +880,7 @@ export default function AdminDashboard() {
                             </div>
 
                             <div>
-                              <h4 className="font-heading font-bold text-base leading-snug text-[#4C264F] dark:text-[#F9F5F9]">
+                              <h4 className="font-heading font-bold text-base leading-snug text-foreground dark:text-foreground">
                                 {promo.title}
                               </h4>
                               {promo.description && (
@@ -891,7 +891,7 @@ export default function AdminDashboard() {
                             </div>
 
                             {promo.product && (
-                              <div className="space-y-1.5 bg-white dark:bg-[#200B22] rounded-xl p-3 border border-gray-200 dark:border-[#512B54]/30">
+                              <div className="space-y-1.5 bg-white dark:bg-[#200B22] rounded-xl p-3 border border-gray-200 dark:border-border/30">
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
                                   Produto Vinculado:
                                 </span>
@@ -907,10 +907,10 @@ export default function AdminDashboard() {
                             )}
                           </div>
 
-                          <div className="flex justify-between items-center mt-5 pt-3.5 border-t border-gray-200 dark:border-[#512B54]/30">
+                          <div className="flex justify-between items-center mt-5 pt-3.5 border-t border-gray-200 dark:border-border/30">
                             <Link
                               href={`/promo/${promo.id}`}
-                              className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1"
+                              className="text-xs font-bold text-primary dark:text-muted-foreground hover:underline flex items-center gap-1"
                             >
                               Ver Detalhes <ChevronRight className="w-3.5 h-3.5" />
                             </Link>
@@ -922,7 +922,7 @@ export default function AdminDashboard() {
                                   setPromoToEdit(promo);
                                   setPromoDialogOpen(true);
                                 }}
-                                className="p-2 text-[#9306CF] hover:bg-[#9306CF]/10 rounded-xl transition-colors cursor-pointer"
+                                className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-colors cursor-pointer"
                                 title="Editar Promoção"
                               >
                                 <Edit2 className="w-4 h-4" />
@@ -946,13 +946,13 @@ export default function AdminDashboard() {
 
               {/* CONTEÚDO DA ABA 4: BANNERS (Faixas e Carrossel da Vitrine) */}
               {activeTab === "banners" && (
-                <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 sm:p-7 shadow-sm space-y-8 animate-in fade-in duration-150">
+                <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 sm:p-7 shadow-sm space-y-8 animate-in fade-in duration-150">
                   {/* SEÇÃO 1: Faixa de Destaque da Vitrine (Home Banner) */}
                   <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-border/30">
                       <div>
-                        <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-[#4C264F] dark:text-[#F9F5F9]">
-                          <Sparkles className="w-5 h-5 text-[#9306CF]" />
+                        <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-foreground dark:text-foreground">
+                          <Sparkles className="w-5 h-5 text-primary" />
                           Faixa de Destaque da Vitrine (Home)
                         </h3>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -962,18 +962,18 @@ export default function AdminDashboard() {
 
                       <Button
                         onClick={() => setEditBannerModalOpen(true)}
-                        className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-10 px-4 shadow-md shadow-[#9306CF]/20 cursor-pointer"
+                        className="bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-10 px-4 shadow-md shadow-primary/20 cursor-pointer"
                       >
                         <Pencil className="w-3.5 h-3.5" /> Editar Faixa
                       </Button>
                     </div>
 
                     {/* Preview da Faixa */}
-                    <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#9306CF]/10 via-[#940068]/10 to-[#10B981]/10 border border-[#9306CF]/20 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left shadow-xs">
+                    <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-primary/10 via-accent/10 to-[#10B981]/10 border border-primary/20 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left shadow-xs">
                       <div className="flex items-center gap-3.5 min-w-0">
                         <span className="text-3xl sm:text-4xl shrink-0">{highlightBanner.icon || "🥣"}</span>
                         <div className="min-w-0">
-                          <p className="font-heading font-bold text-sm sm:text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                          <p className="font-heading font-bold text-sm sm:text-base text-foreground dark:text-foreground">
                             {highlightBanner.title || "Monte do seu jeito: escolha o tamanho e adicione seus acompanhamentos favoritos"}
                           </p>
                           <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
@@ -983,7 +983,7 @@ export default function AdminDashboard() {
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-[11px] font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-full bg-white dark:bg-[#1A0B1C] text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/25 shadow-xs">
+                        <span className="text-[11px] font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-full bg-white dark:bg-background text-primary dark:text-muted-foreground border border-primary/25 shadow-xs">
                           {highlightBanner.badge || "Refrescância Artesanal"}
                         </span>
                       </div>
@@ -991,11 +991,11 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* SEÇÃO 2: Carrossel do Topo (Banners Rotativos) */}
-                  <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-[#512B54]/30">
+                  <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-border/30">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
-                        <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-[#4C264F] dark:text-[#F9F5F9]">
-                          <ImageIcon className="w-5 h-5 text-[#9306CF]" />
+                        <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-foreground dark:text-foreground">
+                          <ImageIcon className="w-5 h-5 text-primary" />
                           Carrossel do Topo (Banners Rotativos)
                         </h3>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -1008,14 +1008,14 @@ export default function AdminDashboard() {
                           setPromoToEdit(null);
                           setPromoDialogOpen(true);
                         }}
-                        className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-10 px-4 shadow-md shadow-[#9306CF]/20 cursor-pointer"
+                        className="bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-10 px-4 shadow-md shadow-primary/20 cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" /> Novo Banner
                       </Button>
                     </div>
 
                     {bannerPromos.length === 0 ? (
-                      <div className="p-8 text-center border border-dashed border-gray-200 dark:border-[#512B54]/40 rounded-2xl space-y-2 bg-gray-50/50 dark:bg-[#190B1A]/40">
+                      <div className="p-8 text-center border border-dashed border-gray-200 dark:border-border/40 rounded-2xl space-y-2 bg-gray-50/50 dark:bg-background/40">
                         <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
                           Nenhum banner visual adicionado ao carrossel do topo.
                         </p>
@@ -1028,18 +1028,18 @@ export default function AdminDashboard() {
                         {bannerPromos.map((promo) => (
                           <div
                             key={promo.id}
-                            className="bg-gray-50/80 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-[#9306CF]/50 transition-all"
+                            className="bg-gray-50/80 dark:bg-background/80 border border-gray-200 dark:border-border/40 rounded-2xl p-5 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-primary/50 transition-all"
                           >
                             <div
                               className="h-2 w-full absolute top-0 left-0"
                               style={{
-                                background: `linear-gradient(to right, ${promo.gradientStart || "#9306CF"}, ${promo.gradientEnd || "#940068"})`,
+                                background: `linear-gradient(to right, ${promo.gradientStart || "hsl(var(--primary))"}, ${promo.gradientEnd || "hsl(var(--accent))"})`,
                               }}
                             />
 
                             <div>
                               <div className="flex justify-between items-start mb-3 pt-1">
-                                <span className="bg-white dark:bg-white/10 text-[#4C264F] dark:text-[#F9F5F9] text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg border border-gray-200 dark:border-white/10">
+                                <span className="bg-white dark:bg-white/10 text-foreground dark:text-foreground text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg border border-gray-200 dark:border-white/10">
                                   {promo.badge || "DESTAQUE"}
                                 </span>
                                 <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded-md">
@@ -1049,7 +1049,7 @@ export default function AdminDashboard() {
                                 </span>
                               </div>
 
-                              <h4 className="font-heading font-bold text-base leading-snug text-[#4C264F] dark:text-[#F9F5F9]">
+                              <h4 className="font-heading font-bold text-base leading-snug text-foreground dark:text-foreground">
                                 {promo.title}
                               </h4>
                               <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1">
@@ -1057,7 +1057,7 @@ export default function AdminDashboard() {
                               </p>
 
                               {promo.bannerImageUrl && (
-                                <div className="mt-3.5 h-28 rounded-xl overflow-hidden bg-gray-200 dark:bg-white/10 border border-gray-200 dark:border-[#512B54]/30 shadow-xs">
+                                <div className="mt-3.5 h-28 rounded-xl overflow-hidden bg-gray-200 dark:bg-white/10 border border-gray-200 dark:border-border/30 shadow-xs">
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img
                                     src={promo.bannerImageUrl}
@@ -1068,10 +1068,10 @@ export default function AdminDashboard() {
                               )}
                             </div>
 
-                            <div className="flex justify-between items-center mt-5 pt-3.5 border-t border-gray-200 dark:border-[#512B54]/30">
+                            <div className="flex justify-between items-center mt-5 pt-3.5 border-t border-gray-200 dark:border-border/30">
                               <Link
                                 href={`/promo/${promo.id}`}
-                                className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1"
+                                className="text-xs font-bold text-primary dark:text-muted-foreground hover:underline flex items-center gap-1"
                               >
                                 Ver Página <ChevronRight className="w-3.5 h-3.5" />
                               </Link>
@@ -1083,7 +1083,7 @@ export default function AdminDashboard() {
                                     setPromoToEdit(promo);
                                     setPromoDialogOpen(true);
                                   }}
-                                  className="p-2 text-[#9306CF] hover:bg-[#9306CF]/10 rounded-xl transition-colors cursor-pointer"
+                                  className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-colors cursor-pointer"
                                   title="Editar Banner"
                                 >
                                   <Edit2 className="w-4 h-4" />
@@ -1179,13 +1179,13 @@ export default function AdminDashboard() {
       {/* Modal Explicativo de Confirmação de Avanço de Pedido */}
       {advanceModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#1A0B1C] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+          <div className="bg-white dark:bg-background border border-gray-200 dark:border-border/40 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
             <div className="flex items-start gap-3">
-              <div className="p-2.5 rounded-xl bg-[#9306CF]/10 text-[#9306CF] dark:bg-[#9306CF]/20 shrink-0 mt-0.5">
+              <div className="p-2.5 rounded-xl bg-primary/10 text-primary dark:bg-primary/20 shrink-0 mt-0.5">
                 <ArrowRight className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9]">
+                <h3 className="font-bold text-sm text-foreground dark:text-foreground">
                   Avançar Pedido #{advanceModal.orderId.substring(0, 6)} para {advanceModal.targetLabel}?
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -1193,7 +1193,7 @@ export default function AdminDashboard() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100 dark:border-[#512B54]/30">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100 dark:border-border/30">
               <button
                 type="button"
                 disabled={isAdvancing}
@@ -1206,7 +1206,7 @@ export default function AdminDashboard() {
                 type="button"
                 disabled={isAdvancing}
                 onClick={handleConfirmAdvance}
-                className="px-4 py-1.5 text-xs font-bold bg-[#9306CF] hover:bg-[#7b05ad] text-white rounded-lg shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                className="px-4 py-1.5 text-xs font-bold bg-primary hover:bg-[#7b05ad] text-white rounded-lg shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
               >
                 {isAdvancing && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 <span>Confirmar Avanço</span>

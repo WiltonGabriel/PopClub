@@ -212,12 +212,12 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
   };
 
   return (
-    <div className="space-y-6 pt-4 border-t border-gray-100 dark:border-[#512B54]/30">
+    <div className="space-y-6 pt-4 border-t border-gray-100 dark:border-border/30">
       {/* Cabeçalho da Seção */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-[#4C264F] dark:text-[#F9F5F9]">
-            <Tag className="w-5 h-5 text-[#9306CF]" />
+          <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-foreground dark:text-foreground">
+            <Tag className="w-5 h-5 text-primary" />
             Selos dos Cards (Badges Flutuantes)
           </h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -227,7 +227,7 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
 
         <Button
           onClick={openNewForm}
-          className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-10 px-4 shadow-md shadow-[#9306CF]/20 cursor-pointer"
+          className="bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-10 px-4 shadow-md shadow-primary/20 cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" /> Novo Selo
         </Button>
@@ -235,10 +235,10 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
 
       {/* Formulário de Criação / Edição (Inline Expansível) */}
       {isFormOpen && (
-        <div className="p-5 sm:p-6 rounded-2xl bg-gray-50/90 dark:bg-[#1C0B1E] border border-[#9306CF]/30 shadow-md animate-in fade-in duration-200">
-          <div className="flex items-center justify-between pb-3 mb-4 border-b border-gray-200 dark:border-[#512B54]/40">
-            <h4 className="font-heading font-bold text-sm sm:text-base text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#9306CF]" />
+        <div className="p-5 sm:p-6 rounded-2xl bg-gray-50/90 dark:bg-[#1C0B1E] border border-primary/30 shadow-md animate-in fade-in duration-200">
+          <div className="flex items-center justify-between pb-3 mb-4 border-b border-gray-200 dark:border-border/40">
+            <h4 className="font-heading font-bold text-sm sm:text-base text-foreground dark:text-foreground flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
               {editingBadge ? "Editar Selo Flutuante" : "Cadastrar Novo Selo Flutuante"}
             </h4>
             <button
@@ -264,7 +264,7 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
                   onChange={(e) => setText(e.target.value)}
                   placeholder="Ex: Combo, Mais Pedido, Lançamento, 20% OFF..."
                   required
-                  className="h-10 rounded-xl bg-white dark:bg-[#2B132D] border-gray-200 dark:border-[#512B54]/50"
+                  className="h-10 rounded-xl bg-white dark:bg-card border-gray-200 dark:border-border/50"
                 />
               </div>
 
@@ -278,7 +278,7 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
                     value={icon}
                     onChange={(e) => setIcon(e.target.value)}
                     placeholder="⚡"
-                    className="w-16 h-10 text-center text-lg rounded-xl bg-white dark:bg-[#2B132D] border-gray-200 dark:border-[#512B54]/50"
+                    className="w-16 h-10 text-center text-lg rounded-xl bg-white dark:bg-card border-gray-200 dark:border-border/50"
                     maxLength={4}
                   />
                   <div className="flex flex-wrap gap-1">
@@ -289,8 +289,8 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
                         onClick={() => setIcon(em)}
                         className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-all cursor-pointer ${
                           icon === em
-                            ? "bg-[#9306CF] text-white scale-110 shadow-xs"
-                            : "bg-white dark:bg-[#2B132D] hover:bg-gray-100 dark:hover:bg-white/10 text-foreground border border-gray-200 dark:border-[#512B54]/30"
+                            ? "bg-primary text-white scale-110 shadow-xs"
+                            : "bg-white dark:bg-card hover:bg-gray-100 dark:hover:bg-white/10 text-foreground border border-gray-200 dark:border-border/30"
                         }`}
                       >
                         {em}
@@ -303,7 +303,7 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
               {/* Cores Personalizadas */}
               <div className="space-y-3 pt-2">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <Palette className="w-3.5 h-3.5 text-[#9306CF]" />
+                  <Palette className="w-3.5 h-3.5 text-primary" />
                   Paleta de Cores do Selo
                 </Label>
 
@@ -326,7 +326,7 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
                   {/* Cor de Fundo */}
                   <div className="space-y-1">
                     <span className="text-[11px] font-semibold text-muted-foreground">Cor de Fundo:</span>
-                    <div className="flex items-center gap-2 bg-white dark:bg-[#2B132D] p-1.5 rounded-xl border border-gray-200 dark:border-[#512B54]/50">
+                    <div className="flex items-center gap-2 bg-white dark:bg-card p-1.5 rounded-xl border border-gray-200 dark:border-border/50">
                       <input
                         type="color"
                         value={bgColor}
@@ -344,7 +344,7 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
                   {/* Cor do Texto e Ícone */}
                   <div className="space-y-1">
                     <span className="text-[11px] font-semibold text-muted-foreground">Cor do Texto e Ícone:</span>
-                    <div className="flex items-center gap-2 bg-white dark:bg-[#2B132D] p-1.5 rounded-xl border border-gray-200 dark:border-[#512B54]/50">
+                    <div className="flex items-center gap-2 bg-white dark:bg-card p-1.5 rounded-xl border border-gray-200 dark:border-border/50">
                       <input
                         type="color"
                         value={textColor}
@@ -371,7 +371,7 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
                 <Button
                   type="submit"
                   disabled={saving}
-                  className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading font-bold text-xs uppercase tracking-wider rounded-xl h-10 px-5 shadow-sm cursor-pointer"
+                  className="bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading font-bold text-xs uppercase tracking-wider rounded-xl h-10 px-5 shadow-sm cursor-pointer"
                 >
                   {saving ? (
                     <span className="flex items-center gap-2">
@@ -396,14 +396,14 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
 
             {/* Coluna Direita: Pré-visualização Real no Card */}
             <div className="lg:col-span-5 flex flex-col justify-center">
-              <div className="space-y-2 p-4 rounded-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 shadow-xs">
+              <div className="space-y-2 p-4 rounded-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 shadow-xs">
                 <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground pb-1 border-b border-gray-100 dark:border-white/5">
-                  <Eye className="w-3.5 h-3.5 text-[#9306CF]" />
+                  <Eye className="w-3.5 h-3.5 text-primary" />
                   Preview Real do Selo no Card
                 </div>
 
                 {/* Card Simulado */}
-                <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-gradient-to-br from-purple-900/20 to-purple-950/40 border border-gray-200 dark:border-[#512B54]/40 flex items-center justify-center shadow-inner">
+                <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-gradient-to-br from-primary/90/20 to-primary/95/40 border border-gray-200 dark:border-border/40 flex items-center justify-center shadow-inner">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?w=600&auto=format&fit=crop&q=80"
@@ -440,11 +440,11 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
       {/* Lista de Selos Cadastrados */}
       {loading ? (
         <div className="flex items-center justify-center p-8 text-gray-400 gap-2">
-          <Loader2 className="w-5 h-5 animate-spin text-[#9306CF]" />
+          <Loader2 className="w-5 h-5 animate-spin text-primary" />
           <span className="text-xs font-medium">Carregando selos...</span>
         </div>
       ) : badges.length === 0 ? (
-        <div className="p-8 text-center border border-dashed border-gray-200 dark:border-[#512B54]/40 rounded-2xl space-y-2 bg-gray-50/50 dark:bg-[#190B1A]/40">
+        <div className="p-8 text-center border border-dashed border-gray-200 dark:border-border/40 rounded-2xl space-y-2 bg-gray-50/50 dark:bg-background/40">
           <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
             Nenhum selo cadastrado.
           </p>
@@ -463,7 +463,7 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
             return (
               <div
                 key={b.id}
-                className="rounded-2xl bg-gray-50/80 dark:bg-[#1A0B1C] border border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/40 transition-all flex flex-col shadow-xs overflow-hidden"
+                className="rounded-2xl bg-gray-50/80 dark:bg-background border border-gray-200 dark:border-border/40 hover:border-primary/40 transition-all flex flex-col shadow-xs overflow-hidden"
               >
                 {/* Cabeçalho do Card */}
                 <div className="p-4 flex flex-col gap-3">
@@ -498,7 +498,7 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
                       <button
                         type="button"
                         onClick={() => openEditForm(b)}
-                        className="p-1.5 text-[#9306CF] hover:bg-[#9306CF]/10 rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors cursor-pointer"
                         title="Editar Selo"
                       >
                         <Pencil className="w-3.5 h-3.5" />
@@ -517,7 +517,7 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
 
                 {/* Painel Expansível de Produtos */}
                 {isExpanded && (
-                  <div className="border-t border-gray-200 dark:border-[#512B54]/40 bg-white/60 dark:bg-black/10 p-3 space-y-3 animate-in fade-in duration-150">
+                  <div className="border-t border-gray-200 dark:border-border/40 bg-white/60 dark:bg-black/10 p-3 space-y-3 animate-in fade-in duration-150">
                     {/* Produtos vinculados */}
                     {(b.products || []).length === 0 ? (
                       <p className="text-[11px] text-muted-foreground text-center py-1">
@@ -552,7 +552,7 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
                     {/* Busca e vínculo de novos produtos */}
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                        <PackagePlus className="w-3 h-3 text-[#9306CF]" />
+                        <PackagePlus className="w-3 h-3 text-primary" />
                         Vincular Produto
                       </label>
                       <div className="relative">
@@ -562,7 +562,7 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
                           value={search}
                           onChange={(e) => setProductSearch((prev) => ({ ...prev, [b.id]: e.target.value }))}
                           placeholder="Buscar produto..."
-                          className="w-full h-8 pl-7 pr-3 text-xs rounded-lg border border-gray-200 dark:border-[#512B54]/40 bg-white dark:bg-[#2B132D] text-foreground focus:outline-none focus:ring-1 focus:ring-[#9306CF]/40"
+                          className="w-full h-8 pl-7 pr-3 text-xs rounded-lg border border-gray-200 dark:border-border/40 bg-white dark:bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
                         />
                       </div>
                       {search && available.length === 0 && (
@@ -571,19 +571,19 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
                         </p>
                       )}
                       {available.length > 0 && (
-                        <div className="max-h-36 overflow-y-auto rounded-lg border border-gray-200 dark:border-[#512B54]/30 bg-white dark:bg-[#1C0B1E] divide-y divide-gray-100 dark:divide-white/5">
+                        <div className="max-h-36 overflow-y-auto rounded-lg border border-gray-200 dark:border-border/30 bg-white dark:bg-[#1C0B1E] divide-y divide-gray-100 dark:divide-white/5">
                           {available.map((prod) => (
                             <button
                               key={prod.id}
                               type="button"
                               disabled={linkingBadgeId === b.id}
                               onClick={() => handleAddProduct(b.id, prod.id)}
-                              className="w-full text-left flex items-center gap-2 px-2.5 py-1.5 hover:bg-[#9306CF]/5 transition-colors text-xs text-foreground cursor-pointer disabled:opacity-50"
+                              className="w-full text-left flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/5 transition-colors text-xs text-foreground cursor-pointer disabled:opacity-50"
                             >
                               {linkingBadgeId === b.id ? (
-                                <Loader2 className="w-3 h-3 animate-spin shrink-0 text-[#9306CF]" />
+                                <Loader2 className="w-3 h-3 animate-spin shrink-0 text-primary" />
                               ) : (
-                                <Plus className="w-3 h-3 shrink-0 text-[#9306CF]" />
+                                <Plus className="w-3 h-3 shrink-0 text-primary" />
                               )}
                               <span className="truncate">{prod.name}</span>
                             </button>

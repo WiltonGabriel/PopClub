@@ -269,8 +269,8 @@ export default function CourierDeliveryPage({
 
   if (loading) {
     return (
-      <div className={`min-h-screen ${isLightMode ? "bg-slate-100 text-slate-800" : "bg-[#190B1A] text-white"} flex flex-col items-center justify-center p-6 space-y-4`}>
-        <Loader2 className="w-10 h-10 text-[#9306CF] animate-spin" />
+      <div className={`min-h-screen ${isLightMode ? "bg-slate-100 text-slate-800" : "bg-background text-white"} flex flex-col items-center justify-center p-6 space-y-4`}>
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
         <p className="font-mono text-xs uppercase tracking-widest text-gray-400">
           Carregando dados da rota...
         </p>
@@ -280,7 +280,7 @@ export default function CourierDeliveryPage({
 
   if (error || !delivery) {
     return (
-      <div className={`min-h-screen ${isLightMode ? "bg-slate-100 text-slate-800" : "bg-[#190B1A] text-white"} flex flex-col items-center justify-center p-6 text-center space-y-4`}>
+      <div className={`min-h-screen ${isLightMode ? "bg-slate-100 text-slate-800" : "bg-background text-white"} flex flex-col items-center justify-center p-6 text-center space-y-4`}>
         <div className="w-16 h-16 rounded-2xl bg-red-950/60 border border-red-500/40 flex items-center justify-center text-red-400">
           <AlertTriangle className="w-8 h-8" />
         </div>
@@ -345,22 +345,22 @@ export default function CourierDeliveryPage({
 
   // Classes do tema
   const pageBgClass = isLightMode ? "bg-slate-100 text-slate-900" : "bg-[#120613] text-gray-100";
-  const headerBgClass = isLightMode ? "bg-white border-slate-200 text-slate-900" : "bg-[#1F0B22] border-[#512B54]/40 text-white";
-  const cardBgClass = isLightMode ? "bg-white border-slate-200 shadow-md text-slate-900" : "bg-[#1D0C20] border-[#512B54]/50 shadow-xl text-gray-100";
+  const headerBgClass = isLightMode ? "bg-white border-slate-200 text-slate-900" : "bg-[#1F0B22] border-border/40 text-white";
+  const cardBgClass = isLightMode ? "bg-white border-slate-200 shadow-md text-slate-900" : "bg-[#1D0C20] border-border/50 shadow-xl text-gray-100";
   const mutedTextClass = isLightMode ? "text-slate-500" : "text-gray-400";
   const headingTextClass = isLightMode ? "text-slate-900" : "text-white";
 
   return (
-    <div className={`min-h-screen ${pageBgClass} flex flex-col selection:bg-[#9306CF]/30 pb-safe transition-colors duration-200`}>
+    <div className={`min-h-screen ${pageBgClass} flex flex-col selection:bg-primary/30 pb-safe transition-colors duration-200`}>
       {/* Top Header */}
       <header className={`w-full ${headerBgClass} border-b px-4 py-3 sticky top-0 z-30 flex items-center justify-between shadow-lg`}>
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#9306CF] to-[#940068] flex items-center justify-center text-white shadow-sm shadow-[#9306CF]/30 font-bold text-lg">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white shadow-sm shadow-primary/30 font-bold text-lg">
             🍧
           </div>
           <div>
             <span className={`font-heading font-black text-sm tracking-tight ${headingTextClass} block leading-none`}>
-              Pop<span className="text-[#9306CF] dark:text-[#C7A9C9]">Shake</span>
+              Pop<span className="text-primary dark:text-muted-foreground">Shake</span>
             </span>
             <span className="font-mono text-[9px] uppercase tracking-wider text-emerald-500 dark:text-emerald-400 font-bold">
               Área do Entregador
@@ -387,14 +387,14 @@ export default function CourierDeliveryPage({
               </>
             ) : (
               <>
-                <Moon className="w-4 h-4 text-purple-300" />
+                <Moon className="w-4 h-4 text-primary/30" />
                 <span className="hidden sm:inline text-[11px]">Modo Escuro</span>
               </>
             )}
           </button>
 
           <span className={`font-mono text-xs font-bold px-2.5 py-1 rounded-lg border ${
-            isLightMode ? "bg-slate-100 text-slate-800 border-slate-300" : "bg-white/10 text-[#C7A9C9] border-white/10"
+            isLightMode ? "bg-slate-100 text-slate-800 border-slate-300" : "bg-white/10 text-muted-foreground border-white/10"
           }`}>
             #{delivery.orderId.substring(0, 6)}
           </span>
@@ -413,7 +413,7 @@ export default function CourierDeliveryPage({
                 ? "bg-emerald-600 text-white border-emerald-600 shadow-md"
                 : isLightMode
                 ? "bg-white border-slate-300 text-slate-700 hover:bg-slate-50 shadow-sm"
-                : "bg-[#1D0C20] border-[#512B54]/60 text-gray-200 hover:bg-[#25102a]"
+                : "bg-[#1D0C20] border-border/60 text-gray-200 hover:bg-[#25102a]"
             }`}
           >
             {copiedDeliveryLink ? (
@@ -423,7 +423,7 @@ export default function CourierDeliveryPage({
               </>
             ) : (
               <>
-                <Copy className="w-4 h-4 text-[#9306CF]" />
+                <Copy className="w-4 h-4 text-primary" />
                 <span>📋 Copiar Link de Entrega</span>
               </>
             )}
@@ -585,8 +585,8 @@ export default function CourierDeliveryPage({
                 rel="noopener noreferrer"
                 className={`h-12 rounded-2xl border p-3 flex items-center justify-center gap-2 text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer ${
                   isLightMode
-                    ? "bg-white border-slate-200 hover:border-[#9306CF] text-slate-800"
-                    : "bg-[#1D0C20] border-[#512B54]/60 hover:border-[#9306CF] text-gray-200"
+                    ? "bg-white border-slate-200 hover:border-primary text-slate-800"
+                    : "bg-[#1D0C20] border-border/60 hover:border-primary text-gray-200"
                 }`}
               >
                 <MapPin className="w-4 h-4 text-rose-500" />
@@ -599,8 +599,8 @@ export default function CourierDeliveryPage({
                 rel="noopener noreferrer"
                 className={`h-12 rounded-2xl border p-3 flex items-center justify-center gap-2 text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer ${
                   isLightMode
-                    ? "bg-white border-slate-200 hover:border-[#9306CF] text-slate-800"
-                    : "bg-[#1D0C20] border-[#512B54]/60 hover:border-[#9306CF] text-gray-200"
+                    ? "bg-white border-slate-200 hover:border-primary text-slate-800"
+                    : "bg-[#1D0C20] border-border/60 hover:border-primary text-gray-200"
                 }`}
               >
                 <Navigation className="w-4 h-4 text-cyan-500" />
@@ -655,7 +655,7 @@ export default function CourierDeliveryPage({
                   <button
                     type="button"
                     onClick={handleCopyAddress}
-                    className="text-[10px] text-[#9306CF] hover:underline flex items-center gap-1 cursor-pointer font-bold"
+                    className="text-[10px] text-primary hover:underline flex items-center gap-1 cursor-pointer font-bold"
                   >
                     {copiedAddress ? (
                       <>
@@ -699,7 +699,7 @@ export default function CourierDeliveryPage({
             <div className="pt-2">
               <Button
                 onClick={() => setIsCompleteModalOpen(true)}
-                className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#9306CF] via-[#940068] to-[#9306CF] hover:opacity-95 text-white font-heading text-sm font-black uppercase tracking-wider shadow-xl shadow-[#9306CF]/30 flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all"
+                className="w-full h-14 rounded-2xl bg-gradient-to-r from-primary via-accent to-primary hover:opacity-95 text-white font-heading text-sm font-black uppercase tracking-wider shadow-xl shadow-primary/30 flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all"
               >
                 <CheckCircle2 className="w-5 h-5" />
                 <span>Marcar Pedido como Entregue ✓</span>
@@ -717,7 +717,7 @@ export default function CourierDeliveryPage({
         >
           <div
             className={`w-full max-w-sm rounded-3xl p-6 space-y-4 animate-in zoom-in-95 duration-200 text-center border-2 ${
-              isLightMode ? "bg-white border-slate-300 text-slate-900" : "bg-[#1F0B22] border-[#512B54] text-white"
+              isLightMode ? "bg-white border-slate-300 text-slate-900" : "bg-[#1F0B22] border-border text-white"
             }`}
             onClick={(e) => e.stopPropagation()}
           >

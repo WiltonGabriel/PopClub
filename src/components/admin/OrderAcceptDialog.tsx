@@ -213,15 +213,15 @@ export function OrderAcceptDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-[#1E0921] border border-gray-200 dark:border-[#512B54]/60 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-background border border-gray-200 dark:border-border/60 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
         {/* Cabeçalho */}
-        <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+        <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-border/30">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-heading font-black text-lg text-[#4C264F] dark:text-[#F9F5F9]">
+              <h3 className="font-heading font-black text-lg text-foreground dark:text-foreground">
                 Aceitar Pedido #{order.id.substring(0, 6)}
               </h3>
               <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -238,8 +238,8 @@ export function OrderAcceptDialog({
         </div>
 
         {/* Resumo do Pedido */}
-        <div className="bg-gray-50 dark:bg-[#250F29] p-3.5 rounded-2xl border border-gray-100 dark:border-[#512B54]/30 space-y-2">
-          <div className="flex items-center justify-between text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9]">
+        <div className="bg-gray-50 dark:bg-[#250F29] p-3.5 rounded-2xl border border-gray-100 dark:border-border/30 space-y-2">
+          <div className="flex items-center justify-between text-xs font-bold text-foreground dark:text-foreground">
             <div className="flex items-center gap-1.5 truncate">
               <span>{clientName}</span>
               <span className="text-gray-400">•</span>
@@ -271,13 +271,13 @@ export function OrderAcceptDialog({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-[#9306CF]" />
+              <Clock className="w-3.5 h-3.5 text-primary" />
               <span>Tempo Estimado de Entrega</span>
             </label>
             <button
               type="button"
               onClick={() => setIsManagingPresets(!isManagingPresets)}
-              className="text-[11px] font-bold text-[#9306CF] hover:underline flex items-center gap-1 cursor-pointer"
+              className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
             >
               <Settings className="w-3 h-3" />
               <span>{isManagingPresets ? "Fechar Gestão" : "Gerenciar Tempos"}</span>
@@ -286,15 +286,15 @@ export function OrderAcceptDialog({
 
           {/* Gestão rápida de presets inline */}
           {isManagingPresets && (
-            <div className="p-3 bg-purple-50/70 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/40 rounded-2xl space-y-2.5 animate-in fade-in duration-150">
+            <div className="p-3 bg-primary/5/70 dark:bg-primary/95/20 border border-primary/20 dark:border-primary/90/40 rounded-2xl space-y-2.5 animate-in fade-in duration-150">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-[#4C264F] dark:text-[#C7A9C9] block">
+                <span className="text-[11px] font-bold text-foreground dark:text-muted-foreground block">
                   Personalizar Botões Rápidos de Tempo:
                 </span>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                   presetsAtLimit
                     ? "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
-                    : "bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300"
+                    : "bg-primary/10 text-primary dark:bg-primary/95/40 dark:text-primary/30"
                 }`}>
                   {presets.length}/{MAX_PRESETS}
                 </span>
@@ -303,7 +303,7 @@ export function OrderAcceptDialog({
                 {presets.map((p) => (
                   <span
                     key={p}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-white dark:bg-[#1A0B1C] text-xs font-semibold rounded-lg border border-purple-200 dark:border-purple-800/40 text-[#4C264F] dark:text-white"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-white dark:bg-background text-xs font-semibold rounded-lg border border-primary/20 dark:border-primary/80/40 text-foreground dark:text-white"
                   >
                     {p}
                     <button
@@ -344,7 +344,7 @@ export function OrderAcceptDialog({
                         }
                       }}
                       maxLength={MAX_PRESET_LEN}
-                      className="h-8 text-xs bg-white dark:bg-[#1A0B1C] pr-10"
+                      className="h-8 text-xs bg-white dark:bg-background pr-10"
                     />
                     <span className="absolute right-2.5 top-2 text-[10px] text-gray-400 pointer-events-none font-mono">
                       {newPresetValue.length}/{MAX_PRESET_LEN}
@@ -355,7 +355,7 @@ export function OrderAcceptDialog({
                     size="sm"
                     onClick={handleAddPreset}
                     disabled={isSavingPresets || !newPresetValue.trim() || presetsAtLimit}
-                    className="h-8 text-xs bg-[#9306CF] hover:bg-[#881BAA] text-white cursor-pointer"
+                    className="h-8 text-xs bg-primary hover:bg-[#881BAA] text-white cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5 mr-1" />
                     Adicionar
@@ -372,8 +372,8 @@ export function OrderAcceptDialog({
               onClick={() => handleSelectPreset(storeDefaultTime)}
               className={`w-full py-2.5 px-4 rounded-2xl text-xs sm:text-sm font-bold transition-all flex items-center justify-between border cursor-pointer ${
                 selectedTime === storeDefaultTime && !customTime
-                  ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white border-transparent shadow-md shadow-[#9306CF]/25 scale-[1.01]"
-                  : "bg-purple-50/70 dark:bg-purple-950/30 text-purple-900 dark:text-purple-200 border-purple-200 dark:border-purple-800/50 hover:border-[#9306CF]/60"
+                  ? "bg-gradient-to-r from-primary to-accent text-white border-transparent shadow-md shadow-primary/25 scale-[1.01]"
+                  : "bg-primary/5/70 dark:bg-primary/95/30 text-primary/90 dark:text-purple-200 border-primary/20 dark:border-primary/80/50 hover:border-primary/60"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -384,7 +384,7 @@ export function OrderAcceptDialog({
                 className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
                   selectedTime === storeDefaultTime && !customTime
                     ? "bg-white/20 text-white"
-                    : "bg-[#9306CF]/15 text-[#9306CF] dark:text-[#C7A9C9]"
+                    : "bg-primary/15 text-primary dark:text-muted-foreground"
                 }`}
               >
                 Padrão
@@ -409,8 +409,8 @@ export function OrderAcceptDialog({
                       onClick={() => handleSelectPreset(preset)}
                       className={`py-2 px-2.5 rounded-xl text-xs font-bold font-mono transition-all text-center border cursor-pointer ${
                         isSelected
-                          ? "bg-[#9306CF] text-white border-[#9306CF] shadow-sm shadow-[#9306CF]/30 scale-[1.02]"
-                          : "bg-gray-50 dark:bg-[#250F29] text-gray-700 dark:text-gray-300 border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/50"
+                          ? "bg-primary text-white border-primary shadow-sm shadow-primary/30 scale-[1.02]"
+                          : "bg-gray-50 dark:bg-[#250F29] text-gray-700 dark:text-gray-300 border-gray-200 dark:border-border/40 hover:border-primary/50"
                       }`}
                     >
                       {preset}
@@ -432,7 +432,7 @@ export function OrderAcceptDialog({
                 value={customTime}
                 onChange={(e) => handleCustomChange(e.target.value)}
                 maxLength={MAX_CUSTOM_LEN}
-                className="h-9 text-xs rounded-xl pr-12 bg-gray-50 dark:bg-[#250F29] border-gray-200 dark:border-[#512B54]/40"
+                className="h-9 text-xs rounded-xl pr-12 bg-gray-50 dark:bg-[#250F29] border-gray-200 dark:border-border/40"
               />
               <span className="absolute right-3 top-2.5 text-xs text-gray-400 font-mono pointer-events-none">
                 min
@@ -442,15 +442,15 @@ export function OrderAcceptDialog({
         </div>
 
         {/* Checkbox de Impressão Automática de Comprovante */}
-        <label className="flex items-center gap-2.5 p-3 rounded-xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/30 cursor-pointer select-none">
+        <label className="flex items-center gap-2.5 p-3 rounded-xl bg-primary/5/50 dark:bg-primary/95/20 border border-primary/10 dark:border-primary/90/30 cursor-pointer select-none">
           <input
             type="checkbox"
             checked={autoPrint}
             onChange={(e) => handleToggleAutoPrint(e.target.checked)}
-            className="w-4 h-4 rounded text-[#9306CF] focus:ring-[#9306CF] border-gray-300 cursor-pointer"
+            className="w-4 h-4 rounded text-primary focus:ring-primary border-gray-300 cursor-pointer"
           />
-          <div className="flex items-center gap-2 text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9]">
-            <Printer className="w-3.5 h-3.5 text-[#9306CF]" />
+          <div className="flex items-center gap-2 text-xs font-bold text-foreground dark:text-foreground">
+            <Printer className="w-3.5 h-3.5 text-primary" />
             <span>Imprimir comprovante automaticamente ao aceitar</span>
           </div>
         </label>
@@ -462,7 +462,7 @@ export function OrderAcceptDialog({
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
-            className="flex-1 rounded-xl h-11 text-xs font-bold uppercase tracking-wider border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
+            className="flex-1 rounded-xl h-11 text-xs font-bold uppercase tracking-wider border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
           >
             Voltar
           </Button>

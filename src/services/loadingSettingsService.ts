@@ -1,6 +1,38 @@
 export type LoadingTheme = "liquid_cream" | "playful_bounce" | "minimal_pulse";
 export type BackgroundType = "gradient" | "solid" | "pattern" | "dynamic";
 
+
+export interface AdvancedConfig {
+  storefront: {
+    light: {
+      baseColor: string;
+      gradient: string;
+      texture: string; // none, dots, noise, grid, organic
+      textureOpacity: number;
+      headerBg: string;
+      footerBg: string;
+    };
+    dark: {
+      baseColor: string;
+      gradient: string;
+      texture: string;
+      textureOpacity: number;
+      headerBg: string;
+      footerBg: string;
+    };
+  };
+  splashScreen: {
+    enabled: boolean;
+    backgroundType: string;
+    backgroundValue: string;
+    progressBarColor: string;
+  };
+  presets: Array<{
+    name: string;
+    config: any;
+  }>;
+}
+
 export interface LoadingSettingsData {
   id?: string;
   theme: LoadingTheme;
@@ -13,6 +45,7 @@ export interface LoadingSettingsData {
   bgTypeLight: BackgroundType;
   bgValueLight: string;
   bgCustomLight?: string | null;
+  advancedConfig?: AdvancedConfig;
 
   bgTypeDark: BackgroundType;
   bgValueDark: string;
@@ -178,6 +211,7 @@ export const DEFAULT_LOADING_SETTINGS: LoadingSettingsData = {
   bgTypeLight: "gradient",
   bgValueLight: "preset_cream",
   bgCustomLight: "#FBF8FD",
+  advancedConfig: undefined,
 
   bgTypeDark: "gradient",
   bgValueDark: "preset_dark_violet",
@@ -231,6 +265,7 @@ export const loadingSettingsService = {
             ...parsed,
             phrases: Array.isArray(parsed.phrases) && parsed.phrases.length > 0 ? parsed.phrases : DEFAULT_LOADING_SETTINGS.phrases,
             faviconUrl: parsed.faviconUrl || DEFAULT_LOADING_SETTINGS.faviconUrl,
+            advancedConfig: parsed.advancedConfig,
           };
         }
       }
@@ -258,6 +293,7 @@ export const loadingSettingsService = {
         bgTypeLight: ["gradient", "solid", "pattern", "dynamic"].includes(data.bgTypeLight) ? data.bgTypeLight : DEFAULT_LOADING_SETTINGS.bgTypeLight,
         bgValueLight: data.bgValueLight || DEFAULT_LOADING_SETTINGS.bgValueLight,
         bgCustomLight: data.bgCustomLight || DEFAULT_LOADING_SETTINGS.bgCustomLight,
+        advancedConfig: data.advancedConfig,
 
         bgTypeDark: ["gradient", "solid", "pattern", "dynamic"].includes(data.bgTypeDark) ? data.bgTypeDark : DEFAULT_LOADING_SETTINGS.bgTypeDark,
         bgValueDark: data.bgValueDark || DEFAULT_LOADING_SETTINGS.bgValueDark,

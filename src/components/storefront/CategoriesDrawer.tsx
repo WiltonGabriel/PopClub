@@ -90,7 +90,7 @@ export function CategoriesDrawer({
         {/* Cabeçalho */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/30 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary dark:text-muted-foreground flex items-center justify-center">
               <Grid3X3 className="w-4 h-4" />
             </div>
             <div>
@@ -121,12 +121,12 @@ export function CategoriesDrawer({
             onClick={() => handleCategoryClick(null)}
             className={`w-full flex items-center justify-between p-3 rounded-2xl border transition-all text-left cursor-pointer ${
               !activeCategory || activeCategory === "all" || activeCategory === "todas"
-                ? "bg-[#9306CF]/10 border-[#9306CF]/50 text-foreground font-semibold shadow-xs"
+                ? "bg-primary/10 border-primary/50 text-foreground font-semibold shadow-xs"
                 : "bg-card hover:bg-muted/60 border-border/40 text-foreground"
             }`}
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950/60 flex items-center justify-center text-xl shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/95/60 flex items-center justify-center text-xl shrink-0">
                 🏠
               </div>
               <div>
@@ -138,7 +138,7 @@ export function CategoriesDrawer({
             </div>
 
             {!activeCategory || activeCategory === "all" || activeCategory === "todas" ? (
-              <div className="w-6 h-6 rounded-full bg-[#9306CF] text-white flex items-center justify-center shrink-0">
+              <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
                 <Check className="w-3.5 h-3.5" />
               </div>
             ) : (
@@ -159,12 +159,12 @@ export function CategoriesDrawer({
                 onClick={() => handleCategoryClick(cat.id)}
                 className={`w-full flex items-center justify-between p-3 rounded-2xl border transition-all text-left cursor-pointer ${
                   isSelected
-                    ? "bg-[#9306CF]/10 border-[#9306CF]/50 text-foreground font-semibold shadow-xs"
+                    ? "bg-primary/10 border-primary/50 text-foreground font-semibold shadow-xs"
                     : "bg-card hover:bg-muted/60 border-border/40 text-foreground"
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950/60 flex items-center justify-center text-xl shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/95/60 flex items-center justify-center text-xl shrink-0">
                     {emoji}
                   </div>
                   <div className="min-w-0">
@@ -178,7 +178,7 @@ export function CategoriesDrawer({
                 </div>
 
                 {isSelected ? (
-                  <div className="w-6 h-6 rounded-full bg-[#9306CF] text-white flex items-center justify-center shrink-0 ml-2">
+                  <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center shrink-0 ml-2">
                     <Check className="w-3.5 h-3.5" />
                   </div>
                 ) : (

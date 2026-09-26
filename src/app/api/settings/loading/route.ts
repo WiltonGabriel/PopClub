@@ -22,7 +22,7 @@ const DEFAULT_LOADING = {
 
   bgTypeDark: "gradient",
   bgValueDark: "preset_dark_violet",
-  bgCustomDark: "#190B1A",
+  bgCustomDark: "hsl(var(--background))",
 
   faviconUrl: "/favicon.ico",
 };
@@ -38,6 +38,7 @@ const loadingSchema = z.object({
   bgTypeLight: z.enum(["gradient", "solid", "pattern", "dynamic"]).default("gradient"),
   bgValueLight: z.string().trim().default("preset_cream"),
   bgCustomLight: z.string().trim().nullable().optional(),
+  advancedConfig: z.any().optional(),
 
   bgTypeDark: z.enum(["gradient", "solid", "pattern", "dynamic"]).default("gradient"),
   bgValueDark: z.string().trim().default("preset_dark_violet"),
@@ -72,6 +73,7 @@ export async function GET() {
       bgTypeLight: settings.bgTypeLight || DEFAULT_LOADING.bgTypeLight,
       bgValueLight: settings.bgValueLight || DEFAULT_LOADING.bgValueLight,
       bgCustomLight: settings.bgCustomLight ?? DEFAULT_LOADING.bgCustomLight,
+      advancedConfig: settings.bgCustomDark && settings.bgCustomDark.startsWith('{') ? JSON.parse(settings.bgCustomDark) : undefined,
 
       bgTypeDark: settings.bgTypeDark || DEFAULT_LOADING.bgTypeDark,
       bgValueDark: settings.bgValueDark || DEFAULT_LOADING.bgValueDark,
@@ -128,6 +130,7 @@ export async function PUT(request: Request) {
       bgTypeDark,
       bgValueDark,
       bgCustomDark,
+      advancedConfig,
       faviconUrl,
     } = validation.data;
 
@@ -145,7 +148,7 @@ export async function PUT(request: Request) {
         bgCustomLight: bgCustomLight || null,
         bgTypeDark,
         bgValueDark,
-        bgCustomDark: bgCustomDark || null,
+        bgCustomDark: advancedConfig ? JSON.stringify(advancedConfig) : (bgCustomDark || null),
         faviconUrl: faviconUrl || "/favicon.ico",
       },
       update: {
@@ -159,7 +162,7 @@ export async function PUT(request: Request) {
         bgCustomLight: bgCustomLight || null,
         bgTypeDark,
         bgValueDark,
-        bgCustomDark: bgCustomDark || null,
+        bgCustomDark: advancedConfig ? JSON.stringify(advancedConfig) : (bgCustomDark || null),
         faviconUrl: faviconUrl || "/favicon.ico",
       },
     });

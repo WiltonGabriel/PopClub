@@ -161,7 +161,7 @@ export function CustomAudienceModal({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0">
         <DialogHeader className="p-6 pb-4 border-b">
           <DialogTitle className="flex items-center gap-2 text-xl">
-            <Users className="w-5 h-5 text-[#9306CF]" /> Público Personalizado
+            <Users className="w-5 h-5 text-primary" /> Público Personalizado
           </DialogTitle>
           <DialogDescription>
             Selecione manualmente os clientes ou carregue listas salvas.
@@ -172,7 +172,7 @@ export function CustomAudienceModal({
           {/* Top section: Saved Lists */}
           <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl border space-y-3">
             <h4 className="text-sm font-semibold flex items-center gap-2">
-              <Check className="w-4 h-4 text-[#9306CF]" /> Listas Salvas ({lists.length}/6)
+              <Check className="w-4 h-4 text-primary" /> Listas Salvas ({lists.length}/6)
             </h4>
             {lists.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nenhuma lista salva ainda.</p>
@@ -212,7 +212,7 @@ export function CustomAudienceModal({
                 variant="outline"
                 onClick={handleSaveNewList}
                 disabled={saving || lists.length >= 6}
-                className="h-8 text-xs bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800/30"
+                className="h-8 text-xs bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 dark:bg-primary/90/20 dark:text-primary/30 dark:border-primary/80/30"
               >
                 {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : "Salvar Atual"}
               </Button>
@@ -243,7 +243,7 @@ export function CustomAudienceModal({
               </div>
               <div className="text-xs text-muted-foreground flex justify-between">
                 <span>Mostrando {filteredUsers.length} clientes ordenados de A-Z.</span>
-                <strong className="text-[#9306CF]">{selectedUserIds.size} selecionados</strong>
+                <strong className="text-primary">{selectedUserIds.size} selecionados</strong>
               </div>
             </div>
 
@@ -271,7 +271,7 @@ export function CustomAudienceModal({
                           key={user.id}
                           onClick={() => toggleUser(user.id)}
                           className={`cursor-pointer transition-colors ${
-                            isSelected ? "bg-purple-50/50 dark:bg-purple-900/10" : "hover:bg-gray-50 dark:hover:bg-zinc-800"
+                            isSelected ? "bg-primary/5/50 dark:bg-primary/90/10" : "hover:bg-gray-50 dark:hover:bg-zinc-800"
                           }`}
                         >
                           <td className="px-4 py-3">
@@ -279,7 +279,7 @@ export function CustomAudienceModal({
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => {}} // handled by row click
-                              className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                              className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
                             />
                           </td>
                           <td className="px-4 py-3 font-medium">{user.name}</td>
@@ -306,7 +306,7 @@ export function CustomAudienceModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={confirmSelection} className="bg-[#9306CF] hover:bg-[#7a05ac] text-white">
+          <Button onClick={confirmSelection} className="bg-primary hover:bg-[#7a05ac] text-white">
             Confirmar {selectedUserIds.size > 0 && `(${selectedUserIds.size})`}
           </Button>
         </div>

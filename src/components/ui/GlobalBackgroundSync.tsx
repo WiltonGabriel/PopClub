@@ -44,7 +44,22 @@ export function GlobalBackgroundSync() {
     if (!mounted || typeof document === "undefined") return;
 
     const isDark = theme === "dark";
-    const baseCss = resolveBackgroundCss(settings, isDark);
+
+    let baseCss = resolveBackgroundCss(settings, isDark);
+
+    // Inject advanced config variables
+    if (settings.advancedConfig?.storefront) {
+      const modeConfig = isDark ? settings.advancedConfig.storefront.dark : settings.advancedConfig.storefront.light;
+
+      // Update variables based on advanced config
+      document.documentElement.style.setProperty('--primary', modeConfig.baseColor);
+
+      // Apply base color to body
+      if (modeConfig.baseColor) {
+        baseCss = modeConfig.baseColor;
+      }
+    }
+
     document.body.style.background = baseCss;
     document.body.style.backgroundAttachment = "fixed";
   }, [settings, theme, mounted]);

@@ -154,7 +154,7 @@ export function OrderDispatchDialog({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border/50 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary dark:text-muted-foreground flex items-center justify-center">
               <Bike className="w-5 h-5" />
             </div>
             <div>
@@ -194,13 +194,13 @@ export function OrderDispatchDialog({
         {/* Seção 1: Configuração antes de despachar */}
         {!dispatchedData ? (
           <div className="space-y-4">
-            <div className="p-3.5 rounded-xl bg-purple-50 dark:bg-[#230E26]/60 border border-[#9306CF]/20 space-y-2">
+            <div className="p-3.5 rounded-xl bg-primary/5 dark:bg-[#230E26]/60 border border-primary/20 space-y-2">
               <div className="flex items-center justify-between">
                 <label
                   htmlFor="enable-gps-switch"
                   className="font-heading font-bold text-xs uppercase tracking-wide text-foreground cursor-pointer flex items-center gap-2"
                 >
-                  <Navigation className="w-4 h-4 text-[#9306CF]" />
+                  <Navigation className="w-4 h-4 text-primary" />
                   Rastreamento GPS ao vivo do entregador
                 </label>
                 <input
@@ -208,7 +208,7 @@ export function OrderDispatchDialog({
                   type="checkbox"
                   checked={enableGps}
                   onChange={(e) => setEnableGps(e.target.checked)}
-                  className="w-5 h-5 accent-[#9306CF] cursor-pointer rounded"
+                  className="w-5 h-5 accent-[hsl(var(--primary))] cursor-pointer rounded"
                 />
               </div>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -228,7 +228,7 @@ export function OrderDispatchDialog({
                   placeholder="(65) 99999-9999"
                   value={courierPhone}
                   onChange={(e) => setCourierPhone(e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl bg-background border border-border text-xs focus:outline-none focus:ring-2 focus:ring-[#9306CF]/30"
+                  className="w-full h-10 px-3 rounded-xl bg-background border border-border text-xs focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
             )}
@@ -247,7 +247,7 @@ export function OrderDispatchDialog({
                 type="button"
                 onClick={handleConfirmDispatch}
                 disabled={loading}
-                className="h-10 px-6 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs font-bold uppercase tracking-wider shadow-md shadow-[#9306CF]/20 flex items-center gap-2"
+                className="h-10 px-6 rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs font-bold uppercase tracking-wider shadow-md shadow-primary/20 flex items-center gap-2"
               >
                 {loading ? (
                   <>
@@ -313,7 +313,7 @@ export function OrderDispatchDialog({
               <Button
                 type="button"
                 onClick={onClose}
-                className="h-10 px-6 rounded-xl bg-[#9306CF] hover:bg-[#8005b5] text-white text-xs font-bold"
+                className="h-10 px-6 rounded-xl bg-primary hover:bg-[#8005b5] text-white text-xs font-bold"
               >
                 Concluir
               </Button>

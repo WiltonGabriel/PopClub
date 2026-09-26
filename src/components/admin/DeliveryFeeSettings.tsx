@@ -34,7 +34,7 @@ const LocationPickerMap = dynamic(
     ssr: false,
     loading: () => (
       <div className="w-full h-[280px] rounded-2xl bg-muted/40 border border-border/80 flex flex-col items-center justify-center gap-2 text-muted-foreground animate-pulse">
-        <Loader2 className="w-6 h-6 animate-spin text-[#9306CF]" />
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
         <span className="text-xs font-medium font-mono">Carregando mapa da sede da loja...</span>
       </div>
     ),
@@ -305,8 +305,8 @@ export function DeliveryFeeSettings() {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-12 flex flex-col items-center justify-center gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-[#9306CF]" />
+      <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-12 flex flex-col items-center justify-center gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
         <span className="text-xs text-gray-500 font-mono">Carregando parâmetros de entrega...</span>
       </div>
     );
@@ -316,12 +316,12 @@ export function DeliveryFeeSettings() {
   const thresholdPreview = parseFloat(freeShippingThreshold) || 0;
 
   return (
-    <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-6 sm:p-8 shadow-sm space-y-8 animate-in fade-in duration-150">
+    <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-6 sm:p-8 shadow-sm space-y-8 animate-in fade-in duration-150">
       {/* Cabeçalho da Seção */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-gray-100 dark:border-[#512B54]/30">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-gray-100 dark:border-border/30">
         <div>
-          <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2.5 text-[#4C264F] dark:text-[#F9F5F9]">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#9306CF] to-[#940068] text-white flex items-center justify-center shrink-0 shadow-md shadow-[#9306CF]/20">
+          <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2.5 text-foreground dark:text-foreground">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent text-white flex items-center justify-center shrink-0 shadow-md shadow-primary/20">
               <Truck className="w-5 h-5" />
             </div>
             <span>Gestão da Taxa de Entrega</span>
@@ -359,12 +359,12 @@ export function DeliveryFeeSettings() {
       <form onSubmit={handleOpenConfirmModal} className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Card 1: Taxa Fixa Padrão */}
-          <div className="bg-gray-50/80 dark:bg-[#1A0B1C]/80 border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 sm:p-6 space-y-4">
+          <div className="bg-gray-50/80 dark:bg-background/80 border border-gray-200 dark:border-border/40 rounded-2xl p-5 sm:p-6 space-y-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary dark:text-muted-foreground flex items-center justify-center">
                 <DollarSign className="w-4 h-4" />
               </div>
-              <h4 className="font-heading font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9] uppercase tracking-wide">
+              <h4 className="font-heading font-bold text-sm text-foreground dark:text-foreground uppercase tracking-wide">
                 Taxa Padrão de Entrega
               </h4>
             </div>
@@ -388,7 +388,7 @@ export function DeliveryFeeSettings() {
                   value={deliveryFee}
                   onChange={(e) => setDeliveryFee(e.target.value)}
                   placeholder="5.00"
-                  className="pl-11 font-mono font-bold text-base h-12 bg-white dark:bg-[#200B22] border-gray-200 dark:border-[#512B54]/40 rounded-xl focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
+                  className="pl-11 font-mono font-bold text-base h-12 bg-white dark:bg-[#200B22] border-gray-200 dark:border-border/40 rounded-xl focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
                   required
                 />
               </div>
@@ -399,13 +399,13 @@ export function DeliveryFeeSettings() {
           </div>
 
           {/* Card 2: Regra de Frete Grátis */}
-          <div className="bg-gray-50/80 dark:bg-[#1A0B1C]/80 border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 sm:p-6 space-y-4">
+          <div className="bg-gray-50/80 dark:bg-background/80 border border-gray-200 dark:border-border/40 rounded-2xl p-5 sm:p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                   <Gift className="w-4 h-4" />
                 </div>
-                <h4 className="font-heading font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9] uppercase tracking-wide">
+                <h4 className="font-heading font-bold text-sm text-foreground dark:text-foreground uppercase tracking-wide">
                   Regra de Frete Grátis
                 </h4>
               </div>
@@ -441,7 +441,7 @@ export function DeliveryFeeSettings() {
                     value={freeShippingThreshold}
                     onChange={(e) => setFreeShippingThreshold(e.target.value)}
                     placeholder="60.00"
-                    className="pl-11 font-mono font-bold text-base h-12 bg-white dark:bg-[#200B22] border-gray-200 dark:border-[#512B54]/40 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500"
+                    className="pl-11 font-mono font-bold text-base h-12 bg-white dark:bg-[#200B22] border-gray-200 dark:border-border/40 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500"
                     required={enableFreeShipping}
                   />
                 </div>
@@ -459,8 +459,8 @@ export function DeliveryFeeSettings() {
         </div>
 
         {/* Card de Simulação ao Vivo e Exemplo de Aplicação */}
-        <div className="bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-amber-500/10 border border-[#9306CF]/20 rounded-2xl p-5 sm:p-6 space-y-3">
-          <div className="flex items-center gap-2 text-[#9306CF] dark:text-[#C7A9C9]">
+        <div className="bg-gradient-to-r from-primary/10 via-pink-500/10 to-amber-500/10 border border-primary/20 rounded-2xl p-5 sm:p-6 space-y-3">
+          <div className="flex items-center gap-2 text-primary dark:text-muted-foreground">
             <Sparkles className="w-4 h-4" />
             <h5 className="font-heading font-bold text-xs uppercase tracking-wider">
               Simulação da Regra de Entrega na Loja
@@ -468,19 +468,19 @@ export function DeliveryFeeSettings() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div className="bg-white/80 dark:bg-[#190B1A]/80 p-3.5 rounded-xl border border-gray-200 dark:border-[#512B54]/40 space-y-1">
+            <div className="bg-white/80 dark:bg-background/80 p-3.5 rounded-xl border border-gray-200 dark:border-border/40 space-y-1">
               <span className="font-bold text-gray-700 dark:text-gray-300 block">
                 Exemplo 1: Pedido menor (R$ {(thresholdPreview > 10 ? thresholdPreview - 10 : 35).toFixed(2).replace(".", ",")})
               </span>
               <p className="text-gray-500 dark:text-gray-400">
                 Taxa de Entrega aplicada:{" "}
-                <strong className="text-[#9306CF] dark:text-[#C7A9C9] font-mono">
+                <strong className="text-primary dark:text-muted-foreground font-mono">
                   R$ {feePreview.toFixed(2).replace(".", ",")}
                 </strong>
               </p>
             </div>
 
-            <div className="bg-white/80 dark:bg-[#190B1A]/80 p-3.5 rounded-xl border border-gray-200 dark:border-[#512B54]/40 space-y-1">
+            <div className="bg-white/80 dark:bg-background/80 p-3.5 rounded-xl border border-gray-200 dark:border-border/40 space-y-1">
               <span className="font-bold text-gray-700 dark:text-gray-300 block">
                 Exemplo 2: Pedido maior (R$ {(thresholdPreview + 10).toFixed(2).replace(".", ",")})
               </span>
@@ -491,7 +491,7 @@ export function DeliveryFeeSettings() {
                     GRÁTIS 🎉
                   </span>
                 ) : (
-                  <strong className="text-[#9306CF] dark:text-[#C7A9C9] font-mono">
+                  <strong className="text-primary dark:text-muted-foreground font-mono">
                     R$ {feePreview.toFixed(2).replace(".", ",")}
                   </strong>
                 )}
@@ -501,14 +501,14 @@ export function DeliveryFeeSettings() {
         </div>
 
         {/* Card 3: Canal Oficial de Atendimento (WhatsApp Comercial) */}
-        <div className="bg-gray-50/80 dark:bg-[#1A0B1C]/80 border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 sm:p-6 space-y-4">
+        <div className="bg-gray-50/80 dark:bg-background/80 border border-gray-200 dark:border-border/40 rounded-2xl p-5 sm:p-6 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                 <Phone className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="font-heading font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9] uppercase tracking-wide">
+                <h4 className="font-heading font-bold text-sm text-foreground dark:text-foreground uppercase tracking-wide">
                   Canal Oficial de Atendimento (WhatsApp Comercial)
                 </h4>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -542,7 +542,7 @@ export function DeliveryFeeSettings() {
                 value={whatsappNumber}
                 onChange={(e) => setWhatsappNumber(e.target.value)}
                 placeholder="5565999999999"
-                className="font-mono text-sm h-11 bg-white dark:bg-[#200B22] border-gray-200 dark:border-[#512B54]/40 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-400"
+                className="font-mono text-sm h-11 bg-white dark:bg-[#200B22] border-gray-200 dark:border-border/40 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-400"
                 required
               />
               <span className="text-[11px] text-gray-400 block">
@@ -559,7 +559,7 @@ export function DeliveryFeeSettings() {
                 value={whatsappMessage}
                 onChange={(e) => setWhatsappMessage(e.target.value)}
                 placeholder="Olá! Gostaria de tirar uma dúvida sobre os pedidos da Pop Shake Sorveteria."
-                className="text-sm h-11 bg-white dark:bg-[#200B22] border-gray-200 dark:border-[#512B54]/40 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-400"
+                className="text-sm h-11 bg-white dark:bg-[#200B22] border-gray-200 dark:border-border/40 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-400"
                 required
               />
               <span className="text-[11px] text-gray-400 block">
@@ -570,16 +570,16 @@ export function DeliveryFeeSettings() {
         </div>
 
         {/* Bloco: Ponto Geográfico e Sede da Loja */}
-        <div className="bg-gray-50/80 dark:bg-[#1A0B1C]/80 border border-gray-200 dark:border-[#512B54]/40 rounded-2xl p-5 sm:p-7 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-200/60 dark:border-[#512B54]/30">
+        <div className="bg-gray-50/80 dark:bg-background/80 border border-gray-200 dark:border-border/40 rounded-2xl p-5 sm:p-7 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-200/60 dark:border-border/30">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#9306CF] to-[#940068] text-white flex items-center justify-center shrink-0 shadow-md shadow-[#9306CF]/20">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent text-white flex items-center justify-center shrink-0 shadow-md shadow-primary/20">
                 <Store className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-heading font-bold text-sm sm:text-base text-[#4C264F] dark:text-[#F9F5F9] uppercase tracking-wide flex items-center gap-2">
+                <h4 className="font-heading font-bold text-sm sm:text-base text-foreground dark:text-foreground uppercase tracking-wide flex items-center gap-2">
                   <span>Ponto Geográfico e Sede da Loja</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-primary/10 text-primary dark:text-muted-foreground border border-primary/20">
                     Origem de Despacho
                   </span>
                 </h4>
@@ -594,7 +594,7 @@ export function DeliveryFeeSettings() {
                 type="button"
                 onClick={handleUseCurrentGpsAsStore}
                 disabled={isLocatingStore}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#9306CF]/30 bg-[#9306CF]/10 hover:bg-[#9306CF]/15 text-[#9306CF] dark:text-[#C7A9C9] text-xs font-bold transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-primary/30 bg-primary/10 hover:bg-primary/15 text-primary dark:text-muted-foreground text-xs font-bold transition-all cursor-pointer disabled:opacity-50 shrink-0"
                 title="Capturar coordenadas do GPS atual deste computador/celular"
               >
                 {isLocatingStore ? (
@@ -626,14 +626,14 @@ export function DeliveryFeeSettings() {
                     }
                   }}
                   placeholder="Ex: Av. Couto Magalhães, Centro, Várzea Grande"
-                  className="pl-10 text-sm h-11 bg-white dark:bg-[#200B22] border-gray-200 dark:border-[#512B54]/40 rounded-xl focus-visible:ring-2 focus-visible:ring-[#9306CF]"
+                  className="pl-10 text-sm h-11 bg-white dark:bg-[#200B22] border-gray-200 dark:border-border/40 rounded-xl focus-visible:ring-2 focus-visible:ring-primary"
                 />
               </div>
               <Button
                 type="button"
                 onClick={() => handleSearchStoreAddress()}
                 disabled={isSearchingStore || !storeSearchQuery.trim()}
-                className="bg-[#9306CF] hover:bg-[#7c05ae] text-white text-xs font-bold h-11 px-5 rounded-xl flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="bg-primary hover:bg-[#7c05ae] text-white text-xs font-bold h-11 px-5 rounded-xl flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 {isSearchingStore ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -657,7 +657,7 @@ export function DeliveryFeeSettings() {
                     onClick={() => handleSelectSearchResult(res)}
                     className="w-full text-left p-2.5 rounded-lg hover:bg-muted/80 text-xs text-foreground transition-colors flex items-start gap-2 cursor-pointer"
                   >
-                    <MapPin className="w-4 h-4 text-[#9306CF] shrink-0 mt-0.5" />
+                    <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                     <div className="min-w-0">
                       <p className="font-semibold truncate">{res.displayName}</p>
                       <span className="text-[10px] text-muted-foreground font-mono">
@@ -674,7 +674,7 @@ export function DeliveryFeeSettings() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-[#9306CF]" />
+                <MapPin className="w-3.5 h-3.5 text-primary" />
                 <span>Posicionamento Exato da Loja Física</span>
               </Label>
               <span className="text-[11px] text-muted-foreground font-medium">
@@ -693,7 +693,7 @@ export function DeliveryFeeSettings() {
               />
             ) : (
               <div className="w-full h-[300px] rounded-2xl bg-muted/40 border border-border/80 flex flex-col items-center justify-center gap-2 text-muted-foreground animate-pulse">
-                <Loader2 className="w-6 h-6 animate-spin text-[#9306CF]" />
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 <span className="text-xs font-medium font-mono">Carregando coordenadas salvas da sede...</span>
               </div>
             )}
@@ -710,7 +710,7 @@ export function DeliveryFeeSettings() {
                 value={storeAddress}
                 onChange={(e) => setStoreAddress(e.target.value)}
                 placeholder="Ex: Av. Filinto Müller, 1234 - Centro, Várzea Grande - MT"
-                className="text-sm h-11 bg-white dark:bg-[#200B22] border-gray-200 dark:border-[#512B54]/40 rounded-xl focus-visible:ring-2 focus-visible:ring-[#9306CF]"
+                className="text-sm h-11 bg-white dark:bg-[#200B22] border-gray-200 dark:border-border/40 rounded-xl focus-visible:ring-2 focus-visible:ring-primary"
                 required
               />
               <span className="text-[11px] text-gray-400 block">
@@ -747,7 +747,7 @@ export function DeliveryFeeSettings() {
                     }
                   }}
                   placeholder="-15.653600"
-                  className="font-mono text-xs h-11 bg-white dark:bg-[#200B22] border-gray-200 dark:border-[#512B54]/40 rounded-xl focus-visible:ring-2 focus-visible:ring-[#9306CF]"
+                  className="font-mono text-xs h-11 bg-white dark:bg-[#200B22] border-gray-200 dark:border-border/40 rounded-xl focus-visible:ring-2 focus-visible:ring-primary"
                   required
                 />
               </div>
@@ -780,7 +780,7 @@ export function DeliveryFeeSettings() {
                     }
                   }}
                   placeholder="-56.132200"
-                  className="font-mono text-xs h-11 bg-white dark:bg-[#200B22] border-gray-200 dark:border-[#512B54]/40 rounded-xl focus-visible:ring-2 focus-visible:ring-[#9306CF]"
+                  className="font-mono text-xs h-11 bg-white dark:bg-[#200B22] border-gray-200 dark:border-border/40 rounded-xl focus-visible:ring-2 focus-visible:ring-primary"
                   required
                 />
               </div>
@@ -793,7 +793,7 @@ export function DeliveryFeeSettings() {
           <Button
             type="submit"
             disabled={saving}
-            className="bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold h-12 px-8 shadow-md shadow-[#9306CF]/20 flex items-center gap-2 cursor-pointer"
+            className="bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold h-12 px-8 shadow-md shadow-primary/20 flex items-center gap-2 cursor-pointer"
           >
             {saving ? (
               <>
@@ -828,9 +828,9 @@ export function DeliveryFeeSettings() {
             }
           }}
         >
-          <div className="bg-white dark:bg-[#1E091B] border border-gray-200 dark:border-[#512B54]/60 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
+          <div className="bg-white dark:bg-[#1E091B] border border-gray-200 dark:border-border/60 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
             {/* Cabeçalho do Modal */}
-            <div className="flex items-start justify-between gap-3 pb-3 border-b border-gray-100 dark:border-[#512B54]/30">
+            <div className="flex items-start justify-between gap-3 pb-3 border-b border-gray-100 dark:border-border/30">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-xs">
                   <AlertTriangle className="w-5 h-5" />
@@ -838,7 +838,7 @@ export function DeliveryFeeSettings() {
                 <div>
                   <h3
                     id="confirm-modal-title"
-                    className="font-heading font-bold text-base sm:text-lg text-[#4C264F] dark:text-[#F9F5F9] leading-snug"
+                    className="font-heading font-bold text-base sm:text-lg text-foreground dark:text-foreground leading-snug"
                   >
                     Você tem certeza que deseja salvar estas alterações?
                   </h3>
@@ -872,7 +872,7 @@ export function DeliveryFeeSettings() {
                 htmlFor="confirm-sim-input"
                 className="text-xs font-bold text-gray-700 dark:text-gray-300 block"
               >
-                Para confirmar, digite exatamente <strong className="text-[#9306CF] dark:text-[#C7A9C9] font-black underline">Sim</strong> no campo abaixo:
+                Para confirmar, digite exatamente <strong className="text-primary dark:text-muted-foreground font-black underline">Sim</strong> no campo abaixo:
               </Label>
               <div className="relative">
                 <Input
@@ -894,7 +894,7 @@ export function DeliveryFeeSettings() {
                   className={`text-sm h-11 bg-white dark:bg-[#200B22] border-2 rounded-xl transition-all ${
                     isConfirmed
                       ? "border-emerald-500 ring-2 ring-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold"
-                      : "border-gray-300 dark:border-[#512B54]/60 focus-visible:border-[#9306CF]"
+                      : "border-gray-300 dark:border-border/60 focus-visible:border-primary"
                   }`}
                   disabled={saving}
                 />
@@ -910,7 +910,7 @@ export function DeliveryFeeSettings() {
             </div>
 
             {/* Ações do Modal */}
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 dark:border-[#512B54]/30">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 dark:border-border/30">
               <Button
                 type="button"
                 variant="outline"
@@ -927,7 +927,7 @@ export function DeliveryFeeSettings() {
                 disabled={!isConfirmed || saving}
                 className={`h-11 px-6 rounded-xl font-heading text-xs uppercase tracking-wider font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer ${
                   isConfirmed && !saving
-                    ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white hover:opacity-95 shadow-[#9306CF]/30"
+                    ? "bg-gradient-to-r from-primary to-accent text-white hover:opacity-95 shadow-primary/30"
                     : "bg-gray-200 dark:bg-white/10 text-gray-400 dark:text-gray-500 border border-transparent cursor-not-allowed opacity-60 shadow-none"
                 }`}
               >

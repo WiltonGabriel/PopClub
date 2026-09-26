@@ -165,8 +165,8 @@ export function NotificationBell() {
           relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full border transition-all cursor-pointer select-none
           ${
             isOpen
-              ? "bg-[#9306CF]/15 border-[#9306CF] text-[#9306CF] dark:text-[#F9F5F9] ring-2 ring-[#9306CF]/30 shadow-md"
-              : "bg-white/70 dark:bg-[#230E26]/70 border-border/60 hover:border-[#9306CF]/50 text-gray-700 dark:text-gray-200 hover:text-[#9306CF] dark:hover:text-white hover:bg-muted/80 shadow-xs"
+              ? "bg-primary/15 border-primary text-primary dark:text-foreground ring-2 ring-primary/30 shadow-md"
+              : "bg-white/70 dark:bg-[#230E26]/70 border-border/60 hover:border-primary/50 text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-white hover:bg-muted/80 shadow-xs"
           }
         `}
       >
@@ -182,15 +182,15 @@ export function NotificationBell() {
 
       {/* Dropdown / Gaveta Flutuante de Novas e Não Lidas */}
       {isOpen && (
-        <div className="absolute right-0 sm:right-auto sm:left-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/50 shadow-2xl z-[120] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="absolute right-0 sm:right-auto sm:left-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/50 shadow-2xl z-[120] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
           {/* Topo da Gaveta */}
-          <div className="p-3.5 sm:p-4 border-b border-gray-100 dark:border-[#512B54]/30 flex items-center justify-between bg-gray-50/70 dark:bg-[#1C0920]/80">
+          <div className="p-3.5 sm:p-4 border-b border-gray-100 dark:border-border/30 flex items-center justify-between bg-gray-50/70 dark:bg-background/80">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-[#9306CF]/15 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-primary/15 text-primary dark:text-muted-foreground flex items-center justify-center">
                 <Bell className="w-3.5 h-3.5" />
               </div>
               <div>
-                <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-[#4C264F] dark:text-[#F9F5F9]">
+                <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-foreground dark:text-foreground">
                   Novidades & Alertas
                 </h4>
                 <p className="text-[10px] text-muted-foreground">
@@ -204,7 +204,7 @@ export function NotificationBell() {
                 type="button"
                 onClick={handleMarkAllRead}
                 disabled={loading}
-                className="text-[11px] font-semibold text-[#9306CF] dark:text-[#C7A9C9] hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                className="text-[11px] font-semibold text-primary dark:text-muted-foreground hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
               >
                 <CheckCheck className="w-3.5 h-3.5" /> Marcar lidas
               </button>
@@ -213,7 +213,7 @@ export function NotificationBell() {
 
           {/* Card de Boas-vindas para clientes em Acesso Rápido */}
           {user && !user.isRegistered && (
-            <div className="p-3.5 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-amber-500/10 border-b border-purple-200/50 dark:border-purple-900/40 flex flex-col gap-2">
+            <div className="p-3.5 bg-gradient-to-r from-primary/10 via-pink-500/10 to-amber-500/10 border-b border-primary/20/50 dark:border-primary/90/40 flex flex-col gap-2">
               <p className="text-xs text-foreground leading-relaxed">
                 🎁 <strong>Seja bem-vindo ao PopShake!</strong> Complete seu cadastro adicionando e-mail e senha para liberar cupons de desconto e ofertas exclusivas.
               </p>
@@ -224,7 +224,7 @@ export function NotificationBell() {
                     setIsOpen(false);
                     setIsCompleteRegModalOpen(true);
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] text-white text-[11px] font-bold shadow-xs hover:opacity-95 transition-opacity cursor-pointer flex items-center gap-1"
+                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white text-[11px] font-bold shadow-xs hover:opacity-95 transition-opacity cursor-pointer flex items-center gap-1"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   Completar meu cadastro
@@ -234,10 +234,10 @@ export function NotificationBell() {
           )}
 
           {/* Lista de Não Lidas */}
-          <div className="max-h-[380px] overflow-y-auto divide-y divide-gray-100 dark:divide-[#512B54]/20">
+          <div className="max-h-[380px] overflow-y-auto divide-y divide-gray-100 dark:divide-border/20">
             {notifications.length === 0 ? (
               <div className="p-6 text-center space-y-2">
-                <div className="w-12 h-12 mx-auto rounded-full bg-purple-50 dark:bg-purple-950/30 flex items-center justify-center text-[#9306CF] dark:text-[#C7A9C9]">
+                <div className="w-12 h-12 mx-auto rounded-full bg-primary/5 dark:bg-primary/95/30 flex items-center justify-center text-primary dark:text-muted-foreground">
                   <Inbox className="w-6 h-6 opacity-60" />
                 </div>
                 <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
@@ -259,7 +259,7 @@ export function NotificationBell() {
 
                   <div className="pl-3.5 space-y-1.5">
                     <div className="flex items-start justify-between gap-2">
-                      <h5 className="font-heading font-bold text-xs text-[#4C264F] dark:text-[#F9F5F9] leading-snug">
+                      <h5 className="font-heading font-bold text-xs text-foreground dark:text-foreground leading-snug">
                         {notif.title}
                       </h5>
                       <span className="text-[10px] text-muted-foreground shrink-0 font-mono flex items-center gap-0.5">
@@ -274,10 +274,10 @@ export function NotificationBell() {
 
                     {/* Card de Cupom Anexado se houver */}
                     {notif.coupon && (
-                      <div className="mt-2 p-2.5 rounded-xl bg-purple-50/90 dark:bg-purple-950/40 border border-[#9306CF]/30 flex flex-col gap-2">
+                      <div className="mt-2 p-2.5 rounded-xl bg-primary/5/90 dark:bg-primary/95/40 border border-primary/30 flex flex-col gap-2">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5 font-mono text-xs font-black text-[#9306CF] dark:text-[#C7A9C9]">
-                            <Ticket className="w-3.5 h-3.5 text-[#9306CF]" />
+                          <div className="flex items-center gap-1.5 font-mono text-xs font-black text-primary dark:text-muted-foreground">
+                            <Ticket className="w-3.5 h-3.5 text-primary" />
                             {notif.coupon.code}
                           </div>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
@@ -287,11 +287,11 @@ export function NotificationBell() {
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2 pt-1 border-t border-purple-200/50 dark:border-purple-800/30">
+                        <div className="flex items-center gap-2 pt-1 border-t border-primary/20/50 dark:border-primary/80/30">
                           <button
                             type="button"
                             onClick={(e) => handleCopyCoupon(e, notif.coupon!.code, notif)}
-                            className="flex-1 py-1 px-2 rounded-lg bg-white dark:bg-[#200B22] border border-purple-200 dark:border-purple-800/50 text-[11px] font-bold text-[#4C264F] dark:text-[#F9F5F9] hover:bg-purple-100 dark:hover:bg-purple-900/40 flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                            className="flex-1 py-1 px-2 rounded-lg bg-white dark:bg-[#200B22] border border-primary/20 dark:border-primary/80/50 text-[11px] font-bold text-foreground dark:text-foreground hover:bg-primary/10 dark:hover:bg-primary/90/40 flex items-center justify-center gap-1 transition-colors cursor-pointer"
                           >
                             {copiedCouponId === notif.id ? (
                               <>
@@ -299,7 +299,7 @@ export function NotificationBell() {
                               </>
                             ) : (
                               <>
-                                <Copy className="w-3 h-3 text-[#9306CF]" /> Copiar
+                                <Copy className="w-3 h-3 text-primary" /> Copiar
                               </>
                             )}
                           </button>
@@ -307,7 +307,7 @@ export function NotificationBell() {
                           <button
                             type="button"
                             onClick={(e) => handleApplyCouponToCart(e, notif.coupon!.code, notif)}
-                            className="flex-1 py-1 px-2 rounded-lg bg-gradient-to-r from-[#9306CF] to-[#940068] text-[11px] font-bold text-white hover:opacity-95 flex items-center justify-center gap-1 shadow-xs transition-opacity cursor-pointer"
+                            className="flex-1 py-1 px-2 rounded-lg bg-gradient-to-r from-primary to-accent text-[11px] font-bold text-white hover:opacity-95 flex items-center justify-center gap-1 shadow-xs transition-opacity cursor-pointer"
                           >
                             <Sparkles className="w-3 h-3" /> Aplicar
                           </button>
@@ -321,11 +321,11 @@ export function NotificationBell() {
           </div>
 
           {/* Rodapé com Link Direto para Meu Perfil */}
-          <div className="p-3 bg-gray-50/80 dark:bg-[#1C0920]/90 border-t border-gray-100 dark:border-[#512B54]/30 text-center">
+          <div className="p-3 bg-gray-50/80 dark:bg-background/90 border-t border-gray-100 dark:border-border/30 text-center">
             <Link
               href="/conta?tab=notificacoes"
               onClick={() => setIsOpen(false)}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#9306CF] dark:text-[#C7A9C9] hover:text-[#4C264F] dark:hover:text-white transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary dark:text-muted-foreground hover:text-foreground dark:hover:text-white transition-colors"
             >
               <span>Ver histórico completo em Meu Perfil</span>
               <ArrowRight className="w-3.5 h-3.5" />

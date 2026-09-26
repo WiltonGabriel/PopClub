@@ -115,13 +115,13 @@ export function OrderDetailDrawer({
       case "pending":
         return { label: "Aguardando Triagem", color: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200" };
       case "accepted":
-        return { label: "Novo (Aceito)", color: "bg-[#9306CF]/10 text-[#9306CF] border-[#9306CF]/30" };
+        return { label: "Novo (Aceito)", color: "bg-primary/10 text-primary border-primary/30" };
       case "preparing":
         return { label: "Em Preparo", color: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200" };
       case "ready":
         return { label: "Pronto p/ Saída", color: "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200" };
       case "delivering":
-        return { label: "A Caminho / Despachado", color: "bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200" };
+        return { label: "A Caminho / Despachado", color: "bg-primary/10 text-primary/80 dark:bg-primary/95/40 dark:text-primary/30 border-primary/20" };
       case "completed":
         return { label: "Concluído & Entregue", color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200" };
       case "cancelled":
@@ -147,12 +147,12 @@ export function OrderDetailDrawer({
 
       {/* Drawer Panel */}
       <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md sm:max-w-lg bg-white dark:bg-[#1A0B1C] shadow-2xl border-l border-gray-200 dark:border-[#512B54]/40 flex flex-col animate-in slide-in-from-right duration-300">
+        <div className="w-screen max-w-md sm:max-w-lg bg-white dark:bg-background shadow-2xl border-l border-gray-200 dark:border-border/40 flex flex-col animate-in slide-in-from-right duration-300">
           {/* Header */}
-          <div className="p-5 border-b border-gray-100 dark:border-[#512B54]/30 flex items-center justify-between bg-gray-50/50 dark:bg-[#1F0B22]/50">
+          <div className="p-5 border-b border-gray-100 dark:border-border/30 flex items-center justify-between bg-gray-50/50 dark:bg-[#1F0B22]/50">
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-mono font-black text-lg text-[#9306CF] dark:text-[#C7A9C9]">
+                <span className="font-mono font-black text-lg text-primary dark:text-muted-foreground">
                   #{order.id.substring(0, 8)}
                 </span>
                 <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${statusInfo.color}`}>
@@ -169,10 +169,10 @@ export function OrderDetailDrawer({
                 variant="outline"
                 size="sm"
                 onClick={() => printThermalReceipt(order)}
-                className="h-8 px-2.5 rounded-xl border-gray-200 dark:border-[#512B54]/40 text-xs font-bold gap-1 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
+                className="h-8 px-2.5 rounded-xl border-gray-200 dark:border-border/40 text-xs font-bold gap-1 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
                 title="Imprimir Comprovante (80mm / 58mm)"
               >
-                <Printer className="w-3.5 h-3.5 text-[#9306CF]" />
+                <Printer className="w-3.5 h-3.5 text-primary" />
                 <span className="hidden sm:inline">Comprovante</span>
               </Button>
 
@@ -188,15 +188,15 @@ export function OrderDetailDrawer({
           {/* Body com Scroll */}
           <div className="flex-1 overflow-y-auto p-5 space-y-5">
             {/* 1. Ficha do Cliente Registrado */}
-            <div className="bg-gray-50 dark:bg-[#230E26] rounded-2xl p-4 border border-gray-200 dark:border-[#512B54]/40 space-y-3">
+            <div className="bg-gray-50 dark:bg-[#230E26] rounded-2xl p-4 border border-gray-200 dark:border-border/40 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-[#9306CF]" />
+                  <User className="w-3.5 h-3.5 text-primary" />
                   Perfil do Cliente
                 </span>
 
                 {clientRecurrenceText && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] border border-[#9306CF]/20">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary dark:text-muted-foreground border border-primary/20">
                     <Sparkles className="w-2.5 h-2.5" />
                     {clientRecurrenceText}
                   </span>
@@ -204,7 +204,7 @@ export function OrderDetailDrawer({
               </div>
 
               <div>
-                <h4 className="font-bold text-base text-[#4C264F] dark:text-[#F9F5F9]">
+                <h4 className="font-bold text-base text-foreground dark:text-foreground">
                   {clientName}
                 </h4>
                 {order.user?.email && (
@@ -213,7 +213,7 @@ export function OrderDetailDrawer({
               </div>
 
               {phone ? (
-                <div className="flex items-center justify-between pt-2 border-t border-gray-200/60 dark:border-[#512B54]/30">
+                <div className="flex items-center justify-between pt-2 border-t border-gray-200/60 dark:border-border/30">
                   <div className="flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 font-mono">
                     <Phone className="w-3.5 h-3.5 text-gray-400" />
                     <span>{phone}</span>
@@ -232,16 +232,16 @@ export function OrderDetailDrawer({
                   )}
                 </div>
               ) : (
-                <p className="text-[11px] text-gray-400 italic pt-1 border-t border-gray-200/60 dark:border-[#512B54]/30">
+                <p className="text-[11px] text-gray-400 italic pt-1 border-t border-gray-200/60 dark:border-border/30">
                   Telefone não cadastrado na conta.
                 </p>
               )}
             </div>
 
             {/* 2. Endereço ou Retirada */}
-            <div className="bg-gray-50 dark:bg-[#230E26] rounded-2xl p-4 border border-gray-200 dark:border-[#512B54]/40 space-y-2">
+            <div className="bg-gray-50 dark:bg-[#230E26] rounded-2xl p-4 border border-gray-200 dark:border-border/40 space-y-2">
               <span className="text-[11px] uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                {isPickup ? <Store className="w-3.5 h-3.5 text-blue-500" /> : <Bike className="w-3.5 h-3.5 text-[#9306CF]" />}
+                {isPickup ? <Store className="w-3.5 h-3.5 text-blue-500" /> : <Bike className="w-3.5 h-3.5 text-primary" />}
                 Modalidade de Atendimento
               </span>
 
@@ -253,9 +253,9 @@ export function OrderDetailDrawer({
               ) : (
                 <div className="space-y-1.5 text-xs text-gray-700 dark:text-gray-300">
                   <div className="flex items-start gap-2">
-                    <MapPin className="w-4 h-4 text-[#9306CF] shrink-0 mt-0.5" />
+                    <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold text-[#4C264F] dark:text-[#F9F5F9]">
+                      <p className="font-semibold text-foreground dark:text-foreground">
                         {order.delivery_address?.street}, {order.delivery_address?.number}
                       </p>
                       <p className="text-gray-500 dark:text-gray-400">
@@ -268,7 +268,7 @@ export function OrderDetailDrawer({
                         </p>
                       )}
                       {order.delivery_address?.reference && (
-                        <p className="text-[#9306CF] dark:text-[#C7A9C9] font-medium mt-1 bg-[#9306CF]/5 p-2 rounded-lg border border-[#9306CF]/15">
+                        <p className="text-primary dark:text-muted-foreground font-medium mt-1 bg-primary/5 p-2 rounded-lg border border-primary/15">
                           <strong>Ponto de Referência:</strong> {order.delivery_address.reference}
                         </p>
                       )}
@@ -279,23 +279,23 @@ export function OrderDetailDrawer({
             </div>
 
             {/* 3. Lista de Itens do Pedido */}
-            <div className="bg-gray-50 dark:bg-[#230E26] rounded-2xl p-4 border border-gray-200 dark:border-[#512B54]/40 space-y-3">
+            <div className="bg-gray-50 dark:bg-[#230E26] rounded-2xl p-4 border border-gray-200 dark:border-border/40 space-y-3">
               <span className="text-[11px] uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                <ShoppingBag className="w-3.5 h-3.5 text-[#9306CF]" />
+                <ShoppingBag className="w-3.5 h-3.5 text-primary" />
                 Itens do Pedido ({order.items?.length || 0})
               </span>
 
-              <div className="divide-y divide-gray-200/60 dark:divide-[#512B54]/30">
+              <div className="divide-y divide-gray-200/60 dark:divide-border/30">
                 {order.items && order.items.length > 0 ? (
                   order.items.map((it) => (
                     <div key={it.id} className="py-2.5 first:pt-0 last:pb-0">
                       <div className="flex items-start justify-between gap-3 text-xs">
                         <div>
                           <div className="flex items-center gap-1.5">
-                            <span className="w-5 h-5 rounded-md bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] font-black text-xs flex items-center justify-center">
+                            <span className="w-5 h-5 rounded-md bg-primary/10 text-primary dark:text-muted-foreground font-black text-xs flex items-center justify-center">
                               {it.quantity}x
                             </span>
-                            <span className="font-bold text-[#4C264F] dark:text-[#F9F5F9] text-sm">
+                            <span className="font-bold text-foreground dark:text-foreground text-sm">
                               {it.product?.name || "Item Personalizado"}
                             </span>
                           </div>
@@ -320,16 +320,16 @@ export function OrderDetailDrawer({
             </div>
 
             {/* 4. Pagamento e Troco */}
-            <div className="bg-gray-50 dark:bg-[#230E26] rounded-2xl p-4 border border-gray-200 dark:border-[#512B54]/40 space-y-3">
+            <div className="bg-gray-50 dark:bg-[#230E26] rounded-2xl p-4 border border-gray-200 dark:border-border/40 space-y-3">
               <span className="text-[11px] uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                <CreditCard className="w-3.5 h-3.5 text-[#9306CF]" />
+                <CreditCard className="w-3.5 h-3.5 text-primary" />
                 Forma de Pagamento & Faturamento
               </span>
 
               <div className="space-y-2 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Método Escolhido:</span>
-                  <span className="font-bold capitalize text-[#4C264F] dark:text-[#F9F5F9]">
+                  <span className="font-bold capitalize text-foreground dark:text-foreground">
                     {isPix ? "⚡ Pix (Entrega)" : isCash ? "💵 Dinheiro" : isCard ? "💳 Cartão (Maquininha)" : order.payment_method_type || "Outro"}
                   </span>
                 </div>
@@ -385,7 +385,7 @@ export function OrderDetailDrawer({
                 <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
                   <span>Taxa de Entrega:</span>
                   {order.delivery_fee && Number(order.delivery_fee) > 0 ? (
-                    <span className="font-mono font-bold text-[#4C264F] dark:text-[#F9F5F9]">
+                    <span className="font-mono font-bold text-foreground dark:text-foreground">
                       {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(order.delivery_fee))}
                     </span>
                   ) : (
@@ -395,7 +395,7 @@ export function OrderDetailDrawer({
                   )}
                 </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-[#512B54]/40 font-heading text-sm font-black text-[#4C264F] dark:text-[#F9F5F9]">
+                <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-border/40 font-heading text-sm font-black text-foreground dark:text-foreground">
                   <span>Total do Pedido:</span>
                   <span className="text-emerald-600 dark:text-emerald-400 text-base font-mono">
                     {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(order.total_amount))}
@@ -414,13 +414,13 @@ export function OrderDetailDrawer({
           </div>
 
           {/* Footer Operacional de Ações */}
-          <div className="p-4 border-t border-gray-100 dark:border-[#512B54]/30 bg-gray-50/80 dark:bg-[#1F0B22]/80 space-y-2">
+          <div className="p-4 border-t border-gray-100 dark:border-border/30 bg-gray-50/80 dark:bg-[#1F0B22]/80 space-y-2">
             {order.status === "delivering" && onOpenDispatchModal && (
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenDispatchModal(order)}
-                className="w-full text-xs font-bold uppercase tracking-wider rounded-xl border-[#9306CF]/40 text-[#9306CF] dark:text-[#C7A9C9] h-9 hover:bg-[#9306CF]/10 flex items-center justify-center gap-1.5"
+                className="w-full text-xs font-bold uppercase tracking-wider rounded-xl border-primary/40 text-primary dark:text-muted-foreground h-9 hover:bg-primary/10 flex items-center justify-center gap-1.5"
               >
                 <Bike className="w-3.5 h-3.5" />
                 <span>Link / Rastreamento GPS do Entregador</span>
@@ -432,7 +432,7 @@ export function OrderDetailDrawer({
                 <Button
                   variant="outline"
                   onClick={() => onRevert(order.id, order.status)}
-                  className="flex-1 text-xs font-bold uppercase tracking-wider rounded-xl border-gray-200 dark:border-[#512B54]/40 h-10 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center gap-1.5"
+                  className="flex-1 text-xs font-bold uppercase tracking-wider rounded-xl border-gray-200 dark:border-border/40 h-10 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center gap-1.5"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Voltar</span>
@@ -442,7 +442,7 @@ export function OrderDetailDrawer({
               {nextStage && onAdvance && (
                 <Button
                   onClick={() => onAdvance(order.id, order.status)}
-                  className="flex-2 text-xs font-bold uppercase tracking-wider rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white h-10 shadow-md shadow-[#9306CF]/20 flex items-center justify-center gap-1.5"
+                  className="flex-2 text-xs font-bold uppercase tracking-wider rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white h-10 shadow-md shadow-primary/20 flex items-center justify-center gap-1.5"
                 >
                   <span>{nextStage.label}</span>
                 </Button>

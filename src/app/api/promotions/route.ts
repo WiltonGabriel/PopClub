@@ -120,7 +120,7 @@ export async function POST(request: Request) {
         badge,
         description: description || null,
         bannerImageUrl: bannerImageUrl || null,
-        gradientStart: gradientStart || "#9306CF",
+        gradientStart: gradientStart || "hsl(var(--primary))",
         gradientEnd: gradientEnd || "#881BAA",
         discountType: discountType || "percentage",
         discountValue: Number(discountValue || 0),

@@ -81,8 +81,8 @@ export function PromoBanner() {
       <section className="mb-6" aria-label="Promoções em destaque">
         <div className="flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 no-scrollbar">
           {promotions.map((promo) => {
-            const gradStart = promo.gradientStart || "#9306CF";
-            const gradEnd   = promo.gradientEnd   || "#940068";
+            const gradStart = promo.gradientStart || "hsl(var(--primary))";
+            const gradEnd   = promo.gradientEnd   || "hsl(var(--accent))";
             const hasBanner = Boolean(promo.bannerImageUrl);
 
             const discountLabel =

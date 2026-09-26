@@ -65,14 +65,14 @@ export function OrderCancelDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md w-full rounded-2xl bg-white dark:bg-[#1F0B22] text-foreground border border-gray-200 dark:border-[#512B54]/40 shadow-2xl p-6">
+      <DialogContent className="sm:max-w-md w-full rounded-2xl bg-white dark:bg-[#1F0B22] text-foreground border border-gray-200 dark:border-border/40 shadow-2xl p-6">
         <DialogHeader className="mb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0 border border-red-200 dark:border-red-900/40">
               <AlertTriangle className="w-5 h-5" />
             </div>
             <div>
-              <DialogTitle className="font-heading text-lg font-bold text-[#4C264F] dark:text-[#F9F5F9]">
+              <DialogTitle className="font-heading text-lg font-bold text-foreground dark:text-foreground">
                 Cancelar Pedido #{order.id.substring(0, 6)}
               </DialogTitle>
               <DialogDescription className="text-xs text-gray-500 dark:text-gray-400">
@@ -95,7 +95,7 @@ export function OrderCancelDialog({
                   className={`flex items-center gap-3 p-3 rounded-xl border text-xs font-medium cursor-pointer transition-all ${
                     selectedReason === reason
                       ? "border-red-500 bg-red-50/50 dark:bg-red-950/20 text-red-700 dark:text-red-300 font-semibold"
-                      : "border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300"
+                      : "border-gray-200 dark:border-border/40 hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300"
                   }`}
                 >
                   <input
@@ -131,7 +131,7 @@ export function OrderCancelDialog({
                 }}
                 required
                 placeholder="Descreva por que o pedido está sendo cancelado..."
-                className="w-full rounded-xl p-3 text-xs bg-white border border-gray-200 text-gray-900 dark:bg-[#2B132D] dark:border-[#512B54]/50 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 resize-none transition-all placeholder:text-gray-400"
+                className="w-full rounded-xl p-3 text-xs bg-white border border-gray-200 text-gray-900 dark:bg-card dark:border-border/50 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 resize-none transition-all placeholder:text-gray-400"
               />
             </div>
           )}
@@ -147,7 +147,7 @@ export function OrderCancelDialog({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="flex-1 rounded-xl h-11 border-gray-200 dark:border-[#512B54]/40 text-xs font-semibold"
+              className="flex-1 rounded-xl h-11 border-gray-200 dark:border-border/40 text-xs font-semibold"
             >
               Voltar
             </Button>

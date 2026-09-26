@@ -31,7 +31,7 @@ const LeafletDeliveryMap = dynamic(
     ssr: false,
     loading: () => (
       <div className="w-full h-full min-h-[420px] bg-muted/40 animate-pulse flex flex-col items-center justify-center p-6 space-y-3 text-muted-foreground">
-        <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center text-[#9306CF]">
+        <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
           <RefreshCw className="w-6 h-6 animate-spin" />
         </div>
         <p className="font-mono text-xs uppercase tracking-wider font-bold">
@@ -211,7 +211,7 @@ function TrackingContent() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#9306CF] to-[#940068] flex items-center justify-center text-white shadow-lg shadow-[#9306CF]/30 animate-spin">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white shadow-lg shadow-primary/30 animate-spin">
           <RefreshCw className="w-6 h-6" />
         </div>
         <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground font-bold">
@@ -225,7 +225,7 @@ function TrackingContent() {
   if (!orderId || !order) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center space-y-4">
-        <div className="w-16 h-16 rounded-2xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-900/40 flex items-center justify-center text-[#9306CF]">
+        <div className="w-16 h-16 rounded-2xl bg-primary/5 dark:bg-primary/95/40 border border-primary/20/60 dark:border-primary/90/40 flex items-center justify-center text-primary">
           <ShoppingBag className="w-8 h-8" />
         </div>
         <h1 className="font-heading text-xl font-black uppercase text-foreground">
@@ -235,7 +235,7 @@ function TrackingContent() {
           {error || "Selecione um pedido em andamento na tela de pedidos para acompanhar a entrega ao vivo."}
         </p>
         <Link href="/pedidos">
-          <Button className="h-10 px-6 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] text-white text-xs font-bold uppercase tracking-wider cursor-pointer">
+          <Button className="h-10 px-6 rounded-xl bg-gradient-to-r from-primary to-accent text-white text-xs font-bold uppercase tracking-wider cursor-pointer">
             Ver Meus Pedidos
           </Button>
         </Link>
@@ -268,7 +268,7 @@ function TrackingContent() {
     return (
       <main className="fixed inset-0 w-full h-full overflow-hidden bg-background select-none">
         {/* Topbar Flutuante Imersiva */}
-        <header className="fixed top-0 left-0 right-0 z-30 h-14 bg-white/90 dark:bg-[#190B1A]/90 backdrop-blur-md border-b border-border/50 px-4 flex items-center justify-between shadow-xs">
+        <header className="fixed top-0 left-0 right-0 z-30 h-14 bg-white/90 dark:bg-background/90 backdrop-blur-md border-b border-border/50 px-4 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2.5">
             <Link
               href="/pedidos"
@@ -329,7 +329,7 @@ function TrackingContent() {
         </div>
 
         {/* ── DESKTOP: PAINEL LATERAL FLUTUANTE ESTILO UBER EATS / RAPPI (md+) ── */}
-        <aside className="hidden md:flex flex-col fixed top-18 left-6 bottom-6 w-[410px] z-20 bg-white/95 dark:bg-[#190B1A]/95 backdrop-blur-xl border border-border/70 rounded-3xl shadow-2xl p-5 overflow-y-auto space-y-4 animate-in slide-in-from-left duration-300">
+        <aside className="hidden md:flex flex-col fixed top-18 left-6 bottom-6 w-[410px] z-20 bg-white/95 dark:bg-background/95 backdrop-blur-xl border border-border/70 rounded-3xl shadow-2xl p-5 overflow-y-auto space-y-4 animate-in slide-in-from-left duration-300">
           {/* Alerta de Chegada Iminente (< 300m) */}
           {isArriving && (
             <div className="p-3.5 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border-2 border-emerald-500/50 rounded-2xl flex items-center gap-3 animate-pulse">
@@ -348,10 +348,10 @@ function TrackingContent() {
           )}
 
           {/* Card Principal de Status e ETA */}
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-[#9306CF]/10 via-[#940068]/5 to-transparent border border-[#9306CF]/20 space-y-3">
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-primary/10 via-accent/5 to-transparent border border-primary/20 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] uppercase tracking-wider flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#9306CF] animate-ping" />
+              <span className="text-xs font-bold text-primary dark:text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
                 <span>{isArriving ? "Aproximação Final" : "Em Deslocamento"}</span>
               </span>
               <span className="font-mono text-xs font-bold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md">
@@ -361,8 +361,8 @@ function TrackingContent() {
 
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-11 h-11 rounded-2xl bg-purple-100 dark:bg-purple-950/70 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center shadow-xs shrink-0">
-                  <Clock className="w-5 h-5 text-purple-600 dark:text-[#C7A9C9]" />
+                <div className="w-11 h-11 rounded-2xl bg-primary/10 dark:bg-primary/95/70 text-primary dark:text-muted-foreground flex items-center justify-center shadow-xs shrink-0">
+                  <Clock className="w-5 h-5 text-primary dark:text-muted-foreground" />
                 </div>
                 <div className="min-w-0">
                   <span className="text-[11px] text-muted-foreground uppercase font-mono font-bold block leading-tight">
@@ -413,12 +413,12 @@ function TrackingContent() {
                   className={`w-7 h-7 rounded-full flex items-center justify-center mx-auto font-bold text-xs shadow-xs ${
                     isArriving
                       ? "bg-emerald-500 text-white"
-                      : "bg-[#9306CF] text-white animate-pulse"
+                      : "bg-primary text-white animate-pulse"
                   }`}
                 >
                   🛵
                 </div>
-                <span className="font-bold text-[#9306CF] dark:text-[#C7A9C9] block text-[10px] leading-tight">
+                <span className="font-bold text-primary dark:text-muted-foreground block text-[10px] leading-tight">
                   A Caminho
                 </span>
               </div>
@@ -481,7 +481,7 @@ function TrackingContent() {
               className="w-full p-3.5 flex items-center justify-between text-xs font-bold text-foreground hover:bg-muted/40 transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-2">
-                <ShoppingBag className="w-4 h-4 text-[#9306CF]" />
+                <ShoppingBag className="w-4 h-4 text-primary" />
                 <span>Itens do Pedido ({order.items?.length || 1})</span>
               </div>
               {bottomSheetExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -493,7 +493,7 @@ function TrackingContent() {
                   {order.items?.map((item) => (
                     <div key={item.id} className="flex items-center justify-between py-1 border-b border-border/20 last:border-0">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="w-5 h-5 rounded-md bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center font-bold text-[10px] shrink-0">
+                        <span className="w-5 h-5 rounded-md bg-primary/10 text-primary dark:text-muted-foreground flex items-center justify-center font-bold text-[10px] shrink-0">
                           {item.quantity}x
                         </span>
                         <span className="truncate font-medium text-foreground">
@@ -522,7 +522,7 @@ function TrackingContent() {
 
                 <div className="pt-2 border-t border-border/40 space-y-1">
                   <div className="flex items-start gap-1.5 text-muted-foreground text-[11px]">
-                    <MapPin className="w-3.5 h-3.5 text-[#9306CF] shrink-0 mt-0.5" />
+                    <MapPin className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
                     <span>{clientAddress}</span>
                   </div>
                   {order.origin_address && (
@@ -550,11 +550,11 @@ function TrackingContent() {
 
         {/* ── CARD FLUTUANTE SOBREPOSTO AO MAPA NO MOBILE (md:hidden) ── */}
         <div className="md:hidden fixed top-16 left-3.5 right-3.5 z-10 pointer-events-auto animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="bg-white/95 dark:bg-[#190B1A]/95 backdrop-blur-xl border border-border/80 dark:border-[#512B54]/60 rounded-2xl p-2.5 sm:p-3 shadow-xl flex items-center justify-between gap-2.5">
+          <div className="bg-white/95 dark:bg-background/95 backdrop-blur-xl border border-border/80 dark:border-border/60 rounded-2xl p-2.5 sm:p-3 shadow-xl flex items-center justify-between gap-2.5">
             {/* Bloco Tempo Estimado de Entrega */}
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950/70 flex items-center justify-center text-[#9306CF] dark:text-[#C7A9C9] shrink-0 shadow-xs">
-                <Clock className="w-4 h-4 text-purple-600 dark:text-[#C7A9C9]" />
+              <div className="w-8 h-8 rounded-xl bg-primary/10 dark:bg-primary/95/70 flex items-center justify-center text-primary dark:text-muted-foreground shrink-0 shadow-xs">
+                <Clock className="w-4 h-4 text-primary dark:text-muted-foreground" />
               </div>
               <div className="min-w-0">
                 <span className="text-[10px] uppercase font-mono text-muted-foreground font-bold block leading-none">
@@ -588,7 +588,7 @@ function TrackingContent() {
 
         {/* ── MOBILE: BOTTOM SHEET FLUTUANTE DESLIZANTE (< md) ── */}
         <aside
-          className={`md:hidden fixed bottom-0 left-0 right-0 z-20 bg-white/95 dark:bg-[#190B1A]/95 backdrop-blur-xl border-t border-border/70 rounded-t-3xl shadow-2xl transition-all duration-300 ${
+          className={`md:hidden fixed bottom-0 left-0 right-0 z-20 bg-white/95 dark:bg-background/95 backdrop-blur-xl border-t border-border/70 rounded-t-3xl shadow-2xl transition-all duration-300 ${
             bottomSheetExpanded ? "max-h-[82vh]" : "max-h-[310px]"
           } overflow-y-auto p-4 space-y-3`}
         >
@@ -616,10 +616,10 @@ function TrackingContent() {
           )}
 
           {/* Bloco em Destaque no Bottom Sheet: Previsão de Chegada & Distância */}
-          <div className="p-3 rounded-2xl bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-transparent border border-[#9306CF]/20 flex items-center justify-between gap-2">
+          <div className="p-3 rounded-2xl bg-gradient-to-r from-primary/10 via-pink-500/10 to-transparent border border-primary/20 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/70 flex items-center justify-center text-[#9306CF] dark:text-[#C7A9C9] shrink-0 shadow-xs">
-                <Clock className="w-4 h-4 text-purple-600 dark:text-[#C7A9C9]" />
+              <div className="w-9 h-9 rounded-xl bg-primary/10 dark:bg-primary/95/70 flex items-center justify-center text-primary dark:text-muted-foreground shrink-0 shadow-xs">
+                <Clock className="w-4 h-4 text-primary dark:text-muted-foreground" />
               </div>
               <div className="min-w-0">
                 <span className="text-[10px] text-muted-foreground uppercase font-mono font-bold block leading-none">
@@ -660,7 +660,7 @@ function TrackingContent() {
                 </span>
                 <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  <span className="text-[#9306CF] dark:text-[#C7A9C9] font-semibold">
+                  <span className="text-primary dark:text-muted-foreground font-semibold">
                     {isArriving ? "Na sua rua!" : "Em trânsito com seu pedido"}
                   </span>
                 </span>
@@ -670,7 +670,7 @@ function TrackingContent() {
             <button
               type="button"
               onClick={() => setBottomSheetExpanded(!bottomSheetExpanded)}
-              className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#9306CF]/10 hover:bg-[#9306CF]/15 transition-colors cursor-pointer shrink-0"
+              className="text-xs font-bold text-primary dark:text-muted-foreground flex items-center gap-1 px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/15 transition-colors cursor-pointer shrink-0"
             >
               <span>{bottomSheetExpanded ? "Menos" : "Detalhes"}</span>
               {bottomSheetExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
@@ -694,12 +694,12 @@ function TrackingContent() {
             <div className="space-y-1">
               <div
                 className={`w-6 h-6 rounded-full flex items-center justify-center mx-auto font-bold text-[10px] ${
-                  isArriving ? "bg-emerald-500 text-white" : "bg-[#9306CF] text-white animate-pulse"
+                  isArriving ? "bg-emerald-500 text-white" : "bg-primary text-white animate-pulse"
                 }`}
               >
                 🛵
               </div>
-              <span className="font-bold text-[#9306CF] dark:text-[#C7A9C9]">A Caminho</span>
+              <span className="font-bold text-primary dark:text-muted-foreground">A Caminho</span>
             </div>
             <div className="space-y-1">
               <div
@@ -722,7 +722,7 @@ function TrackingContent() {
                 {order.items?.map((item) => (
                   <div key={item.id} className="flex items-center justify-between text-xs py-1 border-b border-border/20 last:border-0">
                     <span className="truncate text-foreground">
-                      <strong className="text-[#9306CF]">{item.quantity}x</strong> {item.product?.name}
+                      <strong className="text-primary">{item.quantity}x</strong> {item.product?.name}
                     </span>
                     <span className="font-mono font-bold text-foreground shrink-0 pl-2">
                       R$ {(item.price_at_time * item.quantity).toFixed(2).replace(".", ",")}
@@ -740,7 +740,7 @@ function TrackingContent() {
 
               <div className="p-2.5 rounded-xl bg-muted/40 text-[11px] text-muted-foreground space-y-1">
                 <div className="flex items-start gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-[#9306CF] shrink-0 mt-0.5" />
+                  <MapPin className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
                   <span className="truncate">{clientAddress}</span>
                 </div>
                 {order.origin_address && (
@@ -784,7 +784,7 @@ function TrackingContent() {
   return (
     <main className="min-h-screen bg-background flex flex-col">
       {/* Topbar */}
-      <header className="w-full bg-white/90 dark:bg-[#190B1A]/90 backdrop-blur-md border-b border-border/50 px-4 py-3 sticky top-0 z-30 flex items-center justify-between shadow-xs">
+      <header className="w-full bg-white/90 dark:bg-background/90 backdrop-blur-md border-b border-border/50 px-4 py-3 sticky top-0 z-30 flex items-center justify-between shadow-xs">
         <Link
           href="/pedidos"
           className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
@@ -792,7 +792,7 @@ function TrackingContent() {
           <ArrowLeft className="w-4 h-4" />
           <span>Voltar para Meus Pedidos</span>
         </Link>
-        <span className="font-mono text-xs font-bold bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] px-2.5 py-1 rounded-lg border border-[#9306CF]/20">
+        <span className="font-mono text-xs font-bold bg-primary/10 text-primary dark:text-muted-foreground px-2.5 py-1 rounded-lg border border-primary/20">
           #{order.id.substring(0, 6)}
         </span>
       </header>
@@ -802,7 +802,7 @@ function TrackingContent() {
         <div className="w-full max-w-lg bg-card border border-border/80 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
           {/* Header do Card */}
           <div className="text-center space-y-2">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#9306CF] to-[#940068] flex items-center justify-center text-white shadow-xl shadow-[#9306CF]/25 mx-auto text-3xl">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white shadow-xl shadow-primary/25 mx-auto text-3xl">
               {isCompleted ? "🎉" : isCancelled ? "❌" : isPending ? "⏳" : isReady ? (isPickup ? "🛍️" : "📦") : "🥣"}
             </div>
             <h1 className="font-heading text-xl sm:text-2xl font-black uppercase tracking-tight text-foreground">
@@ -859,7 +859,7 @@ function TrackingContent() {
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto font-bold text-xs ${
                     isAcceptedOrPreparing
-                      ? "bg-[#9306CF] text-white shadow-md shadow-[#9306CF]/30 animate-pulse"
+                      ? "bg-primary text-white shadow-md shadow-primary/30 animate-pulse"
                       : isReady || isCompleted
                       ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
                       : "bg-muted text-muted-foreground"
@@ -870,7 +870,7 @@ function TrackingContent() {
                 <span
                   className={`block text-[10px] leading-tight ${
                     isAcceptedOrPreparing
-                      ? "font-bold text-[#9306CF] dark:text-[#C7A9C9]"
+                      ? "font-bold text-primary dark:text-muted-foreground"
                       : isReady || isCompleted
                       ? "font-bold text-foreground"
                       : "text-muted-foreground"
@@ -953,7 +953,7 @@ function TrackingContent() {
                 type="button"
                 variant="outline"
                 onClick={() => setShowPreviewMap(!showPreviewMap)}
-                className="w-full h-11 rounded-2xl border-purple-200 dark:border-purple-900/50 bg-purple-50/50 dark:bg-purple-950/20 text-[#9306CF] dark:text-[#C7A9C9] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-purple-100 dark:hover:bg-purple-950/40 transition-colors cursor-pointer"
+                className="w-full h-11 rounded-2xl border-primary/20 dark:border-primary/90/50 bg-primary/5/50 dark:bg-primary/95/20 text-primary dark:text-muted-foreground font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-primary/10 dark:hover:bg-primary/95/40 transition-colors cursor-pointer"
               >
                 <Navigation className="w-4 h-4" />
                 <span>{showPreviewMap ? "Ocultar Mapa do Trajeto" : "🗺️ Visualizar Rota de Entrega"}</span>
@@ -1001,7 +1001,7 @@ function TrackingContent() {
             </Link>
 
             <Link href="/" className="w-full">
-              <Button className="w-full h-11 rounded-2xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white text-xs font-bold uppercase tracking-wider shadow-md shadow-[#9306CF]/20 cursor-pointer">
+              <Button className="w-full h-11 rounded-2xl bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white text-xs font-bold uppercase tracking-wider shadow-md shadow-primary/20 cursor-pointer">
                 Ir para o Cardápio
               </Button>
             </Link>
@@ -1017,7 +1017,7 @@ export default function RastreamentoPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 space-y-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#9306CF] to-[#940068] flex items-center justify-center text-white shadow-lg shadow-[#9306CF]/30 animate-spin">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white shadow-lg shadow-primary/30 animate-spin">
             <RefreshCw className="w-6 h-6" />
           </div>
           <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground font-bold">

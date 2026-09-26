@@ -68,11 +68,11 @@ function AuthInput({
         className="
           w-full h-12 rounded-xl
           border border-gray-200 bg-white text-gray-900 
-          dark:border-[#512B54]/50 dark:bg-[#1F0B22] dark:text-white
+          dark:border-border/50 dark:bg-[#1F0B22] dark:text-white
           pl-10 pr-10
           text-sm placeholder-[#7A587D] dark:placeholder-[#957498]
           outline-none
-          focus:border-[#9306CF] dark:focus:border-[#9306CF]/70 focus:ring-2 focus:ring-[#9306CF]/20
+          focus:border-primary dark:focus:border-primary/70 focus:ring-2 focus:ring-primary/20
           transition-all duration-200
           disabled:opacity-60 disabled:cursor-not-allowed
         "
@@ -92,7 +92,7 @@ function EyeToggle({ show, onToggle }: { show: boolean; onToggle: () => void }) 
     <button
       type="button"
       onClick={onToggle}
-      className="text-[#7A587D] dark:text-[#957498] hover:text-[#4C264F] dark:hover:text-[#C7A9C9] transition-colors"
+      className="text-[#7A587D] dark:text-[#957498] hover:text-foreground dark:hover:text-muted-foreground transition-colors"
       aria-label={show ? "Ocultar senha" : "Mostrar senha"}
     >
       {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -250,7 +250,7 @@ function AuthPageInner() {
   if (authLoading || user) {
     return (
       <div className="min-h-screen bg-transparent flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-[#9306CF] border-t-transparent animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
       </div>
     );
   }
@@ -260,14 +260,14 @@ function AuthPageInner() {
     <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-4 relative">
       {/* Decorative ambient blobs */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
-        <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-[#9306CF]/5 dark:bg-[#9306CF]/10 blur-3xl" />
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-[#940068]/5 dark:bg-[#940068]/10 blur-3xl" />
+        <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-primary/5 dark:bg-primary/10 blur-3xl" />
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-accent/5 dark:bg-accent/10 blur-3xl" />
       </div>
 
       {/* Back link */}
       <Link
         href="/"
-        className="absolute top-6 left-6 flex items-center gap-1.5 text-[#7A587D] dark:text-[#C7A9C9] hover:text-[#4C264F] dark:hover:text-[#F9F5F9] transition-colors text-sm font-medium group"
+        className="absolute top-6 left-6 flex items-center gap-1.5 text-[#7A587D] dark:text-muted-foreground hover:text-foreground dark:hover:text-foreground transition-colors text-sm font-medium group"
         aria-label="Voltar à loja"
       >
         <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
@@ -276,7 +276,7 @@ function AuthPageInner() {
 
       {/* ── Auth Card ── */}
       <div className="relative z-10 w-full max-w-md">
-        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 rounded-3xl shadow-2xl p-6 sm:p-8">
+        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-3xl shadow-2xl p-6 sm:p-8">
 
           {/* Logo / Brand */}
           <Link
@@ -285,10 +285,10 @@ function AuthPageInner() {
             aria-label="Pop Shake — Início"
           >
             <span className="font-heading font-black text-3xl tracking-tight">
-              <span className="text-[#4C264F] dark:text-[#F9F5F9]">Pop</span>
+              <span className="text-foreground dark:text-foreground">Pop</span>
               <span
                 style={{
-                  background: "linear-gradient(135deg, #9306CF 0%, #940068 100%)",
+                  background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   backgroundClip: "text",
@@ -303,7 +303,7 @@ function AuthPageInner() {
           </Link>
 
           {/* ── Segmented Control (Abas Claras) ── */}
-          <div className="flex p-1 bg-[#F8F9FA] dark:bg-[#190B1A] rounded-2xl mb-6 border border-gray-100 dark:border-transparent" role="tablist">
+          <div className="flex p-1 bg-[#F8F9FA] dark:bg-background rounded-2xl mb-6 border border-gray-100 dark:border-transparent" role="tablist">
             <button
               role="tab"
               aria-selected={activeTab === "fast"}
@@ -315,8 +315,8 @@ function AuthPageInner() {
                 flex-1 h-10 rounded-xl text-xs sm:text-sm font-bold
                 transition-all duration-200 cursor-pointer
                 ${activeTab === "fast"
-                  ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white shadow-lg shadow-[#9306CF]/30"
-                  : "text-[#7A587D] dark:text-[#957498] hover:text-[#4C264F] dark:hover:text-[#C7A9C9]"
+                  ? "bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/30"
+                  : "text-[#7A587D] dark:text-[#957498] hover:text-foreground dark:hover:text-muted-foreground"
                 }
               `}
             >
@@ -331,8 +331,8 @@ function AuthPageInner() {
                 flex-1 h-10 rounded-xl text-xs sm:text-sm font-bold
                 transition-all duration-200 cursor-pointer
                 ${activeTab === "password"
-                  ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white shadow-lg shadow-[#9306CF]/30"
-                  : "text-[#7A587D] dark:text-[#957498] hover:text-[#4C264F] dark:hover:text-[#C7A9C9]"
+                  ? "bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/30"
+                  : "text-[#7A587D] dark:text-[#957498] hover:text-foreground dark:hover:text-muted-foreground"
                 }
               `}
             >
@@ -345,7 +345,7 @@ function AuthPageInner() {
             <div className="space-y-4">
               {!isVerifyingDevice ? (
                 <>
-                  <p className="text-xs text-[#7A587D] dark:text-[#C7A9C9] text-center leading-relaxed">
+                  <p className="text-xs text-[#7A587D] dark:text-muted-foreground text-center leading-relaxed">
                     Entre direto apenas com seu WhatsApp. Sem necessidade de decorar senhas!
                   </p>
 
@@ -399,11 +399,11 @@ function AuthPageInner() {
                       className="
                         w-full h-12 rounded-xl mt-2
                         font-semibold text-sm text-white
-                        bg-gradient-to-r from-[#9306CF] to-[#940068]
+                        bg-gradient-to-r from-primary to-accent
                         hover:from-[#a30de8] hover:to-[#b0007c]
                         active:scale-[0.98]
                         transition-all duration-200
-                        shadow-lg shadow-[#9306CF]/30
+                        shadow-lg shadow-primary/30
                         disabled:opacity-50 disabled:cursor-not-allowed
                         flex items-center justify-center gap-2 cursor-pointer
                       "
@@ -442,11 +442,11 @@ function AuthPageInner() {
                   {/* Card com endereço mascarado */}
                   <div className="p-3.5 rounded-xl bg-muted/40 border border-border">
                     <div className="flex items-start gap-2.5">
-                      <MapPin className="w-4 h-4 text-[#9306CF] shrink-0 mt-0.5" />
+                      <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                       <div className="text-xs space-y-1">
                         <p className="text-muted-foreground leading-relaxed font-mono">
                           {maskedAddress?.street || "Rua cadastrada"}, nº{" "}
-                          <span className="inline-block px-1.5 py-0.5 border border-dashed border-[#9306CF] text-[#9306CF] font-bold rounded bg-[#9306CF]/5">
+                          <span className="inline-block px-1.5 py-0.5 border border-dashed border-primary text-primary font-bold rounded bg-primary/5">
                             [ ? ]
                           </span>{" "}
                           - {maskedAddress?.neighborhood || "Bairro"}
@@ -487,7 +487,7 @@ function AuthPageInner() {
                             if (e.target.checked) setHouseNumber("");
                             if (verifyError) setVerifyError(null);
                           }}
-                          className="h-4 w-4 rounded border-gray-300 text-[#9306CF] focus:ring-[#9306CF] cursor-pointer"
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                         />
                         <label htmlFor="login-sn-checkbox" className="text-xs text-muted-foreground select-none cursor-pointer">
                           Minha residência não tem número (S/N)
@@ -502,7 +502,7 @@ function AuthPageInner() {
                           disabled={verifyLoading}
                           className="
                             w-full h-11 rounded-xl font-bold text-xs uppercase tracking-wider text-white
-                            bg-gradient-to-r from-[#9306CF] to-[#940068] shadow-md shadow-[#9306CF]/30
+                            bg-gradient-to-r from-primary to-accent shadow-md shadow-primary/30
                             flex items-center justify-center gap-2 cursor-pointer
                           "
                         >
@@ -523,7 +523,7 @@ function AuthPageInner() {
                       <button
                         type="button"
                         onClick={() => setActiveTab("password")}
-                        className="w-full h-10 rounded-xl text-xs font-semibold text-[#9306CF] dark:text-[#C7A9C9] border border-gray-200 dark:border-[#512B54]/40 hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
+                        className="w-full h-10 rounded-xl text-xs font-semibold text-primary dark:text-muted-foreground border border-gray-200 dark:border-border/40 hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
                       >
                         Entrar com senha em vez disso
                       </button>
@@ -565,7 +565,7 @@ function AuthPageInner() {
                     </label>
                     <Link
                       href="/recuperar-senha"
-                      className="text-xs text-[#9306CF] hover:text-[#940068] dark:hover:text-[#C7A9C9] hover:underline transition-colors"
+                      className="text-xs text-primary hover:text-accent dark:hover:text-muted-foreground hover:underline transition-colors"
                     >
                       Esqueceu a senha?
                     </Link>
@@ -595,11 +595,11 @@ function AuthPageInner() {
                   className="
                     w-full h-12 rounded-xl mt-2
                     font-semibold text-sm text-white
-                    bg-gradient-to-r from-[#9306CF] to-[#940068]
+                    bg-gradient-to-r from-primary to-accent
                     hover:from-[#a30de8] hover:to-[#b0007c]
                     active:scale-[0.98]
                     transition-all duration-200
-                    shadow-lg shadow-[#9306CF]/30
+                    shadow-lg shadow-primary/30
                     disabled:opacity-50 disabled:cursor-not-allowed
                     flex items-center justify-center gap-2 cursor-pointer
                   "
@@ -610,9 +610,9 @@ function AuthPageInner() {
 
               {/* Divider */}
               <div className="flex items-center gap-3 my-1">
-                <div className="flex-1 h-px bg-gray-200 dark:bg-[#512B54]/50" />
+                <div className="flex-1 h-px bg-gray-200 dark:bg-border/50" />
                 <span className="text-[#7A587D] dark:text-[#957498] text-xs font-medium">OU</span>
-                <div className="flex-1 h-px bg-gray-200 dark:bg-[#512B54]/50" />
+                <div className="flex-1 h-px bg-gray-200 dark:bg-border/50" />
               </div>
 
               {/* Google */}
@@ -622,9 +622,9 @@ function AuthPageInner() {
                 className="
                   w-full h-12 rounded-xl
                   flex items-center justify-center gap-3
-                  border border-gray-200 dark:border-[#512B54]/60
+                  border border-gray-200 dark:border-border/60
                   bg-transparent hover:bg-black/5 dark:hover:bg-white/5
-                  text-[#4C264F] dark:text-[#E2D2E4] text-sm font-medium
+                  text-foreground dark:text-[#E2D2E4] text-sm font-medium
                   transition-all duration-200 cursor-pointer
                   active:scale-[0.98]
                 "
@@ -637,7 +637,7 @@ function AuthPageInner() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("fast")}
-                  className="text-xs text-[#7A587D] dark:text-[#C7A9C9] hover:underline cursor-pointer"
+                  className="text-xs text-[#7A587D] dark:text-muted-foreground hover:underline cursor-pointer"
                 >
                   Prefere entrar sem senha? <strong>Usar Acesso Rápido</strong>
                 </button>
@@ -668,7 +668,7 @@ export default function AuthPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-transparent flex items-center justify-center">
-          <div className="w-8 h-8 rounded-full border-2 border-[#9306CF] border-t-transparent animate-spin" />
+          <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
         </div>
       }
     >
