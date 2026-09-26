@@ -53,3 +53,28 @@ Limites lógicos impostos na criação de novos recursos no banco:
 
 ### 2.5. Arquitetura "Zero Trust" Nativa
 A aplicação agora aplica as restrições a nível de controlador/rota (*Route Handlers*). Essa arquitetura garante proteção independente (mesmo que provedores externos de segurança falhem, os *endpoints* rejeitarão as requisições por excesso de cota e falhas de schema/Zod).
+
+---
+
+## 3. Garantia do Ciclo de Vida e Liberação de Cotas (CRUD Completo)
+
+Ao aplicarmos limites rígidos (tetos de criação), torna-se obrigatório garantir que usuários e administradores consigam liberar espaço deletando ou editando registros antigos. Todas as entidades mapeadas possuem rotas funcionais de edição e deleção:
+
+### 3.1. Cliente
+- **Endereços (`/api/users/locations/[id]`):**
+  - Possui rota `DELETE` para remoção do endereço, liberando a cota dos 10 permitidos.
+  - Possui rota `PATCH` para atualização dos dados ou definição de `isDefault`.
+
+### 3.2. Painel Admin
+- **Cupons (`/api/coupons/[id]`):**
+  - Possui rotas `PUT` e `PATCH` para edição total ou ativação/desativação (`isActive`).
+  - Possui rota `DELETE` para exclusão definitiva.
+- **Categorias (`/api/categories/[id]`):**
+  - Possui rota `PATCH` para atualização de nome/slug.
+  - Possui rota `DELETE` para remoção.
+- **Produtos (`/api/products/[id]`):**
+  - Possui rota `PUT` para atualização de informações, preços e estoque.
+  - Possui rota `DELETE` para exclusão definitiva do catálogo.
+- **Avatares (`/api/admin/avatars/[id]`):**
+  - Possui rota `PATCH` para atualização de imagem, nome, descrição, etc.
+  - Possui rota `DELETE` para remoção do preset, liberando espaço no limite de 30 avatares.
