@@ -3,9 +3,11 @@
 import React, { createContext, useState, useEffect, ReactNode } from "react";
 
 export interface SelectedOption {
+  id?: string;
   groupName: string;
   name: string;
   price: number;
+  quantity?: number;
 }
 
 export interface CartItem {
@@ -18,8 +20,9 @@ export interface CartItem {
   imageUrl?: string;
   promotionId?: string | null;
   promotionTitle?: string | null;
-  selectedOptions?: SelectedOption[];
+  selectedOptions?: SelectedOption[]; // Mapeado para selectedAddons no checkout
   notes?: string;
+  isCombo?: boolean;
 }
 
 interface CartContextType {

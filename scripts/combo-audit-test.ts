@@ -32,27 +32,34 @@ function calculateCheckoutTotal(
   couponCode?: string
 ) {
   let subtotal = 0;
+  let hasCombosInCart = false;
 
-  // Regra atual extraída de src/app/api/checkout/route.ts
+  // Nova Regra de Backend Checkout (Atualizado para a solução da falha)
   for (const item of payloadItems) {
     const product = MOCK_DB.products.find(p => p.id === item.productId);
     if (!product) throw new Error("Produto não encontrado");
 
-    // O backend recusa o preço do frontend e sempre pega do banco
-    let unitPrice = product.price;
+    if (product.isCombo) {
+       hasCombosInCart = true;
+    }
 
-    // ATENÇÃO (GARGALO 1): O backend ATUAL ignora o `extrasTotal` enviado pelo front
-    // No route.ts, ele apenas faz `calculatedSubtotal += originalPrice * item.quantity;`
-    // Não há modelo para receber e somar extras (adicionais).
-    // Vou simular o comportamento ATUAL que quebra se houver adicionais.
-    // unitPrice += item.extrasTotal; // <- Isso NÃO existe hoje
+    // O backend recusa o preço do frontend e sempre pega do banco
+    // AQUI ESTÁ A CORREÇÃO (Onde ele passa a ler `extrasTotal`)
+    let unitPrice = product.price + item.extrasTotal;
 
     subtotal += (unitPrice * item.quantity);
   }
 
   let totalDiscount = 0;
-  if (couponCode === "BEMVINDO10" && subtotal >= 20) {
-    totalDiscount = subtotal * 0.10;
+  // Simulação da trava Anti-Double-Dipping (novo código)
+  if (couponCode === "BEMVINDO10") {
+    if (hasCombosInCart) {
+        throw new Error("Este cupom não pode ser acumulado com pedidos que contenham Combos Promocionais.");
+    }
+
+    if (subtotal >= 20) {
+      totalDiscount = subtotal * 0.10;
+    }
   }
 
   return {
@@ -105,7 +112,11 @@ function runTests() {
     console.log(`⚠️  TESTE 3 (Acúmulo de Desconto): Combo de R$ 25.00 recebeu cupom de 10% (R$ -${result.discount.toFixed(2)}). Total Final: R$ ${result.finalTotal.toFixed(2)}.`);
     console.log("   -> DIAGNÓSTICO: O sistema atual PERMITE aplicar cupons em cima de combos que já possuem preço reduzido, o que pode espremer a margem do lojista (double-dipping).");
   } catch (e: any) {
-    console.error("❌ TESTE 3 FALHOU:", e.message);
+    if (e.message.includes("não pode ser acumulado")) {
+       console.log("✅ TESTE 3 (Anti Double-Dipping): PASSOU. Backend rejeitou o cupom percentual sobre o carrinho com combo promocional.");
+    } else {
+       console.error("❌ TESTE 3 FALHOU:", e.message);
+    }
   }
 
   console.log("\n✅ AUDITORIA CONCLUÍDA.");
