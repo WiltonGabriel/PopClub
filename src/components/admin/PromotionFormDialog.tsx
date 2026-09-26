@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { promotionService, Promotion } from "../../services/promotionService";
 import { productService, Product } from "../../services/productService";
+import { badgeService, CardBadge } from "../../services/badgeService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -39,6 +40,7 @@ export function PromotionFormDialog({
   const [discountValue, setDiscountValue] = useState("");
   const [gradientStart, setGradientStart] = useState("#9306CF");
   const [gradientEnd, setGradientEnd] = useState("#881BAA");
+  const [badges, setBadges] = useState<CardBadge[]>([]);
   const [bannerUrl, setBannerUrl] = useState("");
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
@@ -58,8 +60,11 @@ export function PromotionFormDialog({
   const [rawBannerSrc, setRawBannerSrc] = useState<string | null>(null);
 
   useEffect(() => {
-    productService.getProducts().then(setAvailableProducts).catch(console.error);
-  }, []);
+    if (open) {
+      productService.getProducts().then(setAvailableProducts).catch(console.error);
+      badgeService.getBadges().then(setBadges).catch(() => {});
+    }
+  }, [open]);
 
   useEffect(() => {
     if (promoToEdit) {
@@ -291,15 +296,42 @@ export function PromotionFormDialog({
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                  Badge *
+                  Selo do Card (Badge) *
                 </Label>
-                <Input
-                  value={badge}
-                  onChange={(e) => setBadge(e.target.value)}
-                  placeholder="Ex: 20% OFF"
-                  className="font-bold text-xs sm:text-sm bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
-                  required
-                />
+                <Select
+                  value={badge || "none"}
+                  onValueChange={(val) => setBadge(!val || val === "none" ? "" : val)}
+                >
+                  <SelectTrigger className="font-bold text-xs sm:text-sm bg-gray-50 dark:bg-[#190B1A] border-gray-200 dark:border-[#512B54]/40 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]">
+                    <SelectValue placeholder="Selecione um selo..." />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border border-gray-200 dark:border-[#512B54]/50 bg-white dark:bg-[#1F0B22] shadow-xl max-h-60 z-[60]">
+                    <SelectItem value="none" className="cursor-pointer text-sm py-2">
+                      <span className="text-muted-foreground">[ Nenhum selo ]</span>
+                    </SelectItem>
+                    {badges.map((b) => {
+                      const badgeValue = b.icon ? `${b.icon} ${b.text}` : b.text;
+                      return (
+                        <SelectItem key={b.id} value={badgeValue} className="cursor-pointer text-sm py-2 hover:bg-[#9306CF]/10">
+                          <div className="flex items-center gap-2">
+                            <span
+                              style={{ backgroundColor: b.bgColor, color: b.textColor }}
+                              className="px-2.5 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1 shadow-2xs"
+                            >
+                              {b.icon && <span>{b.icon}</span>}
+                              <span>{b.text}</span>
+                            </span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                    {badge && !badges.some((b) => (b.icon ? `${b.icon} ${b.text}` : b.text) === badge) && (
+                      <SelectItem value={badge} className="cursor-pointer text-sm py-2">
+                        <span>{badge}</span>
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
