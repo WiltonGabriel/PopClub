@@ -18,6 +18,7 @@ import {
   Minus,
   UtensilsCrossed,
   Pencil,
+  Trash2,
 } from "lucide-react";
 import { productService, Product } from "../../services/productService";
 import { categoryService, Category } from "../../services/categoryService";
@@ -184,6 +185,31 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
     handleStockChange(product, nextVal);
   };
 
+  // Excluir Produto
+  const handleDeleteProduct = async (product: Product) => {
+    if (!window.confirm(`Tem certeza que deseja excluir o produto "${product.name}"? Esta ação não pode ser desfeita.`)) {
+      return;
+    }
+
+    try {
+      await productService.deleteProduct(product.id);
+      setProducts((prev) => prev.filter((p) => p.id !== product.id));
+      showToast({
+        title: "Produto excluído",
+        message: `O produto "${product.name}" foi removido com sucesso.`,
+        type: "success",
+      });
+      loadData(true);
+    } catch (err: any) {
+      console.error("Erro ao excluir produto:", err);
+      showToast({
+        title: "Erro ao excluir",
+        message: err.message || "Falha ao remover o produto.",
+        type: "error",
+      });
+    }
+  };
+
   // Filtragem dos produtos
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
@@ -262,6 +288,17 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
               <span>{totalInKitchen} un. em preparo</span>
             </div>
           )}
+
+          <button
+            onClick={() => {
+              setEditingProduct(null);
+              setIsEditDialogOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#9306CF] text-white text-xs font-bold hover:bg-[#7a05ac] transition-colors shadow-sm"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Novo Produto</span>
+          </button>
 
           <button
             onClick={() => loadData(true)}
@@ -408,6 +445,14 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
                               className="p-1 rounded-md text-gray-400 hover:text-[#9306CF] hover:bg-[#9306CF]/10 transition-colors cursor-pointer inline-flex items-center justify-center shrink-0"
                             >
                               <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteProduct(product)}
+                              title="Excluir produto"
+                              className="p-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer inline-flex items-center justify-center shrink-0"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                             {!isAvailable && (
                               <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950/80 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/50">
@@ -572,14 +617,18 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
           productToEdit={editingProduct}
           categories={categories}
           onSaved={(updatedProduct) => {
-            setProducts((prev) =>
-              prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
-            );
+            setProducts((prev) => {
+              const exists = prev.find((p) => p.id === updatedProduct.id);
+              if (exists) {
+                return prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p));
+              }
+              return [updatedProduct, ...prev];
+            });
             setIsEditDialogOpen(false);
             setEditingProduct(null);
             showToast({
-              title: "Produto atualizado!",
-              message: `${updatedProduct.name} foi atualizado com sucesso.`,
+              title: editingProduct ? "Produto atualizado!" : "Produto cadastrado!",
+              message: `${updatedProduct.name} foi salvo com sucesso.`,
               type: "success",
             });
             loadData(true);
