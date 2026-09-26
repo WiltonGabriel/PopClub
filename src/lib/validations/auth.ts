@@ -46,8 +46,8 @@ export const fullNameSchema = z
   .refine((val) => val.length >= 3, {
     message: "O nome completo deve ter pelo menos 3 caracteres.",
   })
-  .refine((val) => val.length <= 80, {
-    message: "O nome completo deve ter no máximo 80 caracteres.",
+  .refine((val) => val.length <= 100, {
+    message: "O nome completo deve ter no máximo 100 caracteres.",
   })
   .refine((val) => /^[a-zA-ZÀ-ÿ\s'-]+$/.test(val), {
     message: "O nome deve conter apenas letras e espaços válidos.",
@@ -204,7 +204,7 @@ export const emailSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .max(100, "O e-mail deve ter no máximo 100 caracteres.")
+  .max(255, "O e-mail deve ter no máximo 255 caracteres.")
   .email("Formato de e-mail inválido.")
   .refine((val) => /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(val), {
     message: "O e-mail deve possuir um domínio válido (ex: .com ou .com.br).",

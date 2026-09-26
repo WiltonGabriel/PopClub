@@ -83,6 +83,24 @@ Para uma análise aprofundada dos roteadores, regras de WAF e isolamento de rede
 
 ---
 
+## 🔐 Segurança, Blindagem e Políticas de Acesso (AppSec)
+
+O sistema conta com uma **Arquitetura Zero Trust nativa** (o próprio sistema defende suas rotas através de *Route Handlers*, limitando a dependência de WAFs externos) e implementa travas lógicas e Rate Limits estritos para proteção contra ataques de negação de serviço, inchaço de disco e abusos de uso.
+
+### Tabela de Rate Limits (Rotas Abertas e Operacionais)
+| Contexto | Rota / API | Restrição (Teto/Rate Limit) | Finalidade |
+| :--- | :--- | :--- | :--- |
+| **Endereços Ativos** | `/api/users/locations` | Máx. 10 por conta | Impede botnets de criarem infinitos endereços. |
+| **Login e Fast Access** | `/api/auth/login`, `fast-access` | 5 requisições / minuto (IP) | Evita ataques de força bruta (Brute Force). |
+| **Recuperação Senha** | `/api/auth/forgot-password` | 3 solicitações a cada 15 min | Evita flood de e-mails e ataques de enumeração. |
+| **Validação de Cupons** | `/api/coupons/validate` | 10 tentativas / minuto (IP) | Previne scripts adivinhadores de códigos (Brute Force). |
+| **Notificações Broadcast** | `/api/notifications` | Cooldown de 5 minutos | Bloqueia loops acidentais ou maliciosos de Spam (Admin). |
+
+### Proteções de Banco de Dados e Uploads
+- **Limites de Payload (Zod):** Injeção de textos estourados (String/Json sem limite do PostgreSQL) bloqueados por `schema validations`. Nomes limitados a 100 caracteres e descrições limitadas a 1000 caracteres.
+- **Cotas de Criação (Painel Admin):** Limites lógicos de volume aplicados (Máximo de 300 produtos, 100 cupons, 30 categorias e 30 avatares presets) para evitar que contas de administrador comprometidas lotem o banco.
+- **Gating de Uploads:** Somente administradores efetuam upload, travado em `5MB`, extensões/MIME restritas e conversão compulsória de imagens (WebP) pelo lado servidor (`sharp`).
+
 ## 💻 Stack Tecnológica
 
 | Camada | Tecnologias Principais |
@@ -251,13 +269,5 @@ A distribuição das atividades acima não altera as responsabilidades principai
 - **Licenciamento e Direitos:** Questões definitivas de licenciamento, direitos de uso e exploração do software serão formalizadas posteriormente por meio de instrumento próprio adequado. Componentes e bibliotecas de terceiros utilizados no ecossistema permanecem sujeitos às suas respectivas licenças de código aberto.
 
 
-## Segurança & Proteções Ativas (AppSec)
-
-- **Rate Limiting em Memória:** Proteção DDoS para API Routes (`/api/*`), usando Map LRU para barrar brute-force.
-- **Prevenção BOLA/IDOR e BFLA:** Checagem rigorosa de contexto (Cliente vs Courier vs Admin) na manipulação de recursos.
-- **CSP Avançado (Content Security Policy):** Blindagem contra XSS baseada em domínios confidenciais (Fontes, Imagens, Scripts).
-- **HSTS Ativo:** Imposição HTTP Strict Transport Security por cabeçalho em todas as respostas (Next.js).
-- **Sanitização Reforçada:** Filtros explícitos contra injeção maliciosa em SVGs da AWS/S3 ou URLs externas.
-- **Autenticação Segura:** Tratamento unificado de exceções de credenciais para blindar Enumeração de Usuários (Bypass/Username enumeration block).
 
 ---

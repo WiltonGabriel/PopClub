@@ -137,9 +137,30 @@ export async function POST(request: Request) {
     if (!title || typeof title !== "string" || !title.trim()) {
       return NextResponse.json({ error: "O título da mensagem é obrigatório." }, { status: 400 });
     }
+    if (title.length > 100) {
+      return NextResponse.json({ error: "O título da mensagem não pode exceder 100 caracteres." }, { status: 400 });
+    }
 
     if (!message || typeof message !== "string" || !message.trim()) {
       return NextResponse.json({ error: "O conteúdo da mensagem é obrigatório." }, { status: 400 });
+    }
+    if (message.length > 1000) {
+      return NextResponse.json({ error: "O conteúdo da mensagem não pode exceder 1000 caracteres." }, { status: 400 });
+    }
+
+    // Trava de Cooldown para Broadcast
+    const finalType = type || (couponId ? "COUPON" : targetAudience === "ALL" ? "BROADCAST" : "TARGETED");
+    if (finalType === "BROADCAST" || targetAudience === "ALL") {
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      const recentBroadcast = await prisma.notification.findFirst({
+        where: {
+          OR: [{ type: "BROADCAST" }, { targetAudience: "ALL" }],
+          createdAt: { gte: fiveMinutesAgo },
+        },
+      });
+      if (recentBroadcast) {
+        return NextResponse.json({ error: "Por favor, aguarde 5 minutos antes de enviar outra notificação em massa." }, { status: 429 });
+      }
     }
 
     // Se houver cupom, verifica se existe
@@ -152,8 +173,6 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Cupom vinculado não encontrado." }, { status: 400 });
       }
     }
-
-    const finalType = type || (couponId ? "COUPON" : targetAudience === "ALL" ? "BROADCAST" : "TARGETED");
 
     // Identifica clientes elegíveis de acordo com o segmento
     const targetClients = await getTargetClients(targetAudience);

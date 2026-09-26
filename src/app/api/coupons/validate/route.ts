@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
-import { couponLimiter } from "@/lib/rateLimit";
+import { couponLimiter, getIpFromRequest } from "@/lib/rateLimit";
 
 export async function POST(request: Request) {
   try {
-    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    const ip = getIpFromRequest(request);
     const limitCheck = couponLimiter.check(ip);
 
     if (!limitCheck.success) {
