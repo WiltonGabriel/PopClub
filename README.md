@@ -54,6 +54,7 @@ flowchart TD
     subgraph VPS ["☁️ Servidor de Produção (Grein Cloud 01)"]
         subgraph Ingress ["Proxy Reverso"]
             Traefik["🚦 Traefik v3\n(SSL Automático Let's Encrypt)"]
+            Authelia["🔒 Authelia SSO\n(Proteção da Área de Gestão)"]
         end
 
         subgraph ContainerStack ["Stack Docker Compose"]
@@ -69,7 +70,9 @@ flowchart TD
     %% Roteamento de Produção
     Client -->|"HTTPS :443"| CF
     CF -->|"Proxy Seguro"| Traefik
-    Traefik -->|"Roteador Seguro HTTPS :3000"| App
+    Traefik -->|"Roteador Público (Prioridade 100 - Estáticos/Manifest)"| App
+    Traefik -->|"Roteador Protegido (Authelia - Prioridade 1)"| Authelia
+    Authelia -->|"Sessão Validada"| App
     App -->|"Rede Interna Bridge"| DB
 
     %% Desenvolvimento Conectado Diretamente
@@ -108,7 +111,7 @@ O sistema conta com uma **Arquitetura Zero Trust nativa** (o próprio sistema de
 | **Banco de Dados & ORM** | [PostgreSQL 16](https://www.postgresql.org/) (Alpine), [Prisma ORM 6](https://www.prisma.io/) com modelagem relacional estrita |
 | **Segurança & Auth** | JWT (`jsonwebtoken`), Criptografia com `bcryptjs`, Cookies `HttpOnly` com validação de papéis (`admin` vs `client`) |
 | **Geolocalização & Mapas** | [Leaflet](https://leafletjs.com/) (`leaflet` + `react-leaflet`), [OpenStreetMap](https://www.openstreetmap.org/), [OSRM Routing](https://project-osrm.org/) e Nominatim Geocoding (100% Soberano & Gratuito) |
-| **Infraestrutura & GitOps** | Docker (Multi-stage Debian bookworm-slim), Docker Compose, Portainer CE, Traefik v3, Cloudflare, Tailscale |
+| **Infraestrutura & GitOps** | Docker (Multi-stage Debian bookworm-slim), Docker Compose, Portainer CE, Traefik v3, Authelia, Cloudflare, Tailscale |
 
 ---
 

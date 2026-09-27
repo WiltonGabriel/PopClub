@@ -20,6 +20,7 @@ flowchart TD
     subgraph Host ["☁️ Servidor de Produção (Grein Cloud 01)"]
         subgraph ProxyNet ["Rede Docker: proxy_network (External)"]
             Traefik["🚦 Traefik v3 (Reverse Proxy)\nCertificados Let's Encrypt (leresolver)"]
+            Authelia["🔒 Authelia (SSO / 2FA Gate)"]
         end
 
         subgraph PopshakeStack ["Stack Docker Compose (popclub)"]
@@ -38,7 +39,9 @@ flowchart TD
     User -->|"HTTPS :443"| CF_WAF
     CF_WAF --> CF_SSL
     CF_SSL -->|"HTTPS :443"| Traefik
-    Traefik -->|"Roteamento Direto HTTPS :3000"| App
+    Traefik -->|"Roteador Público (Prioridade 100)"| App
+    Traefik -->|"Roteador Privado (Authelia - Prioridade 1)"| Authelia
+    Authelia -->|"Sessão Validada"| App
 
     %% Conexões Internas
     App -->|"pg_isready e Queries"| DB
@@ -96,20 +99,29 @@ Isso permite que qualquer dispositivo instale o aplicativo instantaneamente, enq
 
 ---
 
-## 3. Roteamento e Ingress via Traefik v3
+## 3. Isolamento e Roteamento do Traefik com Authelia
 
-O proxy reverso **Traefik v3** gerencia a ingress da aplicação de forma direta e unificada, sem dependência de intermediários externos de autenticação como Authelia:
+O proxy reverso **Traefik v3** gerencia a ingress da aplicação utilizando dois roteadores com prioridades distintas:
 
-### Roteador: `popshake`
-Entrega todo o tráfego da aplicação de forma segura e com terminação TLS automática via Let's Encrypt:
+### Roteador 1: `popshake-public` (Prioridade 100 — Sem Authelia)
+Garante entrega imediata e sem atrito dos recursos estáticos e do manifesto PWA:
 ```yaml
-- "traefik.enable=true"
-- "traefik.docker.network=proxy_network"
-- "traefik.http.routers.popshake.rule=Host(`${APP_DOMAIN}`)"
-- "traefik.http.routers.popshake.entrypoints=websecure"
-- "traefik.http.routers.popshake.tls.certresolver=leresolver"
-- "traefik.http.routers.popshake.service=popshake"
-- "traefik.http.services.popshake.loadbalancer.server.port=3000"
+- "traefik.http.routers.popshake-public.rule=Host(`${APP_DOMAIN}`) && (Path(`/manifest.webmanifest`) || PathPrefix(`/_next/static/`) || Path(`/favicon.ico`))"
+- "traefik.http.routers.popshake-public.entrypoints=websecure"
+- "traefik.http.routers.popshake-public.tls.certresolver=leresolver"
+- "traefik.http.routers.popshake-public.priority=100"
+- "traefik.http.routers.popshake-public.service=popshake-dev"
+```
+
+### Roteador 2: `popshake-dev` (Prioridade 1 — Protegido por Authelia)
+Intercepta todo o tráfego da aplicação e exige validação de sessão corporativa via middleware Authelia (`authelia@docker`):
+```yaml
+- "traefik.http.routers.popshake-dev.rule=Host(`${APP_DOMAIN}`)"
+- "traefik.http.routers.popshake-dev.entrypoints=websecure"
+- "traefik.http.routers.popshake-dev.tls.certresolver=leresolver"
+- "traefik.http.routers.popshake-dev.middlewares=authelia@docker"
+- "traefik.http.routers.popshake-dev.priority=1"
+- "traefik.http.routers.popshake-dev.service=popshake-dev"
 ```
 
 ---
