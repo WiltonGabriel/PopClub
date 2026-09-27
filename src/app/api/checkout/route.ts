@@ -24,13 +24,13 @@ const checkoutSchema = z.object({
   ).min(1, "O carrinho deve ter pelo menos 1 item"),
 
   deliveryAddress: z.object({
-    street: z.string().trim().min(1, "Logradouro/Rua é obrigatório").max(100, "Rua/Logradouro muito longo (máximo 100 caracteres)"),
-    number: z.string().trim().min(1, "Número é obrigatório").max(50, "Número muito longo (máximo 50 caracteres)"),
-    neighborhood: z.string().trim().min(1, "Bairro é obrigatório").max(100, "Bairro muito longo (máximo 100 caracteres)"),
-    city: z.string().trim().max(100, "Cidade muito longa (máximo 100 caracteres)").default("Local"),
-    complement: z.string().trim().max(300, "Complemento muito longo (máximo 300 caracteres)").optional().nullable(),
-    reference: z.string().trim().max(300, "Referência muito longa (máximo 300 caracteres)").optional().nullable(),
-    zip: z.string().trim().max(50, "CEP muito longo (máximo 50 caracteres)").optional().nullable(),
+    street: z.string().trim().min(1, "Logradouro/Rua é obrigatório"),
+    number: z.string().trim().min(1, "Número é obrigatório"),
+    neighborhood: z.string().trim().min(1, "Bairro é obrigatório"),
+    city: z.string().trim().default("Local"),
+    complement: z.string().trim().optional().nullable(),
+    reference: z.string().trim().optional().nullable(),
+    zip: z.string().trim().optional().nullable(),
     latitude: z.preprocess((val) => (val === "" || val === null || val === undefined ? null : Number(val)), z.number().nullable().optional()),
     longitude: z.preprocess((val) => (val === "" || val === null || val === undefined ? null : Number(val)), z.number().nullable().optional()),
   }),
@@ -139,35 +139,29 @@ export async function POST(request: Request) {
       selectedAddons: any;
     }[] = [];
 
+    // Fetch all required addon prices safely without N+1
+    const allAddonIds = items.flatMap((i: any) => i.selectedAddons?.map((a: any) => a.id) || []);
+    const uniqueAddonIds = [...new Set(allAddonIds)];
+    const addonsDb = uniqueAddonIds.length > 0 ? await prisma.productAddon.findMany({
+      where: { id: { in: uniqueAddonIds } }
+    }) : [];
+    const addonsDbMap = new Map<string, any>(addonsDb.map(a => [a.id, a]));
+
     for (const item of items) {
       const product = productsMap.get(item.productId);
-      if (!product) {
+      if (!product || !product.isAvailable) {
         return NextResponse.json(
-          { error: `Produto não encontrado no cardápio: ${item.productId}` },
+          { error: `O produto ${item.productId} não está disponível no momento.` },
           { status: 400 }
         );
       }
 
-      if (product.isCombo) {
-        hasCombosInCart = true;
-      }
-
       let addonsTotal = 0;
       if (item.selectedAddons && item.selectedAddons.length > 0) {
-        // Validação estrita: Busca o preço oficial de cada Addon no Banco de Dados
-        const addonIds = item.selectedAddons.map((a: { id: string }) => a.id);
-        const dbAddons: Array<{ id: string; price: unknown }> = await (prisma as any).productAddon.findMany({
-          where: { id: { in: addonIds } }
-        });
-
-        const dbAddonsMap = new Map<string, { id: string; price: unknown }>(
-          dbAddons.map((a) => [a.id, a])
-        );
-
         for (const addon of item.selectedAddons) {
-          const officialAddon = dbAddonsMap.get(addon.id);
-          const officialPrice = officialAddon ? Number(officialAddon.price) : 0;
-          addonsTotal += (officialPrice * addon.quantity);
+          const addonDbRecord = addonsDbMap.get(addon.id);
+          const officialPrice = addonDbRecord ? Number(addonDbRecord.price) : 0;
+          addonsTotal += (officialPrice * (addon.quantity || 1));
         }
       }
 
@@ -356,7 +350,7 @@ export async function POST(request: Request) {
           couponCode: validCouponCode,
           paymentMethodType: paymentMethod.type,
           paymentChangeFor: paymentMethod.changeFor || null,
-          ...({ changeFor: paymentMethod.changeFor || null } as any),
+          changeFor: paymentMethod.changeFor || null,
           changeToReturn: changeToReturn,
           deliveryStreet: deliveryAddress.street,
           deliveryNumber: deliveryAddress.number,
@@ -399,21 +393,18 @@ export async function POST(request: Request) {
       return newOrder;
     });
 
-    return NextResponse.json(
-      {
-        success: true,
-        order: {
-          id: order.id,
-          status: order.status,
-          subtotal: Number(order.subtotal),
-          discountAmount: Number(order.discountAmount),
-          deliveryFee: Number(order.deliveryFee),
-          totalAmount: Number(order.totalAmount),
-          createdAt: order.createdAt.toISOString(),
-        },
+    return NextResponse.json({
+      success: true,
+      order: {
+        id: order.id,
+        status: order.status,
+        subtotal: Number(order.subtotal),
+        discountAmount: Number(order.discountAmount),
+        deliveryFee: Number(order.deliveryFee),
+        totalAmount: Number(order.totalAmount),
+        createdAt: order.createdAt.toISOString(),
       },
-      { status: 201 }
-    );
+    });
   } catch (error: unknown) {
     return handleApiError(
       error,
