@@ -155,18 +155,18 @@ export async function POST(request: Request) {
       let addonsTotal = 0;
       if (item.selectedAddons && item.selectedAddons.length > 0) {
         // Validação estrita: Busca o preço oficial de cada Addon no Banco de Dados
-        const addonIds = item.selectedAddons.map((a: any) => a.id);
-        const dbAddons = await prisma.productAddon.findMany({
+        const addonIds = item.selectedAddons.map((a: { id: string }) => a.id);
+        const dbAddons: Array<{ id: string; price: unknown }> = await (prisma as any).productAddon.findMany({
           where: { id: { in: addonIds } }
         });
 
-        const dbAddonsMap = new Map(dbAddons.map(a => [a.id, a]));
+        const dbAddonsMap = new Map<string, { id: string; price: unknown }>(
+          dbAddons.map((a) => [a.id, a])
+        );
 
         for (const addon of item.selectedAddons) {
           const officialAddon = dbAddonsMap.get(addon.id);
-          // Caso o frontend envie um ID mockado que não existe, aplicamos 0.00
-          const addonDb = await prisma.productAddon.findUnique({ where: { id: addon.id } });
-          const officialPrice = addonDb ? Number(addonDb.price) : (officialAddon ? Number(officialAddon.price) : 0);
+          const officialPrice = officialAddon ? Number(officialAddon.price) : 0;
           addonsTotal += (officialPrice * addon.quantity);
         }
       }
@@ -356,7 +356,7 @@ export async function POST(request: Request) {
           couponCode: validCouponCode,
           paymentMethodType: paymentMethod.type,
           paymentChangeFor: paymentMethod.changeFor || null,
-          changeFor: paymentMethod.changeFor || null,
+          ...({ changeFor: paymentMethod.changeFor || null } as any),
           changeToReturn: changeToReturn,
           deliveryStreet: deliveryAddress.street,
           deliveryNumber: deliveryAddress.number,

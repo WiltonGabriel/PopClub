@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import fs from "fs";
 import { PrismaClient } from "@prisma/client";
 import jwt from "jsonwebtoken";
 
@@ -281,7 +283,7 @@ async function run() {
         method: "DELETE",
         headers: { Authorization: `Bearer ${adminToken}` },
       });
-      const dataDelFree = await resDelFree.json();
+      const _dataDelFree = await resDelFree.json();
       const stillInDb = await prisma.product.findUnique({ where: { id: createdProductId } });
       if (resDelFree.status === 200 && !stillInDb) {
         console.log("   ✅ Produto livre excluído com sucesso.");
@@ -306,9 +308,9 @@ async function run() {
     // Verificar se as tabelas existem no Postgres
     let tableExists = false;
     try {
-      await prisma.productAddon.count();
+      await (prisma as any).productAddon.count();
       tableExists = true;
-    } catch (e: any) {
+    } catch {
       tableExists = false;
     }
 
@@ -1573,7 +1575,6 @@ async function run() {
 run()
   .then((res) => {
     // Export results as JSON for report generator
-    const fs = require("fs");
     fs.writeFileSync("/tmp/audit_results.json", JSON.stringify(res, null, 2));
     console.log("\n✅ Bateria de testes finalizada e resultados salvos em /tmp/audit_results.json");
     process.exit(0);
