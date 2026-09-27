@@ -35,7 +35,6 @@ import { storeSettingsService, StoreSettings } from "../../services/storeSetting
 import { productService, Product } from "../../services/productService";
 import { playNewOrderChime } from "../../lib/sound";
 import { subscribeToOrderEvents } from "../../lib/orderEvents";
-import { useRouter } from "next/navigation";
 import { Button } from "../../components/ui/button";
 import { PromotionFormDialog } from "../../components/admin/PromotionFormDialog";
 import { ComboFormDialog } from "../../components/admin/ComboFormDialog";
@@ -141,8 +140,6 @@ export default function AdminDashboard() {
       setIsAdvancing(false);
     }
   };
-
-  const router = useRouter();
 
   const fetchOrders = useCallback(async () => {
     try {

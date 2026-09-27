@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Clock,
@@ -278,7 +277,6 @@ export default function AdminPedidosPage() {
   const [shiftActionLoading, setShiftActionLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState<number>(0);
 
-  const router = useRouter();
   const { showToast } = useToast();
   const previousCountRef = useRef(0);
 
