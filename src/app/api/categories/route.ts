@@ -21,6 +21,11 @@ export async function POST(request: Request) {
       return apiError("Acesso negado. Apenas administradores podem gerenciar categorias.", 403, "FORBIDDEN");
     }
 
+    const countCategories = await prisma.category.count();
+    if (countCategories >= 30) {
+      return apiError("Limite máximo de 30 categorias atingido.", 400, "QUOTA_EXCEEDED");
+    }
+
     let body: any;
     try {
       body = await request.json();
@@ -31,6 +36,9 @@ export async function POST(request: Request) {
     const { name, slug } = body || {};
     if (!name) {
       return apiError("O nome da categoria é obrigatório.", 400, "MISSING_NAME");
+    }
+    if (typeof name === "string" && name.length > 100) {
+      return apiError("O nome da categoria não pode exceder 100 caracteres.", 400, "VALIDATION_ERROR");
     }
 
     const autoSlug = slug || name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");

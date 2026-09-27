@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
+
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { z } from "zod";
 import { handleApiError } from "@/lib/apiResponse";
-import { checkoutLimiter } from "@/lib/rateLimit";
+import { checkoutLimiter, getIpFromRequest } from "@/lib/rateLimit";
 
 const checkoutSchema = z.object({
   items: z.array(
@@ -11,17 +12,25 @@ const checkoutSchema = z.object({
       productId: z.string().min(1, "ID do produto inválido"),
       quantity: z.number().int().positive("A quantidade deve ser maior que zero"),
       promotionId: z.string().optional().nullable(),
+      selectedAddons: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          price: z.number().min(0),
+          quantity: z.number().int().positive()
+        })
+      ).optional().nullable(),
     })
   ).min(1, "O carrinho deve ter pelo menos 1 item"),
 
   deliveryAddress: z.object({
-    street: z.string().trim().min(1, "Logradouro/Rua é obrigatório"),
-    number: z.string().trim().min(1, "Número é obrigatório"),
-    neighborhood: z.string().trim().min(1, "Bairro é obrigatório"),
-    city: z.string().trim().default("Local"),
-    complement: z.string().trim().optional().nullable(),
-    reference: z.string().trim().optional().nullable(),
-    zip: z.string().trim().optional().nullable(),
+    street: z.string().trim().min(1, "Logradouro/Rua é obrigatório").max(100, "Rua/Logradouro muito longo (máximo 100 caracteres)"),
+    number: z.string().trim().min(1, "Número é obrigatório").max(50, "Número muito longo (máximo 50 caracteres)"),
+    neighborhood: z.string().trim().min(1, "Bairro é obrigatório").max(100, "Bairro muito longo (máximo 100 caracteres)"),
+    city: z.string().trim().max(100, "Cidade muito longa (máximo 100 caracteres)").default("Local"),
+    complement: z.string().trim().max(300, "Complemento muito longo (máximo 300 caracteres)").optional().nullable(),
+    reference: z.string().trim().max(300, "Referência muito longa (máximo 300 caracteres)").optional().nullable(),
+    zip: z.string().trim().max(50, "CEP muito longo (máximo 50 caracteres)").optional().nullable(),
     latitude: z.preprocess((val) => (val === "" || val === null || val === undefined ? null : Number(val)), z.number().nullable().optional()),
     longitude: z.preprocess((val) => (val === "" || val === null || val === undefined ? null : Number(val)), z.number().nullable().optional()),
   }),
@@ -39,12 +48,11 @@ const checkoutSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    const ip = getIpFromRequest(request);
     const limitCheck = checkoutLimiter.check(ip);
-
     if (!limitCheck.success) {
       return NextResponse.json(
-        { error: "Muitas tentativas. Por favor, aguarde um momento antes de tentar novamente.", code: "RATE_LIMIT_EXCEEDED" },
+        { error: "Você está criando pedidos rápido demais. Aguarde um minuto." },
         { status: 429 }
       );
     }
@@ -121,12 +129,14 @@ export async function POST(request: Request) {
 
     let calculatedSubtotal = 0;
     let promoDiscountTotal = 0;
+    let hasCombosInCart = false;
 
     const validatedOrderItems: {
       productId: string;
       quantity: number;
       priceAtTime: number;
       promotionId: string | null;
+      selectedAddons: any;
     }[] = [];
 
     for (const item of items) {
@@ -138,33 +148,61 @@ export async function POST(request: Request) {
         );
       }
 
-      const originalPrice = Number(product.price);
-      let unitPrice = originalPrice;
+      if (product.isCombo) {
+        hasCombosInCart = true;
+      }
 
-      if (item.promotionId) {
+      let addonsTotal = 0;
+      if (item.selectedAddons && item.selectedAddons.length > 0) {
+        // Validação estrita: Busca o preço oficial de cada Addon no Banco de Dados
+        const addonIds = item.selectedAddons.map((a: { id: string }) => a.id);
+        const dbAddons: Array<{ id: string; price: unknown }> = await (prisma as any).productAddon.findMany({
+          where: { id: { in: addonIds } }
+        });
+
+        const dbAddonsMap = new Map<string, { id: string; price: unknown }>(
+          dbAddons.map((a) => [a.id, a])
+        );
+
+        for (const addon of item.selectedAddons) {
+          const officialAddon = dbAddonsMap.get(addon.id);
+          const officialPrice = officialAddon ? Number(officialAddon.price) : 0;
+          addonsTotal += (officialPrice * addon.quantity);
+        }
+      }
+
+      const originalPrice = Number(product.price);
+      let unitPrice = originalPrice + addonsTotal;
+
+      // Promoções aplicam desconto apenas sobre o produto original, não sobre os adicionais (regra comum)
+      // Combos NÃO devem aceitar promoções "De/Por" individuais, pois já são agrupamentos fechados.
+      if (item.promotionId && !product.isCombo) {
         const promo = promotionsMap.get(item.promotionId);
         // Verifica se a promoção existe, está ativa e contém este produto
         const isInPromo = promo?.productId === item.productId;
         if (promo && isInPromo) {
+          let discountOnBase = 0;
           if (promo.discountType === "percentage") {
             const pct = Number(promo.discountValue);
-            unitPrice = Number((originalPrice * (1 - pct / 100)).toFixed(2));
+            discountOnBase = Number((originalPrice * (pct / 100)).toFixed(2));
           } else {
             // Em desconto fixo por produto
             const fixed = Number(promo.discountValue);
-            unitPrice = Math.max(0, Number((originalPrice - fixed).toFixed(2)));
+            discountOnBase = Math.min(originalPrice, fixed); // Não desconta mais que o preço base
           }
-          promoDiscountTotal += (originalPrice - unitPrice) * item.quantity;
+          unitPrice = (originalPrice - discountOnBase) + addonsTotal;
+          promoDiscountTotal += discountOnBase * item.quantity;
         }
       }
 
-      calculatedSubtotal += originalPrice * item.quantity;
+      calculatedSubtotal += (originalPrice + addonsTotal) * item.quantity;
 
       validatedOrderItems.push({
         productId: product.id,
         quantity: item.quantity,
         priceAtTime: unitPrice,
         promotionId: item.promotionId || null,
+        selectedAddons: item.selectedAddons || null,
       });
     }
 
@@ -191,6 +229,14 @@ export async function POST(request: Request) {
 
       if (!coupon || !coupon.isActive) {
         return NextResponse.json({ error: "Cupom de desconto inválido ou inativo." }, { status: 400 });
+      }
+
+      // Regra de Double-Dipping: Proibir cupons globais em carrinhos que já contenham Combos Promocionais
+      // Exceção: Cupons de valor fixo direcionados a produtos específicos que não são combos (tratado adiante)
+      if (hasCombosInCart && coupon.discountType === "percentage" && (!coupon.productIds || coupon.productIds.length === 0)) {
+        return NextResponse.json({
+          error: "Este cupom não pode ser acumulado com pedidos que contenham Combos Promocionais."
+        }, { status: 400 });
       }
 
       if (coupon.expiresAt && new Date() > new Date(coupon.expiresAt)) {
@@ -310,7 +356,7 @@ export async function POST(request: Request) {
           couponCode: validCouponCode,
           paymentMethodType: paymentMethod.type,
           paymentChangeFor: paymentMethod.changeFor || null,
-          changeFor: paymentMethod.changeFor || null,
+          ...({ changeFor: paymentMethod.changeFor || null } as any),
           changeToReturn: changeToReturn,
           deliveryStreet: deliveryAddress.street,
           deliveryNumber: deliveryAddress.number,
@@ -331,6 +377,7 @@ export async function POST(request: Request) {
               quantity: oi.quantity,
               priceAtTime: oi.priceAtTime,
               promotionId: oi.promotionId,
+              selectedAddons: oi.selectedAddons ? oi.selectedAddons : undefined,
             })),
           },
         },
@@ -352,18 +399,21 @@ export async function POST(request: Request) {
       return newOrder;
     });
 
-    return NextResponse.json({
-      success: true,
-      order: {
-        id: order.id,
-        status: order.status,
-        subtotal: Number(order.subtotal),
-        discountAmount: Number(order.discountAmount),
-        deliveryFee: Number(order.deliveryFee),
-        totalAmount: Number(order.totalAmount),
-        createdAt: order.createdAt.toISOString(),
+    return NextResponse.json(
+      {
+        success: true,
+        order: {
+          id: order.id,
+          status: order.status,
+          subtotal: Number(order.subtotal),
+          discountAmount: Number(order.discountAmount),
+          deliveryFee: Number(order.deliveryFee),
+          totalAmount: Number(order.totalAmount),
+          createdAt: order.createdAt.toISOString(),
+        },
       },
-    });
+      { status: 201 }
+    );
   } catch (error: unknown) {
     return handleApiError(
       error,

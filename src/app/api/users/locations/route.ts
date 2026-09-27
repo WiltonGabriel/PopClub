@@ -4,23 +4,23 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 
 const locationSchema = z.object({
-  name: z.string().nullable().optional(),
-  label: z.string().nullable().optional(),
-  street: z.string().min(1, "Nome da rua é obrigatório").default(""),
-  number: z.string().min(1, "Número é obrigatório").default(""),
-  neighborhood: z.string().min(1, "Bairro é obrigatório").default(""),
-  city: z.string().default("Várzea Grande"),
-  state: z.string().default("MT"),
-  complement: z.string().nullable().optional(),
-  reference: z.string().nullable().optional(),
-  zip: z.string().nullable().optional(),
+  name: z.string().max(100, "Nome muito longo").nullable().optional(),
+  label: z.string().max(100, "Label muito longo").nullable().optional(),
+  street: z.string().min(1, "Nome da rua é obrigatório").max(100, "Nome da rua muito longo").default(""),
+  number: z.string().min(1, "Número é obrigatório").max(50, "Número muito longo").default(""),
+  neighborhood: z.string().min(1, "Bairro é obrigatório").max(100, "Bairro muito longo").default(""),
+  city: z.string().max(100, "Nome da cidade muito longo").default("Várzea Grande"),
+  state: z.string().max(50, "Nome do estado muito longo").default("MT"),
+  complement: z.string().max(300, "Complemento muito longo").nullable().optional(),
+  reference: z.string().max(300, "Referência muito longa").nullable().optional(),
+  zip: z.string().max(50, "CEP muito longo").nullable().optional(),
   latitude: z.number().nullable().optional(),
   longitude: z.number().nullable().optional(),
   accuracy: z.number().nullable().optional(),
   isDefault: z.boolean().optional(),
   is_default: z.boolean().optional(),
-  address_line: z.string().nullable().optional(),
-  addressLine: z.string().nullable().optional(),
+  address_line: z.string().max(1000, "Endereço muito longo").nullable().optional(),
+  addressLine: z.string().max(1000, "Endereço muito longo").nullable().optional(),
 });
 
 function formatLocation(loc: any) {
@@ -75,6 +75,17 @@ export async function POST(request: Request) {
     const authUser = await getAuthUser(request);
     if (!authUser) {
       return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    }
+
+    const countLocations = await prisma.userLocation.count({
+      where: { userId: authUser.id },
+    });
+
+    if (countLocations >= 10) {
+      return NextResponse.json(
+        { error: "Limite máximo de 10 endereços atingido. Remova um endereço antigo para adicionar outro." },
+        { status: 400 }
+      );
     }
 
     let rawBody: any;

@@ -8,6 +8,7 @@ import {
   Search,
   Plus,
   Trash2,
+  Pencil,
   Check,
   X,
   Loader2,
@@ -17,7 +18,7 @@ import {
   ArrowLeft,
   Crosshair,
 } from "lucide-react";
-import { useAddress } from "@/contexts/AddressContext";
+import { useAddress, Address } from "@/contexts/AddressContext";
 
 const LocationPickerMap = dynamic(
   () => import("@/components/logistics/LocationPickerMap"),
@@ -37,6 +38,7 @@ export function AddressModal() {
     addresses,
     activeAddressId,
     isAddressModalOpen,
+    editingAddress,
     closeAddressModal,
     setActiveAddressId,
     saveAddress,
@@ -48,6 +50,7 @@ export function AddressModal() {
   const [view, setView] = useState<ModalView>("list");
 
   // Form states
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [street, setStreet] = useState("");
   const [number, setNumber] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
@@ -67,21 +70,37 @@ export function AddressModal() {
 
   const numberInputRef = useRef<HTMLInputElement>(null);
 
-  // Inicializa view com base na existência de endereços salvos
+  // Inicializa view com base na existência de endereços salvos ou edição
   useEffect(() => {
     if (isAddressModalOpen) {
       setErrorMessage(null);
-      if (addresses.length > 0) {
-        setView("list");
+      if (editingAddress) {
+        setEditingAddressId(editingAddress.id);
+        setStreet(editingAddress.street || "");
+        setNumber(editingAddress.number || "");
+        setNeighborhood(editingAddress.neighborhood || "");
+        setCity(editingAddress.city || "Várzea Grande");
+        setComplement(editingAddress.complement || "");
+        setReference(editingAddress.reference || "");
+        setZip(editingAddress.zip || "");
+        setLabel(editingAddress.label || "Casa");
+        setCoords({ lat: editingAddress.latitude, lon: editingAddress.longitude });
+        setView("manual");
       } else {
-        setView("selector");
+        setEditingAddressId(null);
+        if (addresses.length > 0) {
+          setView("list");
+        } else {
+          setView("selector");
+        }
       }
     }
-  }, [isAddressModalOpen, addresses.length]);
+  }, [isAddressModalOpen, editingAddress, addresses.length]);
 
   if (!isAddressModalOpen) return null;
 
   const resetForm = () => {
+    setEditingAddressId(null);
     setStreet("");
     setNumber("");
     setNeighborhood("");
@@ -94,6 +113,21 @@ export function AddressModal() {
     setShowManualMap(false);
     setErrorMessage(null);
     setGpsAccuracyInfo(null);
+  };
+
+  const handleStartEdit = (addr: Address) => {
+    setEditingAddressId(addr.id);
+    setStreet(addr.street || "");
+    setNumber(addr.number || "");
+    setNeighborhood(addr.neighborhood || "");
+    setCity(addr.city || "Várzea Grande");
+    setComplement(addr.complement || "");
+    setReference(addr.reference || "");
+    setZip(addr.zip || "");
+    setLabel(addr.label || "Casa");
+    setCoords({ lat: addr.latitude, lon: addr.longitude });
+    setErrorMessage(null);
+    setView("manual");
   };
 
   // 1. Geolocalização via GPS do Navegador
@@ -239,18 +273,21 @@ export function AddressModal() {
       return;
     }
 
-    saveAddress({
-      street: street.trim(),
-      number: number.trim(),
-      neighborhood: neighborhood.trim(),
-      city: city.trim() || "Várzea Grande",
-      complement: complement.trim().slice(0, 50) || undefined,
-      reference: reference.trim() || undefined,
-      zip: zip.trim() || undefined,
-      label: (label.trim() || "Casa").slice(0, 30),
-      latitude: coords.lat,
-      longitude: coords.lon,
-    });
+    saveAddress(
+      {
+        street: street.trim(),
+        number: number.trim(),
+        neighborhood: neighborhood.trim(),
+        city: city.trim() || "Várzea Grande",
+        complement: complement.trim().slice(0, 50) || undefined,
+        reference: reference.trim() || undefined,
+        zip: zip.trim() || undefined,
+        label: (label.trim() || "Casa").slice(0, 30),
+        latitude: coords.lat,
+        longitude: coords.lon,
+      },
+      editingAddressId || undefined
+    );
 
     closeAddressModal();
   };
@@ -291,13 +328,13 @@ export function AddressModal() {
                   {view === "list" && "Endereços de Entrega"}
                   {view === "selector" && "Como deseja informar o endereço?"}
                   {view === "gps_confirm" && "Confirmar Número e Detalhes"}
-                  {view === "manual" && "Cadastrar Endereço"}
+                  {view === "manual" && (editingAddressId ? "Editar Endereço" : "Cadastrar Endereço")}
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {view === "list" && "Selecione o local de entrega para o seu pedido"}
                   {view === "selector" && "Localização automática ou preenchimento guiado"}
                   {view === "gps_confirm" && "Identificamos sua rua! Complete com o número"}
-                  {view === "manual" && "Preencha os campos para entrega rápida"}
+                  {view === "manual" && (editingAddressId ? "Atualize as informações do endereço" : "Preencha os campos para entrega rápida")}
                 </p>
               </div>
             </div>
@@ -385,6 +422,17 @@ export function AddressModal() {
                       </div>
 
                       <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartEdit(addr);
+                          }}
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-[#9306CF] hover:bg-[#9306CF]/10 transition-colors"
+                          title="Editar endereço"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
                         <button
                           type="button"
                           onClick={(e) => {
@@ -862,7 +910,7 @@ export function AddressModal() {
                   className="w-2/3 py-2.5 px-4 bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-primary/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Check className="w-4 h-4" />
-                  <span>Salvar Endereço</span>
+                  <span>{editingAddressId ? "Atualizar Endereço" : "Salvar Endereço"}</span>
                 </button>
               </div>
             </form>

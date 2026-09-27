@@ -2,9 +2,19 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, signToken } from "@/lib/auth";
 import { cookies } from "next/headers";
+import { authLimiter, getIpFromRequest } from "@/lib/rateLimit";
 
 export async function POST(request: Request) {
   try {
+    const ip = getIpFromRequest(request);
+    const limitCheck = authLimiter.check(ip);
+    if (!limitCheck.success) {
+      return NextResponse.json(
+        { error: "Muitas tentativas. Por favor, aguarde um momento antes de tentar novamente.", code: "RATE_LIMIT_EXCEEDED" },
+        { status: 429 }
+      );
+    }
+
     let body: Record<string, unknown> | null = null;
     try {
       body = (await request.json()) as Record<string, unknown>;

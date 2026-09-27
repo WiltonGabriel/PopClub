@@ -138,9 +138,11 @@ export function ProductDetailModal({
       if (opt) {
         extrasTotal += opt.price;
         flatSelectedOptionsList.push({
+          id: opt.id,
           groupName: group.name,
           name: opt.name,
           price: opt.price,
+          quantity: 1, // Fixa por enquanto, para permitir extensões futuras
         });
       }
     });
