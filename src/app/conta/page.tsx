@@ -39,6 +39,7 @@ import {
   LayoutDashboard,
   ClipboardList,
   History,
+  Pencil,
 } from "lucide-react";
 import { notificationService, AppNotification } from "../../services/notificationService";
 import { useAuth } from "../../hooks/useAuth";
@@ -468,7 +469,7 @@ export default function AccountPage() {
   if (loading || (fetching && !profile)) {
     return (
       <div className="min-h-screen bg-transparent flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#9306CF]" />
       </div>
     );
   }
@@ -527,11 +528,11 @@ export default function AccountPage() {
           <button 
             type="button"
             onClick={handleHeaderBack}
-            className="flex items-center gap-1.5 p-2 rounded-xl border border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 text-foreground dark:text-foreground font-medium text-sm transition-colors group cursor-pointer shrink-0 active:scale-98"
+            className="flex items-center gap-1.5 p-2 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-[#4C264F] dark:text-[#F9F5F9] font-medium text-sm transition-colors group cursor-pointer shrink-0 active:scale-98"
             aria-label={currentView !== "menu" ? "Voltar para o menu principal" : "Voltar para a loja"}
           >
-            <ChevronLeft className="w-5 h-5 text-primary dark:text-muted-foreground group-hover:-translate-x-0.5 transition-transform" />
-            <span className="font-heading font-bold uppercase tracking-wider text-xs sm:text-sm text-foreground dark:text-foreground">
+            <ChevronLeft className="w-5 h-5 text-[#9306CF] dark:text-[#C7A9C9] group-hover:-translate-x-0.5 transition-transform" />
+            <span className="font-heading font-bold uppercase tracking-wider text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9]">
               {currentView !== "menu" ? (
                 <>
                   <span className="md:hidden">Voltar</span>
@@ -550,7 +551,7 @@ export default function AccountPage() {
             }`}
           >
             <span className="text-gray-300 dark:text-gray-600 select-none">/</span>
-            <div className="font-heading font-bold uppercase tracking-wider text-primary dark:text-muted-foreground truncate flex items-center gap-1.5">
+            <div className="font-heading font-bold uppercase tracking-wider text-[#9306CF] dark:text-[#C7A9C9] truncate flex items-center gap-1.5">
               <span className="shrink-0">{currentSectionConfig?.icon}</span>
               <span className="truncate">{currentSectionConfig?.label}</span>
             </div>
@@ -582,9 +583,9 @@ export default function AccountPage() {
           }`}
         >
           {/* Card com Avatar e Saudação */}
-          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 p-4 mb-4 rounded-2xl shadow-sm">
+          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-4 mb-4 rounded-2xl shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="relative w-14 h-14 rounded-full border-2 border-primary/40 overflow-hidden bg-primary/5 dark:bg-background shrink-0">
+              <div className="relative w-14 h-14 rounded-full border-2 border-[#9306CF]/40 overflow-hidden bg-purple-50 dark:bg-[#190B1A] shrink-0">
                 <Image
                   src={currentDisplayAvatar}
                   alt="Avatar do usuário"
@@ -595,7 +596,7 @@ export default function AccountPage() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] uppercase font-bold tracking-widest text-gray-500 dark:text-gray-400">Olá,</p>
-                <p className="font-heading font-bold text-base text-foreground dark:text-foreground truncate">
+                <p className="font-heading font-bold text-base text-[#4C264F] dark:text-[#F9F5F9] truncate">
                   {profile?.full_name || user?.username || user?.email}
                 </p>
                 <p className="text-[11px] text-muted-foreground truncate">
@@ -607,15 +608,15 @@ export default function AccountPage() {
 
           {/* ================= SEÇÃO GESTÃO DA LOJA (EXCLUSIVO ADMIN / OPERADOR) ================= */}
           {(isAdmin || user?.role === "admin") && (
-            <div className="mb-4 p-3.5 bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 dark:from-primary/20 dark:via-border/20 dark:to-accent/20 border border-primary/30 dark:border-primary/40 rounded-2xl shadow-sm">
+            <div className="mb-4 p-3.5 bg-gradient-to-br from-[#9306CF]/10 via-purple-500/5 to-[#940068]/10 dark:from-[#9306CF]/20 dark:via-[#512B54]/20 dark:to-[#940068]/20 border border-[#9306CF]/30 dark:border-[#9306CF]/40 rounded-2xl shadow-sm">
               <div className="flex items-center justify-between mb-2.5 px-0.5">
                 <div className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-primary dark:text-muted-foreground" />
-                  <span className="font-heading font-bold text-xs uppercase tracking-wider text-foreground dark:text-foreground">
+                  <ShieldCheck className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                  <span className="font-heading font-bold text-xs uppercase tracking-wider text-[#4C264F] dark:text-[#F9F5F9]">
                     Gestão da Loja
                   </span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-primary text-white shadow-xs">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#9306CF] text-white shadow-xs">
                   Acesso Admin
                 </span>
               </div>
@@ -624,14 +625,14 @@ export default function AccountPage() {
                 {/* 1. Painel Operacional / PDV */}
                 <Link
                   href="/admin"
-                  className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/60 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all active:scale-[0.99]"
+                  className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/60 hover:border-[#9306CF] dark:hover:border-[#9306CF] hover:shadow-md transition-all active:scale-[0.99]"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="p-2 rounded-lg bg-primary/10 dark:bg-primary/95/60 text-primary dark:text-muted-foreground group-hover:scale-105 transition-transform shrink-0">
+                    <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] group-hover:scale-105 transition-transform shrink-0">
                       <LayoutDashboard className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-heading font-bold text-xs sm:text-sm text-foreground dark:text-foreground truncate">
+                      <p className="font-heading font-bold text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9] truncate">
                         Painel Operacional / PDV
                       </p>
                       <p className="text-[11px] text-muted-foreground truncate">
@@ -639,20 +640,20 @@ export default function AccountPage() {
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#9306CF] group-hover:translate-x-0.5 transition-all shrink-0" />
                 </Link>
 
                 {/* 2. Gerenciar Pedidos */}
                 <Link
                   href="/admin/pedidos"
-                  className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/60 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all active:scale-[0.99]"
+                  className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/60 hover:border-[#9306CF] dark:hover:border-[#9306CF] hover:shadow-md transition-all active:scale-[0.99]"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="p-2 rounded-lg bg-pink-100 dark:bg-pink-950/60 text-accent dark:text-pink-300 group-hover:scale-105 transition-transform shrink-0">
+                    <div className="p-2 rounded-lg bg-pink-100 dark:bg-pink-950/60 text-[#940068] dark:text-pink-300 group-hover:scale-105 transition-transform shrink-0">
                       <ClipboardList className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-heading font-bold text-xs sm:text-sm text-foreground dark:text-foreground truncate">
+                      <p className="font-heading font-bold text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9] truncate">
                         Gerenciar Pedidos
                       </p>
                       <p className="text-[11px] text-muted-foreground truncate">
@@ -660,20 +661,20 @@ export default function AccountPage() {
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-accent group-hover:translate-x-0.5 transition-all shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#940068] group-hover:translate-x-0.5 transition-all shrink-0" />
                 </Link>
 
                 {/* 3. Histórico de Pedidos da Loja */}
                 <Link
                   href="/admin/historico"
-                  className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/60 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all active:scale-[0.99]"
+                  className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/60 hover:border-[#9306CF] dark:hover:border-[#9306CF] hover:shadow-md transition-all active:scale-[0.99]"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform shrink-0">
                       <History className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-heading font-bold text-xs sm:text-sm text-foreground dark:text-foreground truncate">
+                      <p className="font-heading font-bold text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9] truncate">
                         Histórico de Vendas
                       </p>
                       <p className="text-[11px] text-muted-foreground truncate">
@@ -689,7 +690,7 @@ export default function AccountPage() {
 
           {/* Banner de Incentivo para Completar Cadastro */}
           {user && !user.isRegistered && (
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-primary to-accent text-white shadow-md shadow-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-[#9306CF] to-[#940068] text-white shadow-md shadow-[#9306CF]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-start gap-3">
                 <div className="p-2 rounded-xl bg-white/20 text-white shrink-0 mt-0.5">
                   <Sparkles className="w-5 h-5" />
@@ -705,7 +706,7 @@ export default function AccountPage() {
                 type="button"
                 size="sm"
                 onClick={() => setIsCompleteRegModalOpen(true)}
-                className="bg-white hover:bg-gray-100 text-primary font-bold text-xs h-9 px-4 rounded-xl shrink-0 cursor-pointer shadow"
+                className="bg-white hover:bg-gray-100 text-[#9306CF] font-bold text-xs h-9 px-4 rounded-xl shrink-0 cursor-pointer shadow"
               >
                 Completar Cadastro
               </Button>
@@ -723,14 +724,14 @@ export default function AccountPage() {
                   onClick={() => handleSelectSection(sec.id)}
                   className={`group flex items-center gap-3 px-4 py-3.5 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-all border cursor-pointer active:scale-98 ${
                     isSelectedOnDesktop 
-                      ? "bg-gradient-to-r from-primary to-accent text-white border-transparent shadow-md shadow-primary/20"
-                      : "bg-white dark:bg-[#230E26] border-gray-200 dark:border-border/40 hover:border-primary/50 text-gray-700 dark:text-gray-300 hover:text-foreground dark:hover:text-foreground hover:bg-gray-50/80 dark:hover:bg-white/5"
+                      ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white border-transparent shadow-md shadow-[#9306CF]/20" 
+                      : "bg-white dark:bg-[#230E26] border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/50 text-gray-700 dark:text-gray-300 hover:text-[#4C264F] dark:hover:text-[#F9F5F9] hover:bg-gray-50/80 dark:hover:bg-white/5"
                   }`}
                 >
                   <span className={`p-2 rounded-lg transition-transform duration-200 group-hover:scale-110 shrink-0 ${
                     isSelectedOnDesktop 
                       ? "bg-white/20 text-white" 
-                      : "bg-primary/5 dark:bg-background text-primary dark:text-muted-foreground"
+                      : "bg-purple-50 dark:bg-[#190B1A] text-[#9306CF] dark:text-[#C7A9C9]"
                   }`}>
                     {sec.icon}
                   </span>
@@ -739,7 +740,7 @@ export default function AccountPage() {
                       <span className="font-heading font-bold text-sm truncate">{sec.label}</span>
                       {sec.badge !== undefined && (
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-black leading-none ${
-                          isSelectedOnDesktop ? "bg-white text-primary" : "bg-pink-600 text-white"
+                          isSelectedOnDesktop ? "bg-white text-[#9306CF]" : "bg-pink-600 text-white"
                         }`}>
                           {sec.badge}
                         </span>
@@ -761,13 +762,13 @@ export default function AccountPage() {
             <div className="pt-2">
               <Link 
                 href="/pedidos" 
-                className="group flex items-center gap-3 px-4 py-3.5 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-all border bg-white dark:bg-[#230E26] border-gray-200 dark:border-border/40 hover:border-primary/50 text-gray-700 dark:text-gray-300 hover:text-foreground dark:hover:text-foreground shadow-sm hover:bg-gray-50/80 dark:hover:bg-white/5"
+                className="group flex items-center gap-3 px-4 py-3.5 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-all border bg-white dark:bg-[#230E26] border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/50 text-gray-700 dark:text-gray-300 hover:text-[#4C264F] dark:hover:text-[#F9F5F9] shadow-sm hover:bg-gray-50/80 dark:hover:bg-white/5"
               >
-                <span className="p-2 rounded-lg bg-primary/5 dark:bg-background text-primary dark:text-muted-foreground group-hover:scale-110 transition-transform shrink-0">
+                <span className="p-2 rounded-lg bg-purple-50 dark:bg-[#190B1A] text-[#9306CF] dark:text-[#C7A9C9] group-hover:scale-110 transition-transform shrink-0">
                   <Package className="w-4 h-4" />
                 </span>
                 <div className="flex-1 min-w-0">
-                  <span className="font-heading font-bold text-sm truncate block text-foreground dark:text-foreground">Ver Meus Pedidos</span>
+                  <span className="font-heading font-bold text-sm truncate block text-[#4C264F] dark:text-[#F9F5F9]">Ver Meus Pedidos</span>
                   <p className="text-xs text-muted-foreground mt-0.5">Acompanhe entregas e pedidos anteriores</p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500 group-hover:translate-x-0.5 transition-transform shrink-0" />
@@ -798,10 +799,10 @@ export default function AccountPage() {
 
           {/* ================= ABA: MEU PERFIL ================= */}
           {activeSection === "perfil" && (
-            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
+            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
               <div>
-                <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-foreground dark:text-foreground flex items-center gap-2">
-                  <User className="w-6 h-6 text-primary dark:text-muted-foreground" /> Meu Perfil
+                <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
+                  <User className="w-6 h-6 text-[#9306CF] dark:text-[#C7A9C9]" /> Meu Perfil
                 </h2>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                   Gerencie sua identidade, avatar oficial e dados cadastrais.
@@ -809,9 +810,9 @@ export default function AccountPage() {
               </div>
 
               {/* Seletor de Avatar em Destaque Circular */}
-              <div className="p-6 rounded-2xl bg-gray-50/80 dark:bg-background/80 border border-gray-200 dark:border-border/40 flex flex-col sm:flex-row items-center gap-6">
+              <div className="p-6 rounded-2xl bg-gray-50/80 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 flex flex-col sm:flex-row items-center gap-6">
                 <div className="relative group shrink-0">
-                  <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full border-4 border-primary/40 p-1.5 bg-white dark:bg-[#230E26] shadow-xl overflow-hidden transition-transform group-hover:scale-105">
+                  <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full border-4 border-[#9306CF]/40 p-1.5 bg-white dark:bg-[#230E26] shadow-xl overflow-hidden transition-transform group-hover:scale-105">
                     <Image
                       src={selectedAvatar}
                       alt="Avatar Atual Selecionado"
@@ -829,14 +830,14 @@ export default function AccountPage() {
                     }}
                     title="Escolher Avatar"
                     aria-label="Escolher Avatar"
-                    className="absolute bottom-1 right-1 w-10 h-10 rounded-full bg-gradient-to-r from-primary to-accent text-white flex items-center justify-center shadow-lg border-2 border-white dark:border-[#230E26] hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                    className="absolute bottom-1 right-1 w-10 h-10 rounded-full bg-gradient-to-r from-[#9306CF] to-[#940068] text-white flex items-center justify-center shadow-lg border-2 border-white dark:border-[#230E26] hover:scale-110 active:scale-95 transition-all cursor-pointer"
                   >
                     <Sparkles className="w-4 h-4" />
                   </button>
                 </div>
 
                 <div className="flex-1 text-center sm:text-left space-y-2">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary dark:text-muted-foreground text-xs font-bold uppercase tracking-wider border border-primary/20">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] text-xs font-bold uppercase tracking-wider border border-[#9306CF]/20">
                     <Sparkles className="w-3.5 h-3.5" /> Avatar Exclusivo Pop Shake
                   </div>
                   <h3 className="font-heading font-bold text-lg text-gray-900 dark:text-white">
@@ -853,7 +854,7 @@ export default function AccountPage() {
                         setModalAvatarChoice(selectedAvatar);
                         setIsAvatarModalOpen(true);
                       }}
-                      className="h-9 px-4 rounded-xl border-primary/30 text-primary dark:text-muted-foreground hover:bg-primary/10 text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer"
+                      className="h-9 px-4 rounded-xl border-[#9306CF]/30 text-[#9306CF] dark:text-[#C7A9C9] hover:bg-[#9306CF]/10 text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer"
                     >
                       <Sparkles className="w-3.5 h-3.5" /> Escolher Avatar
                     </Button>
@@ -870,7 +871,7 @@ export default function AccountPage() {
                     value={fullName}
                     onChange={e => setFullName(e.target.value)}
                     placeholder="Seu nome completo"
-                    className="h-12 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#1F0B22] dark:border-border/50 dark:text-white focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
+                    className="h-12 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#1F0B22] dark:border-[#512B54]/50 dark:text-white focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -880,7 +881,7 @@ export default function AccountPage() {
                   <Input 
                     value={user?.email || ""}
                     disabled
-                    className="h-12 rounded-xl bg-gray-50 border-gray-200 text-gray-500 dark:bg-background/80 dark:border-border/30 dark:text-gray-400 cursor-not-allowed"
+                    className="h-12 rounded-xl bg-gray-50 border-gray-200 text-gray-500 dark:bg-[#190B1A]/80 dark:border-[#512B54]/30 dark:text-gray-400 cursor-not-allowed"
                   />
                   <p className="text-[11px] text-muted-foreground">O e-mail é o identificador de login da sua conta.</p>
                 </div>
@@ -888,7 +889,7 @@ export default function AccountPage() {
                 <Button 
                   type="submit" 
                   disabled={isUpdatingProfile}
-                  className="h-12 px-6 rounded-xl font-heading font-bold uppercase tracking-widest text-sm bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white shadow-lg shadow-primary/20 transition-opacity cursor-pointer flex items-center gap-2"
+                  className="h-12 px-6 rounded-xl font-heading font-bold uppercase tracking-widest text-sm bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white shadow-lg shadow-[#9306CF]/20 transition-opacity cursor-pointer flex items-center gap-2"
                 >
                   {isUpdatingProfile ? (
                     <>
@@ -904,11 +905,11 @@ export default function AccountPage() {
 
           {/* ================= ABA: NOTIFICAÇÕES & ALERTAS ================= */}
           {activeSection === "notificacoes" && (
-            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-border/30 pb-4">
+            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-[#512B54]/30 pb-4">
                 <div>
-                  <h2 className="font-heading text-xl sm:text-2xl font-bold uppercase tracking-tight text-foreground dark:text-foreground flex items-center gap-2">
-                    <Bell className="w-6 h-6 text-primary dark:text-muted-foreground" /> Notificações & Alertas
+                  <h2 className="font-heading text-xl sm:text-2xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
+                    <Bell className="w-6 h-6 text-[#9306CF] dark:text-[#C7A9C9]" /> Notificações & Alertas
                   </h2>
                   <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                     Histórico completo de comunicados, presentes e preferências de avisos da loja.
@@ -919,7 +920,7 @@ export default function AccountPage() {
                   <button
                     type="button"
                     onClick={handleMarkAllNotificationsAsRead}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-primary/20 dark:border-primary/80/50 bg-primary/5/70 dark:bg-primary/95/40 text-xs font-bold text-primary dark:text-muted-foreground hover:bg-primary/10 dark:hover:bg-primary/90/60 transition-all cursor-pointer w-fit"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-purple-200 dark:border-purple-800/50 bg-purple-50/70 dark:bg-purple-950/40 text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] hover:bg-purple-100 dark:hover:bg-purple-900/60 transition-all cursor-pointer w-fit"
                   >
                     <CheckCheck className="w-4 h-4" /> Marcar todas como lidas
                   </button>
@@ -927,14 +928,14 @@ export default function AccountPage() {
               </div>
 
               {/* 1. Gerenciamento de Preferências de Alerta */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-gray-50/80 dark:bg-background/80 border border-gray-200 dark:border-border/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="p-4 sm:p-5 rounded-2xl bg-gray-50/80 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1 max-w-xl">
                   <div className="flex items-center gap-2">
-                    <span className="font-heading font-bold text-sm text-foreground dark:text-foreground">
+                    <span className="font-heading font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9]">
                       Notificações da Loja (Alertas e Novidades)
                     </span>
                     {isSavingNotificationPref && (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#9306CF]" />
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
@@ -969,15 +970,15 @@ export default function AccountPage() {
 
                 {notificationsLoading ? (
                   <div className="p-8 text-center">
-                    <Loader2 className="w-7 h-7 animate-spin text-primary mx-auto" />
+                    <Loader2 className="w-7 h-7 animate-spin text-[#9306CF] mx-auto" />
                     <p className="text-xs text-muted-foreground mt-2">Carregando histórico...</p>
                   </div>
                 ) : notifications.length === 0 ? (
-                  <div className="p-8 text-center rounded-2xl border border-dashed border-gray-200 dark:border-border/40 bg-gray-50/50 dark:bg-background/40 space-y-2">
-                    <div className="w-12 h-12 rounded-full bg-primary/5 dark:bg-primary/95/30 text-primary flex items-center justify-center mx-auto">
+                  <div className="p-8 text-center rounded-2xl border border-dashed border-gray-200 dark:border-[#512B54]/40 bg-gray-50/50 dark:bg-[#190B1A]/40 space-y-2">
+                    <div className="w-12 h-12 rounded-full bg-purple-50 dark:bg-purple-950/30 text-[#9306CF] flex items-center justify-center mx-auto">
                       <Inbox className="w-6 h-6 opacity-60" />
                     </div>
-                    <p className="font-heading font-bold text-sm text-foreground dark:text-foreground">
+                    <p className="font-heading font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9]">
                       Nenhuma notificação por aqui ainda
                     </p>
                     <p className="text-xs text-muted-foreground max-w-sm mx-auto">
@@ -992,8 +993,8 @@ export default function AccountPage() {
                         onClick={() => handleMarkNotificationAsRead(notif)}
                         className={`p-4 sm:p-5 rounded-2xl border transition-all ${
                           !notif.isRead
-                            ? "bg-primary/5/60 dark:bg-primary/95/20 border-primary/40 shadow-xs"
-                            : "bg-gray-50/60 dark:bg-background/60 border-gray-200 dark:border-border/30"
+                            ? "bg-purple-50/60 dark:bg-purple-950/20 border-[#9306CF]/40 shadow-xs"
+                            : "bg-gray-50/60 dark:bg-[#190B1A]/60 border-gray-200 dark:border-[#512B54]/30"
                         }`}
                       >
                         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-2">
@@ -1003,14 +1004,14 @@ export default function AccountPage() {
                                 Nova
                               </span>
                             )}
-                            <h4 className="font-heading font-bold text-sm sm:text-base text-foreground dark:text-foreground">
+                            <h4 className="font-heading font-bold text-sm sm:text-base text-[#4C264F] dark:text-[#F9F5F9]">
                               {notif.title}
                             </h4>
                           </div>
 
                           {/* Registro Obrigatório de Data e Hora */}
                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono shrink-0">
-                            <Clock className="w-3.5 h-3.5 text-primary" />
+                            <Clock className="w-3.5 h-3.5 text-[#9306CF]" />
                             <span className="font-semibold text-gray-700 dark:text-gray-300">
                               {formatFullDateTime(notif.createdAt)}
                             </span>
@@ -1026,10 +1027,10 @@ export default function AccountPage() {
 
                         {/* Card Promocional com Cupom Anexado */}
                         {notif.coupon && (
-                          <div className="mt-3.5 p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/50 dark:to-pink-950/30 border border-primary/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                          <div className="mt-3.5 p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/50 dark:to-pink-950/30 border border-[#9306CF]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
-                                <span className="font-mono font-black text-sm sm:text-base tracking-wider text-primary dark:text-foreground bg-white dark:bg-background px-2.5 py-1 rounded-lg border border-primary/20 dark:border-primary/80/60 shadow-2xs">
+                                <span className="font-mono font-black text-sm sm:text-base tracking-wider text-[#9306CF] dark:text-[#F9F5F9] bg-white dark:bg-[#1C0920] px-2.5 py-1 rounded-lg border border-purple-200 dark:border-purple-800/60 shadow-2xs">
                                   {notif.coupon.code}
                                 </span>
                                 <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-100/70 dark:bg-emerald-950/50 px-2 py-0.5 rounded-md">
@@ -1049,7 +1050,7 @@ export default function AccountPage() {
                               <button
                                 type="button"
                                 onClick={() => handleCopyCouponCode(notif.coupon!.code, notif)}
-                                className="px-3 py-2 rounded-xl bg-white dark:bg-[#200B22] border border-primary/20 dark:border-primary/80/50 text-xs font-bold text-foreground dark:text-foreground hover:bg-primary/10 dark:hover:bg-primary/90/40 flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                                className="px-3 py-2 rounded-xl bg-white dark:bg-[#200B22] border border-purple-200 dark:border-purple-800/50 text-xs font-bold text-[#4C264F] dark:text-[#F9F5F9] hover:bg-purple-100 dark:hover:bg-purple-900/40 flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
                               >
                                 {copiedCouponId === notif.id ? (
                                   <>
@@ -1057,7 +1058,7 @@ export default function AccountPage() {
                                   </>
                                 ) : (
                                   <>
-                                    <Copy className="w-3.5 h-3.5 text-primary" /> Copiar Código
+                                    <Copy className="w-3.5 h-3.5 text-[#9306CF]" /> Copiar Código
                                   </>
                                 )}
                               </button>
@@ -1065,7 +1066,7 @@ export default function AccountPage() {
                               <button
                                 type="button"
                                 onClick={() => handleApplyCouponToCart(notif.coupon!.code, notif)}
-                                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-primary to-accent text-xs font-bold text-white hover:opacity-95 flex items-center gap-1.5 shadow-sm shadow-primary/30 transition-opacity cursor-pointer"
+                                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] text-xs font-bold text-white hover:opacity-95 flex items-center gap-1.5 shadow-sm shadow-[#9306CF]/30 transition-opacity cursor-pointer"
                               >
                                 <Sparkles className="w-3.5 h-3.5" /> Aplicar no Carrinho
                               </button>
@@ -1082,12 +1083,12 @@ export default function AccountPage() {
 
           {/* ================= ABA: ACESSIBILIDADE ================= */}
           {activeSection === "acessibilidade" && (
-            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-8">
+            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-8">
               <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary dark:text-muted-foreground text-xs font-bold uppercase tracking-wider mb-2 border border-primary/20">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] text-xs font-bold uppercase tracking-wider mb-2 border border-[#9306CF]/20">
                   <Accessibility className="w-3.5 h-3.5" /> Inclusão e Conforto Visual
                 </div>
-                <h2 className="font-heading text-2xl font-bold uppercase tracking-tight text-foreground dark:text-foreground flex items-center gap-2">
+                <h2 className="font-heading text-2xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
                   Acessibilidade
                 </h2>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
@@ -1096,11 +1097,11 @@ export default function AccountPage() {
               </div>
 
               {/* 1. MODO PARA DALTÔNICOS */}
-              <div className="space-y-4 p-5 rounded-2xl bg-gray-50/70 dark:bg-background/80 border border-gray-200 dark:border-border/40">
+              <div className="space-y-4 p-5 rounded-2xl bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <Label className="text-sm font-heading font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
-                      <Eye className="w-4 h-4 text-primary dark:text-muted-foreground" />
+                      <Eye className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
                       Modo para Daltônicos (Filtros de Cor)
                     </Label>
                     <p className="text-xs text-muted-foreground mt-0.5">
@@ -1114,7 +1115,7 @@ export default function AccountPage() {
                     value={previewSettings.colorBlindMode}
                     onChange={(e) => updatePreview({ colorBlindMode: e.target.value as ColorBlindModeOption })}
                     aria-label="Selecione o filtro para daltonismo"
-                    className="w-full h-12 px-4 rounded-xl border border-gray-300 dark:border-border/60 bg-white dark:bg-[#230E26] text-gray-900 dark:text-white font-medium text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-colors cursor-pointer"
+                    className="w-full h-12 px-4 rounded-xl border border-gray-300 dark:border-[#512B54]/60 bg-white dark:bg-[#230E26] text-gray-900 dark:text-white font-medium text-sm focus:outline-none focus:ring-2 focus:ring-[#9306CF] transition-colors cursor-pointer"
                   >
                     <option value="none">Padrão (Desativado)</option>
                     <option value="protanopia">Protanopia (Baixa sensibilidade ao vermelho)</option>
@@ -1125,8 +1126,8 @@ export default function AccountPage() {
                 </div>
 
                 {/* Semântica Visual Garantida */}
-                <div className="p-4 rounded-xl bg-primary/5/60 dark:bg-[#2A1030]/60 border border-primary/20 space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-bold text-primary dark:text-muted-foreground uppercase tracking-wider">
+                <div className="p-4 rounded-xl bg-purple-50/60 dark:bg-[#2A1030]/60 border border-[#9306CF]/20 space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9] uppercase tracking-wider">
                     <ShieldCheck className="w-4 h-4 shrink-0" />
                     Semântica Visual Garantida (WCAG 2.1)
                   </div>
@@ -1151,10 +1152,10 @@ export default function AccountPage() {
               </div>
 
               {/* 2. TAMANHO DO TEXTO (ESCALA DE FONTE) */}
-              <div className="space-y-4 p-5 rounded-2xl bg-gray-50/70 dark:bg-background/80 border border-gray-200 dark:border-border/40">
+              <div className="space-y-4 p-5 rounded-2xl bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40">
                 <div>
                   <Label className="text-sm font-heading font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
-                    <Type className="w-4 h-4 text-primary dark:text-muted-foreground" />
+                    <Type className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
                     Tamanho do Texto (Escala Tipográfica)
                   </Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
@@ -1176,15 +1177,15 @@ export default function AccountPage() {
                         onClick={() => updatePreview({ fontSize: option.id as FontSizeOption })}
                         className={`p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer ${
                           isSelected
-                            ? "border-primary bg-primary/10 dark:bg-primary/20 shadow-md shadow-primary/10"
-                            : "border-gray-200 dark:border-border/40 hover:border-gray-300 dark:hover:border-border/80 bg-white dark:bg-[#230E26]"
+                            ? "border-[#9306CF] bg-[#9306CF]/10 dark:bg-[#9306CF]/20 shadow-md shadow-[#9306CF]/10"
+                            : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#230E26]"
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-heading font-bold text-sm text-gray-900 dark:text-white">
                             {option.label}
                           </span>
-                          <span className="text-xs font-bold text-primary dark:text-muted-foreground">
+                          <span className="text-xs font-bold text-[#9306CF] dark:text-[#C7A9C9]">
                             {option.pct}
                           </span>
                         </div>
@@ -1195,7 +1196,7 @@ export default function AccountPage() {
                 </div>
 
                 {/* Exemplo dinâmico de texto */}
-                <div className="p-3.5 rounded-xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40">
+                <div className="p-3.5 rounded-xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40">
                   <p className="text-xs uppercase font-bold tracking-wider text-muted-foreground mb-1">
                     Exemplo de Leitura:
                   </p>
@@ -1206,10 +1207,10 @@ export default function AccountPage() {
               </div>
 
               {/* 3. MODO DE ALTO CONTRASTE */}
-              <div className="p-5 rounded-2xl bg-gray-50/70 dark:bg-background/80 border border-gray-200 dark:border-border/40 flex items-center justify-between gap-4">
+              <div className="p-5 rounded-2xl bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 flex items-center justify-between gap-4">
                 <div className="space-y-1">
                   <Label className="text-sm font-heading font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-primary dark:text-muted-foreground" />
+                    <Sparkles className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
                     Modo de Alto Contraste (WCAG AAA)
                   </Label>
                   <p className="text-xs text-muted-foreground leading-relaxed">
@@ -1222,8 +1223,8 @@ export default function AccountPage() {
                   role="switch"
                   aria-checked={previewSettings.highContrast}
                   onClick={() => updatePreview({ highContrast: !previewSettings.highContrast })}
-                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary ${
-                    previewSettings.highContrast ? "bg-primary" : "bg-gray-300 dark:bg-gray-700"
+                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#9306CF] ${
+                    previewSettings.highContrast ? "bg-[#9306CF]" : "bg-gray-300 dark:bg-gray-700"
                   }`}
                 >
                   <span
@@ -1235,10 +1236,10 @@ export default function AccountPage() {
               </div>
 
               {/* 4. REDUÇÃO DE MOVIMENTO */}
-              <div className="p-5 rounded-2xl bg-gray-50/70 dark:bg-background/80 border border-gray-200 dark:border-border/40 flex items-center justify-between gap-4">
+              <div className="p-5 rounded-2xl bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 flex items-center justify-between gap-4">
                 <div className="space-y-1">
                   <Label className="text-sm font-heading font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
-                    <RefreshCw className="w-4 h-4 text-primary dark:text-muted-foreground" />
+                    <RefreshCw className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
                     Redução de Movimento
                   </Label>
                   <p className="text-xs text-muted-foreground leading-relaxed">
@@ -1251,8 +1252,8 @@ export default function AccountPage() {
                   role="switch"
                   aria-checked={previewSettings.reduceMotion}
                   onClick={() => updatePreview({ reduceMotion: !previewSettings.reduceMotion })}
-                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary ${
-                    previewSettings.reduceMotion ? "bg-primary" : "bg-gray-300 dark:bg-gray-700"
+                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#9306CF] ${
+                    previewSettings.reduceMotion ? "bg-[#9306CF]" : "bg-gray-300 dark:bg-gray-700"
                   }`}
                 >
                   <span
@@ -1264,11 +1265,11 @@ export default function AccountPage() {
               </div>
 
               {/* 5. ALERTAS VISUAIS PARA NOTIFICAÇÕES */}
-              <div className="space-y-4 p-5 rounded-2xl bg-gray-50/70 dark:bg-background/80 border border-gray-200 dark:border-border/40">
+              <div className="space-y-4 p-5 rounded-2xl bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40">
                 <div className="flex items-center justify-between gap-4">
                   <div className="space-y-1">
                     <Label className="text-sm font-heading font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
-                      <Bell className="w-4 h-4 text-primary dark:text-muted-foreground" />
+                      <Bell className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
                       Alertas Visuais para Notificações Sonoras
                     </Label>
                     <p className="text-xs text-muted-foreground leading-relaxed">
@@ -1281,8 +1282,8 @@ export default function AccountPage() {
                     role="switch"
                     aria-checked={previewSettings.visualAlerts}
                     onClick={() => updatePreview({ visualAlerts: !previewSettings.visualAlerts })}
-                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary ${
-                      previewSettings.visualAlerts ? "bg-primary" : "bg-gray-300 dark:bg-gray-700"
+                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#9306CF] ${
+                      previewSettings.visualAlerts ? "bg-[#9306CF]" : "bg-gray-300 dark:bg-gray-700"
                     }`}
                   >
                     <span
@@ -1301,7 +1302,7 @@ export default function AccountPage() {
                       triggerVisualAlert();
                       playDingSound();
                     }}
-                    className="h-10 px-4 rounded-xl border-primary/30 text-primary dark:text-muted-foreground hover:bg-primary/10 text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer"
+                    className="h-10 px-4 rounded-xl border-[#9306CF]/30 text-[#9306CF] dark:text-[#C7A9C9] hover:bg-[#9306CF]/10 text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer"
                   >
                     <Volume2 className="w-4 h-4 text-amber-500 animate-pulse" />
                     Testar Alerta Visual no Topo
@@ -1313,10 +1314,10 @@ export default function AccountPage() {
               </div>
 
               {/* 6. FONTE AMIGÁVEL PARA DISLEXIA */}
-              <div className="p-5 rounded-2xl bg-gray-50/70 dark:bg-background/80 border border-gray-200 dark:border-border/40 flex items-center justify-between gap-4">
+              <div className="p-5 rounded-2xl bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 flex items-center justify-between gap-4">
                 <div className="space-y-1">
                   <Label className="text-sm font-heading font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
-                    <Type className="w-4 h-4 text-primary dark:text-muted-foreground" />
+                    <Type className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
                     Fonte Amigável para Dislexia
                   </Label>
                   <p className="text-xs text-muted-foreground leading-relaxed">
@@ -1329,8 +1330,8 @@ export default function AccountPage() {
                   role="switch"
                   aria-checked={previewSettings.dyslexicFont}
                   onClick={() => updatePreview({ dyslexicFont: !previewSettings.dyslexicFont })}
-                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary ${
-                    previewSettings.dyslexicFont ? "bg-primary" : "bg-gray-300 dark:bg-gray-700"
+                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#9306CF] ${
+                    previewSettings.dyslexicFont ? "bg-[#9306CF]" : "bg-gray-300 dark:bg-gray-700"
                   }`}
                 >
                   <span
@@ -1342,7 +1343,7 @@ export default function AccountPage() {
               </div>
 
               {/* RODAPÉ DE AÇÃO EXPLÍCITO */}
-              <div className="pt-4 border-t border-gray-200 dark:border-border/40 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="pt-4 border-t border-gray-200 dark:border-[#512B54]/40 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <p className="text-xs text-muted-foreground text-center sm:text-left">
                   As opções acima estão ativas em pré-visualização. Clique abaixo para salvar na sua conta.
                 </p>
@@ -1352,7 +1353,7 @@ export default function AccountPage() {
                     type="button"
                     variant="outline"
                     onClick={resetPreview}
-                    className="flex-1 sm:flex-none h-12 px-5 rounded-xl border-gray-300 dark:border-border/60 text-xs font-bold uppercase tracking-wider cursor-pointer"
+                    className="flex-1 sm:flex-none h-12 px-5 rounded-xl border-gray-300 dark:border-[#512B54]/60 text-xs font-bold uppercase tracking-wider cursor-pointer"
                   >
                     Restaurar
                   </Button>
@@ -1361,7 +1362,7 @@ export default function AccountPage() {
                     type="button"
                     onClick={handleSaveAccessibility}
                     disabled={isSavingAccessibility}
-                    className="flex-1 sm:flex-none h-12 px-6 rounded-xl font-heading font-bold uppercase tracking-widest text-sm bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white shadow-lg shadow-primary/20 transition-opacity cursor-pointer flex items-center justify-center gap-2"
+                    className="flex-1 sm:flex-none h-12 px-6 rounded-xl font-heading font-bold uppercase tracking-widest text-sm bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white shadow-lg shadow-[#9306CF]/20 transition-opacity cursor-pointer flex items-center justify-center gap-2"
                   >
                     {isSavingAccessibility ? (
                       <>
@@ -1381,11 +1382,11 @@ export default function AccountPage() {
 
           {/* ================= ABA: ENDEREÇOS ================= */}
           {activeSection === "enderecos" && (
-            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
+            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border/40">
                 <div>
-                  <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-foreground dark:text-foreground flex items-center gap-2">
-                    <MapPin className="w-6 h-6 text-primary dark:text-muted-foreground" /> Meus Endereços
+                  <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
+                    <MapPin className="w-6 h-6 text-[#9306CF] dark:text-[#C7A9C9]" /> Meus Endereços
                   </h2>
                   <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                     Gerencie seus endereços de entrega cadastrados na conta.
@@ -1393,7 +1394,7 @@ export default function AccountPage() {
                 </div>
                 <Button 
                   onClick={openAddressModal}
-                  className="h-10 px-4 rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white font-heading uppercase tracking-wider text-xs font-bold shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer"
+                  className="h-10 px-4 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white font-heading uppercase tracking-wider text-xs font-bold shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer"
                 >
                   <MapPin className="w-4 h-4" /> + Novo Endereço
                 </Button>
@@ -1408,17 +1409,17 @@ export default function AccountPage() {
                         key={addr.id} 
                         className={`border rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 transition-all ${
                           isDefault 
-                            ? "border-primary/50 bg-primary/5 dark:bg-primary/10 shadow-xs"
-                            : "border-gray-200 dark:border-border/40 bg-gray-50/70 dark:bg-background/80 hover:border-primary/30"
+                            ? "border-[#9306CF]/50 bg-[#9306CF]/5 dark:bg-[#9306CF]/10 shadow-xs" 
+                            : "border-gray-200 dark:border-[#512B54]/40 bg-gray-50/70 dark:bg-[#190B1A]/80 hover:border-[#9306CF]/30"
                         }`}
                       >
                         <div className="space-y-1.5 min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-heading font-bold text-sm text-foreground dark:text-foreground flex items-center gap-1.5">
-                              <MapPin className="w-4 h-4 text-primary" /> {addr.label || "Endereço"}
+                            <span className="font-heading font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-1.5">
+                              <MapPin className="w-4 h-4 text-[#9306CF]" /> {addr.label || "Endereço"}
                             </span>
                             {isDefault ? (
-                              <span className="inline-flex items-center gap-1 bg-primary/15 text-primary dark:text-muted-foreground text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border border-primary/30">
+                              <span className="inline-flex items-center gap-1 bg-[#9306CF]/15 text-[#9306CF] dark:text-[#C7A9C9] text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border border-[#9306CF]/30">
                                 <Check className="w-3 h-3" /> Padrão / Ativo
                               </span>
                             ) : (
@@ -1432,7 +1433,7 @@ export default function AccountPage() {
                                     message: "Este endereço agora é seu padrão de entrega.",
                                   });
                                 }}
-                                className="text-[11px] text-primary dark:text-muted-foreground hover:underline font-semibold cursor-pointer"
+                                className="text-[11px] text-[#9306CF] dark:text-[#C7A9C9] hover:underline font-semibold cursor-pointer"
                               >
                                 Definir como padrão
                               </button>
@@ -1449,8 +1450,18 @@ export default function AccountPage() {
                           </p>
                         </div>
 
-                        <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
+                        <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                           <button 
+                            type="button"
+                            onClick={() => openAddressModal(addr)}
+                            className="inline-flex items-center gap-1 text-xs text-[#9306CF] dark:text-[#C7A9C9] hover:text-[#940068] font-semibold uppercase tracking-wider hover:underline cursor-pointer px-2 py-1"
+                            title="Editar endereço"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            Editar
+                          </button>
+                          <button 
+                            type="button"
                             onClick={async () => {
                               if (confirm("Tem certeza que deseja remover este endereço?")) {
                                 await deleteAddressCtx(addr.id);
@@ -1470,7 +1481,7 @@ export default function AccountPage() {
                     );
                   })
                 ) : (
-                  <div className="text-center py-10 px-4 rounded-2xl border border-dashed border-gray-300 dark:border-border/50 bg-gray-50/40 dark:bg-background/40 space-y-3">
+                  <div className="text-center py-10 px-4 rounded-2xl border border-dashed border-gray-300 dark:border-[#512B54]/50 bg-gray-50/40 dark:bg-[#190B1A]/40 space-y-3">
                     <MapPin className="w-10 h-10 text-muted-foreground/40 mx-auto" />
                     <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">
                       Nenhum endereço salvo nesta conta ainda.
@@ -1481,7 +1492,7 @@ export default function AccountPage() {
                     <div>
                       <Button 
                         onClick={openAddressModal}
-                        className="h-10 px-4 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-heading text-xs uppercase tracking-wider font-bold shadow-sm cursor-pointer"
+                        className="h-10 px-4 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] text-white font-heading text-xs uppercase tracking-wider font-bold shadow-sm cursor-pointer"
                       >
                         + Cadastrar Primeiro Endereço
                       </Button>
@@ -1494,10 +1505,10 @@ export default function AccountPage() {
 
           {/* ================= ABA: PREFERÊNCIAS ================= */}
           {activeSection === "preferencias" && (
-            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
+            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
               <div>
-                <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-foreground dark:text-foreground flex items-center gap-2">
-                  <Settings className="w-6 h-6 text-primary dark:text-muted-foreground" /> Preferências da Conta
+                <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
+                  <Settings className="w-6 h-6 text-[#9306CF] dark:text-[#C7A9C9]" /> Preferências da Conta
                 </h2>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                   Personalize a aparência visual e sua experiência de uso na Pop Shake.
@@ -1516,8 +1527,8 @@ export default function AccountPage() {
                     onClick={() => setTheme("light")}
                     className={`flex items-start gap-3.5 p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${
                       theme === "light"
-                        ? "border-primary bg-primary/5/60 shadow-md shadow-primary/10"
-                        : "border-gray-200 dark:border-border/40 hover:border-gray-300 dark:hover:border-border/80 bg-white dark:bg-background/60"
+                        ? "border-[#9306CF] bg-purple-50/60 shadow-md shadow-[#9306CF]/10"
+                        : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#190B1A]/60"
                     }`}
                   >
                     <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 shadow-xs">
@@ -1526,7 +1537,7 @@ export default function AccountPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="font-heading font-bold text-sm text-gray-900 dark:text-white">Modo Claro</span>
-                        {theme === "light" && <Check className="w-4 h-4 text-primary" />}
+                        {theme === "light" && <Check className="w-4 h-4 text-[#9306CF]" />}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         Fundo branco, tons neutros e visual solar.
@@ -1540,20 +1551,20 @@ export default function AccountPage() {
                     onClick={() => setTheme("dark")}
                     className={`flex items-start gap-3.5 p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${
                       theme === "dark"
-                        ? "border-primary bg-[#2A1030] shadow-md shadow-primary/20"
-                        : "border-gray-200 dark:border-border/40 hover:border-gray-300 dark:hover:border-border/80 bg-white dark:bg-background/60"
+                        ? "border-[#9306CF] bg-[#2A1030] shadow-md shadow-[#9306CF]/20"
+                        : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#190B1A]/60"
                     }`}
                   >
-                    <div className="w-10 h-10 rounded-xl bg-primary/95 text-primary/30 flex items-center justify-center shrink-0 shadow-xs">
+                    <div className="w-10 h-10 rounded-xl bg-purple-950 text-purple-300 flex items-center justify-center shrink-0 shadow-xs">
                       <Moon className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="font-heading font-bold text-sm text-gray-900 dark:text-white">Modo Escuro</span>
-                        {theme === "dark" && <Check className="w-4 h-4 text-primary" />}
+                        {theme === "dark" && <Check className="w-4 h-4 text-[#9306CF]" />}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Roxo escuro (hsl(var(--background))) perfeito para conforto visual à noite.
+                        Roxo escuro (#190B1A) perfeito para conforto visual à noite.
                       </p>
                     </div>
                   </button>
@@ -1561,14 +1572,14 @@ export default function AccountPage() {
               </div>
 
               {/* Seção de Notificações */}
-              <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-border/40">
+              <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-[#512B54]/40">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                  <Bell className="w-4 h-4 text-primary dark:text-muted-foreground" />
+                  <Bell className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
                   Notificações de Pedido
                 </Label>
 
                 {/* Push Notifications */}
-                <div className="p-4 rounded-2xl bg-gray-50/70 dark:bg-background/80 border border-gray-200 dark:border-border/40 flex items-center justify-between gap-4">
+                <div className="p-4 rounded-2xl bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 flex items-center justify-between gap-4">
                   <div className="space-y-0.5">
                     <p className="text-sm font-heading font-bold text-gray-900 dark:text-white">Notificações Push</p>
                     <p className="text-xs text-muted-foreground">
@@ -1590,7 +1601,7 @@ export default function AccountPage() {
                         showToast({ type: "error", title: "Permissão negada", message: "Ative as notificações nas configurações do navegador." });
                       }
                     }}
-                    className="h-9 px-4 rounded-xl border-primary/30 text-primary dark:text-muted-foreground hover:bg-primary/10 text-xs font-bold uppercase tracking-wider shrink-0 cursor-pointer"
+                    className="h-9 px-4 rounded-xl border-[#9306CF]/30 text-[#9306CF] dark:text-[#C7A9C9] hover:bg-[#9306CF]/10 text-xs font-bold uppercase tracking-wider shrink-0 cursor-pointer"
                   >
                     <Bell className="w-3.5 h-3.5 mr-1.5" />
                     Ativar
@@ -1598,7 +1609,7 @@ export default function AccountPage() {
                 </div>
 
                 {/* Som de Alerta */}
-                <div className="p-4 rounded-2xl bg-gray-50/70 dark:bg-background/80 border border-gray-200 dark:border-border/40 flex items-center justify-between gap-4">
+                <div className="p-4 rounded-2xl bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 flex items-center justify-between gap-4">
                   <div className="space-y-0.5">
                     <p className="text-sm font-heading font-bold text-gray-900 dark:text-white">Som de Chegada de Pedido</p>
                     <p className="text-xs text-muted-foreground">
@@ -1609,7 +1620,7 @@ export default function AccountPage() {
                     type="button"
                     variant="outline"
                     onClick={() => { playDingSound(); }}
-                    className="h-9 px-4 rounded-xl border-primary/30 text-primary dark:text-muted-foreground hover:bg-primary/10 text-xs font-bold uppercase tracking-wider shrink-0 cursor-pointer"
+                    className="h-9 px-4 rounded-xl border-[#9306CF]/30 text-[#9306CF] dark:text-[#C7A9C9] hover:bg-[#9306CF]/10 text-xs font-bold uppercase tracking-wider shrink-0 cursor-pointer"
                   >
                     <Volume2 className="w-3.5 h-3.5 mr-1.5" />
                     Testar
@@ -1618,10 +1629,10 @@ export default function AccountPage() {
               </div>
 
               {/* ================= SEÇÃO: FORMA DE PAGAMENTO PREFERENCIAL NA ENTREGA ================= */}
-              <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-border/40">
+              <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-[#512B54]/40">
                 <div>
                   <Label className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                    <Wallet className="w-4 h-4 text-primary dark:text-muted-foreground" />
+                    <Wallet className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
                     Forma de Pagamento Preferencial na Entrega
                   </Label>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -1637,8 +1648,8 @@ export default function AccountPage() {
                     onClick={() => setPreferredPaymentMethod("pix_entrega")}
                     className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
                       preferredPaymentMethod === "pix_entrega"
-                        ? "border-primary bg-primary/5/70 dark:bg-primary/20 shadow-sm ring-1 ring-primary/30"
-                        : "border-gray-200 dark:border-border/40 hover:border-gray-300 dark:hover:border-border/80 bg-white dark:bg-background/60"
+                        ? "border-[#9306CF] bg-purple-50/70 dark:bg-[#9306CF]/20 shadow-sm ring-1 ring-[#9306CF]/30"
+                        : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#190B1A]/60"
                     }`}
                   >
                     <div className="flex items-start justify-between w-full mb-3">
@@ -1646,7 +1657,7 @@ export default function AccountPage() {
                         <QrCode className="w-5 h-5" />
                       </div>
                       {preferredPaymentMethod === "pix_entrega" && (
-                        <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shadow-xs">
+                        <span className="w-5 h-5 rounded-full bg-[#9306CF] text-white flex items-center justify-center shadow-xs">
                           <Check className="w-3 h-3" />
                         </span>
                       )}
@@ -1667,16 +1678,16 @@ export default function AccountPage() {
                     onClick={() => setPreferredPaymentMethod("cartao_maquininha")}
                     className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
                       preferredPaymentMethod === "cartao_maquininha"
-                        ? "border-primary bg-primary/5/70 dark:bg-primary/20 shadow-sm ring-1 ring-primary/30"
-                        : "border-gray-200 dark:border-border/40 hover:border-gray-300 dark:hover:border-border/80 bg-white dark:bg-background/60"
+                        ? "border-[#9306CF] bg-purple-50/70 dark:bg-[#9306CF]/20 shadow-sm ring-1 ring-[#9306CF]/30"
+                        : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#190B1A]/60"
                     }`}
                   >
                     <div className="flex items-start justify-between w-full mb-3">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/95/60 text-primary dark:text-muted-foreground flex items-center justify-center shrink-0 shadow-xs">
+                      <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] flex items-center justify-center shrink-0 shadow-xs">
                         <CreditCard className="w-5 h-5" />
                       </div>
                       {preferredPaymentMethod === "cartao_maquininha" && (
-                        <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shadow-xs">
+                        <span className="w-5 h-5 rounded-full bg-[#9306CF] text-white flex items-center justify-center shadow-xs">
                           <Check className="w-3 h-3" />
                         </span>
                       )}
@@ -1697,8 +1708,8 @@ export default function AccountPage() {
                     onClick={() => setPreferredPaymentMethod("dinheiro")}
                     className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
                       preferredPaymentMethod === "dinheiro"
-                        ? "border-primary bg-primary/5/70 dark:bg-primary/20 shadow-sm ring-1 ring-primary/30"
-                        : "border-gray-200 dark:border-border/40 hover:border-gray-300 dark:hover:border-border/80 bg-white dark:bg-background/60"
+                        ? "border-[#9306CF] bg-purple-50/70 dark:bg-[#9306CF]/20 shadow-sm ring-1 ring-[#9306CF]/30"
+                        : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#190B1A]/60"
                     }`}
                   >
                     <div className="flex items-start justify-between w-full mb-3">
@@ -1706,7 +1717,7 @@ export default function AccountPage() {
                         <Banknote className="w-5 h-5" />
                       </div>
                       {preferredPaymentMethod === "dinheiro" && (
-                        <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shadow-xs">
+                        <span className="w-5 h-5 rounded-full bg-[#9306CF] text-white flex items-center justify-center shadow-xs">
                           <Check className="w-3 h-3" />
                         </span>
                       )}
@@ -1738,7 +1749,7 @@ export default function AccountPage() {
                           placeholder="Ex: 50.00"
                           value={preferredChangeFor}
                           onChange={(e) => setPreferredChangeFor(e.target.value)}
-                          className="pl-9 h-10 rounded-xl bg-white dark:bg-background border-gray-300 dark:border-border/60 text-sm font-mono"
+                          className="pl-9 h-10 rounded-xl bg-white dark:bg-[#190B1A] border-gray-300 dark:border-[#512B54]/60 text-sm font-mono"
                         />
                       </div>
                       {preferredChangeFor && (
@@ -1761,12 +1772,12 @@ export default function AccountPage() {
               </div>
 
               {/* Rodapé com Salvar */}
-              <div className="pt-4 border-t border-gray-200 dark:border-border/40 flex items-center justify-end">
+              <div className="pt-4 border-t border-gray-200 dark:border-[#512B54]/40 flex items-center justify-end">
                 <Button
                   type="button"
                   disabled={isSavingPreferences}
                   onClick={handleSavePreferences}
-                  className="h-11 px-6 rounded-xl font-heading font-bold uppercase tracking-widest text-xs bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white shadow-md shadow-primary/20 cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                  className="h-11 px-6 rounded-xl font-heading font-bold uppercase tracking-widest text-xs bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white shadow-md shadow-[#9306CF]/20 cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
                 >
                   {isSavingPreferences ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -1781,9 +1792,9 @@ export default function AccountPage() {
 
           {/* Placeholders for other sections */}
           {activeSection === "avaliacoes" && (
-            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 p-6 sm:p-8 rounded-2xl shadow-sm flex flex-col items-center justify-center py-20 text-center">
+            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm flex flex-col items-center justify-center py-20 text-center">
               <Settings className="w-12 h-12 text-gray-400 dark:text-gray-600 mb-4" />
-              <h3 className="font-heading font-bold text-xl uppercase tracking-wider mb-2 text-foreground dark:text-foreground">
+              <h3 className="font-heading font-bold text-xl uppercase tracking-wider mb-2 text-[#4C264F] dark:text-[#F9F5F9]">
                 Em Construção
               </h3>
               <p className="text-gray-600 dark:text-gray-300 text-sm max-w-sm">
@@ -1802,12 +1813,12 @@ export default function AccountPage() {
           onClick={() => setIsAvatarModalOpen(false)}
         >
           <div 
-            className="w-full max-w-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/50 rounded-3xl shadow-2xl p-6 sm:p-8 space-y-6 animate-in zoom-in-95 duration-200"
+            className="w-full max-w-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/50 rounded-3xl shadow-2xl p-6 sm:p-8 space-y-6 animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary dark:text-muted-foreground text-xs font-bold uppercase tracking-wider border border-primary/20 mb-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] text-xs font-bold uppercase tracking-wider border border-[#9306CF]/20 mb-2">
                   <Sparkles className="w-3.5 h-3.5" /> Coleção Pop Shake
                 </div>
                 <h3 className="font-heading text-xl sm:text-2xl font-bold uppercase tracking-tight text-gray-900 dark:text-white">
@@ -1840,18 +1851,18 @@ export default function AccountPage() {
                     onClick={() => setModalAvatarChoice(avatarPath)}
                     className={`relative p-3 rounded-2xl border-2 flex flex-col items-center text-center transition-all cursor-pointer group ${
                       isSelected
-                        ? "border-primary bg-primary/10 dark:bg-primary/20 ring-2 ring-primary/30 shadow-md shadow-primary/20 scale-102"
-                        : "border-gray-200 dark:border-border/40 hover:border-primary/50 bg-gray-50/50 dark:bg-background/60 hover:scale-102"
+                        ? "border-[#9306CF] bg-[#9306CF]/10 dark:bg-[#9306CF]/20 ring-2 ring-[#9306CF]/30 shadow-md shadow-[#9306CF]/20 scale-102"
+                        : "border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/50 bg-gray-50/50 dark:bg-[#190B1A]/60 hover:scale-102"
                     }`}
                   >
                     {/* Badge de Selecionado */}
                     {isSelected && (
-                      <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shadow-xs">
+                      <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#9306CF] text-white flex items-center justify-center shadow-xs">
                         <Check className="w-3 h-3" />
                       </span>
                     )}
 
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-white dark:bg-[#2A1030] p-1 shadow-inner border border-gray-100 dark:border-border/30 mb-2">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-white dark:bg-[#2A1030] p-1 shadow-inner border border-gray-100 dark:border-[#512B54]/30 mb-2">
                       <Image
                         src={avatarPath}
                         alt={avatar.name}
@@ -1872,19 +1883,19 @@ export default function AccountPage() {
             </div>
 
             {/* Rodapé do Modal */}
-            <div className="pt-2 border-t border-gray-100 dark:border-border/30 flex items-center justify-end gap-3">
+            <div className="pt-2 border-t border-gray-100 dark:border-[#512B54]/30 flex items-center justify-end gap-3">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsAvatarModalOpen(false)}
-                className="h-11 px-5 rounded-xl border-gray-300 dark:border-border/60 text-xs font-bold uppercase tracking-wider cursor-pointer"
+                className="h-11 px-5 rounded-xl border-gray-300 dark:border-[#512B54]/60 text-xs font-bold uppercase tracking-wider cursor-pointer"
               >
                 Cancelar
               </Button>
               <Button
                 type="button"
                 onClick={handleConfirmAvatarModal}
-                className="h-11 px-6 rounded-xl font-heading font-bold uppercase tracking-widest text-xs bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white shadow-md shadow-primary/20 cursor-pointer flex items-center gap-1.5"
+                className="h-11 px-6 rounded-xl font-heading font-bold uppercase tracking-widest text-xs bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white shadow-md shadow-[#9306CF]/20 cursor-pointer flex items-center gap-1.5"
               >
                 <Check className="w-4 h-4" /> Confirmar Escolha
               </Button>

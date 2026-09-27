@@ -18,6 +18,8 @@ import {
   Minus,
   UtensilsCrossed,
   Pencil,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 import { productService, Product } from "../../services/productService";
 import { categoryService, Category } from "../../services/categoryService";
@@ -45,6 +47,63 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
   // Edição completa de produto via modal
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  // Exclusão de produto com confirmação e tratamento 409
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleRequestDelete = (product: Product) => {
+    setProductToDelete(product);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!productToDelete) return;
+    setIsDeleting(true);
+
+    try {
+      const res = await fetch(`/api/products/${productToDelete.id}`, {
+        method: "DELETE",
+      });
+
+      if (res.status === 200 || res.ok) {
+        setProducts((prev) => prev.filter((p) => p.id !== productToDelete.id));
+        showToast({
+          title: "Produto excluído",
+          message: `O produto "${productToDelete.name}" foi removido com sucesso.`,
+          type: "success",
+        });
+        setProductToDelete(null);
+      } else if (res.status === 409) {
+        const data = await res.json().catch(() => ({}));
+        showToast({
+          title: "Item com pedidos vinculados",
+          message:
+            data.error ||
+            "Não é possível excluir este produto pois existem pedidos vinculados a ele no histórico. Recomendamos pausar sua disponibilidade na cozinha.",
+          type: "warning",
+        });
+        setProductToDelete(null);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        showToast({
+          title: "Erro ao excluir",
+          message: data.error || "Ocorreu um erro ao excluir o produto.",
+          type: "error",
+        });
+        setProductToDelete(null);
+      }
+    } catch (err) {
+      console.error("Erro ao excluir produto:", err);
+      showToast({
+        title: "Erro de conexão",
+        message: "Não foi possível conectar ao servidor para excluir o produto.",
+        type: "error",
+      });
+      setProductToDelete(null);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Debounce timers para inputs numéricos por produto
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
@@ -356,6 +415,7 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
                 <th className="py-3.5 px-4 min-w-[260px]">Controle de Estoque</th>
                 <th className="py-3.5 px-4 text-center">Saídas no Quadro</th>
                 <th className="py-3.5 px-4 text-right">Disponibilidade</th>
+                <th className="py-3.5 px-4 text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-[#512B54]/30 bg-white dark:bg-[#1E0B22]">
@@ -404,10 +464,18 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
                                 setEditingProduct(product);
                                 setIsEditDialogOpen(true);
                               }}
-                              title="Editar dados cadastrais do produto (Foto, Nome, Descrição, Preço, Categoria, Selo)"
+                              title="Editar dados cadastrais do produto"
                               className="p-1 rounded-md text-gray-400 hover:text-[#9306CF] hover:bg-[#9306CF]/10 transition-colors cursor-pointer inline-flex items-center justify-center shrink-0"
                             >
                               <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRequestDelete(product)}
+                              title="Excluir produto do catálogo"
+                              className="p-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer inline-flex items-center justify-center shrink-0"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                             {!isAvailable && (
                               <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950/80 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/50">
@@ -556,6 +624,31 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
                         </span>
                       </div>
                     </td>
+
+                    {/* Ações */}
+                    <td className="py-3 px-4 text-center whitespace-nowrap">
+                      <div className="inline-flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingProduct(product);
+                            setIsEditDialogOpen(true);
+                          }}
+                          title="Editar dados do produto"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-[#9306CF] hover:bg-[#9306CF]/10 transition-colors cursor-pointer"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRequestDelete(product)}
+                          title="Excluir produto do catálogo"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
@@ -585,6 +678,50 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
             loadData(true);
           }}
         />
+      )}
+
+      {/* Modal de Confirmação de Exclusão */}
+      {productToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#1E0B22] border border-gray-200 dark:border-[#512B54]/60 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-950/60 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-heading font-bold text-base text-gray-900 dark:text-gray-100">
+                  Excluir Produto
+                </h3>
+                <p className="text-xs text-muted-foreground">Confirmação de exclusão do catálogo</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+              Tem certeza que deseja excluir o produto{" "}
+              <strong className="text-foreground">"{productToDelete.name}"</strong>? Esta ação não pode ser desfeita.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setProductToDelete(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl text-xs font-semibold border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-600/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+              >
+                {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                <span>Excluir Produto</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );
