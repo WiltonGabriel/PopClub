@@ -13,6 +13,8 @@ export interface AuthUser {
   defaultChangeFor?: number | null;
   default_payment_method?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
   default_change_for?: number | null;
+  createdAt?: string | null;
+  created_at?: string | null;
 }
 
 export const authService = {

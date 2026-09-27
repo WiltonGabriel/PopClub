@@ -105,7 +105,7 @@ export const HARMONIZED_PRESETS: HarmonizedThemePreset[] = [
     previewBgLight: "#FFFFFF",
     previewBgDark: "#0F172A",
     primaryLight: "#7C3AED",
-    primaryDark: "#A855F7",
+    primaryDark: "#8B5CF6",
     storefront: {
       light: {
         baseColor: "#FFFFFF",
@@ -123,7 +123,7 @@ export const HARMONIZED_PRESETS: HarmonizedThemePreset[] = [
         textureOpacity: 0.1,
         headerBg: "#0F172A",
         footerBg: "#0F172A",
-        primary: "#A855F7",
+        primary: "#8B5CF6",
       },
     },
     splashScreen: {
@@ -131,7 +131,7 @@ export const HARMONIZED_PRESETS: HarmonizedThemePreset[] = [
       theme: "liquid_cream",
       centerIcon: "🥣",
       progressBarColorLight: "#7C3AED",
-      progressBarColorDark: "#A855F7",
+      progressBarColorDark: "#8B5CF6",
       backgroundType: "solid",
       backgroundValueLight: "#FFFFFF",
       backgroundValueDark: "#0F172A",

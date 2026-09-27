@@ -109,6 +109,8 @@ export async function getAuthUser(request?: Request): Promise<{
   phone: string | null;
   isRegistered: boolean;
   notificationsEnabled: boolean;
+  createdAt?: string | null;
+  created_at?: string | null;
 } | null> {
   try {
     let token: string | undefined;
@@ -145,6 +147,7 @@ export async function getAuthUser(request?: Request): Promise<{
           phone: true,
           isRegistered: true,
           notificationsEnabled: true,
+          createdAt: true,
         },
       });
     } catch (err: any) {
@@ -158,6 +161,7 @@ export async function getAuthUser(request?: Request): Promise<{
             username: true,
             role: true,
             isRegistered: true,
+            createdAt: true,
           },
         });
       } catch (fallbackErr: any) {
@@ -187,6 +191,8 @@ export async function getAuthUser(request?: Request): Promise<{
       phone: user.phone || null,
       isRegistered: Boolean(user.isRegistered),
       notificationsEnabled: Boolean(user.notificationsEnabled ?? true),
+      createdAt: (user as any).createdAt ? (user as any).createdAt.toISOString() : null,
+      created_at: (user as any).createdAt ? (user as any).createdAt.toISOString() : null,
     };
   } catch (err: any) {
     console.error("Erro geral em getAuthUser:", err);

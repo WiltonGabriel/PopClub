@@ -241,8 +241,37 @@ export function LivePreview({
         {/* Moldura do Celular (Mobile Device Mockup) */}
         <div
           ref={phoneRef}
-          className="relative w-full max-w-[310px] aspect-[9/19] rounded-[2.8rem] border-[7px] border-neutral-800 dark:border-neutral-700 shadow-2xl overflow-hidden flex flex-col transition-all duration-500 ring-1 ring-black/10"
-          style={{ background: getContainerBg() }}
+          className={`relative w-full max-w-[310px] aspect-[9/19] rounded-[2.8rem] border-[7px] border-neutral-800 dark:border-neutral-700 shadow-2xl overflow-hidden flex flex-col transition-all duration-500 ring-1 ring-black/10 ${
+            isDark ? "dark" : ""
+          }`}
+          style={{
+            background: getContainerBg(),
+            colorScheme: isDark ? "dark" : "light",
+            ...(isDark
+              ? ({
+                  "--background": "222 47% 11%",
+                  "--card": "223 31% 14%",
+                  "--card-foreground": "210 40% 98%",
+                  "--popover": "223 31% 14%",
+                  "--popover-foreground": "210 40% 98%",
+                  "--foreground": "210 40% 98%",
+                  "--muted": "224 25% 18%",
+                  "--muted-foreground": "215 20% 65%",
+                  "--border": "220 20% 20%",
+                  "--primary": primaryColor === "#A855F7" || !primaryColor ? "258 90% 66%" : undefined,
+                } as React.CSSProperties)
+              : ({
+                  "--background": "210 17% 98%",
+                  "--card": "0 0% 100%",
+                  "--card-foreground": "296 33% 23%",
+                  "--popover": "0 0% 100%",
+                  "--popover-foreground": "296 33% 23%",
+                  "--foreground": "296 33% 23%",
+                  "--muted": "240 5% 96%",
+                  "--muted-foreground": "291 7% 45%",
+                  "--border": "240 5% 90%",
+                } as React.CSSProperties)),
+          }}
         >
           {/* Dynamic Canvas Background (se o tema for dinâmico) */}
           {isDynamic && (
@@ -385,8 +414,9 @@ export function LivePreview({
                     ★
                   </div>
                   <div>
-                    <h4 className="text-xs font-black font-heading leading-tight" style={{ color: headerTextColor }}>
-                      Pop Shake
+                    <h4 className="text-xs font-black font-heading leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)]">
+                      <span className="text-zinc-900 dark:text-white">Pop</span>
+                      <span className="text-primary dark:text-violet-400">Shake</span>
                     </h4>
                     <span className="text-[9px] font-bold flex items-center gap-0.5" style={{ color: headerMutedColor }}>
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -413,17 +443,22 @@ export function LivePreview({
 
               {/* Categorias Pills */}
               <div className="flex items-center gap-1.5 px-3 py-2 overflow-x-auto no-scrollbar border-b border-black/5 dark:border-white/5">
-                {["Açaí", "Combos", "Copos", "Sobremesas"].map((cat, idx) => (
+                {[
+                  { name: "Açaí", emoji: "🥣" },
+                  { name: "Combos", emoji: "⚡" },
+                  { name: "Shakes", emoji: "🥤" },
+                  { name: "Sorvetes", emoji: "🍧" },
+                ].map((cat, idx) => (
                   <span
-                    key={cat}
-                    className="text-[9px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap shadow-2xs"
-                    style={
+                    key={cat.name}
+                    className={`text-[9px] px-2.5 py-1 rounded-full whitespace-nowrap shadow-2xs inline-flex items-center gap-1 active:scale-95 transition-transform duration-150 ease-out cursor-pointer ${
                       idx === 0
-                        ? { backgroundColor: primaryColor, color: primaryContrastText }
-                        : { backgroundColor: isDark ? "#27272A" : "#F1F5F9", color: isDark ? "#E4E4E7" : "#334155" }
-                    }
+                        ? "bg-primary text-white font-medium shadow-sm"
+                        : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 font-medium"
+                    }`}
                   >
-                    {cat}
+                    <span>{cat.emoji}</span>
+                    <span>{cat.name}</span>
                   </span>
                 ))}
               </div>
@@ -432,40 +467,29 @@ export function LivePreview({
               <div className="flex-1 p-3 space-y-3 overflow-y-auto no-scrollbar">
                 {/* Banner de Destaque Harmonizado */}
                 <div
-                  className="w-full rounded-2xl p-3 shadow-md relative overflow-hidden flex flex-col justify-between min-h-[90px]"
-                  style={{
-                    background: `linear-gradient(135deg, ${primaryColor}E6, ${primaryColor}99)`,
-                    color: primaryContrastText,
-                  }}
+                  className="w-full rounded-2xl p-3 shadow-md relative overflow-hidden flex flex-col justify-between min-h-[90px] border border-border/60 dark:border-zinc-800 bg-gradient-to-r from-primary/15 via-primary/5 to-transparent dark:from-[#181D2D] dark:to-[#1E2538]"
                 >
                   <div className="flex items-center justify-between">
                     <span
-                      className="text-[8px] font-mono uppercase font-black px-1.5 py-0.5 rounded-md backdrop-blur-xs"
-                      style={{
-                        backgroundColor: isLightColor(primaryColor) ? "rgba(0,0,0,0.12)" : "rgba(0,0,0,0.3)",
-                        color: primaryContrastText,
-                      }}
+                      className="text-[8px] font-mono uppercase font-black px-1.5 py-0.5 rounded-md bg-primary/10 text-primary dark:text-violet-300 border border-primary/20 backdrop-blur-xs"
                     >
                       Destaque do Dia
                     </span>
-                    <Sparkles className="w-3.5 h-3.5" style={{ color: isLightColor(primaryColor) ? "#B45309" : "#FDE047" }} />
+                    <Sparkles className="w-3.5 h-3.5 text-primary dark:text-violet-400" />
                   </div>
-                  <div>
-                    <h5 className="font-heading font-black text-xs leading-tight" style={{ color: primaryContrastText }}>
-                      Açaí Puro Artesanal
+                  <div className="mt-2">
+                    <h5 className="font-heading text-xs font-semibold text-foreground dark:text-zinc-100 leading-tight">
+                      Monte do seu jeito 🥣
                     </h5>
-                    <p
-                      className="text-[9px] line-clamp-1 mt-0.5 font-medium"
-                      style={{ opacity: 0.88, color: primaryContrastText }}
-                    >
-                      Batido na hora, cremoso e super refrescante
+                    <p className="text-[9px] mt-0.5 text-muted-foreground dark:text-zinc-300 font-normal line-clamp-1">
+                      Açaí artesanal batido na hora com os melhores complementos.
                     </p>
                   </div>
                 </div>
 
                 {/* Card Real de Produto */}
-                <div className="w-full rounded-2xl bg-card border border-border/80 p-2.5 shadow-sm space-y-2">
-                  <div className="relative w-full h-24 rounded-xl overflow-hidden bg-muted/60 flex items-center justify-center group">
+                <div className="w-full rounded-2xl bg-card border border-border/80 dark:border-zinc-800 p-2.5 shadow-sm space-y-2">
+                  <div className="relative w-full h-24 rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800/80 flex items-center justify-center group">
                     <img
                       src="https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=600&q=80"
                       alt="Açaí Especial Supremo"
@@ -485,30 +509,29 @@ export function LivePreview({
 
                   <div>
                     <div className="flex items-center justify-between">
-                      <h6 className="font-heading font-black text-xs text-foreground">
+                      <h6 className="font-heading text-xs font-semibold text-zinc-900 dark:text-zinc-100">
                         Açaí Especial Supremo 500ml
                       </h6>
                       <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md">
                         Top 1
                       </span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground line-clamp-2 mt-0.5 leading-snug">
+                    <p className="text-[10px] text-zinc-600 dark:text-zinc-400 line-clamp-2 mt-0.5 leading-snug">
                       Açaí artesanal cremoso batido com morangos frescos, banana fatiada, leite condensado e granola crocante.
                     </p>
                   </div>
 
                   <div className="flex items-center justify-between pt-1">
                     <div>
-                      <span className="text-[9px] text-muted-foreground block leading-none">A partir de</span>
-                      <span className="font-heading font-black text-xs text-foreground">
+                      <span className="text-[9px] text-muted-foreground dark:text-zinc-400 block leading-none">A partir de</span>
+                      <span className="font-heading text-xs font-bold text-primary dark:text-violet-400">
                         R$ 24,90
                       </span>
                     </div>
 
                     <button
                       type="button"
-                      className="text-[10px] font-black px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-sm active:scale-95 transition-transform cursor-pointer"
-                      style={{ backgroundColor: primaryColor, color: primaryContrastText }}
+                      className="text-[10px] font-black px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-sm active:scale-95 transition-transform cursor-pointer bg-primary text-white"
                     >
                       <Plus className="w-3 h-3 stroke-[3]" />
                       Adicionar

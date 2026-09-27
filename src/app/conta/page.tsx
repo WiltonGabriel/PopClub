@@ -121,6 +121,63 @@ function formatRelativeTime(dateString: string): string {
   }
 }
 
+interface FidelityBadgeInfo {
+  label: string;
+  badgeClass: string;
+  icon: string;
+}
+
+function getFidelityBadge(createdAtDate?: string | Date | null): FidelityBadgeInfo {
+  if (!createdAtDate) {
+    return {
+      label: "Novo Membro 🌟",
+      badgeClass: "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30",
+      icon: "🌟",
+    };
+  }
+
+  const created = new Date(createdAtDate);
+  const now = new Date();
+  
+  let months = (now.getFullYear() - created.getFullYear()) * 12 + (now.getMonth() - created.getMonth());
+  if (now.getDate() < created.getDate()) {
+    months = Math.max(0, months - 1);
+  }
+
+  if (months < 1) {
+    return {
+      label: "Novo Membro 🌟",
+      badgeClass: "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30",
+      icon: "🌟",
+    };
+  }
+
+  if (months <= 5) {
+    const textMonths = months === 1 ? "1 mês" : `${months} meses`;
+    return {
+      label: `Cliente Bronze • Há ${textMonths}`,
+      badgeClass: "bg-amber-700/10 text-amber-800 dark:text-amber-300 border-amber-700/30",
+      icon: "🥉",
+    };
+  }
+
+  if (months <= 11) {
+    return {
+      label: `Cliente Prata • Há ${months} meses`,
+      badgeClass: "bg-slate-200/70 text-slate-800 dark:bg-slate-800/80 dark:text-slate-200 border-slate-300 dark:border-slate-700",
+      icon: "🥈",
+    };
+  }
+
+  const years = Math.floor(months / 12);
+  const textYears = years === 1 ? "1 ano" : `${years} anos`;
+  return {
+    label: `Cliente Ouro VIP • Há ${textYears}`,
+    badgeClass: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40 shadow-xs",
+    icon: "👑",
+  };
+}
+
 export default function AccountPage() {
   const { user, loading, refreshUser, isAdmin, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
@@ -152,6 +209,9 @@ export default function AccountPage() {
   const [currentView, setCurrentView] = useState<AccountView>("menu");
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [fetching, setFetching] = useState(true);
+
+  const userCreatedAt = profile?.created_at || (user as any)?.createdAt || (user as any)?.created_at;
+  const fidelityBadge = getFidelityBadge(userCreatedAt);
 
   // Navegação Drill-down reativa
   const handleSelectSection = (sectionId: string) => {
@@ -603,9 +663,9 @@ export default function AccountPage() {
           }`}
         >
           {/* Card com Avatar e Saudação */}
-          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-4 mb-4 rounded-2xl shadow-sm">
+          <div className="bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 p-4 mb-4 rounded-2xl shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="relative w-14 h-14 rounded-full border-2 border-[#9306CF]/40 overflow-hidden bg-purple-50 dark:bg-[#190B1A] shrink-0">
+              <div className="relative w-14 h-14 rounded-full border-2 border-primary/40 overflow-hidden bg-purple-50 dark:bg-[#1E2538] shrink-0">
                 <Image
                   src={currentDisplayAvatar}
                   alt="Avatar do usuário"
@@ -616,7 +676,7 @@ export default function AccountPage() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] uppercase font-bold tracking-widest text-gray-500 dark:text-gray-400">Olá,</p>
-                <p className="font-heading font-bold text-base text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                <p className="font-heading font-bold text-base text-zinc-900 dark:text-zinc-100 truncate">
                   {profile?.full_name || user?.username || user?.email}
                 </p>
                 <p className="text-[11px] text-muted-foreground truncate">
@@ -624,19 +684,31 @@ export default function AccountPage() {
                 </p>
               </div>
             </div>
+
+            {/* Selo / Badge de Fidelidade (Exclusivo usuários cadastrados) */}
+            {user?.isRegistered && (
+              <div className="mt-3 pt-3 border-t border-gray-100 dark:border-zinc-800/80 flex items-center justify-between">
+                <div
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${fidelityBadge.badgeClass}`}
+                >
+                  <span>{fidelityBadge.icon}</span>
+                  <span>{fidelityBadge.label}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ================= SEÇÃO GESTÃO DA LOJA (EXCLUSIVO ADMIN / OPERADOR) ================= */}
           {(isAdmin || user?.role === "admin") && (
-            <div className="mb-4 p-3.5 bg-gradient-to-br from-[#9306CF]/10 via-purple-500/5 to-[#940068]/10 dark:from-[#9306CF]/20 dark:via-[#512B54]/20 dark:to-[#940068]/20 border border-[#9306CF]/30 dark:border-[#9306CF]/40 rounded-2xl shadow-sm">
+            <div className="mb-4 p-3.5 bg-gradient-to-br from-[#9306CF]/10 via-purple-500/5 to-[#940068]/10 dark:from-[#9306CF]/20 dark:via-[#1E2538] dark:to-[#940068]/20 border border-[#9306CF]/30 dark:border-zinc-800 rounded-2xl shadow-sm">
               <div className="flex items-center justify-between mb-2.5 px-0.5">
                 <div className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
-                  <span className="font-heading font-bold text-xs uppercase tracking-wider text-[#4C264F] dark:text-[#F9F5F9]">
+                  <ShieldCheck className="w-4 h-4 text-primary dark:text-violet-400" />
+                  <span className="font-heading font-bold text-xs uppercase tracking-wider text-zinc-900 dark:text-zinc-100">
                     Gestão da Loja
                   </span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#9306CF] text-white shadow-xs">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-primary text-white shadow-xs">
                   Acesso Admin
                 </span>
               </div>
@@ -645,14 +717,14 @@ export default function AccountPage() {
                 {/* 1. Painel Operacional / PDV */}
                 <Link
                   href="/admin"
-                  className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/60 hover:border-[#9306CF] dark:hover:border-[#9306CF] hover:shadow-md transition-all active:scale-[0.99]"
+                  className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all active:scale-[0.99]"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-[#9306CF] dark:text-[#C7A9C9] group-hover:scale-105 transition-transform shrink-0">
+                    <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-primary dark:text-violet-400 group-hover:scale-105 transition-transform shrink-0">
                       <LayoutDashboard className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-heading font-bold text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                      <p className="font-heading font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
                         Painel Operacional / PDV
                       </p>
                       <p className="text-[11px] text-muted-foreground truncate">
@@ -660,20 +732,20 @@ export default function AccountPage() {
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#9306CF] group-hover:translate-x-0.5 transition-all shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
                 </Link>
 
                 {/* 2. Gerenciar Pedidos */}
                 <Link
                   href="/admin/pedidos"
-                  className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/60 hover:border-[#9306CF] dark:hover:border-[#9306CF] hover:shadow-md transition-all active:scale-[0.99]"
+                  className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all active:scale-[0.99]"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="p-2 rounded-lg bg-pink-100 dark:bg-pink-950/60 text-[#940068] dark:text-pink-300 group-hover:scale-105 transition-transform shrink-0">
                       <ClipboardList className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-heading font-bold text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                      <p className="font-heading font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
                         Gerenciar Pedidos
                       </p>
                       <p className="text-[11px] text-muted-foreground truncate">
@@ -687,14 +759,14 @@ export default function AccountPage() {
                 {/* 3. Histórico de Pedidos da Loja */}
                 <Link
                   href="/admin/historico"
-                  className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/60 hover:border-[#9306CF] dark:hover:border-[#9306CF] hover:shadow-md transition-all active:scale-[0.99]"
+                  className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all active:scale-[0.99]"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform shrink-0">
                       <History className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-heading font-bold text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9] truncate">
+                      <p className="font-heading font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
                         Histórico de Vendas
                       </p>
                       <p className="text-[11px] text-muted-foreground truncate">
@@ -710,15 +782,15 @@ export default function AccountPage() {
 
           {/* Banner de Incentivo para Completar Cadastro */}
           {user && !user.isRegistered && (
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-[#9306CF] to-[#940068] text-white shadow-md shadow-[#9306CF]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-violet-600/10 via-purple-600/10 to-pink-600/10 dark:from-violet-950/40 dark:via-purple-950/30 dark:to-pink-950/20 border border-violet-200 dark:border-violet-800/60 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-xl bg-white/20 text-white shrink-0 mt-0.5">
+                <div className="p-2 rounded-xl bg-violet-500/15 text-primary dark:text-violet-400 shrink-0 mt-0.5">
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-sm text-white">Complete seu cadastro</h4>
-                  <p className="text-xs text-purple-100 mt-0.5 leading-relaxed">
-                    Adicione e-mail e senha para liberar cupons de desconto, personalizar seu avatar e acessar seus pedidos em outros aparelhos.
+                  <h4 className="font-bold text-sm text-zinc-900 dark:text-zinc-100">Desbloqueie benefícios VIP</h4>
+                  <p className="text-xs text-muted-foreground dark:text-zinc-300 mt-0.5 leading-relaxed">
+                    Complete seu cadastro para desbloquear seu selo de cliente VIP, cupons exclusivos e histórico detalhado.
                   </p>
                 </div>
               </div>
@@ -726,7 +798,7 @@ export default function AccountPage() {
                 type="button"
                 size="sm"
                 onClick={() => setIsCompleteRegModalOpen(true)}
-                className="bg-white hover:bg-gray-100 text-[#9306CF] font-bold text-xs h-9 px-4 rounded-xl shrink-0 cursor-pointer shadow"
+                className="bg-primary hover:bg-primary/90 text-white font-bold text-xs h-9 px-4 rounded-xl shrink-0 cursor-pointer shadow-xs"
               >
                 Completar Cadastro
               </Button>
@@ -745,13 +817,13 @@ export default function AccountPage() {
                   className={`group flex items-center gap-3 px-4 py-3.5 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-all border cursor-pointer active:scale-98 ${
                     isSelectedOnDesktop 
                       ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white border-transparent shadow-md shadow-[#9306CF]/20" 
-                      : "bg-white dark:bg-[#230E26] border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/50 text-gray-700 dark:text-gray-300 hover:text-[#4C264F] dark:hover:text-[#F9F5F9] hover:bg-gray-50/80 dark:hover:bg-white/5"
+                      : "bg-white dark:bg-[#181D2D] border-gray-200 dark:border-zinc-800 hover:border-primary/50 text-gray-700 dark:text-gray-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-gray-50/80 dark:hover:bg-white/5"
                   }`}
                 >
                   <span className={`p-2 rounded-lg transition-transform duration-200 group-hover:scale-110 shrink-0 ${
                     isSelectedOnDesktop 
                       ? "bg-white/20 text-white" 
-                      : "bg-purple-50 dark:bg-[#190B1A] text-[#9306CF] dark:text-[#C7A9C9]"
+                      : "bg-purple-50 dark:bg-[#1E2538] text-primary dark:text-violet-400"
                   }`}>
                     {sec.icon}
                   </span>
@@ -782,13 +854,13 @@ export default function AccountPage() {
             <div className="pt-2">
               <Link 
                 href="/pedidos" 
-                className="group flex items-center gap-3 px-4 py-3.5 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-all border bg-white dark:bg-[#230E26] border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/50 text-gray-700 dark:text-gray-300 hover:text-[#4C264F] dark:hover:text-[#F9F5F9] shadow-sm hover:bg-gray-50/80 dark:hover:bg-white/5"
+                className="group flex items-center gap-3 px-4 py-3.5 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-all border bg-white dark:bg-[#181D2D] border-gray-200 dark:border-zinc-800 hover:border-primary/50 text-gray-700 dark:text-gray-300 hover:text-zinc-900 dark:hover:text-zinc-100 shadow-sm hover:bg-gray-50/80 dark:hover:bg-white/5"
               >
-                <span className="p-2 rounded-lg bg-purple-50 dark:bg-[#190B1A] text-[#9306CF] dark:text-[#C7A9C9] group-hover:scale-110 transition-transform shrink-0">
+                <span className="p-2 rounded-lg bg-purple-50 dark:bg-[#1E2538] text-primary dark:text-violet-400 group-hover:scale-110 transition-transform shrink-0">
                   <Package className="w-4 h-4" />
                 </span>
                 <div className="flex-1 min-w-0">
-                  <span className="font-heading font-bold text-sm truncate block text-[#4C264F] dark:text-[#F9F5F9]">Ver Meus Pedidos</span>
+                  <span className="font-heading font-bold text-sm truncate block text-zinc-900 dark:text-zinc-100">Ver Meus Pedidos</span>
                   <p className="text-xs text-muted-foreground mt-0.5">Acompanhe entregas e pedidos anteriores</p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500 group-hover:translate-x-0.5 transition-transform shrink-0" />
@@ -835,20 +907,30 @@ export default function AccountPage() {
 
           {/* ================= ABA: MEU PERFIL ================= */}
           {activeSection === "perfil" && (
-            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
-              <div>
-                <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
-                  <User className="w-6 h-6 text-[#9306CF] dark:text-[#C7A9C9]" /> Meu Perfil
-                </h2>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                  Gerencie sua identidade, avatar oficial e dados cadastrais.
-                </p>
+            <div className="bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                    <User className="w-6 h-6 text-primary dark:text-violet-400" /> Meu Perfil
+                  </h2>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                    Gerencie sua identidade, avatar oficial e dados cadastrais.
+                  </p>
+                </div>
+                {user?.isRegistered && (
+                  <div
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border self-start sm:self-auto ${fidelityBadge.badgeClass}`}
+                  >
+                    <span>{fidelityBadge.icon}</span>
+                    <span>{fidelityBadge.label}</span>
+                  </div>
+                )}
               </div>
 
               {/* Seletor de Avatar em Destaque Circular */}
-              <div className="p-6 rounded-2xl bg-gray-50/80 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 flex flex-col sm:flex-row items-center gap-6">
+              <div className="p-6 rounded-2xl bg-gray-50/80 dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 flex flex-col sm:flex-row items-center gap-6">
                 <div className="relative group shrink-0">
-                  <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full border-4 border-[#9306CF]/40 p-1.5 bg-white dark:bg-[#230E26] shadow-xl overflow-hidden transition-transform group-hover:scale-105">
+                  <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full border-4 border-primary/40 p-1.5 bg-white dark:bg-[#181D2D] shadow-xl overflow-hidden transition-transform group-hover:scale-105">
                     <Image
                       src={selectedAvatar}
                       alt="Avatar Atual Selecionado"
@@ -866,7 +948,7 @@ export default function AccountPage() {
                     }}
                     title="Escolher Avatar"
                     aria-label="Escolher Avatar"
-                    className="absolute bottom-1 right-1 w-10 h-10 rounded-full bg-gradient-to-r from-[#9306CF] to-[#940068] text-white flex items-center justify-center shadow-lg border-2 border-white dark:border-[#230E26] hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                    className="absolute bottom-1 right-1 w-10 h-10 rounded-full bg-gradient-to-r from-violet-600 to-purple-600 text-white flex items-center justify-center shadow-lg border-2 border-white dark:border-[#181D2D] hover:scale-110 active:scale-95 transition-all cursor-pointer"
                   >
                     <Sparkles className="w-4 h-4" />
                   </button>
@@ -966,11 +1048,11 @@ export default function AccountPage() {
 
           {/* ================= ABA: NOTIFICAÇÕES & ALERTAS ================= */}
           {activeSection === "notificacoes" && (
-            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-[#512B54]/30 pb-4">
+            <div className="bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-zinc-800 pb-4">
                 <div>
-                  <h2 className="font-heading text-xl sm:text-2xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
-                    <Bell className="w-6 h-6 text-[#9306CF] dark:text-[#C7A9C9]" /> Notificações & Alertas
+                  <h2 className="font-heading text-xl sm:text-2xl font-bold uppercase tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                    <Bell className="w-6 h-6 text-primary dark:text-violet-400" /> Notificações & Alertas
                   </h2>
                   <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                     Histórico completo de comunicados, presentes e preferências de avisos da loja.
@@ -1144,12 +1226,12 @@ export default function AccountPage() {
 
           {/* ================= ABA: ACESSIBILIDADE ================= */}
           {activeSection === "acessibilidade" && (
-            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-8">
+            <div className="bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 p-6 sm:p-8 rounded-2xl shadow-sm space-y-8">
               <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] text-xs font-bold uppercase tracking-wider mb-2 border border-[#9306CF]/20">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary dark:text-violet-400 text-xs font-bold uppercase tracking-wider mb-2 border border-primary/20">
                   <Accessibility className="w-3.5 h-3.5" /> Inclusão e Conforto Visual
                 </div>
-                <h2 className="font-heading text-2xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
+                <h2 className="font-heading text-2xl font-bold uppercase tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                   Acessibilidade
                 </h2>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
@@ -1176,7 +1258,7 @@ export default function AccountPage() {
                     value={previewSettings.colorBlindMode}
                     onChange={(e) => updatePreview({ colorBlindMode: e.target.value as ColorBlindModeOption })}
                     aria-label="Selecione o filtro para daltonismo"
-                    className="w-full h-12 px-4 rounded-xl border border-gray-300 dark:border-[#512B54]/60 bg-white dark:bg-[#230E26] text-gray-900 dark:text-white font-medium text-sm focus:outline-none focus:ring-2 focus:ring-[#9306CF] transition-colors cursor-pointer"
+                    className="w-full h-12 px-4 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-[#181D2D] text-gray-900 dark:text-white font-medium text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-colors cursor-pointer"
                   >
                     <option value="none">Padrão (Desativado)</option>
                     <option value="protanopia">Protanopia (Baixa sensibilidade ao vermelho)</option>
@@ -1239,7 +1321,7 @@ export default function AccountPage() {
                         className={`p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer ${
                           isSelected
                             ? "border-[#9306CF] bg-[#9306CF]/10 dark:bg-[#9306CF]/20 shadow-md shadow-[#9306CF]/10"
-                            : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#230E26]"
+                            : "border-gray-200 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700 bg-white dark:bg-[#181D2D]"
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
@@ -1257,7 +1339,7 @@ export default function AccountPage() {
                 </div>
 
                 {/* Exemplo dinâmico de texto */}
-                <div className="p-3.5 rounded-xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40">
+                <div className="p-3.5 rounded-xl bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800">
                   <p className="text-xs uppercase font-bold tracking-wider text-muted-foreground mb-1">
                     Exemplo de Leitura:
                   </p>
@@ -1443,11 +1525,11 @@ export default function AccountPage() {
 
           {/* ================= ABA: ENDEREÇOS ================= */}
           {activeSection === "enderecos" && (
-            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
+            <div className="bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border/40">
                 <div>
-                  <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
-                    <MapPin className="w-6 h-6 text-[#9306CF] dark:text-[#C7A9C9]" /> Meus Endereços
+                  <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                    <MapPin className="w-6 h-6 text-primary dark:text-violet-400" /> Meus Endereços
                   </h2>
                   <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                     Gerencie seus endereços de entrega cadastrados na conta.
@@ -1566,10 +1648,10 @@ export default function AccountPage() {
 
           {/* ================= ABA: PREFERÊNCIAS ================= */}
           {activeSection === "preferencias" && (
-            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
+            <div className="bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 p-6 sm:p-8 rounded-2xl shadow-sm space-y-6">
               <div>
-                <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
-                  <Settings className="w-6 h-6 text-[#9306CF] dark:text-[#C7A9C9]" /> Preferências da Conta
+                <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                  <Settings className="w-6 h-6 text-primary dark:text-violet-400" /> Preferências da Conta
                 </h2>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                   Personalize a aparência visual e sua experiência de uso na Pop Shake.
@@ -1861,7 +1943,7 @@ export default function AccountPage() {
           onClick={() => setIsAvatarModalOpen(false)}
         >
           <div 
-            className="w-full max-w-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/50 rounded-3xl shadow-2xl p-6 sm:p-8 space-y-6 animate-in zoom-in-95 duration-200"
+            className="w-full max-w-2xl bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-2xl p-6 sm:p-8 space-y-6 animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">

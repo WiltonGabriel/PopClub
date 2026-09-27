@@ -623,8 +623,9 @@ export default function Storefront() {
             className="flex items-center select-none cursor-pointer hover:opacity-85 transition-opacity duration-200 shrink-0"
             aria-label="Pop Shake — Início"
           >
-            <span className="font-heading font-black text-xl tracking-tight text-foreground flex items-center shrink-0">
-              Pop<span className="gradient-text-brand">Shake</span>
+            <span className="font-heading font-black text-xl tracking-tight flex items-center shrink-0 drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)] select-none">
+              <span className="text-zinc-900 dark:text-white transition-colors">Pop</span>
+              <span className="text-primary dark:text-violet-400 transition-colors">Shake</span>
             </span>
           </Link>
 
@@ -632,7 +633,7 @@ export default function Storefront() {
           <div className="flex-1 flex justify-center items-center min-w-0 px-1">
             <HeaderAddressButton
               isMobile
-              className="max-w-[170px] xs:max-w-[210px] sm:max-w-[240px] truncate text-xs px-2.5 py-1.5 rounded-full border-border/50 bg-white/80 dark:bg-[#230E26]/80 shadow-xs"
+              className="max-w-[170px] xs:max-w-[210px] sm:max-w-[240px] truncate text-xs px-2.5 py-1.5 rounded-full border-border/50 bg-white/80 dark:bg-[#181D2D]/80 shadow-xs"
               spanClassName="max-w-[120px] xs:max-w-[160px] truncate font-medium"
             />
           </div>
@@ -658,8 +659,9 @@ export default function Storefront() {
               className="flex items-center select-none cursor-pointer hover:opacity-85 transition-opacity duration-200 shrink-0"
               aria-label="Pop Shake — Início"
             >
-              <span className="font-heading font-black text-2xl tracking-tight text-foreground flex items-center shrink-0">
-                Pop<span className="gradient-text-brand">Shake</span>
+              <span className="font-heading font-black text-2xl tracking-tight flex items-center shrink-0 drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)] select-none">
+                <span className="text-zinc-900 dark:text-white transition-colors">Pop</span>
+                <span className="text-primary dark:text-violet-400 transition-colors">Shake</span>
               </span>
             </Link>
           </div>
@@ -683,11 +685,11 @@ export default function Storefront() {
             {/* 1. [ Meus Pedidos ] — Desktop only */}
             <Link
               href="/pedidos"
-              className="hidden md:flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-foreground dark:text-foreground border border-border/50 hover:border-primary/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full px-3 sm:px-3.5 py-2 transition-all shrink-0 shadow-xs group cursor-pointer"
+              className="hidden md:flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-foreground dark:text-foreground border border-border/50 hover:border-primary/50 bg-white/60 dark:bg-[#181D2D]/60 hover:bg-muted/80 rounded-full px-3 sm:px-3.5 py-2 transition-all shrink-0 shadow-xs group cursor-pointer"
               title="Acompanhar Meus Pedidos"
               aria-label="Ver meus pedidos"
             >
-              <ReceiptText className="w-4 h-4 text-primary dark:text-muted-foreground group-hover:scale-110 transition-transform shrink-0" />
+              <ReceiptText className="w-4 h-4 text-primary dark:text-violet-400 group-hover:scale-110 transition-transform shrink-0" />
               <span>Meus Pedidos</span>
             </Link>
 
@@ -719,12 +721,12 @@ export default function Storefront() {
                 <button
                   type="button"
                   onClick={() => setUserMenuOpen((prev) => !prev)}
-                  className="flex items-center gap-1.5 sm:gap-2 border border-border/50 hover:border-primary/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full p-1.5 md:px-3.5 md:py-2 transition-all shrink-0 group shadow-xs cursor-pointer"
+                  className="flex items-center gap-1.5 sm:gap-2 border border-border/50 hover:border-primary/50 bg-white/60 dark:bg-[#181D2D]/60 hover:bg-muted/80 rounded-full p-1.5 md:px-3.5 md:py-2 transition-all shrink-0 group shadow-xs cursor-pointer"
                   aria-expanded={userMenuOpen}
                   aria-haspopup="true"
                   aria-label="Menu de perfil e entrada"
                 >
-                  <UserIcon className="w-4 h-4 text-primary dark:text-muted-foreground shrink-0" />
+                  <UserIcon className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
                   <span className="hidden md:inline text-xs sm:text-sm font-semibold text-foreground dark:text-foreground">
                     Entrar
                   </span>
@@ -736,8 +738,8 @@ export default function Storefront() {
                 </button>
 
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 sm:w-60 rounded-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/50 shadow-2xl py-2 z-[100] animate-in fade-in slide-in-from-top-2 duration-150">
-                    <div className="px-4 py-2 border-b border-gray-100 dark:border-border/30">
+                  <div className="absolute right-0 mt-2 w-56 sm:w-60 rounded-2xl bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 shadow-2xl py-2 z-[100] animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="px-4 py-2 border-b border-gray-100 dark:border-zinc-800/80">
                       <p className="text-xs font-semibold text-foreground dark:text-foreground">
                         Bem-vindo ao PopShake
                       </p>
@@ -750,12 +752,12 @@ export default function Storefront() {
                         onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
                       >
-                        <UserIcon className="w-4 h-4 text-primary dark:text-muted-foreground" />
+                        <UserIcon className="w-4 h-4 text-primary dark:text-violet-400" />
                         Entrar na Conta
                       </Link>
                     </div>
 
-                    <div className="border-t border-gray-100 dark:border-border/30 my-1" />
+                    <div className="border-t border-gray-100 dark:border-zinc-800/80 my-1" />
 
                     {/* Alterar tema */}
                     <button
@@ -766,7 +768,7 @@ export default function Storefront() {
                       {theme === "dark" ? (
                         <Sun className="w-4 h-4 text-amber-500 shrink-0" />
                       ) : (
-                        <Moon className="w-4 h-4 text-primary dark:text-muted-foreground shrink-0" />
+                        <Moon className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
                       )}
                       <span>Alterar tema</span>
                     </button>
@@ -778,7 +780,7 @@ export default function Storefront() {
                 <button
                   type="button"
                   onClick={() => setUserMenuOpen((prev) => !prev)}
-                  className="flex items-center gap-1.5 sm:gap-2 border border-border/50 hover:border-primary/50 bg-white/60 dark:bg-[#230E26]/60 hover:bg-muted/80 rounded-full p-1 md:pl-1.5 md:pr-3 md:py-1 transition-all shrink-0 group shadow-xs cursor-pointer"
+                  className="flex items-center gap-1.5 sm:gap-2 border border-border/50 hover:border-primary/50 bg-white/60 dark:bg-[#181D2D]/60 hover:bg-muted/80 rounded-full p-1 md:pl-1.5 md:pr-3 md:py-1 transition-all shrink-0 group shadow-xs cursor-pointer"
                   aria-expanded={userMenuOpen}
                   aria-haspopup="true"
                   aria-label={`Menu do usuário: ${userFirstName}`}
@@ -787,7 +789,7 @@ export default function Storefront() {
                   <div
                     className={`relative w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-primary to-accent text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0 transition-all ${
                       isAdmin
-                        ? "ring-2 ring-primary dark:ring-purple-400 ring-offset-2 ring-offset-background"
+                        ? "ring-2 ring-primary dark:ring-violet-400 ring-offset-2 ring-offset-background"
                         : "ring-1 ring-white/20"
                     }`}
                   >
@@ -828,93 +830,102 @@ export default function Storefront() {
 
                 {/* Dropdown Menu com z-[100] garantido acima de qualquer barra */}
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 sm:w-60 rounded-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/50 shadow-2xl py-2 z-[100] animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="absolute right-0 mt-2 w-60 sm:w-64 rounded-2xl bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 shadow-2xl p-2 z-[100] animate-in fade-in slide-in-from-top-2 duration-150">
                     {/* Cabeçalho do Dropdown */}
-                    <div className="px-4 py-2 border-b border-gray-100 dark:border-border/30">
+                    <div className="px-3 py-2 border-b border-gray-100 dark:border-zinc-800/80 mb-2">
                       <p className="text-xs font-semibold text-foreground dark:text-foreground truncate">
                         {user.fullName || user.username}
                       </p>
                       <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
                       {isAdmin && (
-                        <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary dark:text-muted-foreground border border-primary/30 px-1.5 py-0.5 rounded">
+                        <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary dark:text-violet-400 border border-primary/30 px-1.5 py-0.5 rounded">
                           Admin
                         </span>
                       )}
                     </div>
 
                     {/* Links dinâmicos por tipo de usuário */}
-                    <div className="py-1">
+                    <div className="space-y-1">
                       {isAdmin ? (
                         <>
-                          <Link
-                            href="/admin"
-                            onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
-                          >
-                            <LayoutDashboard className="w-4 h-4 text-primary dark:text-muted-foreground" />
-                            Painel Operacional
-                          </Link>
+                          {/* Moldura Delimitada para Atalhos Operacionais do Administrador */}
+                          <div className="border border-zinc-200 dark:border-zinc-800 bg-popover/95 backdrop-blur-sm rounded-xl p-1.5 shadow-lg space-y-0.5">
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground px-2 py-0.5 block">
+                              Operação & Gestão
+                            </span>
+                            <Link
+                              href="/admin"
+                              onClick={() => setUserMenuOpen(false)}
+                              className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
+                            >
+                              <LayoutDashboard className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
+                              <span>Painel Operacional</span>
+                            </Link>
 
-                          <Link
-                            href="/admin/pedidos"
-                            onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
-                          >
-                            <ClipboardList className="w-4 h-4 text-primary dark:text-muted-foreground" />
-                            Gerenciar Pedidos
-                          </Link>
+                            <Link
+                              href="/admin/pedidos"
+                              onClick={() => setUserMenuOpen(false)}
+                              className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
+                            >
+                              <ClipboardList className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
+                              <span>Gerenciar Pedidos</span>
+                            </Link>
 
-                          <Link
-                            href="/admin/historico"
-                            onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
-                          >
-                            <History className="w-4 h-4 text-primary dark:text-muted-foreground" />
-                            Histórico de Pedidos
-                          </Link>
+                            <Link
+                              href="/admin/historico"
+                              onClick={() => setUserMenuOpen(false)}
+                              className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
+                            >
+                              <History className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
+                              <span>Histórico de Pedidos</span>
+                            </Link>
+                          </div>
 
-                          <Link
-                            href="/pedidos"
-                            onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
-                          >
-                            <ReceiptText className="w-4 h-4 text-primary dark:text-muted-foreground" />
-                            Meus Pedidos
-                          </Link>
+                          {/* Seção Pessoal do Usuário */}
+                          <div className="pt-1 space-y-0.5">
+                            <Link
+                              href="/pedidos"
+                              onClick={() => setUserMenuOpen(false)}
+                              className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
+                            >
+                              <ReceiptText className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
+                              <span>Meus Pedidos</span>
+                            </Link>
 
-                          <Link
-                            href="/conta"
-                            onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
-                          >
-                            <UserIcon className="w-4 h-4 text-primary dark:text-muted-foreground" />
-                            Meu Perfil
-                          </Link>
+                            <Link
+                              href="/conta"
+                              onClick={() => setUserMenuOpen(false)}
+                              className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
+                            >
+                              <UserIcon className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
+                              <span>Meu Perfil</span>
+                            </Link>
+                          </div>
                         </>
                       ) : (
-                        <>
+                        <div className="space-y-0.5">
                           <Link
                             href="/pedidos"
                             onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
                           >
-                            <ShoppingBag className="w-4 h-4 text-primary dark:text-muted-foreground" />
-                            Meus Pedidos
+                            <ShoppingBag className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
+                            <span>Meus Pedidos</span>
                           </Link>
 
                           <Link
                             href="/conta"
                             onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
                           >
-                            <UserIcon className="w-4 h-4 text-primary dark:text-muted-foreground" />
-                            Meu Perfil
+                            <UserIcon className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
+                            <span>Meu Perfil</span>
                           </Link>
-                        </>
+                        </div>
                       )}
                     </div>
 
-                    <div className="border-t border-gray-100 dark:border-border/30 my-1" />
+                    <div className="border-t border-gray-100 dark:border-zinc-800/80 my-1" />
 
                     {/* 🌓 Alterar tema — Fixo logo acima de Sair */}
                     <button
@@ -922,17 +933,17 @@ export default function Storefront() {
                       onClick={() => {
                         toggleTheme();
                       }}
-                      className="w-full flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors text-left cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors text-left cursor-pointer"
                     >
                       {theme === "dark" ? (
                         <Sun className="w-4 h-4 text-amber-500 shrink-0" />
                       ) : (
-                        <Moon className="w-4 h-4 text-primary dark:text-muted-foreground shrink-0" />
+                        <Moon className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
                       )}
                       <span>Alterar tema</span>
                     </button>
 
-                    <div className="border-t border-gray-100 dark:border-border/30 my-1" />
+                    <div className="border-t border-gray-100 dark:border-zinc-800/80 my-1" />
 
                     {/* Sair */}
                     <button
@@ -940,10 +951,10 @@ export default function Storefront() {
                         setUserMenuOpen(false);
                         setIsLogoutModalOpen(true);
                       }}
-                      className="w-full flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors text-left cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors text-left cursor-pointer"
                     >
                       <LogOut className="w-4 h-4" />
-                      Sair
+                      <span>Sair</span>
                     </button>
                   </div>
                 )}
@@ -999,7 +1010,7 @@ export default function Storefront() {
       ───────────────────────────────────────── */}
       <div
         data-category-bar
-        className="hidden md:block sticky top-[55px] sm:top-[61px] z-30 bg-background/95 dark:bg-background/95 backdrop-blur-md border-b border-border/30"
+        className="sticky top-[55px] sm:top-[61px] z-30 bg-background/95 dark:bg-background/95 backdrop-blur-md border-b border-border/30"
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           {/*
@@ -1021,19 +1032,21 @@ export default function Storefront() {
                   onClick={() => handleSelectCategory(null)}
                   aria-pressed={!activeCategory || activeCategory === "all" || activeCategory === "todas"}
                   className={`
-                    chip-clay shrink-0 snap-start
-                    flex items-center gap-1.5
-                    px-4 py-2 rounded-full
-                    text-xs font-semibold
-                    border transition-all duration-200 min-h-[40px]
+                    shrink-0 snap-start
+                    flex items-center justify-center gap-1.5
+                    px-3.5 py-2 rounded-full
+                    text-xs font-medium select-none
+                    border transition-all duration-150 ease-out cursor-pointer
+                    min-h-[38px] active:scale-95 transition-transform
                     ${
                       !activeCategory || activeCategory === "all" || activeCategory === "todas"
-                        ? "category-active border-transparent"
-                        : "bg-card border-border/40 text-foreground hover:text-brand-pop-shake hover:border-brand-pop-shake/40 hover:bg-muted"
+                        ? "bg-primary text-white font-medium shadow-sm border-transparent"
+                        : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 border-transparent hover:text-primary"
                     }
                   `}
                 >
-                  🏠 Todos
+                  <span className="text-base leading-none" role="img" aria-hidden>✨</span>
+                  <span className="text-xs font-medium whitespace-nowrap">Todos</span>
                 </button>
 
                 {categories.map((cat, catIdx) => {
@@ -1239,24 +1252,24 @@ export default function Storefront() {
                 )}
                 {/* Banner Comercial de Destaque e Apelo de Sabor */}
                 <div
-                  className={`p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-primary/10 via-accent/10 to-[#10B981]/10 border border-primary/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-sm ${
+                  className={`p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-primary/10 via-accent/10 to-[#10B981]/10 dark:from-[#181D2D] dark:via-[#181D2D] dark:to-[#1E2538] border border-primary/20 dark:border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-sm ${
                     canEdit ? "group relative" : ""
                   }`}
                 >
                   <div className="flex items-center gap-3.5">
                     <span className="text-3xl shrink-0">{highlightBanner.icon || "🥣"}</span>
                     <div>
-                      <p className="font-heading font-bold text-sm sm:text-base text-foreground dark:text-foreground">
+                      <p className="font-heading text-sm sm:text-base text-foreground dark:text-zinc-100 font-semibold">
                         {highlightBanner.title || "Monte do seu jeito: escolha o tamanho e adicione seus acompanhamentos favoritos"}
                       </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                      <p className="text-sm text-muted-foreground dark:text-zinc-300 mt-0.5">
                         {highlightBanner.subtitle || "Açaí puro batido na hora, cremoso e com acompanhamentos à sua escolha."}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-white dark:bg-background text-primary dark:text-muted-foreground border border-primary/25 shadow-sm">
+                    <span className="text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-white dark:bg-zinc-800 text-primary dark:text-violet-400 border border-primary/25 dark:border-zinc-700 shadow-sm">
                       {highlightBanner.badge || "Refrescância Artesanal"}
                     </span>
 

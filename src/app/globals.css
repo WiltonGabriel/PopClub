@@ -40,16 +40,16 @@
 /* ── Dark mode surface overrides ── */
 .dark {
   --color-surface-0:    hsl(var(--background));
-  --color-surface-1:    #2B132D;
-  --color-surface-2:    #331735;
-  --color-surface-3:    hsl(var(--input));
+  --color-surface-1:    #181D2D;
+  --color-surface-2:    #1E2538;
+  --color-surface-3:    #272E44;
   --color-text-main:    hsl(var(--foreground));
   --color-text-sub:     hsl(var(--muted-foreground));
   --color-text-muted:   hsl(var(--muted-foreground));
   --shadow-card:        0 2px 16px rgba(0, 0, 0, 0.4);
   --shadow-card-hover:  0 8px 32px rgba(0, 0, 0, 0.6);
   --color-background:   hsl(var(--background));
-  --color-surface:      #2B132D;
+  --color-surface:      #181D2D;
 }
 
 * {
@@ -155,36 +155,36 @@ a {
   }
 
   .dark {
-    /* ── Pop Shake Dark Mode — Açaí Ultra Escuro ── */
-    --background:             298 40% 7%;     /* hsl(var(--background)) */
-    --foreground:             300 22% 97%;    /* hsl(var(--foreground)) */
+    /* ── Pop Shake Dark Mode — Slate / Grafite Profundo Moderno (Linear / Spotify) ── */
+    --background:             222 47% 11%;    /* #0F172A — Fundo geral profundo */
+    --foreground:             210 40% 98%;    /* #F8FAFC — Branco Gelo puro */
 
-    --card:                   297 40% 15%;    /* #331735 */
-    --card-foreground:        300 22% 97%;
+    --card:                   223 31% 14%;    /* #181D2D — Superfície de Cards e Banners */
+    --card-foreground:        210 40% 98%;
 
-    --popover:                296 40% 13%;    /* #2B132D */
-    --popover-foreground:     300 22% 97%;
+    --popover:                223 31% 14%;    /* #181D2D — Menus e Popovers */
+    --popover-foreground:     210 40% 98%;
 
-    --primary:                277 96% 42%;    /* hsl(var(--primary)) — mantido */
+    --primary:                258 90% 66%;    /* #8B5CF6 — Violeta Ametista Refinado */
     --primary-foreground:     0 0% 100%;
 
-    --secondary:              318 100% 29%;   /* hsl(var(--accent)) — mantido */
+    --secondary:              258 70% 50%;
     --secondary-foreground:   0 0% 100%;
 
-    --muted:                  296 40% 13%;    /* #2B132D */
-    --muted-foreground:       298 19% 73%;    /* hsl(var(--muted-foreground)) lavanda suave */
+    --muted:                  224 25% 18%;    /* #1E2538 */
+    --muted-foreground:       215 20% 65%;    /* #94A3B8 — Muted legível */
 
-    --accent:                 284 73% 39%;    /* #881BAA */
+    --accent:                 258 90% 66%;    /* #8B5CF6 */
     --accent-foreground:      0 0% 100%;
 
     --destructive:            0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --success:                127 50% 42%;    /* #35A340 — mantido vibrante */
+    --success:                142 70% 45%;    /* #22C55E — Verde vibrante */
 
-    --border:                 296 33% 25%;    /* hsl(var(--border)) */
-    --input:                  302 36% 18%;    /* hsl(var(--input)) */
-    --ring:                   277 96% 42%;
+    --border:                 220 20% 20%;    /* #27272A / border-zinc-800 sutil */
+    --input:                  220 20% 20%;
+    --ring:                   258 90% 66%;
   }
 
   * {

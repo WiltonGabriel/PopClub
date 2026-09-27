@@ -18,8 +18,8 @@ interface ProductCardProps {
 function ProductPlaceholder({ name }: { name: string }) {
   const firstChar = name?.[0]?.toUpperCase() ?? "P";
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-brand-surface-2 to-brand-surface-3 gap-2">
-      <span className="text-4xl font-heading font-black gradient-text-brand select-none">
+    <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-100 dark:bg-zinc-800/80 gap-2">
+      <span className="text-4xl font-heading font-black text-primary dark:text-violet-400 select-none">
         {firstChar}
       </span>
       <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
@@ -35,7 +35,7 @@ function getCategoryBadge(product: Product) {
     
   const l = (product.category ?? "").toLowerCase();
   if (l.includes("açaí") || l.includes("acai"))
-    return { icon: <IceCream className="w-3 h-3" />, label: "Açaí", color: "bg-brand-pop-shake/10 text-brand-pop-shake" };
+    return { icon: <IceCream className="w-3 h-3" />, label: "Açaí", color: "bg-primary/10 text-primary dark:text-violet-400" };
   if (l.includes("sorvete"))
     return { icon: <IceCream className="w-3 h-3" />, label: "Sorvete", color: "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-300" };
   if (l.includes("shake") || l.includes("milk"))
@@ -87,7 +87,7 @@ export function ProductCard({
         flex flex-row md:flex-col items-center md:items-stretch justify-between
         min-h-[105px] max-h-[125px] md:min-h-0 md:max-h-none
         py-3 px-2 sm:px-3 md:p-0
-        border-b md:border border-border/40 last:border-b-0 md:last:border-b md:rounded-2xl
+        border-b md:border border-border/40 dark:border-zinc-800 last:border-b-0 md:last:border-b md:rounded-2xl
         transition-all duration-200
         ${isOutOfStock ? "opacity-80 cursor-not-allowed" : "cursor-pointer hover:bg-muted/30 md:hover:bg-card md:hover:shadow-lg md:hover:border-primary/40 md:hover:-translate-y-0.5"}
         ${featured ? "md:col-span-2" : ""}
@@ -103,7 +103,7 @@ export function ProductCard({
             }}
             title="Editar produto"
             aria-label="Editar produto"
-            className="p-1.5 text-brand-pop-shake hover:bg-brand-surface-2 dark:hover:bg-primary/90/30 rounded-md transition-colors"
+            className="p-1.5 text-primary dark:text-violet-400 hover:bg-muted dark:hover:bg-zinc-800 rounded-md transition-colors"
           >
             <Edit2 className="w-3.5 h-3.5" />
           </button>
@@ -124,20 +124,20 @@ export function ProductCard({
       {/* ── LADO ESQUERDO NO MOBILE (65%) / INFERIOR NO DESKTOP: Conteúdo & Preço ── */}
       <div className="order-1 md:order-2 w-[65%] md:w-full pr-3 md:pr-0 md:p-3 flex flex-col justify-between h-full py-0.5 md:flex-1 gap-1">
         <div>
-          <h3 className="font-heading font-semibold md:font-bold text-foreground text-sm leading-tight line-clamp-1 md:line-clamp-2">
+          <h3 className="font-heading font-semibold text-zinc-900 dark:text-zinc-100 text-sm leading-tight line-clamp-1 md:line-clamp-2">
             {product.name}
           </h3>
           {product.description && (
-            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mt-0.5">
+            <p className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed mt-0.5">
               {product.description}
             </p>
           )}
         </div>
 
         {/* Linha de Preço & Desconto */}
-        <div className="flex items-center justify-between mt-auto pt-1.5 md:mt-2 md:pt-2 md:border-t md:border-border/30">
+        <div className="flex items-center justify-between mt-auto pt-1.5 md:mt-2 md:pt-2 md:border-t md:border-border/30 dark:md:border-zinc-800">
           <div className="flex flex-wrap items-baseline gap-1.5">
-            <span className={`font-heading font-bold md:font-black text-sm md:text-base ${isOutOfStock ? "text-muted-foreground line-through" : "text-brand-pop-shake"}`}>
+            <span className={`font-heading font-bold md:font-black text-sm md:text-base ${isOutOfStock ? "text-muted-foreground line-through" : "text-primary dark:text-violet-400"}`}>
               {formattedPrice}
             </span>
 
@@ -188,7 +188,7 @@ export function ProductCard({
       {/* ── LADO DIREITO NO MOBILE (35%) / SUPERIOR NO DESKTOP: Imagem 1:1 e Botão [ + ] Flutuante ── */}
       <div className="order-2 md:order-1 w-[35%] md:w-full flex justify-end shrink-0">
         <div className={`
-          relative overflow-hidden bg-brand-surface-2 shrink-0
+          relative overflow-hidden bg-zinc-100 dark:bg-zinc-800/80 shrink-0
           w-24 h-24 sm:w-28 sm:h-28 md:w-full md:h-auto
           ${featured ? "md:aspect-video" : "md:aspect-[4/3]"}
           rounded-2xl md:rounded-none md:rounded-t-2xl
