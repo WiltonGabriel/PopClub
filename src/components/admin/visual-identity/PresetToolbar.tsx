@@ -22,7 +22,7 @@ export function PresetToolbar({ advancedConfig, onLoadPreset, onSavePreset }: Pr
 
   // Ensure we have exactly 4 slots
   while (presets.length < 4) {
-    presets.push({ name: `Slot ${presets.length + 1}`, config: null });
+    presets.push({ name: `Slot \${presets.length + 1}`, config: null });
   }
 
   const startEdit = (idx: number, name: string) => {

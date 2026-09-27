@@ -24,8 +24,7 @@ interface AddressContextType {
   activeAddress: Address | null;
   activeAddressId: string | null;
   isAddressModalOpen: boolean;
-  editingAddress: Address | null;
-  openAddressModal: (addressToEdit?: Address | null | unknown) => void;
+  openAddressModal: () => void;
   closeAddressModal: () => void;
   setActiveAddressId: (id: string) => void;
   saveAddress: (addressData: Omit<Address, "id" | "createdAt">, idToUpdate?: string) => Promise<Address> | Address;
@@ -74,7 +73,6 @@ export function AddressProvider({ children }: { children: React.ReactNode }) {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [activeAddressId, setActiveAddressIdState] = useState<string | null>(null);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
-  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const [hasHydrated, setHasHydrated] = useState(false);
 
   // Limpeza de chaves legadas e saneamento de armazenamento
@@ -232,23 +230,12 @@ export function AddressProvider({ children }: { children: React.ReactNode }) {
     return addresses.find((a) => a.id === activeAddressId) || null;
   }, [activeAddressId, addresses]);
 
-  const openAddressModal = useCallback((addressToEdit?: Address | null | unknown) => {
-    if (
-      addressToEdit &&
-      typeof (addressToEdit as any).preventDefault !== "function" &&
-      typeof addressToEdit === "object" &&
-      "street" in addressToEdit
-    ) {
-      setEditingAddress(addressToEdit as Address);
-    } else {
-      setEditingAddress(null);
-    }
+  const openAddressModal = useCallback(() => {
     setIsAddressModalOpen(true);
   }, []);
 
   const closeAddressModal = useCallback(() => {
     setIsAddressModalOpen(false);
-    setEditingAddress(null);
   }, []);
 
   const setActiveAddressId = useCallback(
@@ -272,60 +259,33 @@ export function AddressProvider({ children }: { children: React.ReactNode }) {
       // Se autenticado, persiste na API do banco de dados
       if (user?.id) {
         try {
-          if (idToUpdate) {
-            const res = await userService.updateLocation(idToUpdate, {
-              street: addressData.street,
-              number: addressData.number,
-              neighborhood: addressData.neighborhood,
-              city: addressData.city || "Várzea Grande",
-              complement: addressData.complement,
-              reference: addressData.reference,
-              zip: addressData.zip,
-              latitude: addressData.latitude,
-              longitude: addressData.longitude,
-              name: addressData.label || "Casa",
-            });
+          const res = await userService.addLocation({
+            street: addressData.street,
+            number: addressData.number,
+            neighborhood: addressData.neighborhood,
+            city: addressData.city || "Várzea Grande",
+            complement: addressData.complement,
+            reference: addressData.reference,
+            zip: addressData.zip,
+            latitude: addressData.latitude,
+            longitude: addressData.longitude,
+            name: addressData.label || "Casa",
+            is_default: true,
+          });
 
-            const savedAddr = locationToAddress(res);
+          const savedAddr = locationToAddress(res);
 
-            setAddresses((prev) => {
-              const next = prev.map((a) => (a.id === idToUpdate ? savedAddr : a));
-              try {
-                localStorage.setItem(getUserAddressesKey(user.id), JSON.stringify(next));
-              } catch {}
-              return next;
-            });
+          setAddresses((prev) => {
+            const next = [savedAddr, ...prev.filter((a) => a.id !== savedAddr.id)];
+            try {
+              localStorage.setItem(getUserAddressesKey(user.id), JSON.stringify(next));
+              localStorage.setItem(getUserActiveKey(user.id), savedAddr.id);
+            } catch {}
+            return next;
+          });
 
-            return savedAddr;
-          } else {
-            const res = await userService.addLocation({
-              street: addressData.street,
-              number: addressData.number,
-              neighborhood: addressData.neighborhood,
-              city: addressData.city || "Várzea Grande",
-              complement: addressData.complement,
-              reference: addressData.reference,
-              zip: addressData.zip,
-              latitude: addressData.latitude,
-              longitude: addressData.longitude,
-              name: addressData.label || "Casa",
-              is_default: true,
-            });
-
-            const savedAddr = locationToAddress(res);
-
-            setAddresses((prev) => {
-              const next = [savedAddr, ...prev.filter((a) => a.id !== savedAddr.id)];
-              try {
-                localStorage.setItem(getUserAddressesKey(user.id), JSON.stringify(next));
-                localStorage.setItem(getUserActiveKey(user.id), savedAddr.id);
-              } catch {}
-              return next;
-            });
-
-            setActiveAddressIdState(savedAddr.id);
-            return savedAddr;
-          }
+          setActiveAddressIdState(savedAddr.id);
+          return savedAddr;
         } catch (err) {
           console.error("Erro ao persistir endereço no banco via API:", err);
         }
@@ -528,7 +488,6 @@ export function AddressProvider({ children }: { children: React.ReactNode }) {
         activeAddress,
         activeAddressId,
         isAddressModalOpen,
-        editingAddress,
         openAddressModal,
         closeAddressModal,
         setActiveAddressId,
