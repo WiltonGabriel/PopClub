@@ -227,6 +227,26 @@ export function PopShakeLoading({
 
   // Barra de Progresso customizada por Tema
   const renderProgressBar = () => {
+    const customBarColor = effectiveSettings.advancedConfig?.splashScreen?.progressBarColor;
+
+    if (customBarColor) {
+      return (
+        <div
+          className={`relative rounded-full bg-primary/10 dark:bg-white/10 overflow-hidden border border-primary/20 dark:border-white/10 my-3 shadow-inner ${
+            compact ? "w-36 h-2" : "w-48 sm:w-60 h-2"
+          }`}
+        >
+          <div
+            className="absolute inset-0 w-1/2 rounded-full animate-loading-bar"
+            style={{
+              backgroundColor: customBarColor,
+              boxShadow: `0 0 10px ${customBarColor}66`,
+            }}
+          />
+        </div>
+      );
+    }
+
     if (activeTheme === "liquid_cream") {
       return (
         <div

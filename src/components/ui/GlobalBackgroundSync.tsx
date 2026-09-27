@@ -39,25 +39,50 @@ export function GlobalBackgroundSync() {
     };
   }, []);
 
-  // Injeta o background estático ou a base do canvas diretamente no <body>
+  // Injeta variáveis CSS no :root e background no <body>
   useEffect(() => {
     if (!mounted || typeof document === "undefined") return;
 
     const isDark = theme === "dark";
+    const modeConfig = isDark
+      ? settings.advancedConfig?.storefront?.dark
+      : settings.advancedConfig?.storefront?.light;
 
+    const themeType =
+      settings.advancedConfig?.themeType ||
+      (isDark ? settings.bgTypeDark : settings.bgTypeLight) ||
+      "solid";
+
+    const baseColor =
+      modeConfig?.baseColor || (isDark ? "#121212" : "#FDFBF7");
+
+    const primaryColor =
+      modeConfig?.primary || (isDark ? "#E899FF" : "#4A0E4E");
+
+    const headerBg =
+      modeConfig?.headerBg || (isDark ? "#181818" : "#FFFFFF");
+
+    const footerBg =
+      modeConfig?.footerBg || (isDark ? "#121212" : "#FDFBF7");
+
+    const splashBg =
+      settings.advancedConfig?.splashScreen?.backgroundValue ||
+      resolveBackgroundCss(settings, isDark);
+
+    // Injeta as 6 variáveis no :root do CSS
+    document.documentElement.style.setProperty("--background", baseColor);
+    document.documentElement.style.setProperty("--primary", primaryColor);
+    document.documentElement.style.setProperty("--header-bg", headerBg);
+    document.documentElement.style.setProperty("--footer-bg", footerBg);
+    document.documentElement.style.setProperty("--splash-bg", splashBg);
+    document.documentElement.style.setProperty("--theme-type", themeType);
+
+    // Aplica o background na página
     let baseCss = resolveBackgroundCss(settings, isDark);
-
-    // Inject advanced config variables
-    if (settings.advancedConfig?.storefront) {
-      const modeConfig = isDark ? settings.advancedConfig.storefront.dark : settings.advancedConfig.storefront.light;
-
-      // Update variables based on advanced config
-      document.documentElement.style.setProperty('--primary', modeConfig.baseColor);
-
-      // Apply base color to body
-      if (modeConfig.baseColor) {
-        baseCss = modeConfig.baseColor;
-      }
+    if (modeConfig?.gradient && modeConfig.gradient.trim() !== "") {
+      baseCss = modeConfig.gradient;
+    } else if (modeConfig?.baseColor) {
+      baseCss = modeConfig.baseColor;
     }
 
     document.body.style.background = baseCss;

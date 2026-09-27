@@ -3,6 +3,9 @@ export type BackgroundType = "gradient" | "solid" | "pattern" | "dynamic";
 
 
 export interface AdvancedConfig {
+  themeId?: string;
+  themeType?: "solid" | "gradient" | "dynamic" | "custom";
+  isCoupled?: boolean;
   storefront: {
     light: {
       baseColor: string;
@@ -11,6 +14,7 @@ export interface AdvancedConfig {
       textureOpacity: number;
       headerBg: string;
       footerBg: string;
+      primary?: string;
     };
     dark: {
       baseColor: string;
@@ -19,6 +23,7 @@ export interface AdvancedConfig {
       textureOpacity: number;
       headerBg: string;
       footerBg: string;
+      primary?: string;
     };
   };
   splashScreen: {
@@ -26,6 +31,7 @@ export interface AdvancedConfig {
     backgroundType: string;
     backgroundValue: string;
     progressBarColor: string;
+    dynamicStyle?: "constellation" | "aurora_orbs";
   };
   presets: Array<{
     name: string;
@@ -347,6 +353,8 @@ export const loadingSettingsService = {
       bgTypeDark: data.bgTypeDark || DEFAULT_LOADING_SETTINGS.bgTypeDark,
       bgValueDark: data.bgValueDark || DEFAULT_LOADING_SETTINGS.bgValueDark,
       bgCustomDark: data.bgCustomDark || DEFAULT_LOADING_SETTINGS.bgCustomDark,
+
+      advancedConfig: data.data?.advancedConfig || data.advancedConfig || payload.advancedConfig || undefined,
 
       updatedAt: data.updatedAt,
     };

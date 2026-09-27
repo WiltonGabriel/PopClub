@@ -188,7 +188,10 @@ export async function PUT(request: Request) {
     return NextResponse.json({
       success: true,
       message: "Identidade visual atualizada com sucesso.",
-      data: updated,
+      data: {
+        ...updated,
+        advancedConfig: advancedConfig || (updated.bgCustomDark && updated.bgCustomDark.startsWith('{') ? JSON.parse(updated.bgCustomDark) : undefined),
+      },
     });
   } catch (error: any) {
     console.error("Erro ao atualizar identidade visual:", error);
