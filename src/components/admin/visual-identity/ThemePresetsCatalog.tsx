@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import {
-  Sparkles,
   Layers,
   Wand2,
   Sun,
