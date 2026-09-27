@@ -71,6 +71,7 @@ export function VisualIdentitySection() {
   const [advancedConfig, setAdvancedConfig] = useState<AdvancedConfig>(DEFAULT_ADVANCED);
   const [mode, setMode] = useState<"light" | "dark">("light");
 
+  const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmText, setConfirmText] = useState("");
@@ -108,6 +109,7 @@ export function VisualIdentitySection() {
     });
   }, []);
 
+  // Salva o tema ATUAL em um slot de memória rápida
   const handleSaveToSlot = (idx: number, name: string) => {
     const updatedPresets = [...(advancedConfig.presets || DEFAULT_ADVANCED.presets)];
     while (updatedPresets.length < 4) {
@@ -137,6 +139,32 @@ export function VisualIdentitySection() {
     saveToApi(true, nextAdvanced);
   };
 
+  // Renomeia o slot de memória rápida de forma isolada (NÃO carrega no preview, NÃO altera isDirty)
+  const handleRenameSlot = (idx: number, name: string) => {
+    const updatedPresets = [...(advancedConfig.presets || DEFAULT_ADVANCED.presets)];
+    while (updatedPresets.length < 4) {
+      updatedPresets.push({ name: `Slot ${updatedPresets.length + 1}`, config: null });
+    }
+
+    updatedPresets[idx] = {
+      ...updatedPresets[idx],
+      name,
+    };
+
+    const nextAdvanced = { ...advancedConfig, presets: updatedPresets };
+    setAdvancedConfig(nextAdvanced);
+
+    toast.showToast({
+      title: "Slot Renomeado",
+      message: `Nome atualizado para "${name}".`,
+      type: "info",
+    });
+
+    // Persiste no backend de forma silenciosa sem alterar o rascunho ativo
+    saveToApi(true, nextAdvanced);
+  };
+
+  // Carrega o tema do slot no preview do celular (marca isDirty)
   const handleLoadSlot = (config: PresetSlotConfig | null) => {
     if (!config) return;
     if (config.settings) setSettings((prev) => ({ ...prev, ...config.settings }));
@@ -147,6 +175,7 @@ export function VisualIdentitySection() {
         presets: prev.presets, // preserva a lista de slots
       }));
     }
+    setIsDirty(true);
     toast.showToast({
       title: "Preset Carregado no Preview",
       message: "Configuração aplicada para teste no celular. Clique em Publicar para aplicar na loja ao vivo.",
@@ -158,6 +187,7 @@ export function VisualIdentitySection() {
     const cached = loadingSettingsService.getCachedLoadingSettings();
     setSettings(cached);
     setAdvancedConfig(cached.advancedConfig || DEFAULT_ADVANCED);
+    setIsDirty(false);
     toast.showToast({
       title: "Alterações Descartadas",
       message: "Valores restaurados para o estado ativo no servidor.",
@@ -186,6 +216,7 @@ export function VisualIdentitySection() {
           type: "success",
         });
         setShowConfirm(false);
+        setIsDirty(false);
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro ao salvar identidade visual na loja.";
@@ -219,6 +250,7 @@ export function VisualIdentitySection() {
     currentModeConfig?.primary || (mode === "dark" ? "#FFFFFF" : "#4A0E4E");
 
   const handleManualChange = () => {
+    setIsDirty(true);
     setAdvancedConfig((prev) => {
       if (prev.themeId === "custom" && prev.isCoupled === false) return prev;
       return {
@@ -238,6 +270,7 @@ export function VisualIdentitySection() {
         advancedConfig={advancedConfig}
         setAdvancedConfig={setAdvancedConfig}
         previewMode={mode}
+        onDirty={() => setIsDirty(true)}
         onScrollToSlots={() => {
           const el = document.getElementById("preset-slots-toolbar");
           if (el) {
@@ -251,6 +284,7 @@ export function VisualIdentitySection() {
         advancedConfig={advancedConfig}
         onLoadPreset={handleLoadSlot}
         onSavePreset={handleSaveToSlot}
+        onRenameSlot={handleRenameSlot}
       />
 
       {/* 3. Layout Principal: Controles à Esquerda & Live Preview à Direita */}
@@ -323,36 +357,38 @@ export function VisualIdentitySection() {
         </div>
       </div>
 
-      {/* 4. Barra Fixa Inferior de Publicação */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-md border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.08)] z-40">
-        <div className="w-full max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3 px-4">
-          <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-muted-foreground text-center sm:text-left">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-            <span>
-              Tema em edição: <strong className="text-foreground">{themeCategoryLabel}</strong>.
-              As alterações no preview não alteram o site até você clicar em Publicar.
-            </span>
-          </div>
+      {/* 4. Barra Fixa Inferior de Publicação (Apenas quando modificado) */}
+      {isDirty && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-md border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.12)] z-40 animate-in slide-in-from-bottom duration-200">
+          <div className="w-full max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3 px-4">
+            <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-muted-foreground text-center sm:text-left">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span>
+                Tema em edição: <strong className="text-foreground">{themeCategoryLabel}</strong>.
+                As alterações no preview não alteram o site até você clicar em Publicar.
+              </span>
+            </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={handleDiscard}
-              className="w-1/2 sm:w-auto px-4 py-2.5 rounded-xl font-bold text-xs text-muted-foreground hover:text-foreground bg-muted hover:bg-muted/80 transition-all cursor-pointer"
-            >
-              Descartar
-            </button>
-            <button
-              type="button"
-              onClick={requestSave}
-              className="w-1/2 sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md shadow-primary/25 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Sparkles className="w-4 h-4" />
-              Publicar Alterações na Loja
-            </button>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={handleDiscard}
+                className="w-1/2 sm:w-auto px-4 py-2.5 rounded-xl font-bold text-xs bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-700 transition-all cursor-pointer"
+              >
+                Descartar
+              </button>
+              <button
+                type="button"
+                onClick={requestSave}
+                className="w-1/2 sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm tracking-wide shadow-md px-6 py-2.5 rounded-xl transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-white" />
+                Publicar Alterações na Loja
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* 5. Modal Crítico de Confirmação com Trava de Digitação ("Sim") */}
       {showConfirm && (
@@ -486,7 +522,7 @@ export function VisualIdentitySection() {
                 type="button"
                 onClick={() => saveToApi()}
                 disabled={!isSimConfirmed || isSaving}
-                className="px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-primary-foreground bg-primary disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/90 transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-primary/20"
+                className="px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-emerald-700 transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-emerald-600/20"
               >
                 {isSaving ? "Publicando..." : "Confirmar e Publicar na Loja"}
                 <ArrowRight className="w-4 h-4" />

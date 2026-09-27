@@ -14,6 +14,12 @@ import {
   Bike,
   Store,
   Award,
+  MapPin,
+  Tag,
+  Filter,
+  AlertTriangle,
+  ArrowRightLeft,
+  Percent,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -46,14 +52,20 @@ const BRAND_COLORS = {
   amber: "#F59E0B",
   blue: "#3B82F6",
   indigo: "#8B5CF6",
+  pix: "#00BDAE",
+  card: "#7C3AED",
+  cash: "#F59E0B",
+  delivery: "#10B981",
+  pickup: "#3B82F6",
+  cancelled: "#EF4444",
 };
 
 const PIE_COLORS = [
-  BRAND_COLORS.purple,
-  BRAND_COLORS.emerald,
-  BRAND_COLORS.amber,
-  BRAND_COLORS.blue,
-  BRAND_COLORS.magenta,
+  "#00BDAE", // PIX (Ciano/Verde-Água Oficial)
+  "#7C3AED", // Cartão (Roxo Marca/Índigo)
+  "#F59E0B", // Dinheiro (Âmbar/Laranja Quente)
+  "#10B981", // Esmeralda
+  "#3B82F6", // Azul Real
 ];
 
 const MONTH_NAMES = [
@@ -400,7 +412,7 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
     return list.slice(0, 5);
   }, [filteredOrders]);
 
-  // Gráfico 3: Distribuição de Pagamentos
+  // Gráfico 3: Distribuição de Pagamentos (Paleta Oficial Semântica)
   const paymentMethodData = useMemo(() => {
     const counts: Record<string, number> = {
       Pix: 0,
@@ -412,7 +424,7 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
       const type = (o.payment_method_type || "").toLowerCase();
       if (type.includes("pix")) {
         counts.Pix += 1;
-      } else if (type.includes("cartao") || type.includes("card")) {
+      } else if (type.includes("cartao") || type.includes("card") || type.includes("crédito") || type.includes("debito") || type.includes("débito")) {
         counts.Cartão += 1;
       } else if (type.includes("dinheiro") || type.includes("cash")) {
         counts.Dinheiro += 1;
@@ -424,16 +436,16 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
     const total = counts.Pix + counts.Cartão + counts.Dinheiro;
     if (total === 0) {
       return [
-        { name: "Pix", value: 65 },
-        { name: "Cartão", value: 25 },
-        { name: "Dinheiro", value: 10 },
+        { name: "Pix", value: 65, color: "#00BDAE" },
+        { name: "Cartão", value: 25, color: "#7C3AED" },
+        { name: "Dinheiro", value: 10, color: "#F59E0B" },
       ];
     }
 
     return [
-      { name: "Pix", value: counts.Pix },
-      { name: "Cartão", value: counts.Cartão },
-      { name: "Dinheiro", value: counts.Dinheiro },
+      { name: "Pix", value: counts.Pix, color: "#00BDAE" },
+      { name: "Cartão", value: counts.Cartão, color: "#7C3AED" },
+      { name: "Dinheiro", value: counts.Dinheiro, color: "#F59E0B" },
     ].filter((item) => item.value > 0);
   }, [filteredOrders]);
 
@@ -457,15 +469,210 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
     const total = deliveryCount + pickupCount;
     if (total === 0) {
       return [
-        { name: "Entrega (Delivery)", value: 72, color: BRAND_COLORS.purple },
-        { name: "Retirada no Balcão", value: 28, color: BRAND_COLORS.blue },
+        { name: "Entrega (Delivery)", value: 72, color: "#10B981" },
+        { name: "Retirada no Balcão", value: 28, color: "#3B82F6" },
       ];
     }
 
     return [
-      { name: "Entrega (Delivery)", value: deliveryCount, color: BRAND_COLORS.purple },
-      { name: "Retirada no Balcão", value: pickupCount, color: BRAND_COLORS.blue },
+      { name: "Entrega (Delivery)", value: deliveryCount, color: "#10B981" },
+      { name: "Retirada no Balcão", value: pickupCount, color: "#3B82F6" },
     ];
+  }, [filteredOrders]);
+
+  // ── 4 NOVAS MÉTRICAS ESTRATÉGICAS (MÓDULO 3) ──
+
+  // 1. Top Bairros com Mais Entregas
+  const topNeighborhoodsData = useMemo(() => {
+    const neighborhoodMap: Record<string, { pedidos: number; receitaTaxa: number }> = {};
+
+    filteredOrders.forEach((o) => {
+      const isPickup =
+        !o.delivery_address?.street ||
+        o.delivery_address?.street.toLowerCase().includes("retirada");
+
+      if (!isPickup) {
+        const rawNeighborhood = o.delivery_address?.neighborhood?.trim();
+        const neighborhood = rawNeighborhood && rawNeighborhood.length > 0 ? rawNeighborhood : "Centro";
+        if (!neighborhoodMap[neighborhood]) {
+          neighborhoodMap[neighborhood] = { pedidos: 0, receitaTaxa: 0 };
+        }
+        neighborhoodMap[neighborhood].pedidos += 1;
+        neighborhoodMap[neighborhood].receitaTaxa += Number(o.delivery_fee) || 0;
+      }
+    });
+
+    const list = Object.entries(neighborhoodMap).map(([name, data]) => ({
+      name,
+      pedidos: data.pedidos,
+      receitaTaxa: Number(data.receitaTaxa.toFixed(2)),
+    }));
+
+    list.sort((a, b) => b.pedidos - a.pedidos);
+
+    const totalDeliveryFee = list.reduce((acc, curr) => acc + curr.receitaTaxa, 0);
+
+    if (list.length === 0) {
+      return {
+        data: [
+          { name: "Centro", pedidos: 18, receitaTaxa: 108.0 },
+          { name: "Jardim América", pedidos: 14, receitaTaxa: 98.0 },
+          { name: "Bela Vista", pedidos: 11, receitaTaxa: 77.0 },
+          { name: "São Cristóvão", pedidos: 8, receitaTaxa: 64.0 },
+          { name: "Vila Nova", pedidos: 6, receitaTaxa: 42.0 },
+        ],
+        totalTaxas: 389.0,
+      };
+    }
+
+    return {
+      data: list.slice(0, 5),
+      totalTaxas: totalDeliveryFee,
+    };
+  }, [filteredOrders]);
+
+  // 2. Taxa de Conversão & Funil Operacional
+  const conversionFunnelData = useMemo(() => {
+    let delivered = 0;
+    let cancelled = 0;
+    let lostRevenue = 0;
+    let otherCount = 0;
+
+    filteredOrders.forEach((o) => {
+      const st = (o.status || "").toLowerCase();
+      if (st === "completed" || st === "delivered") {
+        delivered += 1;
+      } else if (st === "cancelled" || st === "cancelado") {
+        cancelled += 1;
+        lostRevenue += Number(o.total_amount) || 0;
+      } else {
+        otherCount += 1;
+      }
+    });
+
+    const total = delivered + cancelled + otherCount;
+    const conversionRate = total > 0 ? (delivered / total) * 100 : 92.5;
+
+    let chartData = [
+      { name: "Pedidos Entregues", value: delivered, color: "#10B981" },
+      { name: "Cancelados", value: cancelled, color: "#EF4444" },
+      { name: "Expirados / Outros", value: otherCount, color: "#F59E0B" },
+    ].filter((item) => item.value > 0);
+
+    if (total === 0) {
+      chartData = [
+        { name: "Pedidos Entregues", value: 37, color: "#10B981" },
+        { name: "Cancelados", value: 2, color: "#EF4444" },
+        { name: "Expirados / Outros", value: 1, color: "#F59E0B" },
+      ];
+      return {
+        conversionRate: 92.5,
+        lostRevenue: 78.5,
+        chartData,
+        deliveredCount: 37,
+        cancelledCount: 2,
+        totalOrders: 40,
+      };
+    }
+
+    return {
+      conversionRate,
+      lostRevenue,
+      chartData,
+      deliveredCount: delivered,
+      cancelledCount: cancelled,
+      totalOrders: total,
+    };
+  }, [filteredOrders]);
+
+  // 3. Eficiência de Cupons & Promoções
+  const couponEfficiencyData = useMemo(() => {
+    let ordersWithCoupon = 0;
+    let ordersFullPrice = 0;
+    let revenueWithCoupon = 0;
+    let revenueFullPrice = 0;
+    let totalDiscountConceded = 0;
+
+    filteredOrders.forEach((o) => {
+      const discount = Number(o.discount_amount) || 0;
+      const total = Number(o.total_amount) || 0;
+
+      if (discount > 0) {
+        ordersWithCoupon += 1;
+        revenueWithCoupon += total;
+        totalDiscountConceded += discount;
+      } else {
+        ordersFullPrice += 1;
+        revenueFullPrice += total;
+      }
+    });
+
+    const totalOrders = ordersWithCoupon + ordersFullPrice;
+    if (totalOrders === 0) {
+      return {
+        ordersWithCoupon: 12,
+        ordersFullPrice: 28,
+        revenueWithCoupon: 480.0,
+        revenueFullPrice: 1120.0,
+        totalDiscountConceded: 60.0,
+        couponPenetration: 30.0,
+      };
+    }
+
+    const couponPenetration = totalOrders > 0 ? (ordersWithCoupon / totalOrders) * 100 : 0;
+
+    return {
+      ordersWithCoupon,
+      ordersFullPrice,
+      revenueWithCoupon,
+      revenueFullPrice,
+      totalDiscountConceded,
+      couponPenetration,
+    };
+  }, [filteredOrders]);
+
+  // 4. Ticket Médio: Delivery vs Balcão
+  const ticketAverageData = useMemo(() => {
+    let deliveryCount = 0;
+    let deliveryTotal = 0;
+    let pickupCount = 0;
+    let pickupTotal = 0;
+
+    filteredOrders.forEach((o) => {
+      const isPickup =
+        !o.delivery_address?.street ||
+        o.delivery_address?.street.toLowerCase().includes("retirada");
+
+      const total = Number(o.total_amount) || 0;
+
+      if (isPickup) {
+        pickupCount += 1;
+        pickupTotal += total;
+      } else {
+        deliveryCount += 1;
+        deliveryTotal += total;
+      }
+    });
+
+    const avgDelivery = deliveryCount > 0 ? deliveryTotal / deliveryCount : 42.5;
+    const avgPickup = pickupCount > 0 ? pickupTotal / pickupCount : 28.0;
+
+    const diffPercent =
+      avgPickup > 0 ? ((avgDelivery - avgPickup) / avgPickup) * 100 : 0;
+
+    const chartData = [
+      { name: "Entrega (Delivery)", ticket: Number(avgDelivery.toFixed(2)), color: "#10B981" },
+      { name: "Retirada no Balcão", ticket: Number(avgPickup.toFixed(2)), color: "#3B82F6" },
+    ];
+
+    return {
+      avgDelivery,
+      avgPickup,
+      diffPercent,
+      deliveryCount: deliveryCount || 29,
+      pickupCount: pickupCount || 11,
+      chartData,
+    };
   }, [filteredOrders]);
 
   if (loading) {
@@ -781,6 +988,8 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
                   dataKey="quantity"
                   name="Qtd Vendida"
                   fill={BRAND_COLORS.magenta}
+                  stroke="hsl(var(--card))"
+                  strokeWidth={2}
                   radius={[0, 8, 8, 0]}
                 />
               </BarChart>
@@ -788,7 +997,7 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
           </div>
         </div>
 
-        {/* Gráfico 3: Distribuição de Pagamentos */}
+        {/* Gráfico 3: Distribuição de Pagamentos (Paleta Oficial Semântica) */}
         <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-border/30">
             <div>
@@ -797,9 +1006,12 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
                 Distribuição de Pagamentos
               </h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Divisão percentual entre métodos de pagamento
+                Divisão percentual entre PIX, Cartão e Dinheiro
               </p>
             </div>
+            <span className="text-[11px] font-mono font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/40 px-2.5 py-1 rounded-full">
+              Semântico
+            </span>
           </div>
 
           <div className="w-full h-64 flex items-center justify-center">
@@ -816,7 +1028,12 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
                   label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                 >
                   {paymentMethodData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.color}
+                      stroke="hsl(var(--card))"
+                      strokeWidth={3}
+                    />
                   ))}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
@@ -831,13 +1048,16 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-border/30">
             <div>
               <h3 className="font-heading font-bold text-sm sm:text-base text-foreground dark:text-foreground uppercase tracking-wide flex items-center gap-2">
-                <Bike className="w-4 h-4 text-primary" />
+                <Bike className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 Modalidade de Atendimento
               </h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 Entrega em Domicílio vs Retirada no Balcão
               </p>
             </div>
+            <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full">
+              Logística
+            </span>
           </div>
 
           <div className="w-full h-64 flex items-center justify-center">
@@ -854,13 +1074,297 @@ export function AnalyticsDashboard({ orders, loading = false }: AnalyticsDashboa
                   label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                 >
                   {fulfillmentData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.color}
+                      stroke="hsl(var(--card))"
+                      strokeWidth={3}
+                    />
                   ))}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: "11px" }} />
               </PieChart>
             </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Gráfico 5: Top Bairros com Mais Entregas (Módulo 3) */}
+        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-border/30">
+            <div>
+              <h3 className="font-heading font-bold text-sm sm:text-base text-foreground dark:text-foreground uppercase tracking-wide flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                Top Bairros com Mais Entregas
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                Regiões com maior volume de pedidos e receita de frete
+              </p>
+            </div>
+            <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full">
+              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(topNeighborhoodsData.totalTaxas)} em fretes
+            </span>
+          </div>
+
+          <div className="w-full h-64 sm:h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={topNeighborhoodsData.data}
+                layout="vertical"
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                <XAxis type="number" tick={{ fontSize: 11 }} />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  tick={{ fontSize: 11 }}
+                  width={110}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar
+                  dataKey="pedidos"
+                  name="Entregas"
+                  fill="#10B981"
+                  stroke="hsl(var(--card))"
+                  strokeWidth={2}
+                  radius={[0, 8, 8, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Gráfico 6: Taxa de Conversão & Funil Operacional (Módulo 3) */}
+        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-border/30">
+            <div>
+              <h3 className="font-heading font-bold text-sm sm:text-base text-foreground dark:text-foreground uppercase tracking-wide flex items-center gap-2">
+                <Filter className="w-4 h-4 text-primary" />
+                Funil & Conversão Operacional
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                Proporção entre entregas concluídas e pedidos cancelados
+              </p>
+            </div>
+            <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full">
+              {conversionFunnelData.conversionRate.toFixed(1)}% Sucesso
+            </span>
+          </div>
+
+          <div className="w-full h-56 flex items-center justify-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={conversionFunnelData.chartData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={80}
+                  paddingAngle={4}
+                  dataKey="value"
+                  label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                >
+                  {conversionFunnelData.chartData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.color}
+                      stroke="hsl(var(--card))"
+                      strokeWidth={3}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: "11px" }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Indicador de Perda por Cancelamento */}
+          {conversionFunnelData.lostRevenue > 0 ? (
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-destructive/10 border border-destructive/20 text-xs font-semibold text-destructive mt-2">
+              <span className="flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4" />
+                Perda por Cancelamento:
+              </span>
+              <span className="font-bold font-mono">
+                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(conversionFunnelData.lostRevenue)} ({conversionFunnelData.cancelledCount} ped.)
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-2">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4" />
+                Zero perda por cancelamento no período
+              </span>
+              <span className="font-mono font-bold">100% Retenção</span>
+            </div>
+          )}
+        </div>
+
+        {/* Gráfico 7: Eficiência de Cupons & Promoções (Módulo 3) */}
+        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-border/30">
+            <div>
+              <h3 className="font-heading font-bold text-sm sm:text-base text-foreground dark:text-foreground uppercase tracking-wide flex items-center gap-2">
+                <Tag className="w-4 h-4 text-primary" />
+                Eficiência de Cupons & Promoções
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                Faturamento com cupom vs preço cheio e descontos concedidos
+              </p>
+            </div>
+            <span className="text-[11px] font-mono font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1 rounded-full">
+              {couponEfficiencyData.couponPenetration.toFixed(1)}% Adesão
+            </span>
+          </div>
+
+          <div className="space-y-4 my-auto py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200/70 dark:border-border/40 space-y-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Com Cupom / Promo</span>
+                <p className="text-base sm:text-lg font-black font-mono text-purple-600 dark:text-purple-400">
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(couponEfficiencyData.revenueWithCoupon)}
+                </p>
+                <span className="text-[11px] text-muted-foreground block">
+                  {couponEfficiencyData.ordersWithCoupon} pedido(s)
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200/70 dark:border-border/40 space-y-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Preço Cheio</span>
+                <p className="text-base sm:text-lg font-black font-mono text-emerald-600 dark:text-emerald-400">
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(couponEfficiencyData.revenueFullPrice)}
+                </p>
+                <span className="text-[11px] text-muted-foreground block">
+                  {couponEfficiencyData.ordersFullPrice} pedido(s)
+                </span>
+              </div>
+            </div>
+
+            {/* Barra de Proporção Visual */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-[11px] font-semibold text-gray-600 dark:text-gray-400">
+                <span>Com Cupom ({couponEfficiencyData.couponPenetration.toFixed(0)}%)</span>
+                <span>Preço Cheio ({(100 - couponEfficiencyData.couponPenetration).toFixed(0)}%)</span>
+              </div>
+              <div className="w-full h-3 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden flex">
+                <div
+                  className="bg-purple-600 h-full transition-all duration-500"
+                  style={{ width: `${Math.max(couponEfficiencyData.couponPenetration, 3)}%` }}
+                />
+                <div
+                  className="bg-emerald-500 h-full transition-all duration-500"
+                  style={{ width: `${Math.max(100 - couponEfficiencyData.couponPenetration, 3)}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs font-semibold text-amber-700 dark:text-amber-300">
+              <span className="flex items-center gap-1.5">
+                <Percent className="w-4 h-4" /> Total de Desconto Concedido:
+              </span>
+              <span className="font-bold font-mono">
+                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(couponEfficiencyData.totalDiscountConceded)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gráfico 8: Ticket Médio: Delivery vs Balcão (Módulo 3) */}
+        <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-border/30">
+            <div>
+              <h3 className="font-heading font-bold text-sm sm:text-base text-foreground dark:text-foreground uppercase tracking-wide flex items-center gap-2">
+                <ArrowRightLeft className="w-4 h-4 text-primary" />
+                Ticket Médio: Delivery vs Balcão
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                Comparação direta do valor médio por modalidade de atendimento
+              </p>
+            </div>
+            <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full">
+              {ticketAverageData.diffPercent >= 0 ? `+${ticketAverageData.diffPercent.toFixed(1)}% no Delivery` : `${ticketAverageData.diffPercent.toFixed(1)}% no Delivery`}
+            </span>
+          </div>
+
+          <div className="space-y-4 my-auto py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-1">
+                <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-300 font-bold">
+                  <Bike className="w-3.5 h-3.5" /> Delivery
+                </div>
+                <p className="text-lg sm:text-xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(ticketAverageData.avgDelivery)}
+                </p>
+                <span className="text-[11px] text-muted-foreground block">
+                  {ticketAverageData.deliveryCount} pedido(s)
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-blue-500/5 border border-blue-500/20 space-y-1">
+                <div className="flex items-center gap-1.5 text-xs text-blue-700 dark:text-blue-300 font-bold">
+                  <Store className="w-3.5 h-3.5" /> Balcão
+                </div>
+                <p className="text-lg sm:text-xl font-black font-mono text-blue-600 dark:text-blue-400">
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(ticketAverageData.avgPickup)}
+                </p>
+                <span className="text-[11px] text-muted-foreground block">
+                  {ticketAverageData.pickupCount} pedido(s)
+                </span>
+              </div>
+            </div>
+
+            {/* Comparativo Visual em Barras Horizontais */}
+            <div className="space-y-3 pt-2">
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs font-semibold">
+                  <span className="text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
+                    <Bike className="w-3.5 h-3.5" /> Entrega em Domicílio
+                  </span>
+                  <span className="font-mono font-bold">
+                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(ticketAverageData.avgDelivery)}
+                  </span>
+                </div>
+                <div className="w-full h-3 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        (ticketAverageData.avgDelivery /
+                          Math.max(ticketAverageData.avgDelivery, ticketAverageData.avgPickup, 1)) *
+                          100
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs font-semibold">
+                  <span className="text-blue-700 dark:text-blue-300 flex items-center gap-1">
+                    <Store className="w-3.5 h-3.5" /> Retirada no Balcão
+                  </span>
+                  <span className="font-mono font-bold">
+                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(ticketAverageData.avgPickup)}
+                  </span>
+                </div>
+                <div className="w-full h-3 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="bg-blue-500 h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        (ticketAverageData.avgPickup /
+                          Math.max(ticketAverageData.avgDelivery, ticketAverageData.avgPickup, 1)) *
+                          100
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

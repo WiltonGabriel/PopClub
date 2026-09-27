@@ -11,6 +11,34 @@ import {
 import { DynamicCanvasBackground } from "./DynamicCanvasBackground";
 import { getContrastTextColor } from "../admin/visual-identity/themePresets";
 
+function hexToHslChannels(hex: string): string | null {
+  const cleanHex = hex.replace(/^#/, "").trim();
+  let fullHex = cleanHex;
+  if (cleanHex.length === 3) {
+    fullHex = cleanHex.split("").map((c) => c + c).join("");
+  }
+  if (fullHex.length !== 6) return null;
+  const r = parseInt(fullHex.substring(0, 2), 16) / 255;
+  const g = parseInt(fullHex.substring(2, 4), 16) / 255;
+  const b = parseInt(fullHex.substring(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+}
+
 export function GlobalBackgroundSync() {
   const { theme } = useTheme();
   const [settings, setSettings] = useState<LoadingSettingsData>(() =>
@@ -74,10 +102,14 @@ export function GlobalBackgroundSync() {
     const textureOpacity = String(modeConfig?.textureOpacity ?? 0.1);
     const radius = "0.75rem";
 
+    // Converte hex primário para canais HSL (compatível com Tailwind hsl(var(--primary)))
+    const primaryHslChannels = hexToHslChannels(primaryColor);
+
     // Injeta variáveis semânticas no :root do CSS (WCAG AA & Design System)
     document.documentElement.style.setProperty("--background", baseColor);
     document.documentElement.style.setProperty("--foreground", foreground);
-    document.documentElement.style.setProperty("--primary", primaryColor);
+    document.documentElement.style.setProperty("--primary", primaryHslChannels || primaryColor);
+    document.documentElement.style.setProperty("--primary-hex", primaryColor);
     document.documentElement.style.setProperty("--header-bg", headerBg);
     document.documentElement.style.setProperty("--footer-bg", footerBg);
     document.documentElement.style.setProperty("--radius", radius);

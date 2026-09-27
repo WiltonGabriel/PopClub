@@ -264,7 +264,7 @@ export default function AdminDashboard() {
           <Link href="/" className="font-heading font-black text-xl tracking-tight flex items-center gap-1.5 select-none hover:opacity-85 transition-opacity">
             <div className="flex items-center gap-0.5 font-heading font-black text-xl tracking-tight">
               <span className="text-foreground">Pop</span>
-              <span className="text-primary font-black">Shake</span>
+              <span className="text-primary font-black drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]">Shake</span>
               <span className="ml-1.5 text-xs font-bold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                 Sorveteria • Gestão
               </span>
@@ -500,8 +500,8 @@ export default function AdminDashboard() {
                   onClick={() => setActiveTab("metrics")}
                   className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
                     activeTab === "metrics"
-                      ? "bg-primary text-white shadow-sm"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   }`}
                 >
                   <BarChart3 className="w-4 h-4" />
@@ -513,8 +513,8 @@ export default function AdminDashboard() {
                   onClick={() => setActiveTab("combos")}
                   className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
                     activeTab === "combos"
-                      ? "bg-primary text-white shadow-sm"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   }`}
                 >
                   <Zap className="w-4 h-4" />
@@ -522,8 +522,8 @@ export default function AdminDashboard() {
                   <span
                     className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
                       activeTab === "combos"
-                        ? "bg-white/20 text-white"
-                        : "bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-gray-300"
+                        ? "bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900"
+                        : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
                     }`}
                   >
                     {combos.length}
@@ -535,8 +535,8 @@ export default function AdminDashboard() {
                   onClick={() => setActiveTab("promotions")}
                   className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
                     activeTab === "promotions"
-                      ? "bg-primary text-white shadow-sm"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   }`}
                 >
                   <Tag className="w-4 h-4" />
@@ -544,8 +544,8 @@ export default function AdminDashboard() {
                   <span
                     className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
                       activeTab === "promotions"
-                        ? "bg-white/20 text-white"
-                        : "bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-gray-300"
+                        ? "bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900"
+                        : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
                     }`}
                   >
                     {directPromos.length}
@@ -557,8 +557,8 @@ export default function AdminDashboard() {
                   onClick={() => setActiveTab("banners")}
                   className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
                     activeTab === "banners"
-                      ? "bg-primary text-white shadow-sm"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   }`}
                 >
                   <ImageIcon className="w-4 h-4" />
@@ -566,8 +566,8 @@ export default function AdminDashboard() {
                   <span
                     className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
                       activeTab === "banners"
-                        ? "bg-white/20 text-white"
-                        : "bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-gray-300"
+                        ? "bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900"
+                        : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
                     }`}
                   >
                     {bannerPromos.length + 1}
@@ -579,8 +579,8 @@ export default function AdminDashboard() {
                   onClick={() => setActiveTab("appearance")}
                   className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
                     activeTab === "appearance"
-                      ? "bg-primary text-white shadow-sm"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   }`}
                 >
                   <Palette className="w-4 h-4" />
@@ -592,8 +592,8 @@ export default function AdminDashboard() {
                   onClick={() => setActiveTab("coupons")}
                   className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
                     activeTab === "coupons"
-                      ? "bg-primary text-white shadow-sm"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   }`}
                 >
                   <Ticket className="w-4 h-4" />
@@ -605,8 +605,8 @@ export default function AdminDashboard() {
                   onClick={() => setActiveTab("messages")}
                   className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
                     activeTab === "messages"
-                      ? "bg-primary text-white shadow-sm"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   }`}
                 >
                   <Send className="w-4 h-4" />
@@ -618,8 +618,8 @@ export default function AdminDashboard() {
                   onClick={() => setActiveTab("delivery")}
                   className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
                     activeTab === "delivery"
-                      ? "bg-primary text-white shadow-sm"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   }`}
                 >
                   <Truck className="w-4 h-4" />
@@ -631,8 +631,8 @@ export default function AdminDashboard() {
                   onClick={() => setActiveTab("avatars")}
                   className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
                     activeTab === "avatars"
-                      ? "bg-primary text-white shadow-sm"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   }`}
                 >
                   <Sparkles className="w-4 h-4" />

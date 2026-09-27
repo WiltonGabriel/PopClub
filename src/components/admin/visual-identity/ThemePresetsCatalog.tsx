@@ -25,6 +25,7 @@ interface Props {
   setAdvancedConfig: React.Dispatch<React.SetStateAction<AdvancedConfig>>;
   previewMode: "light" | "dark";
   onScrollToSlots?: () => void;
+  onDirty?: () => void;
 }
 
 export function ThemePresetsCatalog({
@@ -34,6 +35,7 @@ export function ThemePresetsCatalog({
   setAdvancedConfig,
   previewMode,
   onScrollToSlots,
+  onDirty,
 }: Props) {
   // Apenas 2 abas principais: "classic" e "dynamic"
   const [activeTab, setActiveTab] = useState<"classic" | "dynamic">("classic");
@@ -45,6 +47,7 @@ export function ThemePresetsCatalog({
   const isCustomMode = currentThemeId === "custom" || advancedConfig.isCoupled === false;
 
   const handleSelectPreset = (preset: HarmonizedThemePreset) => {
+    onDirty?.();
     const isDark = previewMode === "dark";
 
     const updatedStorefront = {
@@ -184,8 +187,8 @@ export function ThemePresetsCatalog({
           onClick={() => setActiveTab("classic")}
           className={`text-xs sm:text-sm font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === "classic"
-              ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20 scale-[1.01]"
-              : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+              ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-bold scale-[1.01]"
+              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white border border-transparent"
           }`}
         >
           <Layers className="w-4 h-4" />
@@ -197,8 +200,8 @@ export function ThemePresetsCatalog({
           onClick={() => setActiveTab("dynamic")}
           className={`text-xs sm:text-sm font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === "dynamic"
-              ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20 scale-[1.01]"
-              : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+              ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-bold scale-[1.01]"
+              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white border border-transparent"
           }`}
         >
           <Zap className="w-4 h-4" />

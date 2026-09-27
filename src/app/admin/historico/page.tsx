@@ -195,7 +195,7 @@ export default function AdminHistoricoPage() {
           <Link href="/" className="font-heading font-black text-xl tracking-tight flex items-center gap-1.5 select-none hover:opacity-85 transition-opacity">
             <div className="flex items-center gap-0.5 font-heading font-black text-xl tracking-tight">
               <span className="text-foreground">Pop</span>
-              <span className="text-primary font-black">Shake</span>
+              <span className="text-primary font-black drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]">Shake</span>
               <span className="ml-1.5 text-xs font-bold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                 Histórico & Auditoria
               </span>

@@ -8,12 +8,14 @@ interface PresetToolbarProps {
   advancedConfig: AdvancedConfig;
   onLoadPreset: (presetConfig: PresetSlotConfig | null) => void;
   onSavePreset: (index: number, name: string) => void;
+  onRenameSlot: (index: number, name: string) => void;
 }
 
 export function PresetToolbar({
   advancedConfig,
   onLoadPreset,
   onSavePreset,
+  onRenameSlot,
 }: PresetToolbarProps) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingName, setEditingName] = useState("");
@@ -30,14 +32,16 @@ export function PresetToolbar({
     presets.push({ name: `Slot ${presets.length + 1}`, config: null });
   }
 
-  const startEdit = (idx: number, name: string) => {
+  const startEdit = (idx: number, name: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     setEditingIndex(idx);
     setEditingName(name);
   };
 
-  const handleSaveName = (idx: number) => {
+  const handleSaveName = (idx: number, e?: React.MouseEvent | React.KeyboardEvent) => {
+    if (e) e.stopPropagation();
     const finalName = editingName.trim() || `Slot ${idx + 1}`;
-    onSavePreset(idx, finalName);
+    onRenameSlot(idx, finalName);
     setEditingIndex(null);
   };
 
@@ -79,7 +83,7 @@ export function PresetToolbar({
               {/* Header do Slot */}
               <div className="flex items-center justify-between gap-1 mb-2">
                 {editingIndex === idx ? (
-                  <div className="flex items-center gap-1 w-full">
+                  <div className="flex items-center gap-1 w-full" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="text"
                       value={editingName}
@@ -87,13 +91,14 @@ export function PresetToolbar({
                       className="w-full text-xs bg-input border border-border rounded-lg px-2 py-1 text-foreground font-bold focus:ring-1 focus:ring-primary"
                       autoFocus
                       onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSaveName(idx);
+                        e.stopPropagation();
+                        if (e.key === "Enter") handleSaveName(idx, e);
                         if (e.key === "Escape") setEditingIndex(null);
                       }}
                     />
                     <button
                       type="button"
-                      onClick={() => handleSaveName(idx)}
+                      onClick={(e) => handleSaveName(idx, e)}
                       className="p-1 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 rounded-lg hover:bg-emerald-100 cursor-pointer"
                       title="Confirmar Nome"
                     >
@@ -120,7 +125,7 @@ export function PresetToolbar({
 
                     <button
                       type="button"
-                      onClick={() => startEdit(idx, preset.name)}
+                      onClick={(e) => startEdit(idx, preset.name, e)}
                       className="text-muted-foreground hover:text-primary p-1 rounded-md transition-colors cursor-pointer"
                       title="Renomear Slot"
                     >
