@@ -2,6 +2,17 @@ export type LoadingTheme = "liquid_cream" | "playful_bounce" | "minimal_pulse";
 export type BackgroundType = "gradient" | "solid" | "pattern" | "dynamic";
 
 
+export interface PresetSlotConfig {
+  settings?: Partial<LoadingSettingsData>;
+  advancedConfig?: Partial<AdvancedConfig>;
+  savedAt?: string;
+}
+
+export interface PresetSlotItem {
+  name: string;
+  config: PresetSlotConfig | null;
+}
+
 export interface AdvancedConfig {
   themeId?: string;
   themeType?: "solid" | "gradient" | "dynamic" | "custom";
@@ -33,10 +44,7 @@ export interface AdvancedConfig {
     progressBarColor: string;
     dynamicStyle?: "constellation" | "aurora_orbs";
   };
-  presets: Array<{
-    name: string;
-    config: any;
-  }>;
+  presets: PresetSlotItem[];
 }
 
 export interface LoadingSettingsData {

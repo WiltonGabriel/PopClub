@@ -193,10 +193,11 @@ export async function PUT(request: Request) {
         advancedConfig: advancedConfig || (updated.bgCustomDark && updated.bgCustomDark.startsWith('{') ? JSON.parse(updated.bgCustomDark) : undefined),
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Erro interno ao atualizar configurações visuais.";
     console.error("Erro ao atualizar identidade visual:", error);
     return NextResponse.json(
-      { error: error.message || "Erro interno ao atualizar configurações visuais." },
+      { error: message },
       { status: 500 }
     );
   }

@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { LoadingSettingsData, AdvancedConfig } from "@/services/loadingSettingsService";
-import { Plus, Trash2, Clock, Palette, Sparkles, Wand2, Smartphone } from "lucide-react";
+import { LoadingSettingsData, AdvancedConfig, LoadingTheme } from "@/services/loadingSettingsService";
+import { Plus, Trash2, Clock, Sparkles, Smartphone } from "lucide-react";
 
 const ICON_PRESETS = ["🥣", "🍧", "🍦", "🍓", "✨", "🍨", "🥞", "🍒", "🍫", "🥤", "🥑", "🌱"];
 
@@ -143,7 +143,7 @@ export function SplashScreenConfig({
                     value={t.id}
                     className="hidden"
                     checked={settings.theme === t.id}
-                    onChange={(e) => setSettings({ ...settings, theme: e.target.value as any })}
+                    onChange={(e) => setSettings({ ...settings, theme: e.target.value as LoadingTheme })}
                   />
                   <span className="text-xs font-bold text-foreground">{t.label}</span>
                   <span className="text-[11px] text-muted-foreground mt-1 leading-snug">{t.desc}</span>

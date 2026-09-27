@@ -2,7 +2,7 @@
 
 import React from "react";
 import { AdvancedConfig } from "@/services/loadingSettingsService";
-import { Palette, Layers, Sliders, Sparkles } from "lucide-react";
+import { Palette, Layers, Sliders } from "lucide-react";
 
 interface Props {
   advancedConfig: AdvancedConfig;
@@ -32,7 +32,12 @@ export function StorefrontConfig({ advancedConfig, setAdvancedConfig, mode }: Pr
           primary: "#FFFFFF",
         };
 
-  const updateConfig = (key: string, value: any) => {
+  type StorefrontModeConfig = NonNullable<AdvancedConfig["storefront"]["light"]>;
+
+  const updateConfig = <K extends keyof StorefrontModeConfig>(
+    key: K,
+    value: StorefrontModeConfig[K]
+  ) => {
     setAdvancedConfig((prev) => ({
       ...prev,
       // Se o usuário editar manualmente as cores, marca como desacoplado para não sobrescrever acidentalmente

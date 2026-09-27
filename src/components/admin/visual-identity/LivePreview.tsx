@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import {
   Sun,
   Moon,
@@ -11,8 +11,6 @@ import {
   Plus,
   Search,
   Sparkles,
-  Smartphone,
-  Check,
 } from "lucide-react";
 import { LoadingSettingsData, AdvancedConfig } from "@/services/loadingSettingsService";
 import { DynamicCanvasBackground } from "@/components/ui/DynamicCanvasBackground";

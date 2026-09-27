@@ -5,6 +5,7 @@ import {
   loadingSettingsService,
   LoadingSettingsData,
   AdvancedConfig,
+  PresetSlotConfig,
 } from "@/services/loadingSettingsService";
 import { useToast } from "@/components/ui/ToastNotification";
 import {
@@ -17,13 +18,10 @@ import {
 } from "./visual-identity";
 import {
   ShieldAlert,
-  AlertTriangle,
   Sparkles,
-  CheckCircle2,
   X,
   Palette,
   Smartphone,
-  Layers,
   ArrowRight,
 } from "lucide-react";
 
@@ -139,9 +137,9 @@ export function VisualIdentitySection() {
     saveToApi(true, nextAdvanced);
   };
 
-  const handleLoadSlot = (config: any) => {
+  const handleLoadSlot = (config: PresetSlotConfig | null) => {
     if (!config) return;
-    if (config.settings) setSettings(config.settings);
+    if (config.settings) setSettings((prev) => ({ ...prev, ...config.settings }));
     if (config.advancedConfig) {
       setAdvancedConfig((prev) => ({
         ...prev,
@@ -189,10 +187,11 @@ export function VisualIdentitySection() {
         });
         setShowConfirm(false);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro ao salvar identidade visual na loja.";
       toast.showToast({
         title: "Erro ao Publicar",
-        message: err.message || "Erro ao salvar identidade visual na loja.",
+        message,
         type: "error",
       });
     } finally {

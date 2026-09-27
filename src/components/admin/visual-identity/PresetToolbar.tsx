@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { Save, Download, Edit2, Check, Bookmark, Sparkles, CheckCircle2 } from "lucide-react";
-import { AdvancedConfig } from "@/services/loadingSettingsService";
+import { Save, Download, Edit2, Check, Bookmark, CheckCircle2 } from "lucide-react";
+import { AdvancedConfig, PresetSlotConfig } from "@/services/loadingSettingsService";
 
 interface PresetToolbarProps {
   advancedConfig: AdvancedConfig;
-  onLoadPreset: (presetConfig: any) => void;
+  onLoadPreset: (presetConfig: PresetSlotConfig | null) => void;
   onSavePreset: (index: number, name: string) => void;
 }
 

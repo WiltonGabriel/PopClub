@@ -1,7 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
-import { Sparkles, Layers, Sliders, CheckCircle2, Wand2, Palette, Waves, Zap } from "lucide-react";
+import {
+  Layers,
+  Sliders,
+  CheckCircle2,
+  Wand2,
+  Palette,
+  Waves,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 import {
   HARMONIZED_PRESETS,
   HarmonizedThemePreset,
@@ -10,7 +19,7 @@ import {
 import { LoadingSettingsData, AdvancedConfig } from "@/services/loadingSettingsService";
 
 interface Props {
-  settings: LoadingSettingsData;
+  settings?: LoadingSettingsData;
   setSettings: React.Dispatch<React.SetStateAction<LoadingSettingsData>>;
   advancedConfig: AdvancedConfig;
   setAdvancedConfig: React.Dispatch<React.SetStateAction<AdvancedConfig>>;
@@ -18,7 +27,7 @@ interface Props {
 }
 
 export function ThemePresetsCatalog({
-  settings,
+  settings: _settings,
   setSettings,
   advancedConfig,
   setAdvancedConfig,
@@ -84,7 +93,7 @@ export function ThemePresetsCatalog({
     }));
   };
 
-  const categories: Array<{ id: "all" | ThemeCategory; label: string; icon: any }> = [
+  const categories: Array<{ id: "all" | ThemeCategory; label: string; icon: LucideIcon }> = [
     { id: "all", label: "Todos os Temas", icon: Layers },
     { id: "solid", label: "Cor Sólida & Minimalista", icon: Palette },
     { id: "gradient", label: "Gradientes", icon: Waves },
