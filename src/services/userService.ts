@@ -100,6 +100,19 @@ export const userService = {
     return await res.json();
   },
 
+  async updateLocation(locationId: string, data: Partial<UserLocation>): Promise<UserLocation> {
+    const res = await fetch(`/api/users/locations/${locationId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || "Erro ao atualizar endereço.");
+    }
+    return await res.json();
+  },
+
   async setDefaultLocation(locationId: string, _userId?: string): Promise<void> {
     const res = await fetch(`/api/users/locations/${locationId}`, {
       method: "PATCH",

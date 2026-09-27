@@ -24,13 +24,13 @@ const checkoutSchema = z.object({
   ).min(1, "O carrinho deve ter pelo menos 1 item"),
 
   deliveryAddress: z.object({
-    street: z.string().trim().min(1, "Logradouro/Rua é obrigatório"),
-    number: z.string().trim().min(1, "Número é obrigatório"),
-    neighborhood: z.string().trim().min(1, "Bairro é obrigatório"),
-    city: z.string().trim().default("Local"),
-    complement: z.string().trim().optional().nullable(),
-    reference: z.string().trim().optional().nullable(),
-    zip: z.string().trim().optional().nullable(),
+    street: z.string().trim().min(1, "Logradouro/Rua é obrigatório").max(100, "Rua/Logradouro muito longo (máximo 100 caracteres)"),
+    number: z.string().trim().min(1, "Número é obrigatório").max(50, "Número muito longo (máximo 50 caracteres)"),
+    neighborhood: z.string().trim().min(1, "Bairro é obrigatório").max(100, "Bairro muito longo (máximo 100 caracteres)"),
+    city: z.string().trim().max(100, "Cidade muito longa (máximo 100 caracteres)").default("Local"),
+    complement: z.string().trim().max(300, "Complemento muito longo (máximo 300 caracteres)").optional().nullable(),
+    reference: z.string().trim().max(300, "Referência muito longa (máximo 300 caracteres)").optional().nullable(),
+    zip: z.string().trim().max(50, "CEP muito longo (máximo 50 caracteres)").optional().nullable(),
     latitude: z.preprocess((val) => (val === "" || val === null || val === undefined ? null : Number(val)), z.number().nullable().optional()),
     longitude: z.preprocess((val) => (val === "" || val === null || val === undefined ? null : Number(val)), z.number().nullable().optional()),
   }),
@@ -399,18 +399,21 @@ export async function POST(request: Request) {
       return newOrder;
     });
 
-    return NextResponse.json({
-      success: true,
-      order: {
-        id: order.id,
-        status: order.status,
-        subtotal: Number(order.subtotal),
-        discountAmount: Number(order.discountAmount),
-        deliveryFee: Number(order.deliveryFee),
-        totalAmount: Number(order.totalAmount),
-        createdAt: order.createdAt.toISOString(),
+    return NextResponse.json(
+      {
+        success: true,
+        order: {
+          id: order.id,
+          status: order.status,
+          subtotal: Number(order.subtotal),
+          discountAmount: Number(order.discountAmount),
+          deliveryFee: Number(order.deliveryFee),
+          totalAmount: Number(order.totalAmount),
+          createdAt: order.createdAt.toISOString(),
+        },
       },
-    });
+      { status: 201 }
+    );
   } catch (error: unknown) {
     return handleApiError(
       error,
