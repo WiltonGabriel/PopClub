@@ -3,7 +3,7 @@
 import React, { useEffect, useRef } from "react";
 
 export interface DynamicCanvasBackgroundProps {
-  style?: "constellation" | "aurora_orbs";
+  style?: "constellation" | "aurora_orbs" | "noctalia_mesh" | "fluid_orbs";
   isDark?: boolean;
   className?: string;
   // Se fornecido, restringe o rastreamento do mouse ao container de preview mock
@@ -42,12 +42,14 @@ export function DynamicCanvasBackground({
       window.matchMedia &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+    const isConstellationMesh = style === "constellation" || style === "noctalia_mesh";
+
     // Posição do mouse
     const mouse = {
       x: -9999,
       y: -9999,
       active: false,
-      radius: style === "constellation" ? 140 : 180,
+      radius: isConstellationMesh ? 140 : 180,
     };
 
     let width = 0;
@@ -78,13 +80,13 @@ export function DynamicCanvasBackground({
     // Paletas temáticas para o Canvas
     const getPalette = () => {
       if (isDark) {
-        return style === "constellation"
-          ? ["#FF007A", "hsl(var(--primary))", "#E899FF", "hsl(var(--muted-foreground))", "#00F0FF"]
-          : ["hsl(var(--primary))", "#FF007A", "hsl(var(--accent))", "#E899FF", "hsl(var(--muted-foreground))"];
+        return isConstellationMesh
+          ? ["#818CF8", "#6366F1", "#A855F7", "#38BDF8", "#00F0FF"]
+          : ["#C084FC", "#9333EA", "#F472B6", "#FB7185", "#E899FF"];
       } else {
-        return style === "constellation"
-          ? ["hsl(var(--primary))", "hsl(var(--accent))", "#FF007A", "#7B1FA2", "#881BAA"]
-          : ["hsl(var(--primary))", "#FF007A", "#FF70A6", "#B388FF", "#FFB5E8"];
+        return isConstellationMesh
+          ? ["#6366F1", "#4F46E5", "#7C3AED", "#0284C7", "#06B6D4"]
+          : ["#9333EA", "#C084FC", "#EC4899", "#F43F5E", "#A855F7"];
       }
     };
 
@@ -93,15 +95,15 @@ export function DynamicCanvasBackground({
       particles = [];
       const isMobile = width < 768;
       const count = isMobile
-        ? style === "constellation" ? 24 : 16
-        : style === "constellation" ? 50 : 30;
+        ? isConstellationMesh ? 24 : 16
+        : isConstellationMesh ? 50 : 30;
 
       const palette = getPalette();
       const speedMultiplier = prefersReducedMotion ? 0.08 : 0.65;
 
       for (let i = 0; i < count; i++) {
         const radius =
-          style === "constellation"
+          isConstellationMesh
             ? Math.random() * 2 + 1.2
             : Math.random() * 16 + 12;
 
@@ -114,7 +116,7 @@ export function DynamicCanvasBackground({
           baseRadius: radius,
           color: palette[Math.floor(Math.random() * palette.length)],
           alpha:
-            style === "constellation"
+            isConstellationMesh
               ? isDark ? Math.random() * 0.5 + 0.35 : Math.random() * 0.4 + 0.25
               : isDark ? Math.random() * 0.35 + 0.15 : Math.random() * 0.25 + 0.1,
         });
@@ -341,7 +343,7 @@ export function DynamicCanvasBackground({
         }
       }
 
-      if (style === "constellation") {
+      if (isConstellationMesh) {
         renderConstellation();
       } else {
         renderAuroraOrbs();

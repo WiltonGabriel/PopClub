@@ -9,6 +9,7 @@ import {
   LOADING_UPDATED_EVENT,
 } from "../../services/loadingSettingsService";
 import { DynamicCanvasBackground } from "./DynamicCanvasBackground";
+import { getContrastTextColor } from "../admin/visual-identity/themePresets";
 
 export function GlobalBackgroundSync() {
   const { theme } = useTheme();
@@ -69,11 +70,18 @@ export function GlobalBackgroundSync() {
       settings.advancedConfig?.splashScreen?.backgroundValue ||
       resolveBackgroundCss(settings, isDark);
 
-    // Injeta as 6 variáveis no :root do CSS
+    const foreground = getContrastTextColor(baseColor);
+    const textureOpacity = String(modeConfig?.textureOpacity ?? 0.1);
+    const radius = "0.75rem";
+
+    // Injeta variáveis semânticas no :root do CSS (WCAG AA & Design System)
     document.documentElement.style.setProperty("--background", baseColor);
+    document.documentElement.style.setProperty("--foreground", foreground);
     document.documentElement.style.setProperty("--primary", primaryColor);
     document.documentElement.style.setProperty("--header-bg", headerBg);
     document.documentElement.style.setProperty("--footer-bg", footerBg);
+    document.documentElement.style.setProperty("--radius", radius);
+    document.documentElement.style.setProperty("--texture-opacity", textureOpacity);
     document.documentElement.style.setProperty("--splash-bg", splashBg);
     document.documentElement.style.setProperty("--theme-type", themeType);
 
@@ -132,10 +140,14 @@ export function GlobalBackgroundSync() {
   const bgValue = isDark ? (settings.bgValueDark || "preset_dark_violet") : (settings.bgValueLight || "preset_cream");
 
   if (bgType === "dynamic") {
+    const canvasStyle =
+      settings.advancedConfig?.splashScreen?.dynamicStyle ||
+      (bgValue === "aurora_orbs" ? "aurora_orbs" : "constellation");
+
     return (
       <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden" aria-hidden="true">
         <DynamicCanvasBackground
-          style={bgValue === "aurora_orbs" ? "aurora_orbs" : "constellation"}
+          style={canvasStyle}
           isDark={isDark}
           className="w-full h-full"
         />

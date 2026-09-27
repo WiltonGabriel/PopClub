@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { LoadingSettingsData, AdvancedConfig } from "@/services/loadingSettingsService";
 import { DynamicCanvasBackground } from "@/components/ui/DynamicCanvasBackground";
+import { getContrastTextColor, isLightColor } from "./themePresets";
 
 interface Props {
   settings: LoadingSettingsData;
@@ -78,9 +79,19 @@ export function LivePreview({
 
   const dynamicStyle =
     splashConfig.dynamicStyle ||
-    (isDark ? settings.bgValueDark : settings.bgValueLight) === "aurora_orbs"
+    ((isDark ? settings.bgValueDark : settings.bgValueLight) === "aurora_orbs"
       ? "aurora_orbs"
-      : "constellation";
+      : "constellation");
+
+  // Cores inteligentes de contraste (WCAG AA)
+  const primaryContrastText = getContrastTextColor(primaryColor);
+  const headerBg = config.headerBg || (isDark ? "#181818" : "#FFFFFF");
+  const headerTextColor = getContrastTextColor(headerBg);
+  const headerMutedColor = isLightColor(headerBg) ? "#64748B" : "#94A3B8";
+
+  const footerBg = config.footerBg || (isDark ? "#121212" : "#FDFBF7");
+  const footerTextColor = getContrastTextColor(footerBg);
+  const footerMutedColor = isLightColor(footerBg) ? "#64748B" : "#94A3B8";
 
   // Determina o CSS de Fundo do celular
   const getContainerBg = () => {
@@ -98,6 +109,17 @@ export function LivePreview({
     }
     return config.baseColor || (isDark ? "#121212" : "#FDFBF7");
   };
+
+  const containerBg = getContainerBg();
+  const rawBgColor =
+    typeof containerBg === "string" && containerBg.startsWith("#")
+      ? containerBg
+      : isDark
+      ? "#121212"
+      : "#FDFBF7";
+  const statusTextColor = isDynamic
+    ? (isDark ? "#F8FAFC" : "#0F172A")
+    : getContrastTextColor(rawBgColor);
 
   // Testar Sequência Completa (Splash Screen 2s -> Fade-in Vitrine)
   const handlePlayFullSequence = () => {
@@ -259,7 +281,10 @@ export function LivePreview({
           )}
 
           {/* Barra Superior do iPhone (Dynamic Island + Notch) */}
-          <div className="h-8 w-full shrink-0 flex items-center justify-between px-6 z-20 text-[10px] font-bold text-foreground/80">
+          <div
+            className="h-8 w-full shrink-0 flex items-center justify-between px-6 z-20 text-[10px] font-bold"
+            style={{ color: statusTextColor }}
+          >
             <span>09:41</span>
             <div className="w-16 h-3 bg-neutral-900 rounded-full mx-auto" />
             <div className="flex items-center gap-1 text-[9px]">
@@ -295,7 +320,12 @@ export function LivePreview({
 
               {/* Título da Loja */}
               <h3
-                className="font-heading font-black text-sm tracking-wider uppercase mb-3 bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent"
+                className="font-heading font-black text-sm tracking-wider uppercase mb-3 text-center"
+                style={{
+                  color: isLightColor(splashConfig.backgroundValue || (isDark ? "#121212" : "#FDFBF7"))
+                    ? "#0F172A"
+                    : "#FFFFFF",
+                }}
               >
                 Pop Shake Sorveteria
               </h3>
@@ -313,11 +343,25 @@ export function LivePreview({
               </div>
 
               {/* Frase Rotativa */}
-              <p className="text-[11px] font-medium text-foreground/75 max-w-[200px] leading-snug min-h-[32px] flex items-center justify-center mt-1">
+              <p
+                className="text-[11px] font-medium max-w-[200px] leading-snug min-h-[32px] flex items-center justify-center mt-1 text-center"
+                style={{
+                  color: isLightColor(splashConfig.backgroundValue || (isDark ? "#121212" : "#FDFBF7"))
+                    ? "#334155"
+                    : "#CBD5E1",
+                }}
+              >
                 {settings.phrases?.[0] || "Carregando delícias artesanais..."}
               </p>
 
-              <span className="text-[9px] uppercase tracking-widest text-foreground/50 mt-4 font-mono font-bold">
+              <span
+                className="text-[9px] uppercase tracking-widest mt-4 font-mono font-bold"
+                style={{
+                  color: isLightColor(splashConfig.backgroundValue || (isDark ? "#121212" : "#FDFBF7"))
+                    ? "#64748B"
+                    : "#94A3B8",
+                }}
+              >
                 Splash Screen • {settings.theme || "liquid_cream"}
               </span>
             </div>
@@ -331,20 +375,20 @@ export function LivePreview({
               {/* Header da Vitrine */}
               <div
                 className="h-14 w-full shrink-0 flex items-center justify-between px-4 shadow-xs backdrop-blur-md border-b border-black/5 dark:border-white/5"
-                style={{ backgroundColor: `${config.headerBg}E6` }}
+                style={{ backgroundColor: `${headerBg}F2`, color: headerTextColor }}
               >
                 <div className="flex items-center gap-2">
                   <div
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black text-white shadow-xs"
-                    style={{ backgroundColor: primaryColor }}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shadow-xs"
+                    style={{ backgroundColor: primaryColor, color: primaryContrastText }}
                   >
                     ★
                   </div>
                   <div>
-                    <h4 className="text-xs font-black font-heading leading-tight text-foreground">
+                    <h4 className="text-xs font-black font-heading leading-tight" style={{ color: headerTextColor }}>
                       Pop Shake
                     </h4>
-                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-0.5">
+                    <span className="text-[9px] font-bold flex items-center gap-0.5" style={{ color: headerMutedColor }}>
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       Loja Aberta
                     </span>
@@ -352,12 +396,15 @@ export function LivePreview({
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <div className="w-6 h-6 rounded-full bg-foreground/10 flex items-center justify-center text-foreground/70">
+                  <div
+                    className="w-6 h-6 rounded-full flex items-center justify-center border border-black/10 dark:border-white/10"
+                    style={{ color: headerTextColor }}
+                  >
                     <Search className="w-3 h-3" />
                   </div>
                   <div
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-white"
-                    style={{ backgroundColor: primaryColor }}
+                    className="w-6 h-6 rounded-full flex items-center justify-center shadow-xs"
+                    style={{ backgroundColor: primaryColor, color: primaryContrastText }}
                   >
                     <ShoppingBag className="w-3 h-3" />
                   </div>
@@ -369,12 +416,12 @@ export function LivePreview({
                 {["Açaí", "Combos", "Copos", "Sobremesas"].map((cat, idx) => (
                   <span
                     key={cat}
-                    className={`text-[9px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap shadow-2xs ${
+                    className="text-[9px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap shadow-2xs"
+                    style={
                       idx === 0
-                        ? "text-white"
-                        : "bg-background/80 text-foreground/70 border border-border/50"
-                    }`}
-                    style={idx === 0 ? { backgroundColor: primaryColor } : {}}
+                        ? { backgroundColor: primaryColor, color: primaryContrastText }
+                        : { backgroundColor: isDark ? "#27272A" : "#F1F5F9", color: isDark ? "#E4E4E7" : "#334155" }
+                    }
                   >
                     {cat}
                   </span>
@@ -385,22 +432,32 @@ export function LivePreview({
               <div className="flex-1 p-3 space-y-3 overflow-y-auto no-scrollbar">
                 {/* Banner de Destaque Harmonizado */}
                 <div
-                  className="w-full rounded-2xl p-3 text-white shadow-md relative overflow-hidden flex flex-col justify-between min-h-[90px]"
+                  className="w-full rounded-2xl p-3 shadow-md relative overflow-hidden flex flex-col justify-between min-h-[90px]"
                   style={{
                     background: `linear-gradient(135deg, ${primaryColor}E6, ${primaryColor}99)`,
+                    color: primaryContrastText,
                   }}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[8px] font-mono uppercase font-black bg-black/25 px-1.5 py-0.5 rounded-md backdrop-blur-xs">
+                    <span
+                      className="text-[8px] font-mono uppercase font-black px-1.5 py-0.5 rounded-md backdrop-blur-xs"
+                      style={{
+                        backgroundColor: isLightColor(primaryColor) ? "rgba(0,0,0,0.12)" : "rgba(0,0,0,0.3)",
+                        color: primaryContrastText,
+                      }}
+                    >
                       Destaque do Dia
                     </span>
-                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                    <Sparkles className="w-3.5 h-3.5" style={{ color: isLightColor(primaryColor) ? "#B45309" : "#FDE047" }} />
                   </div>
                   <div>
-                    <h5 className="font-heading font-black text-xs leading-tight">
+                    <h5 className="font-heading font-black text-xs leading-tight" style={{ color: primaryContrastText }}>
                       Açaí Puro Artesanal
                     </h5>
-                    <p className="text-[9px] text-white/80 line-clamp-1 mt-0.5">
+                    <p
+                      className="text-[9px] line-clamp-1 mt-0.5 font-medium"
+                      style={{ opacity: 0.88, color: primaryContrastText }}
+                    >
                       Batido na hora, cremoso e super refrescante
                     </p>
                   </div>
@@ -408,19 +465,21 @@ export function LivePreview({
 
                 {/* Card Real de Produto */}
                 <div className="w-full rounded-2xl bg-card border border-border/80 p-2.5 shadow-sm space-y-2">
-                  <div className="relative w-full h-24 rounded-xl overflow-hidden bg-muted/60 flex items-center justify-center">
-                    {/* Visual ilustrativo de taça de açaí */}
-                    <div className="flex flex-col items-center">
-                      <span className="text-4xl filter drop-shadow">🥣</span>
-                      <span className="text-[9px] font-bold text-muted-foreground mt-1">
-                        Açaí Especial Supremo
-                      </span>
-                    </div>
+                  <div className="relative w-full h-24 rounded-xl overflow-hidden bg-muted/60 flex items-center justify-center group">
+                    <img
+                      src="https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=600&q=80"
+                      alt="Açaí Especial Supremo"
+                      className="w-full h-full object-cover transition-transform duration-300"
+                      loading="lazy"
+                    />
+                    <span className="absolute top-1.5 left-1.5 text-[8px] font-black uppercase tracking-wider bg-black/60 text-white backdrop-blur-xs px-1.5 py-0.5 rounded-md">
+                      Mais Vendido
+                    </span>
                     <button
                       type="button"
-                      className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-background/80 backdrop-blur-xs text-muted-foreground flex items-center justify-center"
+                      className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-background/80 backdrop-blur-xs text-muted-foreground flex items-center justify-center shadow-xs cursor-pointer"
                     >
-                      <Heart className="w-3 h-3" />
+                      <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />
                     </button>
                   </div>
 
@@ -429,12 +488,12 @@ export function LivePreview({
                       <h6 className="font-heading font-black text-xs text-foreground">
                         Açaí Especial Supremo 500ml
                       </h6>
-                      <span className="text-[9px] font-bold text-emerald-600 bg-emerald-500/10 px-1 rounded">
+                      <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md">
                         Top 1
                       </span>
                     </div>
                     <p className="text-[10px] text-muted-foreground line-clamp-2 mt-0.5 leading-snug">
-                      Açaí artesanal cremoso com morangos frescos, banana fatiada, leite condensado e granola crocante.
+                      Açaí artesanal cremoso batido com morangos frescos, banana fatiada, leite condensado e granola crocante.
                     </p>
                   </div>
 
@@ -448,8 +507,8 @@ export function LivePreview({
 
                     <button
                       type="button"
-                      className="text-[10px] font-black px-3 py-1.5 rounded-xl text-white flex items-center gap-1 shadow-sm active:scale-95 transition-transform"
-                      style={{ backgroundColor: primaryColor }}
+                      className="text-[10px] font-black px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-sm active:scale-95 transition-transform cursor-pointer"
+                      style={{ backgroundColor: primaryColor, color: primaryContrastText }}
                     >
                       <Plus className="w-3 h-3 stroke-[3]" />
                       Adicionar
@@ -461,12 +520,12 @@ export function LivePreview({
               {/* Rodapé / Navigation Bar */}
               <div
                 className="h-12 w-full shrink-0 flex items-center justify-around shadow-[0_-2px_10px_rgba(0,0,0,0.04)] backdrop-blur-md border-t border-black/5 dark:border-white/5"
-                style={{ backgroundColor: `${config.footerBg}E6` }}
+                style={{ backgroundColor: `${footerBg}F2`, color: footerTextColor }}
               >
                 <div className="flex flex-col items-center gap-0.5 cursor-pointer">
                   <div
-                    className="w-4 h-4 rounded-md flex items-center justify-center text-[10px] text-white"
-                    style={{ backgroundColor: primaryColor }}
+                    className="w-4 h-4 rounded-md flex items-center justify-center text-[10px]"
+                    style={{ backgroundColor: primaryColor, color: primaryContrastText }}
                   >
                     ●
                   </div>
@@ -478,17 +537,17 @@ export function LivePreview({
                   </span>
                 </div>
 
-                <div className="flex flex-col items-center gap-0.5 text-foreground/40">
+                <div className="flex flex-col items-center gap-0.5" style={{ color: footerMutedColor }}>
                   <div className="w-4 h-4 rounded-md border border-current" />
                   <span className="text-[8px] font-medium">Cardápio</span>
                 </div>
 
-                <div className="flex flex-col items-center gap-0.5 text-foreground/40">
+                <div className="flex flex-col items-center gap-0.5" style={{ color: footerMutedColor }}>
                   <div className="w-4 h-4 rounded-md border border-current" />
                   <span className="text-[8px] font-medium">Pedidos</span>
                 </div>
 
-                <div className="flex flex-col items-center gap-0.5 text-foreground/40">
+                <div className="flex flex-col items-center gap-0.5" style={{ color: footerMutedColor }}>
                   <div className="w-4 h-4 rounded-md border border-current" />
                   <span className="text-[8px] font-medium">Perfil</span>
                 </div>

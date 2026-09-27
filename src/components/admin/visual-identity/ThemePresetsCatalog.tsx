@@ -2,19 +2,20 @@
 
 import React, { useState } from "react";
 import {
+  Sparkles,
   Layers,
-  Sliders,
-  CheckCircle2,
   Wand2,
-  Palette,
-  Waves,
+  Sun,
+  Moon,
+  CheckCircle2,
+  Sliders,
+  Bookmark,
   Zap,
-  type LucideIcon,
 } from "lucide-react";
 import {
   HARMONIZED_PRESETS,
   HarmonizedThemePreset,
-  ThemeCategory,
+  getContrastTextColor,
 } from "./themePresets";
 import { LoadingSettingsData, AdvancedConfig } from "@/services/loadingSettingsService";
 
@@ -24,6 +25,7 @@ interface Props {
   advancedConfig: AdvancedConfig;
   setAdvancedConfig: React.Dispatch<React.SetStateAction<AdvancedConfig>>;
   previewMode: "light" | "dark";
+  onScrollToSlots?: () => void;
 }
 
 export function ThemePresetsCatalog({
@@ -32,14 +34,18 @@ export function ThemePresetsCatalog({
   advancedConfig,
   setAdvancedConfig,
   previewMode,
+  onScrollToSlots,
 }: Props) {
-  const [selectedFilter, setSelectedFilter] = useState<"all" | ThemeCategory>("all");
+  // Apenas 2 abas principais: "classic" e "dynamic"
+  const [activeTab, setActiveTab] = useState<"classic" | "dynamic">("classic");
 
-  const currentThemeId = advancedConfig.themeId || "acai_traditional";
+  // Modo local de inspeção para cada card (Sol / Lua individual por card)
+  const [cardModes, setCardModes] = useState<Record<string, "light" | "dark">>({});
+
+  const currentThemeId = advancedConfig.themeId || "popclub_original";
   const isCustomMode = currentThemeId === "custom" || advancedConfig.isCoupled === false;
 
   const handleSelectPreset = (preset: HarmonizedThemePreset) => {
-    // Sincroniza Vitrine + Splash Screen simultaneamente
     const isDark = previewMode === "dark";
 
     const updatedStorefront = {
@@ -62,7 +68,7 @@ export function ThemePresetsCatalog({
     setAdvancedConfig((prev) => ({
       ...prev,
       themeId: preset.id,
-      themeType: preset.category,
+      themeType: preset.category === "dynamic" ? "dynamic" : "solid",
       isCoupled: true,
       storefront: updatedStorefront,
       splashScreen: updatedSplashScreen,
@@ -84,32 +90,24 @@ export function ThemePresetsCatalog({
     }));
   };
 
-  const handleSelectCustomMode = () => {
-    setAdvancedConfig((prev) => ({
+  const toggleCardMode = (presetId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCardModes((prev) => ({
       ...prev,
-      themeId: "custom",
-      themeType: "custom",
-      isCoupled: false,
+      [presetId]: (prev[presetId] || previewMode) === "light" ? "dark" : "light",
     }));
   };
 
-  const categories: Array<{ id: "all" | ThemeCategory; label: string; icon: LucideIcon }> = [
-    { id: "all", label: "Todos os Temas", icon: Layers },
-    { id: "solid", label: "Cor Sólida & Minimalista", icon: Palette },
-    { id: "gradient", label: "Gradientes", icon: Waves },
-    { id: "dynamic", label: "Dinâmicos (Canvas)", icon: Zap },
-    { id: "custom", label: "Personalizado", icon: Sliders },
-  ];
+  const filteredPresets = HARMONIZED_PRESETS.filter(
+    (preset) => preset.category === activeTab
+  );
 
-  const filteredPresets =
-    selectedFilter === "all"
-      ? HARMONIZED_PRESETS
-      : HARMONIZED_PRESETS.filter((p) => p.category === selectedFilter);
+  const activePreset = HARMONIZED_PRESETS.find((p) => p.id === currentThemeId);
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-6">
-      {/* Header com badge de Sincronia */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
+      {/* ── 1. Top Header com status de Sincronia / Modo Personalizado ── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2 border-b border-border/80">
         <div>
           <div className="flex items-center gap-2">
             <span className="p-1.5 rounded-lg bg-primary/10 text-primary">
@@ -119,212 +117,239 @@ export function ThemePresetsCatalog({
               Catálogo de Temas Harmonizados
             </h2>
             <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
-              Vitrine + Splash Sincronizados
+              Padrão Shopify / Linear
             </span>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Escolha um tema pronto para sincronizar automaticamente a vitrine, botões e tela de abertura com harmonia visual impecável.
+            Escolha um tema pronto para sincronizar a Vitrine e a Splash Screen simultaneamente.
           </p>
         </div>
 
-        {/* Status atual do sincronismo */}
-        <div className="flex items-center gap-2 bg-muted/50 border border-border rounded-xl px-3 py-2 text-xs">
-          <span className="text-muted-foreground font-medium">Modo Atual:</span>
+        {/* Indicador de Estado Ativo */}
+        <div className="flex items-center gap-2 bg-muted/40 border border-border rounded-xl px-3 py-2 text-xs shrink-0">
+          <span className="text-muted-foreground font-medium">Estado:</span>
           {isCustomMode ? (
-            <span className="font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-              <Sliders className="w-3.5 h-3.5" /> Personalizado (Desacoplado)
+            <span className="font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+              <Sliders className="w-3.5 h-3.5" /> Modo Personalizado (Editado)
             </span>
           ) : (
-            <span className="font-bold text-primary flex items-center gap-1">
+            <span className="font-bold text-primary flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Sincronizado:{" "}
-              {HARMONIZED_PRESETS.find((p) => p.id === currentThemeId)?.name || "Personalizado"}
+              {activePreset?.name || "PopClub Original"}
             </span>
           )}
         </div>
       </div>
 
-      {/* Filtros em Abas */}
-      <div className="flex flex-wrap gap-2 border-b border-border pb-3">
-        {categories.map((cat) => {
-          const Icon = cat.icon;
-          const isActive = selectedFilter === cat.id;
-          return (
+      {/* ── 2. Aviso Contextual se o operador editou manualmente (Modo Personalizado Automático) ── */}
+      {isCustomMode && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <Sliders className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-amber-900 dark:text-amber-300">
+                Você personalizou as configurações deste tema.
+              </h4>
+              <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 mt-0.5">
+                Deseja salvar esta combinação em um dos seus 4 Slots de Memória Rápida para reutilizar depois?
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
             <button
-              key={cat.id}
-              onClick={() => setSelectedFilter(cat.id)}
-              className={`text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
-                isActive
-                  ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20 scale-[1.02]"
-                  : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
+              type="button"
+              onClick={onScrollToSlots}
+              className="text-xs font-bold px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
-              <Icon className="w-3.5 h-3.5" />
-              {cat.label}
+              <Bookmark className="w-3.5 h-3.5" />
+              Salvar em um Slot
             </button>
-          );
-        })}
+            <button
+              type="button"
+              onClick={() => handleSelectPreset(HARMONIZED_PRESETS[0])}
+              className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-background/80 border border-border text-foreground hover:bg-muted transition-colors cursor-pointer"
+            >
+              Restaurar Original
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── 3. Navegação por Abas Limpa (Apenas 2 Abas Principais) ── */}
+      <div className="flex items-center gap-2 border-b border-border pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveTab("classic")}
+          className={`text-xs sm:text-sm font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition-all cursor-pointer ${
+            activeTab === "classic"
+              ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20 scale-[1.01]"
+              : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>Temas Clássicos (3)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("dynamic")}
+          className={`text-xs sm:text-sm font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition-all cursor-pointer ${
+            activeTab === "dynamic"
+              ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20 scale-[1.01]"
+              : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`}
+        >
+          <Zap className="w-4 h-4" />
+          <span>Temas Dinâmicos (2)</span>
+        </button>
+
+        {isCustomMode && (
+          <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl ml-auto">
+            <Sliders className="w-3.5 h-3.5" /> Modo Personalizado Ativo
+          </span>
+        )}
       </div>
 
-      {/* Grid de Cards de Temas */}
-      {selectedFilter !== "custom" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredPresets.map((preset) => {
-            const isSelected = currentThemeId === preset.id && !isCustomMode;
-            const isDark = previewMode === "dark";
-            const previewBg = isDark ? preset.previewBgDark : preset.previewBgLight;
-            const primaryColor = isDark ? preset.primaryDark : preset.primaryLight;
-            const headerBg = isDark
-              ? preset.storefront.dark.headerBg
-              : preset.storefront.light.headerBg;
+      {/* ── 4. Grid de Cards de Temas Prontos ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredPresets.map((preset) => {
+          const isSelected = currentThemeId === preset.id && !isCustomMode;
+          // Inspeciona no modo local do card ou no modo da tela
+          const cardMode = cardModes[preset.id] || previewMode;
+          const isDark = cardMode === "dark";
 
-            return (
+          const previewBg = isDark ? preset.previewBgDark : preset.previewBgLight;
+          const primaryColor = isDark ? preset.primaryDark : preset.primaryLight;
+          const headerBg = isDark
+            ? preset.storefront.dark.headerBg
+            : preset.storefront.light.headerBg;
+
+          // Contraste inteligente do texto e logo dentro da miniatura
+          const headerTextColor = getContrastTextColor(headerBg);
+
+          return (
+            <div
+              key={preset.id}
+              onClick={() => handleSelectPreset(preset)}
+              className={`group relative rounded-2xl border p-4 cursor-pointer transition-all duration-300 flex flex-col justify-between overflow-hidden ${
+                isSelected
+                  ? "border-primary bg-primary/5 ring-2 ring-primary/40 shadow-lg shadow-primary/10"
+                  : "border-border bg-background hover:border-primary/40 hover:shadow-md"
+              }`}
+            >
+              {/* Miniatura do Celular / Preview Swatch com Contraste Inteligente */}
               <div
-                key={preset.id}
-                onClick={() => handleSelectPreset(preset)}
-                className={`group relative rounded-2xl border p-4 cursor-pointer transition-all duration-300 flex flex-col justify-between overflow-hidden ${
-                  isSelected
-                    ? "border-primary bg-primary/5 ring-2 ring-primary/40 shadow-lg shadow-primary/10"
-                    : "border-border bg-background hover:border-primary/40 hover:shadow-md"
-                }`}
+                className="w-full h-32 rounded-xl overflow-hidden border border-border/80 relative flex flex-col justify-between p-2.5 transition-transform duration-300 group-hover:scale-[1.01]"
+                style={{ background: previewBg }}
               >
-                {/* Visual Swatch Preview Card (Mock da Vitrine + Splash) */}
+                {/* Mini Topbar com Logo adaptativo de contraste */}
                 <div
-                  className="w-full h-28 rounded-xl overflow-hidden border border-border/60 relative flex flex-col justify-between p-2.5 transition-transform duration-300 group-hover:scale-[1.01]"
-                  style={{ background: previewBg }}
+                  className="w-full h-6 rounded-lg backdrop-blur-md px-2 flex items-center justify-between shadow-xs border border-white/10"
+                  style={{ backgroundColor: `${headerBg}E6` }}
                 >
-                  {/* Mini Header */}
-                  <div
-                    className="w-full h-6 rounded-lg backdrop-blur-md px-2 flex items-center justify-between shadow-xs border border-white/10"
-                    style={{ backgroundColor: `${headerBg}CC` }}
-                  >
-                    <div className="flex items-center gap-1">
-                      <div className="w-2.5 h-2.5 rounded-full bg-white/40" />
-                      <div className="w-10 h-1.5 rounded-full bg-white/30" />
-                    </div>
+                  <div className="flex items-center gap-1 font-heading font-black text-[10px]">
+                    <span style={{ color: headerTextColor }}>Pop</span>
+                    <span style={{ color: primaryColor }}>Shake</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    {/* Botão de Alternância Rápida Sol / Lua dentro do card */}
+                    <button
+                      type="button"
+                      onClick={(e) => toggleCardMode(preset.id, e)}
+                      className="p-1 rounded-md bg-black/10 dark:bg-white/10 hover:bg-black/20 text-current transition-transform active:scale-90"
+                      title={isDark ? "Inspecionar Modo Claro" : "Inspecionar Modo Escuro"}
+                      style={{ color: headerTextColor }}
+                    >
+                      {isDark ? (
+                        <Sun className="w-3 h-3 text-amber-400" />
+                      ) : (
+                        <Moon className="w-3 h-3" />
+                      )}
+                    </button>
+
                     <div
-                      className="w-4 h-4 rounded-md flex items-center justify-center text-[9px] shadow-xs text-white"
+                      className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] text-white shadow-xs"
                       style={{ backgroundColor: primaryColor }}
                     >
                       ★
                     </div>
                   </div>
+                </div>
 
-                  {/* Centro: Ícone Splash Animado + Barra */}
-                  <div className="flex flex-col items-center justify-center my-auto">
-                    <span className="text-2xl filter drop-shadow group-hover:scale-110 transition-transform">
-                      {preset.icon}
-                    </span>
-                    <div className="w-20 h-1 bg-white/20 rounded-full mt-1.5 overflow-hidden">
-                      <div
-                        className="h-full rounded-full animate-pulse"
-                        style={{
-                          width: "70%",
-                          backgroundColor: primaryColor,
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Mini Rodapé */}
-                  <div className="flex items-center justify-between px-1">
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/40 text-white backdrop-blur-xs">
-                      {preset.badge}
-                    </span>
-                    <span className="text-[9px] text-white/80 font-mono font-bold">
-                      {preset.categoryLabel.split(" ")[0]}
-                    </span>
+                {/* Centro: Ícone Splash Animado + Barra de Progresso Sincronizada */}
+                <div className="flex flex-col items-center justify-center my-auto">
+                  <span className="text-2xl filter drop-shadow group-hover:scale-110 transition-transform">
+                    {preset.icon}
+                  </span>
+                  <div className="w-24 h-1.5 bg-black/10 dark:bg-white/15 rounded-full mt-2 overflow-hidden border border-white/10">
+                    <div
+                      className="h-full rounded-full animate-pulse"
+                      style={{
+                        width: "75%",
+                        backgroundColor: primaryColor,
+                        boxShadow: `0 0 6px ${primaryColor}`,
+                      }}
+                    />
                   </div>
                 </div>
 
-                {/* Conteúdo Informativo */}
-                <div className="pt-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-heading font-black text-sm text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
-                      {preset.name}
-                    </h3>
-                    {isSelected && (
-                      <span className="text-primary flex items-center gap-1 text-[11px] font-black uppercase">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 fill-emerald-500/20" /> Ativo
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] font-semibold text-primary/80 mt-0.5">
-                    {preset.subtitle}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
-                    {preset.description}
-                  </p>
+                {/* Mini Rodapé da Miniatura */}
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/40 text-white backdrop-blur-xs">
+                    {preset.badge}
+                  </span>
+                  <span className="text-[9px] font-mono font-bold text-foreground/80 px-1 rounded bg-white/20 dark:bg-black/30 backdrop-blur-xs">
+                    {isDark ? "🌙 Noturno" : "☀️ Claro"}
+                  </span>
                 </div>
+              </div>
 
-                {/* Footer do Card com tags técnicas */}
-                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/60 text-[10px] text-muted-foreground">
-                  <span className="flex items-center gap-1">
+              {/* Informações Textuais do Tema */}
+              <div className="pt-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-heading font-black text-sm text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
+                    {preset.name}
+                  </h3>
+                  {isSelected && (
+                    <span className="text-primary flex items-center gap-1 text-[11px] font-black uppercase">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 fill-emerald-500/20" /> Tema Ativo
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] font-semibold text-primary/80 mt-0.5">
+                  {preset.subtitle}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+                  {preset.description}
+                </p>
+              </div>
+
+              {/* Footer do Card com Swatch de Cores */}
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/60 text-[10px] text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1 font-mono font-bold text-foreground">
                     <span
-                      className="w-2 h-2 rounded-full"
+                      className="w-2.5 h-2.5 rounded-full border border-black/10"
                       style={{ backgroundColor: primaryColor }}
                     />
-                    Primária
+                    {primaryColor}
                   </span>
                   <span>•</span>
                   <span>Splash {preset.splashScreen.theme.replace("_", " ")}</span>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
 
-      {/* D. Modo Personalizado (Custom / Desacoplado) */}
-      {(selectedFilter === "all" || selectedFilter === "custom") && (
-        <div
-          onClick={handleSelectCustomMode}
-          className={`rounded-2xl border p-5 cursor-pointer transition-all duration-300 flex flex-col md:flex-row items-center justify-between gap-4 ${
-            isCustomMode
-              ? "border-amber-500/60 bg-amber-500/5 ring-2 ring-amber-500/30"
-              : "border-dashed border-border hover:border-amber-500/40 bg-muted/20"
-          }`}
-        >
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-              <Sliders className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-heading font-black text-base text-foreground">
-                  Modo Personalizado (Desacoplado)
-                </h3>
-                <span className="text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">
-                  Livre Criação
+                <span className="text-primary font-bold group-hover:translate-x-0.5 transition-transform">
+                  Aplicar →
                 </span>
-                {isCustomMode && (
-                  <span className="text-amber-600 dark:text-amber-400 text-xs font-black flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Selecionado
-                  </span>
-                )}
               </div>
-              <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-relaxed">
-                Desvincula as camadas da Vitrine e da Splash Screen. Permite definir manualmente cores de fundo,
-                gradientes, padrões e barra de progresso de forma totalmente independente nos painéis abaixo.
-              </p>
             </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSelectCustomMode();
-            }}
-            className={`px-4 py-2 rounded-xl font-bold text-xs shrink-0 transition-colors cursor-pointer ${
-              isCustomMode
-                ? "bg-amber-500 text-white shadow-sm"
-                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-            }`}
-          >
-            {isCustomMode ? "Modo Ativo" : "Ativar Modo Desacoplado"}
-          </button>
-        </div>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }

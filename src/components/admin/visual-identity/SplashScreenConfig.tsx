@@ -21,6 +21,7 @@ interface Props {
   advancedConfig: AdvancedConfig;
   setAdvancedConfig: React.Dispatch<React.SetStateAction<AdvancedConfig>>;
   mode: "light" | "dark";
+  onManualChange?: () => void;
 }
 
 export function SplashScreenConfig({
@@ -29,12 +30,23 @@ export function SplashScreenConfig({
   advancedConfig,
   setAdvancedConfig,
   mode,
+  onManualChange,
 }: Props) {
+  const notifyManualChange = () => {
+    setAdvancedConfig((prev) => ({
+      ...prev,
+      themeId: "custom",
+      isCoupled: false,
+    }));
+    onManualChange?.();
+  };
+
   const handleAddPhrase = () => {
     setSettings((prev) => ({
       ...prev,
       phrases: [...prev.phrases, "Nova mensagem de carregamento..."],
     }));
+    notifyManualChange();
   };
 
   const handleUpdatePhrase = (index: number, value: string) => {
@@ -43,6 +55,7 @@ export function SplashScreenConfig({
       newPhrases[index] = value;
       return { ...prev, phrases: newPhrases };
     });
+    notifyManualChange();
   };
 
   const handleRemovePhrase = (index: number) => {
@@ -50,16 +63,20 @@ export function SplashScreenConfig({
       const newPhrases = prev.phrases.filter((_, i) => i !== index);
       return { ...prev, phrases: newPhrases };
     });
+    notifyManualChange();
   };
 
   const toggleSplashScreen = () => {
     setAdvancedConfig((prev) => ({
       ...prev,
+      themeId: "custom",
+      isCoupled: false,
       splashScreen: {
         ...prev.splashScreen,
         enabled: prev.splashScreen ? !prev.splashScreen.enabled : true,
       },
     }));
+    onManualChange?.();
   };
 
   const isEnabled = advancedConfig.splashScreen?.enabled !== false;
@@ -70,6 +87,8 @@ export function SplashScreenConfig({
   const updateProgressBarColor = (color: string) => {
     setAdvancedConfig((prev) => ({
       ...prev,
+      themeId: "custom",
+      isCoupled: false,
       splashScreen: {
         ...(prev.splashScreen || {
           enabled: true,
@@ -79,6 +98,7 @@ export function SplashScreenConfig({
         progressBarColor: color,
       },
     }));
+    onManualChange?.();
   };
 
   return (
@@ -143,7 +163,10 @@ export function SplashScreenConfig({
                     value={t.id}
                     className="hidden"
                     checked={settings.theme === t.id}
-                    onChange={(e) => setSettings({ ...settings, theme: e.target.value as LoadingTheme })}
+                    onChange={(e) => {
+                      setSettings({ ...settings, theme: e.target.value as LoadingTheme });
+                      notifyManualChange();
+                    }}
                   />
                   <span className="text-xs font-bold text-foreground">{t.label}</span>
                   <span className="text-[11px] text-muted-foreground mt-1 leading-snug">{t.desc}</span>
@@ -168,7 +191,10 @@ export function SplashScreenConfig({
                   <button
                     key={icon}
                     type="button"
-                    onClick={() => setSettings({ ...settings, centerIcon: icon })}
+                    onClick={() => {
+                      setSettings({ ...settings, centerIcon: icon });
+                      notifyManualChange();
+                    }}
                     className={`w-9 h-9 rounded-xl text-lg transition-all cursor-pointer ${
                       settings.centerIcon === icon
                         ? "bg-primary text-primary-foreground shadow-sm scale-110"
@@ -188,7 +214,10 @@ export function SplashScreenConfig({
                   type="text"
                   maxLength={10}
                   value={settings.centerIcon || ""}
-                  onChange={(e) => setSettings({ ...settings, centerIcon: e.target.value || "🥣" })}
+                  onChange={(e) => {
+                    setSettings({ ...settings, centerIcon: e.target.value || "🥣" });
+                    notifyManualChange();
+                  }}
                   className="w-24 text-center font-bold text-base h-9 bg-background border border-border rounded-lg"
                 />
               </div>
@@ -296,7 +325,10 @@ export function SplashScreenConfig({
                 min="1000"
                 step="100"
                 value={settings.rotationInterval}
-                onChange={(e) => setSettings({ ...settings, rotationInterval: Number(e.target.value) })}
+                onChange={(e) => {
+                  setSettings({ ...settings, rotationInterval: Number(e.target.value) });
+                  notifyManualChange();
+                }}
                 className="w-full h-9 bg-background border border-border rounded-lg px-3 text-xs text-foreground font-mono"
               />
               <span className="text-[10px] text-muted-foreground">Recomendado: 2000 a 2500ms</span>
@@ -311,7 +343,10 @@ export function SplashScreenConfig({
                 min="0"
                 step="100"
                 value={settings.minDuration}
-                onChange={(e) => setSettings({ ...settings, minDuration: Number(e.target.value) })}
+                onChange={(e) => {
+                  setSettings({ ...settings, minDuration: Number(e.target.value) });
+                  notifyManualChange();
+                }}
                 className="w-full h-9 bg-background border border-border rounded-lg px-3 text-xs text-foreground font-mono"
               />
               <span className="text-[10px] text-muted-foreground">Tempo mínimo na tela antes do fade-in</span>

@@ -8,9 +8,15 @@ interface Props {
   advancedConfig: AdvancedConfig;
   setAdvancedConfig: React.Dispatch<React.SetStateAction<AdvancedConfig>>;
   mode: "light" | "dark";
+  onManualChange?: () => void;
 }
 
-export function StorefrontConfig({ advancedConfig, setAdvancedConfig, mode }: Props) {
+export function StorefrontConfig({
+  advancedConfig,
+  setAdvancedConfig,
+  mode,
+  onManualChange,
+}: Props) {
   const config =
     mode === "light"
       ? advancedConfig.storefront?.light || {
@@ -40,8 +46,9 @@ export function StorefrontConfig({ advancedConfig, setAdvancedConfig, mode }: Pr
   ) => {
     setAdvancedConfig((prev) => ({
       ...prev,
-      // Se o usuário editar manualmente as cores, marca como desacoplado para não sobrescrever acidentalmente
-      themeId: prev.themeId === "custom" ? "custom" : prev.themeId,
+      // Transição automática para Modo Personalizado (Editado)
+      themeId: "custom",
+      isCoupled: false,
       storefront: {
         ...prev.storefront,
         [mode]: {
@@ -50,6 +57,7 @@ export function StorefrontConfig({ advancedConfig, setAdvancedConfig, mode }: Pr
         },
       },
     }));
+    onManualChange?.();
   };
 
   const primaryColor =

@@ -218,6 +218,17 @@ export function VisualIdentitySection() {
   const currentPrimary =
     currentModeConfig?.primary || (mode === "dark" ? "#FFFFFF" : "#4A0E4E");
 
+  const handleManualChange = () => {
+    setAdvancedConfig((prev) => {
+      if (prev.themeId === "custom" && prev.isCoupled === false) return prev;
+      return {
+        ...prev,
+        themeId: "custom",
+        isCoupled: false,
+      };
+    });
+  };
+
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 animate-in fade-in zoom-in-95 duration-300 pb-28">
       {/* 1. Catálogo de Temas Prontos Harmonizados (Destaque no Topo) */}
@@ -227,6 +238,12 @@ export function VisualIdentitySection() {
         advancedConfig={advancedConfig}
         setAdvancedConfig={setAdvancedConfig}
         previewMode={mode}
+        onScrollToSlots={() => {
+          const el = document.getElementById("preset-slots-toolbar");
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth" });
+          }
+        }}
       />
 
       {/* 2. Barra de Slots de Memória Rápida (1 a 4) */}
@@ -263,6 +280,7 @@ export function VisualIdentitySection() {
               advancedConfig={advancedConfig}
               setAdvancedConfig={setAdvancedConfig}
               mode={mode}
+              onManualChange={handleManualChange}
             />
           </div>
 
@@ -288,6 +306,7 @@ export function VisualIdentitySection() {
               advancedConfig={advancedConfig}
               setAdvancedConfig={setAdvancedConfig}
               mode={mode}
+              onManualChange={handleManualChange}
             />
           </div>
         </div>
@@ -363,33 +382,59 @@ export function VisualIdentitySection() {
               </button>
             </div>
 
-            {/* Resumo Técnico das Alterações */}
+            {/* Resumo Técnico das Alterações (Modo, Paleta, Fundo, Splash Screen) */}
             <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3 text-xs">
               <div className="flex items-center justify-between pb-2 border-b border-border font-bold">
-                <span className="text-muted-foreground">Resumo do Tema:</span>
-                <span className="text-primary font-black">{themeCategoryLabel}</span>
+                <span className="text-muted-foreground">Tema & Modo:</span>
+                <span className="text-primary font-black">
+                  {themeCategoryLabel} • {mode === "light" ? "Modo Claro" : "Modo Escuro"}
+                </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 text-foreground/80">
+              <div className="grid grid-cols-2 gap-2.5 text-foreground/80">
                 <div>
-                  <span className="text-muted-foreground block text-[11px]">Cor Base:</span>
+                  <span className="text-muted-foreground block text-[11px]">Cor Base & Fundo:</span>
                   <span className="font-mono font-bold flex items-center gap-1.5 mt-0.5">
                     <span
-                      className="w-2.5 h-2.5 rounded-full border border-black/10"
+                      className="w-2.5 h-2.5 rounded-full border border-black/10 shrink-0"
                       style={{ backgroundColor: currentModeConfig?.baseColor || "#FDFBF7" }}
                     />
-                    {currentModeConfig?.baseColor || "#FDFBF7"}
+                    {currentModeConfig?.gradient
+                      ? "Gradiente Personalizado"
+                      : advancedConfig.themeType === "dynamic"
+                      ? "Dinâmico (Canvas)"
+                      : currentModeConfig?.baseColor || "#FDFBF7"}
                   </span>
                 </div>
 
                 <div>
-                  <span className="text-muted-foreground block text-[11px]">Cor Primária:</span>
+                  <span className="text-muted-foreground block text-[11px]">Cor Primária (Marca):</span>
                   <span className="font-mono font-bold flex items-center gap-1.5 mt-0.5">
                     <span
-                      className="w-2.5 h-2.5 rounded-full border border-black/10"
+                      className="w-2.5 h-2.5 rounded-full border border-black/10 shrink-0"
                       style={{ backgroundColor: currentPrimary }}
                     />
                     {currentPrimary}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">Cabeçalho & Rodapé:</span>
+                  <span className="font-mono text-[11px] font-semibold flex items-center gap-2 mt-0.5">
+                    <span className="flex items-center gap-1">
+                      <span
+                        className="w-2 h-2 rounded-full border border-black/10"
+                        style={{ backgroundColor: currentModeConfig?.headerBg || (mode === "dark" ? "#181818" : "#FFFFFF") }}
+                      />
+                      Top
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span
+                        className="w-2 h-2 rounded-full border border-black/10"
+                        style={{ backgroundColor: currentModeConfig?.footerBg || (mode === "dark" ? "#121212" : "#FDFBF7") }}
+                      />
+                      Base
+                    </span>
                   </span>
                 </div>
 
@@ -398,22 +443,16 @@ export function VisualIdentitySection() {
                   <span className="font-bold flex items-center gap-1 mt-0.5">
                     <span>{settings.centerIcon || "🥣"}</span>
                     <span>{settings.theme || "liquid_cream"}</span>
-                  </span>
-                </div>
-
-                <div>
-                  <span className="text-muted-foreground block text-[11px]">Frases do Loading:</span>
-                  <span className="font-bold mt-0.5 block">
-                    {settings.phrases?.length || 0} mensagens ativas
+                    <span className="text-muted-foreground font-normal">({settings.phrases?.length || 0} frases)</span>
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Trava de Segurança ("Sim") */}
-            <div className="bg-destructive/5 border border-destructive/20 p-4 rounded-2xl space-y-2">
-              <label className="block text-xs font-bold text-destructive">
-                Confirmação de Segurança: Digite &quot;Sim&quot; abaixo para liberar
+            {/* Trava de Segurança Obrigatória ("Sim") */}
+            <div className="bg-destructive/5 border border-destructive/20 p-4 rounded-2xl space-y-2.5">
+              <label className="block text-xs font-bold text-destructive leading-snug">
+                Esta alteração entrará em vigor imediatamente para todos os clientes ativos na loja. Para confirmar a publicação, digite <span className="underline font-black">Sim</span> abaixo:
               </label>
               <input
                 type="text"
@@ -429,7 +468,7 @@ export function VisualIdentitySection() {
                 }}
               />
               <p className="text-[11px] text-muted-foreground">
-                Digite exatamente &quot;Sim&quot; (sem aspas) para confirmar a publicação em produção.
+                O botão de publicação permanecerá desabilitado até você digitar <strong>Sim</strong> (sem aspas).
               </p>
             </div>
 

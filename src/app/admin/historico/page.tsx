@@ -193,19 +193,10 @@ export default function AdminHistoricoPage() {
       <header className="bg-white/85 dark:bg-[#1F0B22]/90 backdrop-blur-xl border-b border-gray-200 dark:border-border/40 px-6 py-4 flex justify-between items-center sticky top-0 z-40 shadow-sm">
         <div className="flex items-center gap-3">
           <Link href="/" className="font-heading font-black text-xl tracking-tight flex items-center gap-1.5 select-none hover:opacity-85 transition-opacity">
-            <div className="flex items-center gap-1">
-              <span className="text-foreground dark:text-foreground">Pop</span>
-              <span
-                style={{
-                  background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                }}
-              >
-                Shake
-              </span>
-              <span className="ml-1 text-xs font-bold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-muted-foreground border border-primary/20">
+            <div className="flex items-center gap-0.5 font-heading font-black text-xl tracking-tight">
+              <span className="text-foreground">Pop</span>
+              <span className="text-primary font-black">Shake</span>
+              <span className="ml-1.5 text-xs font-bold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                 Histórico & Auditoria
               </span>
             </div>
