@@ -47,7 +47,7 @@ export const badgeService = {
       const resData = await res.json().catch(() => ({}));
       throw new Error(resData.error || "Erro ao criar selo.");
     }
-    return await res.json();
+    return await res.json().catch(() => ({}));
   },
 
   async updateBadge(
@@ -68,7 +68,7 @@ export const badgeService = {
       const resData = await res.json().catch(() => ({}));
       throw new Error(resData.error || "Erro ao atualizar selo.");
     }
-    return await res.json();
+    return await res.json().catch(() => ({}));
   },
 
   async addProduct(badgeId: string, productId: string): Promise<CardBadge> {
@@ -81,7 +81,7 @@ export const badgeService = {
       const resData = await res.json().catch(() => ({}));
       throw new Error(resData.error || "Erro ao vincular produto ao selo.");
     }
-    return await res.json();
+    return await res.json().catch(() => ({}));
   },
 
   async removeProduct(badgeId: string, productId: string): Promise<CardBadge> {
@@ -94,7 +94,7 @@ export const badgeService = {
       const resData = await res.json().catch(() => ({}));
       throw new Error(resData.error || "Erro ao desvincular produto do selo.");
     }
-    return await res.json();
+    return await res.json().catch(() => ({}));
   },
 
   async deleteBadge(id: string): Promise<void> {

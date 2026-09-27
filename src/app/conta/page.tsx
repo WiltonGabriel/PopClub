@@ -39,7 +39,6 @@ import {
   LayoutDashboard,
   ClipboardList,
   History,
-  Pencil,
 } from "lucide-react";
 import { notificationService, AppNotification } from "../../services/notificationService";
 import { useAuth } from "../../hooks/useAuth";
@@ -1450,18 +1449,8 @@ export default function AccountPage() {
                           </p>
                         </div>
 
-                        <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                        <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
                           <button 
-                            type="button"
-                            onClick={() => openAddressModal(addr)}
-                            className="inline-flex items-center gap-1 text-xs text-[#9306CF] dark:text-[#C7A9C9] hover:text-[#940068] font-semibold uppercase tracking-wider hover:underline cursor-pointer px-2 py-1"
-                            title="Editar endereço"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                            Editar
-                          </button>
-                          <button 
-                            type="button"
                             onClick={async () => {
                               if (confirm("Tem certeza que deseja remover este endereço?")) {
                                 await deleteAddressCtx(addr.id);

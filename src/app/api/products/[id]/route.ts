@@ -105,15 +105,6 @@ export async function DELETE(
     if (error.code === "P2025") {
       return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
     }
-    if (error.code === "P2003" || error.code === "P2014") {
-      return NextResponse.json(
-        {
-          error: "Não é possível excluir este produto pois existem pedidos vinculados a ele no histórico. Recomendamos pausar sua disponibilidade na cozinha.",
-          code: "PRODUCT_HAS_ORDERS",
-        },
-        { status: 409 }
-      );
-    }
     return NextResponse.json({ error: "Erro ao excluir produto." }, { status: 500 });
   }
 }
