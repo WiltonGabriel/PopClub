@@ -41,21 +41,12 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy_network"
-      # Roteador público prioritário (sem Authelia)
-      - "traefik.http.routers.popshake-public.rule=Host(`${APP_DOMAIN}`) && (Path(`/manifest.webmanifest`) || PathPrefix(`/_next/static/`) || Path(`/favicon.ico`))"
-      - "traefik.http.routers.popshake-public.entrypoints=websecure"
-      - "traefik.http.routers.popshake-public.tls.certresolver=leresolver"
-      - "traefik.http.routers.popshake-public.priority=100"
-      - "traefik.http.routers.popshake-public.service=popshake-dev"
-      # Roteador principal com Authelia
-      - "traefik.http.routers.popshake-dev.rule=Host(`${APP_DOMAIN}`)"
-      - "traefik.http.routers.popshake-dev.entrypoints=websecure"
-      - "traefik.http.routers.popshake-dev.tls.certresolver=leresolver"
-      - "traefik.http.routers.popshake-dev.middlewares=authelia@docker"
-      - "traefik.http.routers.popshake-dev.priority=1"
-      - "traefik.http.routers.popshake-dev.service=popshake-dev"
-      # Serviço compartilhado
-      - "traefik.http.services.popshake-dev.loadbalancer.server.port=3000"
+      # Roteador seguro HTTPS via Traefik
+      - "traefik.http.routers.popshake.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.popshake.entrypoints=websecure"
+      - "traefik.http.routers.popshake.tls.certresolver=leresolver"
+      - "traefik.http.routers.popshake.service=popshake"
+      - "traefik.http.services.popshake.loadbalancer.server.port=3000"
 
 networks:
   proxy_network:
