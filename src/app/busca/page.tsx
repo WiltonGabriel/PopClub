@@ -7,6 +7,7 @@ import {
   Search,
   SlidersHorizontal,
   ArrowLeft,
+  Home,
   ShoppingBag,
   ReceiptText,
   RotateCcw,
@@ -35,6 +36,14 @@ function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialQ = searchParams.get("q") || "";
+
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/");
+    }
+  };
 
   const [searchTerm, setSearchTerm] = useState(initialQ);
   const [products, setProducts] = useState<Product[]>([]);
@@ -204,26 +213,30 @@ function SearchContent() {
       <header className="bg-background/80 backdrop-blur-md border-b border-border/40 px-4 sm:px-6 py-3.5 sticky top-0 z-50 shadow-sm w-full">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           {/* Logo e Botão Voltar */}
-          <div className="flex items-center gap-3 shrink-0">
-            <Link
-              href="/"
-              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-2.5 sm:px-3 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-              title="Voltar para a Página Inicial"
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={handleBack}
+              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-2.5 sm:px-3 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-pointer active:scale-95"
+              title="Voltar à tela anterior"
+              aria-label="Voltar à tela anterior"
             >
               <ArrowLeft className="w-4 h-4 text-primary" />
-              <span className="hidden sm:inline">Início</span>
+              <span className="hidden sm:inline">Voltar</span>
+            </button>
+
+            <Link
+              href="/"
+              className="flex items-center justify-center text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl p-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-pointer active:scale-95"
+              title="Ir para a Página Inicial"
+              aria-label="Página Inicial"
+            >
+              <Home className="w-4 h-4 text-primary" />
             </Link>
 
-            <Link href="/" className="font-heading font-black text-xl tracking-tight hidden md:flex items-center gap-1">
+            <Link href="/" className="font-heading font-black text-xl tracking-tight hidden md:flex items-center gap-1 hover:opacity-85 transition-opacity">
               <span className="text-foreground dark:text-foreground">Pop</span>
-              <span
-                style={{
-                  background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                }}
-              >
+              <span className="bg-gradient-to-r from-[#9306CF] to-[#D80064] bg-clip-text text-transparent">
                 Shake
               </span>
             </Link>

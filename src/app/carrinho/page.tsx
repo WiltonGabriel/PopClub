@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ChevronLeft,
+  Home,
   Trash2,
   Plus,
   Minus,
@@ -45,6 +46,14 @@ import { CompleteRegistrationModal } from "@/components/auth/CompleteRegistratio
 export default function CarrinhoPage() {
   const router = useRouter();
   const { user, fastAccess, signOut } = useAuth();
+
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/");
+    }
+  };
   const { trackGuestOrder } = useOrders();
   const {
     items,
@@ -620,24 +629,38 @@ export default function CarrinhoPage() {
   return (
     <div className="min-h-screen bg-transparent text-foreground flex flex-col font-sans pb-32">
       <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-background/80 border-b border-border/40 px-4 py-3.5 flex items-center justify-between shadow-xs">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="p-2 rounded-xl bg-muted/60 hover:bg-muted text-foreground border border-border/40 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+            aria-label="Voltar para a página anterior"
+            title="Voltar para a página anterior"
+          >
+            <ChevronLeft className="w-5 h-5 text-primary dark:text-muted-foreground" />
+          </button>
+
           <Link
             href="/"
             className="p-2 rounded-xl bg-muted/60 hover:bg-muted text-foreground border border-border/40 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
-            aria-label="Voltar para o cardápio"
+            aria-label="Ir para a página inicial"
+            title="Página Inicial"
           >
-            <ChevronLeft className="w-5 h-5 text-primary dark:text-muted-foreground" />
+            <Home className="w-4 h-4 text-muted-foreground hover:text-foreground" />
           </Link>
+
           <div>
-            <h1 className="text-base sm:text-lg font-heading font-black tracking-tight uppercase text-foreground flex items-center gap-2">
-              <span>Meu Carrinho</span>
-              {items.length > 0 && (
-                <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary dark:text-muted-foreground border border-primary/20">
-                  {items.reduce((s, i) => s + i.quantity, 0)} {items.reduce((s, i) => s + i.quantity, 0) === 1 ? "item" : "itens"}
-                </span>
-              )}
-            </h1>
-            <p className="text-[11px] text-muted-foreground">Pop Shake Sorveteria & Açaí</p>
+            <Link href="/" className="hover:opacity-85 transition-opacity block">
+              <h1 className="text-base sm:text-lg font-heading font-black tracking-tight uppercase text-foreground flex items-center gap-2">
+                <span>Meu Carrinho</span>
+                {items.length > 0 && (
+                  <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary dark:text-muted-foreground border border-primary/20">
+                    {items.reduce((s, i) => s + i.quantity, 0)} {items.reduce((s, i) => s + i.quantity, 0) === 1 ? "item" : "itens"}
+                  </span>
+                )}
+              </h1>
+              <p className="text-[11px] text-muted-foreground">Pop Shake Sorveteria & Açaí</p>
+            </Link>
           </div>
         </div>
 
@@ -791,7 +814,7 @@ export default function CarrinhoPage() {
 
                   <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-gray-100 dark:border-border/30">
                     <Link
-                      href="/login?tab=password"
+                      href="/login?tab=password&redirect=/carrinho"
                       className="text-xs text-primary dark:text-muted-foreground font-medium hover:underline flex items-center gap-1"
                     >
                       Já tem cadastro completo? <span className="font-bold underline">Entrar com senha</span>

@@ -7,10 +7,10 @@ import Image from "next/image";
 import { 
   ChevronLeft, 
   ChevronRight,
+  Home,
   User, 
   MapPin, 
   Package, 
-  Star, 
   CreditCard, 
   Settings, 
   LogOut, 
@@ -122,7 +122,7 @@ function formatRelativeTime(dateString: string): string {
 }
 
 export default function AccountPage() {
-  const { user, loading, refreshUser, isAdmin } = useAuth();
+  const { user, loading, refreshUser, isAdmin, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
   const { 
     addresses, 
@@ -143,7 +143,7 @@ export default function AccountPage() {
   const { showToast } = useToast();
   const router = useRouter();
   
-  type AccountView = "menu" | "perfil" | "notificacoes" | "enderecos" | "avaliacoes" | "preferencias" | "acessibilidade";
+  type AccountView = "menu" | "perfil" | "notificacoes" | "enderecos" | "preferencias" | "acessibilidade";
 
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -168,7 +168,11 @@ export default function AccountPage() {
       setCurrentView("menu");
       window.scrollTo({ top: 0, behavior: "instant" });
     } else {
-      router.push("/");
+      if (typeof window !== "undefined" && window.history.length > 1) {
+        router.back();
+      } else {
+        router.push("/");
+      }
     }
   };
 
@@ -215,7 +219,7 @@ export default function AccountPage() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab") || params.get("section");
-      const validSections = ["perfil", "notificacoes", "enderecos", "avaliacoes", "preferencias", "acessibilidade"];
+      const validSections = ["perfil", "notificacoes", "enderecos", "preferencias", "acessibilidade"];
       if (tabParam && validSections.includes(tabParam)) {
         setActiveSection(tabParam);
         setCurrentView(tabParam as AccountView);
@@ -458,8 +462,20 @@ export default function AccountPage() {
     setIsLoggingOut(true);
     try {
       resetToDefaults();
-      await authService.signOut();
+      showToast({
+        type: "success",
+        title: user?.isRegistered ? "Sessão encerrada" : "Acesso rápido encerrado",
+        message: "Você saiu com sucesso.",
+      });
+      await signOut();
       router.push("/");
+    } catch (err) {
+      console.error("Erro ao encerrar sessão:", err);
+      showToast({
+        type: "error",
+        title: "Erro ao sair",
+        message: "Ocorreu um erro ao encerrar a sessão.",
+      });
     } finally {
       setIsLoggingOut(false);
       setIsLogoutModalOpen(false);
@@ -493,12 +509,6 @@ export default function AccountPage() {
       label: "Endereços", 
       desc: "Locais salvos para entrega rápida",
       icon: <MapPin className="w-4 h-4" /> 
-    },
-    { 
-      id: "avaliacoes", 
-      label: "Avaliações", 
-      desc: "Suas avaliações e opiniões dos pedidos",
-      icon: <Star className="w-4 h-4" /> 
     },
     { 
       id: "preferencias", 
@@ -543,6 +553,16 @@ export default function AccountPage() {
               )}
             </span>
           </button>
+
+          {/* Atalho 1-clique para Página Inicial */}
+          <Link
+            href="/"
+            className="flex items-center justify-center p-2 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-[#9306CF] dark:text-[#C7A9C9] transition-colors shrink-0 active:scale-98"
+            title="Ir para a Página Inicial"
+            aria-label="Página Inicial"
+          >
+            <Home className="w-5 h-5" />
+          </Link>
 
           {/* Breadcrumb da sub-tela ativa */}
           <div 
@@ -775,14 +795,30 @@ export default function AccountPage() {
               </Link>
             </div>
 
-            <button 
-              type="button"
-              onClick={() => setIsLogoutModalOpen(true)}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-colors border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 mt-4 mb-8 cursor-pointer active:scale-98 shadow-xs"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Sair da Conta</span>
-            </button>
+            {/* Botão Claro e Visível de Logout / Encerrar Sessão (Mobile e Desktop) */}
+            <div className="pt-2">
+              <button 
+                type="button"
+                onClick={() => setIsLogoutModalOpen(true)}
+                className="w-full flex items-center justify-between p-3.5 sm:p-4 rounded-2xl font-sans text-sm font-semibold tracking-wide transition-all border border-red-200 dark:border-red-900/40 bg-red-50/60 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:bg-red-100/70 dark:hover:bg-red-950/40 mt-3 mb-10 cursor-pointer active:scale-98 shadow-xs group"
+                aria-label={user?.isRegistered ? "Sair da conta" : "Encerrar sessão de acesso rápido"}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="p-2.5 rounded-xl bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-300 group-hover:scale-105 transition-transform shrink-0">
+                    <LogOut className="w-4 h-4" />
+                  </span>
+                  <div className="text-left min-w-0">
+                    <span className="font-heading font-bold text-sm block truncate">
+                      {user?.isRegistered ? "Sair da Conta" : "Encerrar Sessão"}
+                    </span>
+                    <p className="text-xs text-red-500/80 dark:text-red-400/80 font-normal truncate">
+                      {user?.isRegistered ? "Desconectar suas credenciais" : "Finalizar acesso rápido temporário"}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-red-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+              </button>
+            </div>
           </nav>
         </aside>
 
@@ -900,6 +936,31 @@ export default function AccountPage() {
                   )}
                 </Button>
               </form>
+
+              {/* Sessão neste Aparelho / Encerrar Sessão */}
+              <div className="pt-6 border-t border-gray-200 dark:border-[#512B54]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h4 className="font-heading font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
+                    <LogOut className="w-4 h-4 text-red-500" />
+                    Sessão neste Dispositivo
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {user?.isRegistered
+                      ? "Desconecte sua conta deste navegador a qualquer momento."
+                      : "Você está conectado através de uma sessão rápida temporária."}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsLogoutModalOpen(true)}
+                  className="border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 font-bold text-xs rounded-xl h-10 px-4 gap-2 cursor-pointer shrink-0"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>{user?.isRegistered ? "Sair da Conta" : "Encerrar Sessão"}</span>
+                </Button>
+              </div>
             </div>
           )}
 
@@ -1789,19 +1850,6 @@ export default function AccountPage() {
               </div>
             </div>
           )}
-
-          {/* Placeholders for other sections */}
-          {activeSection === "avaliacoes" && (
-            <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-[#512B54]/40 p-6 sm:p-8 rounded-2xl shadow-sm flex flex-col items-center justify-center py-20 text-center">
-              <Settings className="w-12 h-12 text-gray-400 dark:text-gray-600 mb-4" />
-              <h3 className="font-heading font-bold text-xl uppercase tracking-wider mb-2 text-[#4C264F] dark:text-[#F9F5F9]">
-                Em Construção
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm max-w-sm">
-                Esta funcionalidade está sendo implementada e será conectada aos serviços em breve.
-              </p>
-            </div>
-          )}
           </div>
         </div>
       </main>
@@ -1909,6 +1957,7 @@ export default function AccountPage() {
         onClose={() => setIsLogoutModalOpen(false)}
         onConfirm={handleSignOut}
         isLoggingOut={isLoggingOut}
+        isGuest={user?.isRegistered === false}
       />
 
       <CompleteRegistrationModal

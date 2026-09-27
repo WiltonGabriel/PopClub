@@ -8,6 +8,7 @@ import {
   Clock,
   MapPin,
   ArrowLeft,
+  Home,
   ShoppingBag,
   RefreshCw,
   Store,
@@ -52,6 +53,14 @@ function TrackingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const orderId = searchParams.get("id");
+
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/pedidos");
+    }
+  };
 
   const [order, setOrder] = useState<Order | null>(null);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
@@ -269,14 +278,26 @@ function TrackingContent() {
       <main className="fixed inset-0 w-full h-full overflow-hidden bg-background select-none">
         {/* Topbar Flutuante Imersiva */}
         <header className="fixed top-0 left-0 right-0 z-30 h-14 bg-white/90 dark:bg-background/90 backdrop-blur-md border-b border-border/50 px-4 flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2.5">
-            <Link
-              href="/pedidos"
-              className="w-9 h-9 rounded-xl bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
-              title="Voltar para Meus Pedidos"
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleBack}
+              className="w-9 h-9 rounded-xl bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer active:scale-95"
+              title="Voltar à tela anterior"
+              aria-label="Voltar à tela anterior"
             >
               <ArrowLeft className="w-4 h-4" />
+            </button>
+
+            <Link
+              href="/"
+              className="w-9 h-9 rounded-xl bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer active:scale-95"
+              title="Ir para a Página Inicial"
+              aria-label="Página Inicial"
+            >
+              <Home className="w-4 h-4" />
             </Link>
+
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
@@ -785,13 +806,28 @@ function TrackingContent() {
     <main className="min-h-screen bg-background flex flex-col">
       {/* Topbar */}
       <header className="w-full bg-white/90 dark:bg-background/90 backdrop-blur-md border-b border-border/50 px-4 py-3 sticky top-0 z-30 flex items-center justify-between shadow-xs">
-        <Link
-          href="/pedidos"
-          className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Voltar para Meus Pedidos</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="inline-flex items-center gap-1.5 p-2 rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer active:scale-95"
+            title="Voltar à tela anterior"
+            aria-label="Voltar à tela anterior"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Voltar</span>
+          </button>
+
+          <Link
+            href="/"
+            className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer active:scale-95"
+            title="Ir para a Página Inicial"
+            aria-label="Página Inicial"
+          >
+            <Home className="w-4 h-4" />
+          </Link>
+        </div>
+
         <span className="font-mono text-xs font-bold bg-primary/10 text-primary dark:text-muted-foreground px-2.5 py-1 rounded-lg border border-primary/20">
           #{order.id.substring(0, 6)}
         </span>

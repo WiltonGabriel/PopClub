@@ -7,6 +7,7 @@ import {
   Clock,
   CheckCircle,
   ChevronLeft,
+  Home,
   ChevronDown,
   RotateCcw,
   Loader2,
@@ -82,6 +83,14 @@ const STATUS_CONFIG: Record<
 export default function PedidosPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/");
+    }
+  };
   const { showToast } = useToast();
   const { addItem } = useCart();
   const {
@@ -139,7 +148,7 @@ export default function PedidosPage() {
   // Redireciona caso não haja sessão nem pedidos anônimos
   useEffect(() => {
     if (!authLoading && !user && guestOrderIds.length === 0) {
-      router.push("/login");
+      router.push("/login?redirect=/pedidos");
     }
   }, [user, authLoading, guestOrderIds, router]);
 
@@ -226,22 +235,36 @@ export default function PedidosPage() {
     <div className="min-h-screen bg-transparent text-foreground flex flex-col font-sans transition-colors duration-200">
       {/* Header */}
       <header className="sticky top-0 z-40 w-full max-w-full overflow-x-hidden backdrop-blur-md bg-background/80 border-b border-border/40 px-4 py-4 flex items-center justify-between shadow-xs">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 border border-gray-200 dark:border-border/40 transition-colors"
-            title="Voltar para a Loja"
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 border border-gray-200 dark:border-border/40 transition-colors cursor-pointer active:scale-95"
+            title="Voltar à tela anterior"
+            aria-label="Voltar à tela anterior"
           >
             <ChevronLeft className="w-5 h-5 text-primary" />
+          </button>
+
+          <Link
+            href="/"
+            className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 border border-gray-200 dark:border-border/40 transition-colors cursor-pointer active:scale-95"
+            title="Ir para a Página Inicial"
+            aria-label="Página Inicial"
+          >
+            <Home className="w-5 h-5 text-primary" />
           </Link>
+
           <div>
-            <h1 className="text-lg sm:text-xl font-heading font-black tracking-tight text-foreground dark:text-foreground">
-              Meus Pedidos
-            </h1>
-            <span className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Acompanhamento ao vivo
-            </span>
+            <Link href="/" className="hover:opacity-85 transition-opacity block">
+              <h1 className="text-lg sm:text-xl font-heading font-black tracking-tight text-foreground dark:text-foreground">
+                Meus Pedidos
+              </h1>
+              <span className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Acompanhamento ao vivo
+              </span>
+            </Link>
           </div>
         </div>
 

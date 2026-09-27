@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   RefreshCw,
   Store,
-  LogOut,
   XCircle,
   AlertTriangle,
   ShoppingBag,
@@ -51,7 +50,6 @@ import {
 } from "lucide-react";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { orderService, Order, OrderStatus } from "../../../services/orderService";
-import { authService } from "../../../services/authService";
 import { playKitchenBellSound, initAudioUnlock } from "../../../lib/sound";
 import {
   sendWebNotification,
@@ -721,11 +719,6 @@ export default function AdminPedidosPage() {
       }
     }
   }, [orders, selectedOrderForDrawer]);
-
-  const handleSignOut = async () => {
-    await authService.signOut();
-    router.push("/");
-  };
 
   // Cálculo da recorrência de clientes
   const clientRecurrenceMap = useMemo(() => {
@@ -1668,15 +1661,6 @@ export default function AdminPedidosPage() {
             )}
           </button>
 
-          {/* Botão Sair Desktop (sm+) */}
-          <button
-            onClick={handleSignOut}
-            className="hidden sm:flex items-center gap-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors border border-transparent hover:border-red-200 dark:border-red-900/40"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Sair</span>
-          </button>
-
           {/* Menu Hambúrguer / Dropdown no Mobile (< sm) */}
           <div className="relative sm:hidden">
             <button
@@ -1722,17 +1706,6 @@ export default function AdminPedidosPage() {
                   <Store className="w-4 h-4 text-primary" />
                   <span>Página Inicial</span>
                 </Link>
-                <div className="border-t border-gray-100 dark:border-border/30 my-1" />
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    handleSignOut();
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 text-left cursor-pointer"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Sair</span>
-                </button>
               </div>
             )}
           </div>

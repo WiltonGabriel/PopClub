@@ -7,9 +7,10 @@ interface LogoutConfirmModalProps {
   onClose: () => void;
   onConfirm: () => void;
   isLoggingOut?: boolean;
+  isGuest?: boolean;
 }
 
-export function LogoutConfirmModal({ isOpen, onClose, onConfirm, isLoggingOut }: LogoutConfirmModalProps) {
+export function LogoutConfirmModal({ isOpen, onClose, onConfirm, isLoggingOut, isGuest }: LogoutConfirmModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -20,10 +21,12 @@ export function LogoutConfirmModal({ isOpen, onClose, onConfirm, isLoggingOut }:
             <LogOut className="w-8 h-8 ml-1" />
           </div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-            Deseja realmente sair da sua conta?
+            {isGuest ? "Encerrar acesso rápido?" : "Deseja realmente sair da sua conta?"}
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
-            Ao sair, você precisará informar suas credenciais novamente para acompanhar seus pedidos ativos, resgatar cupons e acessar seus endereços cadastrados.
+            {isGuest
+              ? "Seu acesso rápido neste dispositivo será finalizado. Para salvar seus dados e pedidos permanentemente, você pode completar seu cadastro com e-mail e senha."
+              : "Ao sair, você precisará informar suas credenciais novamente para acompanhar seus pedidos ativos, resgatar cupons e acessar seus endereços cadastrados."}
           </p>
           <div className="flex flex-col gap-3">
             <button
@@ -35,7 +38,11 @@ export function LogoutConfirmModal({ isOpen, onClose, onConfirm, isLoggingOut }:
               {isLoggingOut ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : null}
-              {isLoggingOut ? "Saindo..." : "Sim, Sair da Conta"}
+              {isLoggingOut
+                ? "Saindo..."
+                : isGuest
+                ? "Sim, Encerrar Sessão"
+                : "Sim, Sair da Conta"}
             </button>
             <button
               type="button"

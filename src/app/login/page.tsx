@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ChevronLeft,
+  Home,
   User,
   Phone,
   Lock,
@@ -264,18 +265,36 @@ function AuthPageInner() {
         <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-accent/5 dark:bg-accent/10 blur-3xl" />
       </div>
 
-      {/* Back link */}
-      <Link
-        href="/"
-        className="absolute top-6 left-6 flex items-center gap-1.5 text-[#7A587D] dark:text-muted-foreground hover:text-foreground dark:hover:text-foreground transition-colors text-sm font-medium group"
-        aria-label="Voltar à loja"
-      >
-        <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-        Voltar à loja
-      </Link>
+      {/* Top Navigation: Voltar Inteligente e Início */}
+      <div className="absolute top-6 left-6 right-6 flex items-center justify-between z-20 pointer-events-auto">
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== "undefined" && window.history.length > 1) {
+              router.back();
+            } else {
+              router.push(redirectTarget || "/");
+            }
+          }}
+          className="flex items-center gap-1.5 text-[#7A587D] dark:text-muted-foreground hover:text-foreground dark:hover:text-foreground transition-colors text-sm font-medium group cursor-pointer p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5"
+          aria-label="Voltar à tela anterior"
+        >
+          <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+          <span>Voltar</span>
+        </button>
+
+        <Link
+          href="/"
+          className="flex items-center justify-center p-2 rounded-xl border border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 text-[#7A587D] dark:text-muted-foreground hover:text-foreground dark:hover:text-foreground transition-colors"
+          title="Ir para a Página Inicial"
+          aria-label="Página Inicial"
+        >
+          <Home className="w-4 h-4" />
+        </Link>
+      </div>
 
       {/* ── Auth Card ── */}
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full max-w-md pt-8 sm:pt-0">
         <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-3xl shadow-2xl p-6 sm:p-8">
 
           {/* Logo / Brand */}
@@ -287,12 +306,7 @@ function AuthPageInner() {
             <span className="font-heading font-black text-3xl tracking-tight">
               <span className="text-foreground dark:text-foreground">Pop</span>
               <span
-                style={{
-                  background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                }}
+                className="bg-gradient-to-r from-[#9306CF] to-[#D80064] bg-clip-text text-transparent"
               >
                 Shake
               </span>

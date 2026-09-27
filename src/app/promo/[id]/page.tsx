@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ShoppingBag, Check, Sparkles, Tag, ArrowRight, Loader2 } from "lucide-react";
+import { ChevronLeft, Home, ShoppingBag, Check, Sparkles, Tag, ArrowRight, Loader2 } from "lucide-react";
 import { promotionService, Promotion } from "../../../services/promotionService";
 import { useCart } from "../../../hooks/useCart";
 import { Button } from "../../../components/ui/button";
@@ -16,6 +16,14 @@ export default function PromotionDetailPage({
   const { id } = use(params);
   const router = useRouter();
   const { addItem, totalItems } = useCart();
+
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/");
+    }
+  };
 
   const [promo, setPromo] = useState<Promotion | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,15 +102,30 @@ export default function PromotionDetailPage({
       {/* Header Fixo */}
       <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-background/90 border-b-2 border-border px-4 py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2">
-          <Link
-            href="/"
-            className="p-1.5 hover:bg-muted border-2 border-transparent hover:border-border transition-colors"
+          <button
+            type="button"
+            onClick={handleBack}
+            className="p-1.5 rounded-xl hover:bg-muted border-2 border-transparent hover:border-border transition-colors cursor-pointer active:scale-95"
+            title="Voltar à tela anterior"
+            aria-label="Voltar à tela anterior"
           >
             <ChevronLeft className="w-6 h-6 text-primary" />
+          </button>
+
+          <Link
+            href="/"
+            className="p-1.5 rounded-xl hover:bg-muted border-2 border-transparent hover:border-border transition-colors cursor-pointer active:scale-95"
+            title="Ir para a Página Inicial"
+            aria-label="Página Inicial"
+          >
+            <Home className="w-5 h-5 text-primary" />
           </Link>
-          <span className="text-lg font-heading font-black tracking-tighter uppercase text-foreground">
-            Pop<span className="text-primary">Club</span>
-          </span>
+
+          <Link href="/" className="hover:opacity-85 transition-opacity">
+            <span className="text-lg font-heading font-black tracking-tighter uppercase text-foreground">
+              Pop<span className="text-primary">Club</span>
+            </span>
+          </Link>
         </div>
 
         <Link

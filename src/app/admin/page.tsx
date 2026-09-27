@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   LayoutDashboard,
-  LogOut,
   ArrowRight,
   Loader2,
   Store,
@@ -33,7 +32,6 @@ import { orderService, Order } from "../../services/orderService";
 import { promotionService, Promotion } from "../../services/promotionService";
 import { bannerService, HighlightBannerData } from "../../services/bannerService";
 import { storeSettingsService, StoreSettings } from "../../services/storeSettingsService";
-import { authService } from "../../services/authService";
 import { productService, Product } from "../../services/productService";
 import { playNewOrderChime } from "../../lib/sound";
 import { subscribeToOrderEvents } from "../../lib/orderEvents";
@@ -247,11 +245,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSignOut = async () => {
-    await authService.signOut();
-    router.push("/");
-  };
-
   if (fetching && orders.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center min-h-screen bg-transparent">
@@ -323,14 +316,6 @@ export default function AdminDashboard() {
             ) : (
               <Moon className="w-4 h-4 text-primary" />
             )}
-          </button>
-
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors border border-transparent hover:border-red-200 dark:border-red-900/40"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Sair</span>
           </button>
         </div>
       </header>
