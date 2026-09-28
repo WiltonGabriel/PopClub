@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { getAuthUser } from "@/lib/auth";
 import { z } from "zod";
 import { handleApiError } from "@/lib/apiResponse";
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
       );
     }
 
-    let json: any;
+    let json: unknown;
     try {
       json = await request.json();
     } catch {
@@ -177,7 +178,7 @@ export async function POST(request: Request) {
           include: { group: true },
         })
       : [];
-    const dbAddonsMap = new Map(dbAddons.map((a) => [a.id, a]));
+    const dbAddonsMap = new Map(dbAddons.map((a: (typeof dbAddons)[number]) => [a.id, a]));
 
     let calculatedSubtotal = 0;
     let promoDiscountTotal = 0;
@@ -188,7 +189,13 @@ export async function POST(request: Request) {
       quantity: number;
       priceAtTime: number;
       promotionId: string | null;
-      selectedAddons: any;
+      selectedAddons: Array<{
+        id: string;
+        name: string;
+        groupName: string;
+        price: number;
+        quantity: number;
+      }> | null;
     }[] = [];
 
     for (const item of items) {
@@ -397,10 +404,14 @@ export async function POST(request: Request) {
 
       // Regra de Uso Único por Cliente
       if (coupon.oncePerUser) {
-        const clientUserId = authUser?.id || (json as any)?.userId;
-        const clientPhone = (json as any)?.customerPhone || (json as any)?.phone || authUser?.phone;
+        const rawBody = typeof json === "object" && json !== null ? (json as Record<string, unknown>) : {};
+        const clientUserId = authUser?.id || (typeof rawBody.userId === "string" ? rawBody.userId : undefined);
+        const clientPhone =
+          (typeof rawBody.customerPhone === "string" ? rawBody.customerPhone : undefined) ||
+          (typeof rawBody.phone === "string" ? rawBody.phone : undefined) ||
+          authUser?.phone;
 
-        const conditions: any[] = [];
+        const conditions: Prisma.OrderWhereInput[] = [];
         if (clientUserId) {
           conditions.push({ userId: clientUserId });
         }
@@ -504,7 +515,7 @@ export async function POST(request: Request) {
           couponCode: validCouponCode,
           paymentMethodType: paymentMethod.type,
           paymentChangeFor: paymentMethod.changeFor || null,
-          ...({ changeFor: paymentMethod.changeFor || null } as any),
+          changeFor: paymentMethod.changeFor || null,
           changeToReturn: changeToReturn,
           deliveryStreet: deliveryAddress.street,
           deliveryNumber: deliveryAddress.number,

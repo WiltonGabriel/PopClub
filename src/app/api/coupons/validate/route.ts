@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { getAuthUser } from "@/lib/auth";
 import { couponLimiter, getIpFromRequest } from "@/lib/rateLimit";
 import {
@@ -20,9 +21,18 @@ export async function POST(request: Request) {
       );
     }
 
-    let body: any;
+    interface ValidateCouponBody {
+      code?: string;
+      subtotal?: number | string;
+      userId?: string;
+      phone?: string;
+      customerPhone?: string;
+      productIds?: string[];
+    }
+
+    let body: ValidateCouponBody = {};
     try {
-      body = await request.json();
+      body = (await request.json()) as ValidateCouponBody;
     } catch {
       return NextResponse.json({ valid: false, message: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
     }
@@ -111,10 +121,13 @@ export async function POST(request: Request) {
     // Regra de Uso Único por Cliente
     if (coupon.oncePerUser) {
       const authUser = await getAuthUser(request);
-      const targetUserId = authUser?.id || body.userId;
-      const targetPhone = body.phone || body.customerPhone || authUser?.phone;
+      const targetUserId = authUser?.id || (typeof body.userId === "string" ? body.userId : undefined);
+      const targetPhone =
+        (typeof body.phone === "string" ? body.phone : undefined) ||
+        (typeof body.customerPhone === "string" ? body.customerPhone : undefined) ||
+        authUser?.phone;
 
-      const conditions: any[] = [];
+      const conditions: Prisma.OrderWhereInput[] = [];
       if (targetUserId) conditions.push({ userId: targetUserId });
       if (targetPhone) conditions.push({ user: { phone: targetPhone } });
 
@@ -182,7 +195,7 @@ export async function POST(request: Request) {
         productIds: coupon.productIds || [],
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro na validação do cupom:", error);
     return NextResponse.json({ valid: false, message: "Erro ao validar cupom." }, { status: 500 });
   }

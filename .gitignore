@@ -59,3 +59,8 @@ public/sw.js
 public/sw.js.map
 public/workbox-*.js
 public/workbox-*.js.map
+
+# Screenshots & Audit artifacts
+/docs/screenshots-audit/
+screenshots-audit/
+

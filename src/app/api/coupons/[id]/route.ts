@@ -12,10 +12,24 @@ export async function PUT(
       return NextResponse.json({ error: "Acesso não autorizado." }, { status: 403 });
     }
 
+    interface UpdateCouponBody {
+      code?: string;
+      discountType?: string;
+      discountValue?: number | string;
+      minOrderValue?: number | string;
+      maxUses?: number | string | null;
+      expiresAt?: string | null;
+      isActive?: boolean;
+      oncePerUser?: boolean;
+      productIds?: string[];
+      minLoyaltyLevel?: number | string | null;
+      loyaltyBadgeId?: string | null;
+    }
+
     const { id } = await params;
-    let body: any;
+    let body: UpdateCouponBody | null = null;
     try {
-      body = await request.json();
+      body = (await request.json()) as UpdateCouponBody;
     } catch {
       return NextResponse.json({ error: "Corpo da requisição inválido." }, { status: 400 });
     }
@@ -53,7 +67,7 @@ export async function PUT(
       where: { id },
       data: {
         ...(cleanCode && { code: cleanCode }),
-        ...(discountType && { discountType }),
+        ...(discountType === "percentage" || discountType === "fixed" ? { discountType } : {}),
         ...(discountValue !== undefined && { discountValue: Number(discountValue) }),
         ...(minOrderValue !== undefined && { minOrderValue: Number(minOrderValue) }),
         ...(maxUses !== undefined && { maxUses: maxUses ? parseInt(String(maxUses), 10) : null }),
@@ -82,7 +96,7 @@ export async function PUT(
       loyaltyBadgeId: updated.loyaltyBadgeId,
       createdAt: updated.createdAt.toISOString(),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao atualizar cupom:", error);
     return NextResponse.json({ error: "Erro ao atualizar cupom." }, { status: 500 });
   }
@@ -99,14 +113,14 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    let body: any;
+    let body: Record<string, unknown> | null = null;
     try {
-      body = await request.json();
+      body = (await request.json()) as Record<string, unknown>;
     } catch {
       return NextResponse.json({ error: "Corpo da requisição inválido." }, { status: 400 });
     }
 
-    const { isActive } = body;
+    const { isActive } = body || {};
     if (typeof isActive !== "boolean") {
       return NextResponse.json({ error: "Campo 'isActive' booleano é obrigatório." }, { status: 400 });
     }
@@ -121,7 +135,7 @@ export async function PATCH(
       code: updated.code,
       isActive: updated.isActive,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao alternar status do cupom:", error);
     return NextResponse.json({ error: "Erro ao alternar status do cupom." }, { status: 500 });
   }
@@ -143,7 +157,7 @@ export async function DELETE(
     });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao excluir cupom:", error);
     return NextResponse.json({ error: "Erro ao remover cupom." }, { status: 500 });
   }
