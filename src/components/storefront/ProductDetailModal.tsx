@@ -333,9 +333,9 @@ export function ProductDetailModal({
         </div>
 
         {/* ── COLUNA DIREITA (Informações e Grupos de Complementos Reais) ── */}
-        <div className="w-full md:w-1/2 flex flex-col flex-1 min-h-0 bg-white dark:bg-[#181D2D]">
+        <div className="w-full md:w-1/2 flex flex-col flex-1 min-h-0 bg-white dark:bg-[#181D2D] overflow-hidden">
           {/* Painel Rolável */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 scrollbar-thin pb-28 md:pb-6">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 space-y-6 scrollbar-thin pb-32 md:pb-8">
             {/* Cabeçalho do Produto */}
             <div className="space-y-2 border-b border-gray-100 dark:border-zinc-800 pb-4">
               <div className="flex items-start justify-between gap-3">
@@ -396,45 +396,50 @@ export function ProductDetailModal({
                       key={group.id}
                       className="border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 bg-zinc-50/50 dark:bg-zinc-900/30 space-y-3"
                     >
-                      {/* Cabeçalho do Grupo com Badges Informativas */}
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h3 className="font-heading font-bold text-sm sm:text-base text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                      {/* Cabeçalho do Grupo com Hierarquia Vertical Padrão iFood */}
+                      <div className="space-y-1.5">
+                        {/* Linha Superior: Nome do Grupo e Badge de Obrigatoriedade */}
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="font-heading font-bold text-base text-foreground leading-snug">
                             {group.name}
                           </h3>
-                          {group.description && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{group.description}</p>
-                          )}
-                        </div>
-
-                        {/* Badges do Grupo */}
-                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-                          <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-zinc-200/80 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
-                            {currentCount} de {group.maxQuantity} selecionado{group.maxQuantity === 1 ? "" : "s"}
-                          </span>
 
                           {minReq >= 1 ? (
                             <span
-                              className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+                              className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border shrink-0 ${
                                 isSatisfied
                                   ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                                   : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 animate-pulse"
                               }`}
                             >
-                              [ Obrigatório • Escolha {minReq} ]
+                              {isSatisfied ? "Obrigatório" : `Obrigatório • Escolha ${minReq}`}
                             </span>
                           ) : (
-                            <span className="text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-muted-foreground">
+                            <span className="text-[10px] font-medium uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-muted-foreground border border-zinc-200 dark:border-zinc-700/60 shrink-0">
                               Opcional
                             </span>
                           )}
+                        </div>
+
+                        {/* Linha Intermediária: Badges Flexíveis (Contador e Benefício) */}
+                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                          <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-zinc-200/80 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                            {currentCount} de {group.maxQuantity} selecionado{group.maxQuantity === 1 ? "" : "s"}
+                          </span>
 
                           {freeQuota > 0 && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                              Até {freeQuota} inclusos
+                            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                              Até {freeQuota} incluso{freeQuota === 1 ? "" : "s"}
                             </span>
                           )}
                         </div>
+
+                        {/* Linha Inferior: Descrição em largura total */}
+                        {group.description && (
+                          <p className="w-full text-xs text-muted-foreground pt-0.5 leading-relaxed">
+                            {group.description}
+                          </p>
+                        )}
                       </div>
 
                       {/* Lista de Opções do Grupo */}
