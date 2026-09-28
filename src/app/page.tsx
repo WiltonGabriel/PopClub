@@ -8,6 +8,7 @@ import { authService } from "../services/authService";
 import { useAuth } from "../hooks/useAuth";
 import { useCart } from "../hooks/useCart";
 import { useTheme } from "../contexts/ThemeContext";
+import { useOrders } from "../contexts/OrderContext";
 
 // Storefront components
 import { PromoBanner } from "../components/storefront/PromoBanner";
@@ -26,7 +27,6 @@ import { PopShakeLoading } from "../components/ui/PopShakeLoading";
 import {
   loadingSettingsService,
   LoadingSettingsData,
-  resolveBackgroundCss,
   LOADING_UPDATED_EVENT,
 } from "../services/loadingSettingsService";
 import { LogoutConfirmModal } from "../components/ui/LogoutConfirmModal";
@@ -43,7 +43,6 @@ import { storeSettingsService, StoreSettings } from "../services/storeSettingsSe
 // UI + Icons
 import { Button } from "../components/ui/button";
 import {
-  Search,
   ShoppingBag,
   ChevronDown,
   Plus,
@@ -143,6 +142,24 @@ export default function Storefront() {
   const canEdit = isAdmin && isEditMode;
   const { addItem, totalItems, itemsTotal } = useCart();
   const { theme, toggleTheme } = useTheme();
+  const { activeOrders } = useOrders();
+
+  // Pedidos ativos relevantes para o badge do cabeçalho (pending, accepted, preparing, delivering)
+  const relevantActiveOrders = useMemo(() => {
+    return (activeOrders || []).filter((o) =>
+      ["pending", "accepted", "preparing", "delivering"].includes(o.status)
+    );
+  }, [activeOrders]);
+
+  const activeOrdersBadgeColor = useMemo(() => {
+    if (relevantActiveOrders.some((o) => o.status === "delivering")) {
+      return "bg-emerald-500 text-white animate-pulse";
+    }
+    if (relevantActiveOrders.some((o) => o.status === "preparing")) {
+      return "bg-primary text-white";
+    }
+    return "bg-amber-500 text-white";
+  }, [relevantActiveOrders]);
 
   const [sectionsOrder, setSectionsOrder] = useState<HomeSectionId[]>(DEFAULT_SECTIONS_ORDER);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -633,8 +650,8 @@ export default function Storefront() {
           <div className="flex-1 flex justify-center items-center min-w-0 px-1">
             <HeaderAddressButton
               isMobile
-              className="max-w-[170px] xs:max-w-[210px] sm:max-w-[240px] truncate text-xs px-2.5 py-1.5 rounded-full border-border/50 bg-white/80 dark:bg-[#181D2D]/80 shadow-xs"
-              spanClassName="max-w-[120px] xs:max-w-[160px] truncate font-medium"
+              className="min-h-[38px] sm:min-h-[40px] px-3.5 py-2 max-w-[170px] truncate text-xs font-semibold rounded-full border-border/50 bg-white/80 dark:bg-[#181D2D]/80 shadow-xs"
+              spanClassName="max-w-[110px] truncate font-semibold"
             />
           </div>
 
@@ -669,7 +686,7 @@ export default function Storefront() {
           {/* ── CENTRO: Endereço + Busca com Autocomplete ── */}
           <div className="flex items-center gap-3 flex-1 max-w-xl mx-4 min-w-0">
             <HeaderAddressButton className="shrink-0" />
-            <div className="flex-1 min-w-[180px]">
+            <div className="flex-1 min-w-[200px] max-w-[440px]">
               <SearchAutocomplete
                 products={products}
                 initialValue={search}
@@ -682,15 +699,23 @@ export default function Storefront() {
           {/* ── DIREITA: Actions Desktop ── */}
           <div className="flex items-center gap-2 shrink-0">
 
-            {/* 1. [ Meus Pedidos ] — Desktop only */}
+            {/* 1. [ Meus Pedidos ] — Desktop only: Apenas ícone com badge dinâmico */}
             <Link
               href="/pedidos"
-              className="hidden md:flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-foreground dark:text-foreground border border-border/50 hover:border-primary/50 bg-white/60 dark:bg-[#181D2D]/60 hover:bg-muted/80 rounded-full px-3 sm:px-3.5 py-2 transition-all shrink-0 shadow-xs group cursor-pointer"
-              title="Acompanhar Meus Pedidos"
-              aria-label="Ver meus pedidos"
+              className="hidden md:flex relative h-10 w-10 rounded-full items-center justify-center border border-border/50 hover:border-primary/50 bg-white/60 dark:bg-[#181D2D]/60 hover:bg-muted/80 text-foreground transition-all shrink-0 shadow-xs group cursor-pointer"
+              title={
+                relevantActiveOrders.length > 0
+                  ? `Acompanhar Meus Pedidos (${relevantActiveOrders.length} ativo${relevantActiveOrders.length === 1 ? "" : "s"})`
+                  : "Acompanhar Meus Pedidos"
+              }
+              aria-label={`Ver meus pedidos${relevantActiveOrders.length > 0 ? ` (${relevantActiveOrders.length} ativos)` : ""}`}
             >
-              <ReceiptText className="w-4 h-4 text-primary dark:text-violet-400 group-hover:scale-110 transition-transform shrink-0" />
-              <span>Meus Pedidos</span>
+              <ReceiptText className="w-5 h-5 text-primary dark:text-violet-400 group-hover:scale-110 transition-transform shrink-0" />
+              {relevantActiveOrders.length > 0 && (
+                <span className={`absolute -top-1.5 -right-1.5 h-5 min-w-[20px] px-1 rounded-full text-xs font-bold flex items-center justify-center leading-none shadow-xs border-2 border-background ${activeOrdersBadgeColor}`}>
+                  {relevantActiveOrders.length > 99 ? "99+" : relevantActiveOrders.length}
+                </span>
+              )}
             </Link>
 
             {/* 2. [ Modo de Edição / Visualizar ] — exclusivo para Administrador no Desktop */}
@@ -1184,7 +1209,7 @@ export default function Storefront() {
 
               {/* Título da categoria com emoji/ícone e contador total de itens */}
               <div className="text-right min-w-0 flex-1">
-                <h1 className="font-heading font-bold text-sm xs:text-base text-foreground truncate">
+                <h1 className="font-heading text-sm xs:text-base text-zinc-900 dark:text-zinc-100 font-bold truncate">
                   {dedicatedCategoryEmoji} {dedicatedCategoryName}
                 </h1>
                 <span className="text-[11px] font-semibold text-muted-foreground block">
@@ -1359,7 +1384,7 @@ export default function Storefront() {
                           {/* Section header */}
                           <div className="flex items-center justify-between mb-4 px-1 flex-wrap gap-2">
                             <div className="flex items-center gap-3">
-                              <h2 className="font-heading text-lg sm:text-xl font-bold text-foreground dark:text-foreground flex items-center gap-2">
+                              <h2 className="font-heading text-lg sm:text-xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                                 <span className="w-1 h-6 rounded-full bg-gradient-to-b from-brand-pop-shake to-brand-magenta inline-block" />
                                 {cat.name}
                                 <span className="text-sm font-normal text-muted-foreground">

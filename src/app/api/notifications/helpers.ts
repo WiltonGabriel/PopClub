@@ -1,7 +1,14 @@
 import { prisma } from "@/lib/prisma";
+import { 
+  DEFAULT_LOYALTY_BADGES, 
+  LoyaltyBadgeConfig, 
+  calculateAccountAgeMonths, 
+  getBadgeForMonths 
+} from "@/services/loyaltyBadgeService";
 
 export type TargetAudienceType =
   | "ALL"
+  | "LOYALTY"
   | "NEW_CUSTOMERS"
   | "ACTIVATION"
   | "VIP"
@@ -9,7 +16,7 @@ export type TargetAudienceType =
   | "INACTIVE_30"
   | "INACTIVE_60";
 
-export async function getTargetClients(audience: TargetAudienceType | string) {
+export async function getTargetClients(audience: TargetAudienceType | string, loyaltyBadgeIds?: string[]) {
   const now = new Date();
 
   // Todos os usuários com perfil de cliente (ou todos os usuários caso só haja admin em teste)
@@ -34,6 +41,32 @@ export async function getTargetClients(audience: TargetAudienceType | string) {
   // Se houver clientes específicos, filtra por role === 'client', senão inclui todos
   const clients = allUsers.filter((u) => u.role === "client");
   const baseList = clients.length > 0 ? clients : allUsers;
+
+  if (audience === "LOYALTY" || (loyaltyBadgeIds && loyaltyBadgeIds.length > 0)) {
+    // Obter configuração de selos
+    const record = await prisma.notificationTemplate.findFirst({
+      where: { category: "loyalty_badges" },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    let badges: LoyaltyBadgeConfig[] = DEFAULT_LOYALTY_BADGES;
+    if (record?.message) {
+      try {
+        const parsed = JSON.parse(record.message);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          badges = parsed;
+        }
+      } catch {}
+    }
+
+    const selectedIds = new Set(loyaltyBadgeIds || []);
+
+    return baseList.filter((u) => {
+      const months = calculateAccountAgeMonths(u.createdAt);
+      const userBadge = getBadgeForMonths(months, badges);
+      return selectedIds.has(userBadge.id) || selectedIds.has(String(userBadge.level));
+    });
+  }
 
   switch (audience) {
     case "NEW_CUSTOMERS": {

@@ -26,6 +26,8 @@ export async function GET(request: Request) {
       isActive: c.isActive,
       oncePerUser: c.oncePerUser,
       productIds: c.productIds || [],
+      minLoyaltyLevel: c.minLoyaltyLevel,
+      loyaltyBadgeId: c.loyaltyBadgeId,
       createdAt: c.createdAt.toISOString(),
     }));
 
@@ -58,6 +60,8 @@ export async function POST(request: Request) {
       isActive?: boolean;
       oncePerUser?: boolean;
       productIds?: string[];
+      minLoyaltyLevel?: number | string | null;
+      loyaltyBadgeId?: string | null;
     }
 
     let body: CreateCouponBody = {};
@@ -77,6 +81,8 @@ export async function POST(request: Request) {
       isActive = true,
       oncePerUser = false,
       productIds = [],
+      minLoyaltyLevel = null,
+      loyaltyBadgeId = null,
     } = body || {};
 
     if (!code || typeof code !== "string" || !code.trim()) {
@@ -121,6 +127,8 @@ export async function POST(request: Request) {
         isActive: Boolean(isActive),
         oncePerUser: Boolean(oncePerUser),
         productIds: Array.isArray(productIds) ? productIds : [],
+        minLoyaltyLevel: minLoyaltyLevel ? parseInt(String(minLoyaltyLevel), 10) : null,
+        loyaltyBadgeId: loyaltyBadgeId ? String(loyaltyBadgeId).trim() : null,
       },
     });
 
@@ -136,6 +144,8 @@ export async function POST(request: Request) {
       isActive: newCoupon.isActive,
       oncePerUser: newCoupon.oncePerUser,
       productIds: newCoupon.productIds,
+      minLoyaltyLevel: newCoupon.minLoyaltyLevel,
+      loyaltyBadgeId: newCoupon.loyaltyBadgeId,
       createdAt: newCoupon.createdAt.toISOString(),
     }, { status: 201 });
   } catch (error: unknown) {

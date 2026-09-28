@@ -19,6 +19,8 @@ export interface Coupon {
   isActive: boolean;
   oncePerUser?: boolean;
   productIds: string[];
+  minLoyaltyLevel?: number | null;
+  loyaltyBadgeId?: string | null;
   createdAt: string;
 }
 
@@ -32,6 +34,8 @@ export interface CreateCouponInput {
   isActive?: boolean;
   oncePerUser?: boolean;
   productIds?: string[];
+  minLoyaltyLevel?: number | null;
+  loyaltyBadgeId?: string | null;
 }
 
 export interface UpdateCouponInput {
@@ -44,6 +48,8 @@ export interface UpdateCouponInput {
   isActive?: boolean;
   oncePerUser?: boolean;
   productIds?: string[];
+  minLoyaltyLevel?: number | null;
+  loyaltyBadgeId?: string | null;
 }
 
 export const couponService = {

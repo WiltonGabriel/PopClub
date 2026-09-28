@@ -138,9 +138,10 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
 
   useEffect(() => {
     loadData();
+    const timers = debounceTimers.current;
     return () => {
       // Limpa debounces pendentes ao desmontar
-      Object.values(debounceTimers.current).forEach(clearTimeout);
+      Object.values(timers).forEach(clearTimeout);
     };
   }, [loadData]);
 
@@ -160,7 +161,7 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
         message: newStatus ? "Produto ativado para venda na loja." : "Produto pausado/esgotado na loja.",
         type: "success",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Erro ao atualizar disponibilidade:", err);
       // Reverte em caso de erro
       setProducts((prev) =>
@@ -168,7 +169,7 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
       );
       showToast({
         title: "Erro na atualização",
-        message: err.message || "Falha ao atualizar disponibilidade.",
+        message: err instanceof Error ? err.message : "Falha ao atualizar disponibilidade.",
         type: "error",
       });
     }
@@ -190,7 +191,7 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
         message: isInfinite ? "Configurado como Sob Demanda / Infinito." : "Configurado com controle de unidades.",
         type: "success",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Erro ao atualizar modo de estoque:", err);
       // Reverte
       setProducts((prev) =>
@@ -198,7 +199,7 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
       );
       showToast({
         title: "Erro na atualização",
-        message: err.message || "Falha ao alternar modo de estoque.",
+        message: err instanceof Error ? err.message : "Falha ao alternar modo de estoque.",
         type: "error",
       });
     }
@@ -225,11 +226,11 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
           message: `Quantidade definida para ${validQty} un.`,
           type: "success",
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Erro ao persistir estoque:", err);
         showToast({
           title: "Erro ao salvar estoque",
-          message: err.message || "Não foi possível sincronizar o estoque.",
+          message: err instanceof Error ? err.message : "Não foi possível sincronizar o estoque.",
           type: "error",
         });
       }
@@ -379,7 +380,7 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
           <div className="relative">
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
+              onChange={(e) => setStatusFilter(e.target.value as "all" | "available" | "unavailable")}
               className="w-full appearance-none pl-3.5 pr-8 py-2.5 bg-gray-50 dark:bg-[#150718] border border-gray-200 dark:border-[#512B54]/40 rounded-xl text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-[#9306CF]/40 focus:border-[#9306CF] transition-all"
             >
               <option value="all">Todos os Status</option>

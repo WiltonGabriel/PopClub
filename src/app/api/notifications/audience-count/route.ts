@@ -11,8 +11,10 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const audience = searchParams.get("audience") || "ALL";
+    const rawLoyaltyIds = searchParams.get("loyaltyBadgeIds");
+    const loyaltyBadgeIds = rawLoyaltyIds ? rawLoyaltyIds.split(",").filter(Boolean) : undefined;
 
-    const clients = await getTargetClients(audience);
+    const clients = await getTargetClients(audience, loyaltyBadgeIds);
     return NextResponse.json({
       audience,
       count: clients.length,

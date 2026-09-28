@@ -42,6 +42,7 @@ export interface DispatchNotificationInput {
   title: string;
   message: string;
   targetAudience: string;
+  loyaltyBadgeIds?: string[];
   couponId?: string | null;
   type?: "BROADCAST" | "TARGETED" | "COUPON";
 }
@@ -71,8 +72,12 @@ export const notificationService = {
     return res.ok;
   },
 
-  async getAudienceCount(audience: string): Promise<number> {
-    const res = await fetch(`/api/notifications/audience-count?audience=${encodeURIComponent(audience)}`);
+  async getAudienceCount(audience: string, loyaltyBadgeIds?: string[]): Promise<number> {
+    let url = `/api/notifications/audience-count?audience=${encodeURIComponent(audience)}`;
+    if (loyaltyBadgeIds && loyaltyBadgeIds.length > 0) {
+      url += `&loyaltyBadgeIds=${encodeURIComponent(loyaltyBadgeIds.join(","))}`;
+    }
+    const res = await fetch(url);
     if (!res.ok) return 0;
     const data = await res.json();
     return Number(data.count) || 0;

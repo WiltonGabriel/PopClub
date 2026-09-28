@@ -54,9 +54,13 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "O limite máximo é de 6 níveis de selos de fidelidade." }, { status: 400 });
     }
 
+    // Ordena do menor para o maior tempo mínimo
+    const sortedBadges = [...rawBadges].sort((a: any, b: any) => (a.minMonths ?? 0) - (b.minMonths ?? 0));
+
     // Validação e normalização dos selos
-    const validatedBadges: LoyaltyBadgeConfig[] = rawBadges.map((b: any, index: number) => {
-      const name = String(b.name || `Selo Nível ${index + 1}`).trim();
+    const validatedBadges: LoyaltyBadgeConfig[] = sortedBadges.map((b: any, index: number) => {
+      const level = typeof b.level === "number" && b.level >= 1 && b.level <= 6 ? b.level : (index + 1);
+      const name = String(b.name || `Selo Nível ${level}`).trim();
       const icon = String(b.icon || "🌟").trim();
       const minMonths = Math.max(0, parseInt(String(b.minMonths ?? 0), 10) || 0);
 
@@ -79,7 +83,8 @@ export async function PUT(request: Request) {
       }
 
       return {
-        id: b.id || `badge_${Date.now()}_${index}`,
+        id: b.id || `badge_level_${level}`,
+        level,
         name,
         icon,
         minMonths,
@@ -87,9 +92,6 @@ export async function PUT(request: Request) {
         badgeClass,
       };
     });
-
-    // Ordena do menor para o maior tempo mínimo
-    validatedBadges.sort((a, b) => a.minMonths - b.minMonths);
 
     // Persiste no banco de dados através da tabela de configurações
     const existing = await prisma.notificationTemplate.findFirst({

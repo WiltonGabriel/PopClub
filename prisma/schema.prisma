@@ -246,6 +246,8 @@ model Coupon {
   isActive      Boolean        @default(true) @map("is_active")
   oncePerUser   Boolean        @default(false) @map("once_per_user")
   productIds    String[]       @default([]) @map("product_ids")
+  minLoyaltyLevel Int?         @map("min_loyalty_level")
+  loyaltyBadgeId  String?      @map("loyalty_badge_id")
   createdAt     DateTime       @default(now()) @map("created_at")
   orders        Order[]
   notifications Notification[]

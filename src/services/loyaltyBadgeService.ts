@@ -1,5 +1,6 @@
 export interface LoyaltyBadgeConfig {
   id: string;
+  level: number;
   name: string;
   icon: string;
   minMonths: number;
@@ -10,6 +11,7 @@ export interface LoyaltyBadgeConfig {
 export const DEFAULT_LOYALTY_BADGES: LoyaltyBadgeConfig[] = [
   {
     id: "badge_novo",
+    level: 1,
     name: "Novo Membro",
     icon: "🌟",
     minMonths: 0,
@@ -18,6 +20,7 @@ export const DEFAULT_LOYALTY_BADGES: LoyaltyBadgeConfig[] = [
   },
   {
     id: "badge_bronze",
+    level: 2,
     name: "Cliente Bronze",
     icon: "🥉",
     minMonths: 1,
@@ -26,6 +29,7 @@ export const DEFAULT_LOYALTY_BADGES: LoyaltyBadgeConfig[] = [
   },
   {
     id: "badge_prata",
+    level: 3,
     name: "Cliente Prata",
     icon: "🥈",
     minMonths: 6,
@@ -34,6 +38,7 @@ export const DEFAULT_LOYALTY_BADGES: LoyaltyBadgeConfig[] = [
   },
   {
     id: "badge_ouro",
+    level: 4,
     name: "Cliente Ouro VIP",
     icon: "👑",
     minMonths: 12,
@@ -41,6 +46,21 @@ export const DEFAULT_LOYALTY_BADGES: LoyaltyBadgeConfig[] = [
     badgeClass: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40 shadow-xs",
   },
 ];
+
+export function calculateAccountAgeMonths(createdAt: string | Date): number {
+  const created = new Date(createdAt);
+  const now = new Date();
+  let months = (now.getFullYear() - created.getFullYear()) * 12 + (now.getMonth() - created.getMonth());
+  if (now.getDate() < created.getDate()) {
+    months--;
+  }
+  return Math.max(0, months);
+}
+
+export function getBadgeForMonths(months: number, badges: LoyaltyBadgeConfig[] = DEFAULT_LOYALTY_BADGES): LoyaltyBadgeConfig {
+  const sorted = [...badges].sort((a, b) => b.minMonths - a.minMonths);
+  return sorted.find((b) => months >= b.minMonths) || sorted[sorted.length - 1];
+}
 
 export const loyaltyBadgeService = {
   async getBadges(): Promise<LoyaltyBadgeConfig[]> {

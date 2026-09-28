@@ -10,7 +10,8 @@ import {
   Save, 
   Loader2, 
   X,
-  Clock
+  Clock,
+  AlertCircle
 } from "lucide-react";
 import { 
   LoyaltyBadgeConfig, 
@@ -36,6 +37,10 @@ export function LoyaltyBadgesSection() {
   const [formName, setFormName] = useState("");
   const [formIcon, setFormIcon] = useState("🌟");
   const [formMonths, setFormMonths] = useState(0);
+
+  // Trava de Confirmação Crítica (Digitação "SIM")
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmInputText, setConfirmInputText] = useState("");
 
   const loadBadges = useCallback(async () => {
     setLoading(true);
@@ -105,9 +110,11 @@ export function LoyaltyBadgesSection() {
         )
       );
     } else {
-      // Criar novo
+      // Criar novo com level imutável
+      const nextLevel = badges.length + 1;
       const newBadge: LoyaltyBadgeConfig = {
-        id: `badge_${Date.now()}`,
+        id: `badge_level_${nextLevel}`,
+        level: nextLevel,
         name: trimmedName,
         icon: trimmedIcon,
         minMonths: numMonths,
@@ -121,6 +128,17 @@ export function LoyaltyBadgesSection() {
       title: editingBadge ? "Selo Atualizado" : "Selo Adicionado",
       message: "Clique em 'Salvar Configuração' para gravar as alterações no banco.",
     });
+  };
+
+  const handleOpenConfirmSave = () => {
+    setConfirmInputText("");
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmSave = async () => {
+    if (confirmInputText.trim() !== "SIM") return;
+    setIsConfirmModalOpen(false);
+    await handleSaveAll();
   };
 
   const handleDeleteBadge = (badgeId: string) => {
@@ -217,7 +235,7 @@ export function LoyaltyBadgesSection() {
           <Button
             type="button"
             size="sm"
-            onClick={handleSaveAll}
+            onClick={handleOpenConfirmSave}
             disabled={saving}
             className="h-9 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold shadow-sm cursor-pointer"
           >
@@ -447,6 +465,67 @@ export function LoyaltyBadgesSection() {
                 className="bg-primary hover:bg-primary/90 text-white rounded-xl h-9 text-xs font-bold cursor-pointer"
               >
                 Confirmar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação Crítica (Digitação "SIM") */}
+      {isConfirmModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 w-full max-w-md rounded-2xl p-5 sm:p-6 shadow-2xl space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-heading text-base font-bold text-zinc-900 dark:text-zinc-100">
+                  Confirmação de Segurança
+                </h4>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  A alteração nos níveis de fidelidade afetará cupons ativos e campanhas de mensagens vinculadas. Digite <strong className="text-zinc-900 dark:text-white font-bold">SIM</strong> para confirmar:
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 pt-1">
+              <Input
+                value={confirmInputText}
+                onChange={(e) => setConfirmInputText(e.target.value)}
+                placeholder='Digite "SIM"'
+                className="h-10 text-center font-bold tracking-widest uppercase rounded-xl border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/80"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-zinc-800">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsConfirmModalOpen(false);
+                  setConfirmInputText("");
+                }}
+                className="rounded-xl h-9 text-xs cursor-pointer"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={confirmInputText.trim() !== "SIM" || saving}
+                onClick={handleConfirmSave}
+                className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl h-9 text-xs font-bold cursor-pointer disabled:opacity-50"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                    Salvando...
+                  </>
+                ) : (
+                  "Confirmar e Salvar"
+                )}
               </Button>
             </div>
           </div>

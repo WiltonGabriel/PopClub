@@ -30,6 +30,8 @@ export async function PUT(
       isActive,
       oncePerUser,
       productIds,
+      minLoyaltyLevel,
+      loyaltyBadgeId,
     } = body || {};
 
     const cleanCode = code ? code.trim().toUpperCase() : undefined;
@@ -59,6 +61,8 @@ export async function PUT(
         ...(isActive !== undefined && { isActive: Boolean(isActive) }),
         ...(oncePerUser !== undefined && { oncePerUser: Boolean(oncePerUser) }),
         ...(productIds !== undefined && { productIds: Array.isArray(productIds) ? productIds : [] }),
+        ...(minLoyaltyLevel !== undefined && { minLoyaltyLevel: minLoyaltyLevel ? parseInt(String(minLoyaltyLevel), 10) : null }),
+        ...(loyaltyBadgeId !== undefined && { loyaltyBadgeId: loyaltyBadgeId ? String(loyaltyBadgeId).trim() : null }),
       },
     });
 
@@ -74,6 +78,8 @@ export async function PUT(
       isActive: updated.isActive,
       oncePerUser: updated.oncePerUser,
       productIds: updated.productIds,
+      minLoyaltyLevel: updated.minLoyaltyLevel,
+      loyaltyBadgeId: updated.loyaltyBadgeId,
       createdAt: updated.createdAt.toISOString(),
     });
   } catch (error: any) {

@@ -47,8 +47,8 @@ export function Footer() {
           {/* Coluna 1: Marca & Propósito */}
           <div className="space-y-3">
             <div className="flex items-center gap-1.5 select-none">
-              <span className="font-heading font-black text-2xl tracking-tight text-foreground dark:text-foreground">
-                Pop<span className="gradient-text-brand">Shake</span>
+              <span className="font-heading text-2xl tracking-tight text-zinc-900 dark:text-white font-bold">
+                Pop<span className="text-primary font-black">Shake</span>
               </span>
               <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary dark:text-muted-foreground border border-primary/20">
                 Sorveteria

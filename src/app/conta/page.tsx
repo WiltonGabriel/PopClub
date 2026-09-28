@@ -640,20 +640,10 @@ export default function AccountPage() {
           <button 
             type="button"
             onClick={handleHeaderBack}
-            className="flex items-center gap-1.5 p-2 rounded-xl border border-gray-200 dark:border-[#512B54]/40 hover:bg-gray-100 dark:hover:bg-white/5 text-[#4C264F] dark:text-[#F9F5F9] font-medium text-sm transition-colors group cursor-pointer shrink-0 active:scale-98"
+            className="flex items-center justify-center p-2 rounded-xl border border-gray-200 dark:border-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-800 text-foreground transition-colors group cursor-pointer shrink-0 active:scale-95"
             aria-label={currentView !== "menu" ? "Voltar para o menu principal" : "Voltar para a loja"}
           >
-            <ChevronLeft className="w-5 h-5 text-[#9306CF] dark:text-[#C7A9C9] group-hover:-translate-x-0.5 transition-transform" />
-            <span className="font-heading font-bold uppercase tracking-wider text-xs sm:text-sm text-[#4C264F] dark:text-[#F9F5F9]">
-              {currentView !== "menu" ? (
-                <>
-                  <span className="md:hidden">Voltar</span>
-                  <span className="hidden md:inline">Minha Conta</span>
-                </>
-              ) : (
-                "Minha Conta"
-              )}
-            </span>
+            <ChevronLeft className="w-5 h-5 text-foreground/80 group-hover:-translate-x-0.5 transition-transform" />
           </button>
 
           {/* Atalho 1-clique para Página Inicial */}
@@ -893,10 +883,10 @@ export default function AccountPage() {
               );
             })}
 
-            <div className="pt-2">
+            <div className="pt-2 hidden max-md:flex">
               <Link 
                 href="/pedidos" 
-                className="group flex items-center gap-3 px-4 py-3.5 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-all border bg-white dark:bg-[#181D2D] border-gray-200 dark:border-zinc-800 hover:border-primary/50 text-gray-700 dark:text-gray-300 hover:text-zinc-900 dark:hover:text-zinc-100 shadow-sm hover:bg-gray-50/80 dark:hover:bg-white/5"
+                className="w-full group flex items-center gap-3 px-4 py-3.5 rounded-xl font-sans text-sm font-semibold tracking-wide text-left transition-all border bg-white dark:bg-[#181D2D] border-gray-200 dark:border-zinc-800 hover:border-primary/50 text-gray-700 dark:text-gray-300 hover:text-zinc-900 dark:hover:text-zinc-100 shadow-sm hover:bg-gray-50/80 dark:hover:bg-white/5"
               >
                 <span className="p-2 rounded-lg bg-purple-50 dark:bg-[#1E2538] text-primary dark:text-violet-400 group-hover:scale-110 transition-transform shrink-0">
                   <Package className="w-4 h-4" />
@@ -1060,31 +1050,6 @@ export default function AccountPage() {
                   )}
                 </Button>
               </form>
-
-              {/* Sessão neste Aparelho / Encerrar Sessão */}
-              <div className="pt-6 border-t border-gray-200 dark:border-[#512B54]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h4 className="font-heading font-bold text-sm text-[#4C264F] dark:text-[#F9F5F9] flex items-center gap-2">
-                    <LogOut className="w-4 h-4 text-red-500" />
-                    Sessão neste Dispositivo
-                  </h4>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {user?.isRegistered
-                      ? "Desconecte sua conta deste navegador a qualquer momento."
-                      : "Você está conectado através de uma sessão rápida temporária."}
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsLogoutModalOpen(true)}
-                  className="border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 font-bold text-xs rounded-xl h-10 px-4 gap-2 cursor-pointer shrink-0"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>{user?.isRegistered ? "Sair da Conta" : "Encerrar Sessão"}</span>
-                </Button>
-              </div>
             </div>
           )}
 

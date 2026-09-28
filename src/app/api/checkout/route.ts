@@ -5,6 +5,11 @@ import { getAuthUser } from "@/lib/auth";
 import { z } from "zod";
 import { handleApiError } from "@/lib/apiResponse";
 import { checkoutLimiter, getIpFromRequest } from "@/lib/rateLimit";
+import {
+  DEFAULT_LOYALTY_BADGES,
+  LoyaltyBadgeConfig,
+  calculateAccountAgeMonths,
+} from "@/services/loyaltyBadgeService";
 
 const checkoutSchema = z.object({
   items: z.array(
@@ -338,6 +343,56 @@ export async function POST(request: Request) {
 
       if (coupon.maxUses && coupon.uses >= coupon.maxUses) {
         return NextResponse.json({ error: "O limite de utilizações deste cupom foi atingido." }, { status: 400 });
+      }
+
+      // Exigência de Nível Mínimo de Fidelidade
+      if (coupon.minLoyaltyLevel || coupon.loyaltyBadgeId) {
+        const record = await prisma.notificationTemplate.findFirst({
+          where: { category: "loyalty_badges" },
+          orderBy: { updatedAt: "desc" },
+        });
+        let badges: LoyaltyBadgeConfig[] = DEFAULT_LOYALTY_BADGES;
+        if (record?.message) {
+          try {
+            const parsed = JSON.parse(record.message);
+            if (Array.isArray(parsed) && parsed.length > 0) badges = parsed;
+          } catch {}
+        }
+
+        const requiredBadge = badges.find(
+          (b) =>
+            (coupon.loyaltyBadgeId && b.id === coupon.loyaltyBadgeId) ||
+            (coupon.minLoyaltyLevel && b.level === coupon.minLoyaltyLevel)
+        );
+
+        const requiredMonths = requiredBadge?.minMonths ?? 0;
+        const requiredName = requiredBadge?.name || "VIP";
+
+        const dbUser = await prisma.user.findUnique({
+          where: { id: authUser.id },
+          select: { createdAt: true, isRegistered: true },
+        });
+
+        if (!dbUser || !dbUser.isRegistered) {
+          return NextResponse.json(
+            {
+              error: `Este cupom é exclusivo para clientes com selo ${requiredName} ou superior.`,
+              code: "COUPON_REQUIRES_LOYALTY_BADGE",
+            },
+            { status: 400 }
+          );
+        }
+
+        const userMonths = calculateAccountAgeMonths(dbUser.createdAt);
+        if (userMonths < requiredMonths) {
+          return NextResponse.json(
+            {
+              error: `Este cupom é exclusivo para clientes com selo ${requiredName} ou superior.`,
+              code: "COUPON_REQUIRES_LOYALTY_BADGE",
+            },
+            { status: 400 }
+          );
+        }
       }
 
       // Regra de Uso Único por Cliente

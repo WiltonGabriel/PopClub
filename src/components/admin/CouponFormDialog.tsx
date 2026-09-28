@@ -13,14 +13,19 @@ import {
   Percent,
   DollarSign,
   Search,
-
   Calendar,
   Layers,
   AlertCircle,
   Loader2,
   RefreshCw,
   ShieldCheck,
+  Award,
 } from "lucide-react";
+import { 
+  loyaltyBadgeService, 
+  LoyaltyBadgeConfig, 
+  DEFAULT_LOYALTY_BADGES 
+} from "../../services/loyaltyBadgeService";
 
 interface CouponFormDialogProps {
   open: boolean;
@@ -44,6 +49,10 @@ export function CouponFormDialog({
   const [isActive, setIsActive] = useState(true);
   const [oncePerUser, setOncePerUser] = useState(false);
 
+  // Exigência de Nível de Fidelidade
+  const [loyaltyBadges, setLoyaltyBadges] = useState<LoyaltyBadgeConfig[]>(DEFAULT_LOYALTY_BADGES);
+  const [selectedLoyaltyBadgeId, setSelectedLoyaltyBadgeId] = useState<string>("");
+
   // Escopo de Aplicação: all vs specific
   const [scope, setScope] = useState<"all" | "specific">("all");
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
@@ -53,12 +62,17 @@ export function CouponFormDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Carrega lista de produtos para seleção no escopo
+  // Carrega lista de produtos e selos de fidelidade
   useEffect(() => {
     productService
       .getProducts()
       .then(setAvailableProducts)
       .catch((err) => console.error("Erro ao carregar produtos para cupons:", err));
+
+    loyaltyBadgeService
+      .getBadges()
+      .then(setLoyaltyBadges)
+      .catch(() => {});
   }, []);
 
   // Preenche dados ao abrir ou editar
@@ -82,6 +96,15 @@ export function CouponFormDialog({
       setIsActive(couponToEdit.isActive);
       setOncePerUser(Boolean(couponToEdit.oncePerUser));
 
+      if (couponToEdit.loyaltyBadgeId) {
+        setSelectedLoyaltyBadgeId(couponToEdit.loyaltyBadgeId);
+      } else if (couponToEdit.minLoyaltyLevel) {
+        const found = loyaltyBadges.find((b) => b.level === couponToEdit.minLoyaltyLevel);
+        setSelectedLoyaltyBadgeId(found?.id || String(couponToEdit.minLoyaltyLevel));
+      } else {
+        setSelectedLoyaltyBadgeId("");
+      }
+
       if (couponToEdit.productIds && couponToEdit.productIds.length > 0) {
         setScope("specific");
         setSelectedProductIds(couponToEdit.productIds);
@@ -98,12 +121,13 @@ export function CouponFormDialog({
       setExpiresAt("");
       setIsActive(true);
       setOncePerUser(false);
+      setSelectedLoyaltyBadgeId("");
       setScope("all");
       setSelectedProductIds([]);
     }
     setError("");
     setProductSearch("");
-  }, [couponToEdit, open]);
+  }, [couponToEdit, open, loyaltyBadges]);
 
   // Gerador de código aleatório amigável
   const handleGenerateCode = () => {
@@ -166,6 +190,10 @@ export function CouponFormDialog({
     setLoading(true);
 
     try {
+      const chosenBadge = loyaltyBadges.find(
+        (b) => b.id === selectedLoyaltyBadgeId || String(b.level) === selectedLoyaltyBadgeId
+      );
+
       const payload = {
         code: code.trim().toUpperCase(),
         discountType,
@@ -176,6 +204,8 @@ export function CouponFormDialog({
         isActive,
         oncePerUser: Boolean(oncePerUser),
         productIds: scope === "specific" ? selectedProductIds : [],
+        minLoyaltyLevel: chosenBadge ? chosenBadge.level : null,
+        loyaltyBadgeId: chosenBadge ? chosenBadge.id : null,
       };
 
       if (couponToEdit) {
@@ -380,6 +410,29 @@ export function CouponFormDialog({
                   </div>
                 </label>
               </div>
+            </div>
+
+            {/* Linha 3: Exigir Nível Mínimo de Fidelidade */}
+            <div className="space-y-1.5 p-3.5 rounded-xl border border-primary/20 bg-primary/5 dark:bg-zinc-900/40">
+              <Label className="text-xs font-bold uppercase tracking-wider text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                <Award className="w-4 h-4 text-primary" />
+                Exigir Nível Mínimo de Fidelidade
+              </Label>
+              <select
+                value={selectedLoyaltyBadgeId}
+                onChange={(e) => setSelectedLoyaltyBadgeId(e.target.value)}
+                className="w-full h-10.5 px-3 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs sm:text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+              >
+                <option value="">Sem restrição (Qualquer cliente cadastrado)</option>
+                {loyaltyBadges.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    A partir de {b.icon} {b.name} ({b.minMonths === 0 ? "Novo membro" : `${b.minMonths} ${b.minMonths === 1 ? "mês" : "meses"}`})
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-muted-foreground">
+                O cliente precisará atingir este selo (ou superior) pelo tempo de conta para conseguir aplicar o cupom no checkout.
+              </p>
             </div>
           </div>
 

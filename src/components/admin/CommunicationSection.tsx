@@ -22,12 +22,18 @@ import {
   ChevronRight,
   Eye,
   RotateCcw,
+  Award,
 } from "lucide-react";
 import {
   notificationService,
   NotificationTemplateItem,
 } from "../../services/notificationService";
 import { couponService, Coupon } from "../../services/couponService";
+import { 
+  loyaltyBadgeService, 
+  LoyaltyBadgeConfig, 
+  DEFAULT_LOYALTY_BADGES 
+} from "../../services/loyaltyBadgeService";
 import { useToast } from "../ui/ToastNotification";
 import { playDingSound } from "../../lib/sound";
 import { Button } from "../ui/button";
@@ -154,7 +160,12 @@ export function CommunicationSection() {
   const [newTemplateTitle, setNewTemplateTitle] = useState("");
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
 
-  // Carrega modelos e cupons ativos
+  // Segmentação por Fidelidade
+  const [audienceFilterMode, setAudienceFilterMode] = useState<"ALL" | "LOYALTY">("ALL");
+  const [loyaltyBadges, setLoyaltyBadges] = useState<LoyaltyBadgeConfig[]>(DEFAULT_LOYALTY_BADGES);
+  const [selectedLoyaltyBadgeIds, setSelectedLoyaltyBadgeIds] = useState<string[]>([]);
+
+  // Carrega modelos, cupons ativos e selos de fidelidade
   useEffect(() => {
     notificationService
       .getTemplates()
@@ -177,9 +188,17 @@ export function CommunicationSection() {
       })
       .catch((err) => console.error("Erro ao carregar cupons:", err))
       .finally(() => setLoadingCoupons(false));
+
+    loyaltyBadgeService
+      .getBadges()
+      .then((badges) => {
+        setLoyaltyBadges(badges);
+        setSelectedLoyaltyBadgeIds(badges.map((b) => b.id));
+      })
+      .catch((err) => console.error("Erro ao carregar selos para segmentação:", err));
   }, []);
 
-  const fetchAudienceCount = useCallback(async (audience: AudienceType) => {
+  const fetchAudienceCount = useCallback(async (audience: AudienceType | "LOYALTY", customLoyaltyIds?: string[]) => {
     if (audience === "CUSTOM") {
       setAudienceCount(customAudienceUserIds.length);
       setLoadingCount(false);
@@ -188,7 +207,8 @@ export function CommunicationSection() {
     
     setLoadingCount(true);
     try {
-      const count = await notificationService.getAudienceCount(audience);
+      const ids = customLoyaltyIds !== undefined ? customLoyaltyIds : selectedLoyaltyBadgeIds;
+      const count = await notificationService.getAudienceCount(audience, audience === "LOYALTY" ? ids : undefined);
       setAudienceCount(count);
     } catch (err) {
       console.error(err);
@@ -196,11 +216,34 @@ export function CommunicationSection() {
     } finally {
       setLoadingCount(false);
     }
-  }, [customAudienceUserIds.length]);
+  }, [customAudienceUserIds.length, selectedLoyaltyBadgeIds]);
 
   useEffect(() => {
-    fetchAudienceCount(selectedAudience);
-  }, [selectedAudience, fetchAudienceCount]);
+    if (audienceFilterMode === "ALL") {
+      fetchAudienceCount(selectedAudience);
+    } else {
+      fetchAudienceCount("LOYALTY", selectedLoyaltyBadgeIds);
+    }
+  }, [audienceFilterMode, selectedAudience, selectedLoyaltyBadgeIds, fetchAudienceCount]);
+
+  const toggleLoyaltyBadge = (id: string) => {
+    setSelectedLoyaltyBadgeIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id];
+      fetchAudienceCount("LOYALTY", next);
+      return next;
+    });
+  };
+
+  const handleSelectAllBadges = () => {
+    const allIds = loyaltyBadges.map((b) => b.id);
+    setSelectedLoyaltyBadgeIds(allIds);
+    fetchAudienceCount("LOYALTY", allIds);
+  };
+
+  const handleDeselectAllBadges = () => {
+    setSelectedLoyaltyBadgeIds([]);
+    fetchAudienceCount("LOYALTY", []);
+  };
 
   // Aplica um modelo selecionado
   const handleSelectTemplate = (tpl: NotificationTemplateItem) => {
@@ -285,6 +328,10 @@ export function CommunicationSection() {
       showToast("Digite o conteúdo da mensagem.", "error");
       return;
     }
+    if (audienceFilterMode === "LOYALTY" && selectedLoyaltyBadgeIds.length === 0) {
+      showToast("Selecione ao menos um selo de fidelidade.", "error");
+      return;
+    }
     if (audienceCount === 0) {
       showToast("Nenhum cliente atende ao público selecionado para disparo.", "error");
       return;
@@ -292,12 +339,14 @@ export function CommunicationSection() {
 
     try {
       setIsSending(true);
+      const isBroadcast = audienceFilterMode === "ALL" && selectedAudience === "ALL" && !selectedCouponId;
       const res = await notificationService.dispatchNotification({
         title: title.trim(),
         message: message.trim(),
-        targetAudience: selectedAudience,
+        targetAudience: audienceFilterMode === "LOYALTY" ? "LOYALTY" : selectedAudience,
+        loyaltyBadgeIds: audienceFilterMode === "LOYALTY" ? selectedLoyaltyBadgeIds : undefined,
         couponId: selectedCouponId || null,
-        type: selectedCouponId ? "COUPON" : selectedAudience === "ALL" ? "BROADCAST" : "TARGETED",
+        type: selectedCouponId ? "COUPON" : isBroadcast ? "BROADCAST" : "TARGETED",
       });
 
       playDingSound();
@@ -344,69 +393,173 @@ export function CommunicationSection() {
       </div>
 
       {/* 2. Seletor de Segmentação Inteligente */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
             <Users className="w-4 h-4 text-primary" />
-            1. Escolha o Público Alvo (Segmentação Inteligente)
+            1. Escolha o Público Alvo
           </Label>
-          <span className="text-xs text-muted-foreground">
-            Filtro atual: <strong className="text-primary">{AUDIENCE_OPTIONS.find((a) => a.id === selectedAudience)?.title}</strong>
-          </span>
+
+          {/* Seletor Principal: [ Todos os Clientes ] vs [ Filtrar por Nível de Fidelidade ] */}
+          <div className="inline-flex items-center gap-1 p-1 bg-gray-100 dark:bg-zinc-800/80 rounded-xl border border-gray-200 dark:border-zinc-700/60 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => {
+                setAudienceFilterMode("ALL");
+                fetchAudienceCount(selectedAudience);
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                audienceFilterMode === "ALL"
+                  ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Todos os Clientes
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAudienceFilterMode("LOYALTY");
+                fetchAudienceCount("LOYALTY", selectedLoyaltyBadgeIds);
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                audienceFilterMode === "LOYALTY"
+                  ? "bg-primary text-white shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Award className="w-3.5 h-3.5" />
+              Filtrar por Nível de Fidelidade
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {AUDIENCE_OPTIONS.map((opt) => {
-            const Icon = opt.icon;
-            const isSelected = selectedAudience === opt.id;
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => {
-                  setSelectedAudience(opt.id);
-                  if (opt.id === "CUSTOM") {
-                    setIsCustomAudienceModalOpen(true);
-                  }
-                }}
-                className={`
-                  p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between cursor-pointer
-                  ${
-                    isSelected
-                      ? "bg-primary/5/90 dark:bg-primary/95/40 border-primary ring-2 ring-primary/30 shadow-md"
-                      : "bg-white dark:bg-background border-gray-200 dark:border-border/40 hover:border-primary/50 shadow-xs"
-                  }
-                `}
-              >
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div
-                    className={`w-8 h-8 rounded-xl flex items-center justify-center text-white bg-gradient-to-tr ${opt.color} shadow-xs shrink-0`}
+        {audienceFilterMode === "ALL" ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">
+                Filtro comportamental: <strong className="text-primary">{AUDIENCE_OPTIONS.find((a) => a.id === selectedAudience)?.title}</strong>
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {AUDIENCE_OPTIONS.map((opt) => {
+                const Icon = opt.icon;
+                const isSelected = selectedAudience === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedAudience(opt.id);
+                      if (opt.id === "CUSTOM") {
+                        setIsCustomAudienceModalOpen(true);
+                      }
+                    }}
+                    className={`
+                      p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between cursor-pointer
+                      ${
+                        isSelected
+                          ? "bg-primary/5/90 dark:bg-primary/95/40 border-primary ring-2 ring-primary/30 shadow-md"
+                          : "bg-white dark:bg-background border-gray-200 dark:border-border/40 hover:border-primary/50 shadow-xs"
+                      }
+                    `}
                   >
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <span
-                    className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
-                      isSelected
-                        ? "bg-primary text-white border-transparent"
-                        : "bg-gray-100 dark:bg-white/5 text-gray-500 border-gray-200 dark:border-white/10"
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div
+                        className={`w-8 h-8 rounded-xl flex items-center justify-center text-white bg-gradient-to-tr ${opt.color} shadow-xs shrink-0`}
+                      >
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <span
+                        className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
+                          isSelected
+                            ? "bg-primary text-white border-transparent"
+                            : "bg-gray-100 dark:bg-white/5 text-gray-500 border-gray-200 dark:border-white/10"
+                        }`}
+                      >
+                        {opt.badge}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h4 className="font-heading font-bold text-xs sm:text-sm text-foreground dark:text-foreground">
+                        {opt.title}
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground leading-snug mt-1">
+                        {opt.subtitle}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 sm:p-5 rounded-2xl border border-primary/30 bg-primary/5 dark:bg-zinc-900/60 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h4 className="font-heading font-bold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                  <Award className="w-4 h-4 text-primary" />
+                  Selos de Fidelidade Elegíveis
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Marque quais selos de clientes receberão este comunicado (calculado pela idade da conta):
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSelectAllBadges}
+                  className="text-xs text-primary font-semibold hover:underline cursor-pointer"
+                >
+                  Marcar Todos
+                </button>
+                <span className="text-muted-foreground text-xs">•</span>
+                <button
+                  type="button"
+                  onClick={handleDeselectAllBadges}
+                  className="text-xs text-muted-foreground font-semibold hover:underline cursor-pointer"
+                >
+                  Desmarcar Todos
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {loyaltyBadges.map((b) => {
+                const isChecked = selectedLoyaltyBadgeIds.includes(b.id);
+                return (
+                  <label
+                    key={b.id}
+                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
+                      isChecked
+                        ? "bg-white dark:bg-zinc-800/90 border-primary ring-1 ring-primary/40 shadow-xs"
+                        : "bg-white/60 dark:bg-zinc-900/40 border-gray-200 dark:border-zinc-800 hover:border-gray-300 opacity-75"
                     }`}
                   >
-                    {opt.badge}
-                  </span>
-                </div>
-
-                <div>
-                  <h4 className="font-heading font-bold text-xs sm:text-sm text-foreground dark:text-foreground">
-                    {opt.title}
-                  </h4>
-                  <p className="text-[11px] text-muted-foreground leading-snug mt-1">
-                    {opt.subtitle}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => toggleLoyaltyBadge(b.id)}
+                      className="w-4 h-4 rounded text-primary focus:ring-primary border-gray-300 dark:border-zinc-700 cursor-pointer"
+                    />
+                    <div className="flex-1 min-w-0 flex items-center gap-2">
+                      <span className="text-lg">{b.icon}</span>
+                      <div className="min-w-0">
+                        <span className="font-heading font-bold text-xs text-zinc-900 dark:text-zinc-100 block truncate">
+                          {b.name}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground block truncate">
+                          {b.minMonths === 0 ? "Menos de 1 mês" : `A partir de ${b.minMonths} ${b.minMonths === 1 ? "mês" : "meses"}`}
+                        </span>
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 3. Modelos Prontos (Presets) */}

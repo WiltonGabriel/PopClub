@@ -130,6 +130,7 @@ export async function POST(request: Request) {
       title,
       message,
       targetAudience = "ALL",
+      loyaltyBadgeIds = [],
       couponId = null,
       type = null,
     } = body || {};
@@ -175,7 +176,7 @@ export async function POST(request: Request) {
     }
 
     // Identifica clientes elegíveis de acordo com o segmento
-    const targetClients = await getTargetClients(targetAudience);
+    const targetClients = await getTargetClients(targetAudience, Array.isArray(loyaltyBadgeIds) ? loyaltyBadgeIds : undefined);
 
     if (targetClients.length === 0) {
       return NextResponse.json({
