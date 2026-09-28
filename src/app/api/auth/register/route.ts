@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Role } from "@prisma/client";
 import { hashPassword, signToken } from "@/lib/auth";
 import { cookies } from "next/headers";
 import { authLimiter, getIpFromRequest } from "@/lib/rateLimit";
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
         email: cleanEmail,
         passwordHash,
         fullName: fullName || cleanUsername,
-        role: "client",
+        role: Role.CLIENT,
       },
       select: {
         id: true,

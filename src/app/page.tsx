@@ -67,6 +67,8 @@ import {
   ArrowUpDown,
   History,
   Clock,
+  Users,
+  ShieldCheck,
 } from "lucide-react";
 
 export type HomeSectionId = "promo_banners" | "highlight_banner" | "products_catalog";
@@ -137,7 +139,7 @@ function SectionPositionControlBar({
 }
 
 export default function Storefront() {
-  const { isAdmin, user, refreshUser } = useAuth();
+  const { isAdmin, isEditor, canAccess, user, refreshUser } = useAuth();
   const { isEditMode } = useEditMode();
   const canEdit = isAdmin && isEditMode;
   const { totalItems, itemsTotal } = useCart();
@@ -868,87 +870,114 @@ export default function Storefront() {
                     {/* Links dinâmicos por tipo de usuário */}
                     <div className="space-y-1">
                       {isAdmin ? (
-                        <>
-                          {/* Moldura Delimitada para Atalhos Operacionais do Administrador */}
-                          <div className="border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/40 rounded-xl p-1.5 shadow-xs space-y-0.5">
-                            <div className="flex items-center justify-between px-2 py-0.5">
-                              <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">
-                                Gestão da Loja
-                              </span>
-                              <span className="text-[8px] font-extrabold uppercase tracking-wider bg-primary/10 text-primary dark:text-violet-400 border border-primary/20 px-1 py-0.2 rounded">
-                                Acesso ADM
-                              </span>
-                            </div>
-                            <Link
-                              href="/admin"
-                              onClick={() => setUserMenuOpen(false)}
-                              className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
-                            >
-                              <LayoutDashboard className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
-                              <span>Painel Operacional</span>
-                            </Link>
+                        <div className="border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/40 rounded-xl p-1.5 shadow-xs space-y-0.5">
+                          <div className="flex items-center justify-between px-2 py-0.5">
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">
+                              Gestão da Loja
+                            </span>
+                            <span className="text-[8px] font-extrabold uppercase tracking-wider bg-primary/10 text-primary dark:text-violet-400 border border-primary/20 px-1 py-0.2 rounded">
+                              Acesso ADM
+                            </span>
+                          </div>
+                          <Link
+                            href="/admin"
+                            onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
+                          >
+                            <LayoutDashboard className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
+                            <span>Painel Operacional</span>
+                          </Link>
 
+                          <Link
+                            href="/admin/pedidos"
+                            onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
+                          >
+                            <ClipboardList className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
+                            <span>Gerenciar Pedidos</span>
+                          </Link>
+
+                          <Link
+                            href="/admin/historico"
+                            onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
+                          >
+                            <History className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
+                            <span>Histórico de Pedidos</span>
+                          </Link>
+
+                          <Link
+                            href="/admin/usuarios"
+                            onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
+                          >
+                            <Users className="w-4 h-4 text-amber-500 shrink-0" />
+                            <span>Gestão de Usuários</span>
+                          </Link>
+                        </div>
+                      ) : isEditor ? (
+                        <div className="border border-indigo-200/80 dark:border-indigo-950 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl p-1.5 shadow-xs space-y-0.5">
+                          <div className="flex items-center justify-between px-2 py-0.5">
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">
+                              Gestão da Loja
+                            </span>
+                            <span className="text-[8px] font-extrabold uppercase tracking-wider bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-1 py-0.2 rounded">
+                              Editor
+                            </span>
+                          </div>
+                          <Link
+                            href="/admin"
+                            onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
+                          >
+                            <LayoutDashboard className="w-4 h-4 text-indigo-500 shrink-0" />
+                            <span>Painel Operacional</span>
+                          </Link>
+
+                          {canAccess("ORDERS_KANBAN") && (
                             <Link
                               href="/admin/pedidos"
                               onClick={() => setUserMenuOpen(false)}
                               className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
                             >
-                              <ClipboardList className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
+                              <ClipboardList className="w-4 h-4 text-indigo-500 shrink-0" />
                               <span>Gerenciar Pedidos</span>
                             </Link>
+                          )}
 
+                          {canAccess("ORDERS_HISTORY") && (
                             <Link
                               href="/admin/historico"
                               onClick={() => setUserMenuOpen(false)}
                               className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
                             >
-                              <History className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
+                              <History className="w-4 h-4 text-indigo-500 shrink-0" />
                               <span>Histórico de Pedidos</span>
                             </Link>
-                          </div>
-
-                          {/* Seção Pessoal do Usuário */}
-                          <div className="pt-1 space-y-0.5">
-                            <Link
-                              href="/pedidos"
-                              onClick={() => setUserMenuOpen(false)}
-                              className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
-                            >
-                              <ReceiptText className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
-                              <span>Meus Pedidos</span>
-                            </Link>
-
-                            <Link
-                              href="/conta"
-                              onClick={() => setUserMenuOpen(false)}
-                              className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
-                            >
-                              <UserIcon className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
-                              <span>Meu Perfil</span>
-                            </Link>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="space-y-0.5">
-                          <Link
-                            href="/pedidos"
-                            onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
-                          >
-                            <ShoppingBag className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
-                            <span>Meus Pedidos</span>
-                          </Link>
-
-                          <Link
-                            href="/conta"
-                            onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
-                          >
-                            <UserIcon className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
-                            <span>Meu Perfil</span>
-                          </Link>
+                          )}
                         </div>
-                      )}
+                      ) : null}
+
+                      {/* Seção Pessoal do Usuário */}
+                      <div className="pt-1 space-y-0.5">
+                        <Link
+                          href="/pedidos"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
+                        >
+                          <ReceiptText className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
+                          <span>Meus Pedidos</span>
+                        </Link>
+
+                        <Link
+                          href="/conta"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
+                        >
+                          <UserIcon className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
+                          <span>Meu Perfil</span>
+                        </Link>
+                      </div>
                     </div>
 
                     <div className="border-t border-gray-100 dark:border-zinc-800/80 my-1" />

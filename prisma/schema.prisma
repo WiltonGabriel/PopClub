@@ -8,8 +8,9 @@ generator client {
 }
 
 enum Role {
-  client
-  admin
+  CLIENT @map("client")
+  ADMIN  @map("admin")
+  EDITOR @map("editor")
 }
 
 enum DiscountType {
@@ -34,26 +35,34 @@ enum PaymentMethodType {
 }
 
 model User {
-  id               String         @id @default(uuid())
-  username         String?        @unique
-  email            String?        @unique
-  passwordHash     String?        @map("password_hash")
-  role             Role           @default(client)
-  fullName              String?        @map("full_name")
-  avatarUrl             String?        @default("/avatars/avatar-sorvete.svg") @map("avatar_url")
-  accessibilitySettings Json?          @map("accessibility_settings")
+  id                    String             @id @default(uuid())
+  cpf                   String?            @unique
+  username              String?            @unique
+  email                 String?            @unique
+  passwordHash          String?            @map("password_hash")
+  role                  Role               @default(CLIENT)
+  permissions           String[]           @default([])
+  isActive              Boolean            @default(true) @map("is_active")
+  isBlocked             Boolean            @default(false) @map("is_blocked")
+  blockReason           String?            @map("block_reason")
+  tokenVersion          Int                @default(1) @map("token_version")
+  deletedAt             DateTime?          @map("deleted_at")
+  fullName              String?            @map("full_name")
+  avatarUrl             String?            @default("/avatars/avatar-sorvete.svg") @map("avatar_url")
+  accessibilitySettings Json?              @map("accessibility_settings")
   phone                 String?
-  isRegistered          Boolean        @default(false) @map("is_registered")
-  resetCode        String?        @map("reset_code")
-  resetCodeExpires DateTime?      @map("reset_code_expires")
-  notificationsEnabled Boolean        @default(true) @map("notifications_enabled")
-  createdAt            DateTime       @default(now()) @map("created_at")
-  updatedAt            DateTime       @updatedAt @map("updated_at")
-  locations            UserLocation[]
-  orders               Order[]
-  userNotifications    UserNotification[]
+  isRegistered          Boolean            @default(false) @map("is_registered")
+  resetCode             String?            @map("reset_code")
+  resetCodeExpires      DateTime?          @map("reset_code_expires")
+  notificationsEnabled  Boolean            @default(true) @map("notifications_enabled")
+  createdAt             DateTime           @default(now()) @map("created_at")
+  updatedAt             DateTime           @updatedAt @map("updated_at")
+  locations             UserLocation[]
+  orders                Order[]
+  userNotifications     UserNotification[]
 
   @@index([phone])
+  @@index([cpf])
   @@map("users")
 }
 

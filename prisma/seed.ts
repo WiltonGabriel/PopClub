@@ -1,4 +1,4 @@
-import { PrismaClient, OrderStatus, PaymentMethodType, Prisma } from "@prisma/client";
+import { PrismaClient, OrderStatus, PaymentMethodType, Prisma, Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -62,7 +62,7 @@ async function main() {
     where: { email: "admin@popclub.com" },
     update: {
       passwordHash: adminPasswordHash,
-      role: "admin",
+      role: Role.ADMIN,
       username: "admin",
       fullName: "Administrador Pop Shake",
     },
@@ -70,7 +70,7 @@ async function main() {
       email: "admin@popclub.com",
       username: "admin",
       passwordHash: adminPasswordHash,
-      role: "admin",
+      role: Role.ADMIN,
       fullName: "Administrador Pop Shake",
     },
   });
@@ -502,7 +502,7 @@ async function main() {
         fullName: prof.name,
         phone: prof.phone,
         passwordHash: defaultPasswordHash,
-        role: "client",
+        role: Role.CLIENT,
       },
     });
 

@@ -8,11 +8,15 @@ export interface AppUser {
   email?: string | null;
   username?: string | null;
   phone?: string | null;
-  role: "client" | "admin";
+  cpf?: string | null;
+  role: "client" | "admin" | "editor";
+  permissions?: string[];
   fullName?: string | null;
   avatarUrl?: string | null;
   avatar?: string | null;
   isRegistered?: boolean;
+  isActive?: boolean;
+  isBlocked?: boolean;
   accessibilitySettings?: any;
   defaultPaymentMethod?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
   defaultChangeFor?: number | null;
@@ -29,6 +33,8 @@ interface AuthContextType {
   session: { user: AppUser } | null;
   loading: boolean;
   isAdmin: boolean;
+  isEditor: boolean;
+  canAccess: (permission: string) => boolean;
   refreshUser: () => Promise<void>;
   signOut: () => Promise<void>;
   fastAccess: (name: string, phone: string) => Promise<any>;
@@ -48,6 +54,8 @@ export const AuthContext = createContext<AuthContextType>({
   session: null,
   loading: true,
   isAdmin: false,
+  isEditor: false,
+  canAccess: () => false,
   refreshUser: async () => {},
   signOut: async () => {},
   fastAccess: async () => ({}),
@@ -71,11 +79,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: current.email || null,
           username: current.username || null,
           phone: current.phone || null,
+          cpf: current.cpf || null,
           role: current.role,
+          permissions: current.permissions || [],
           fullName: current.fullName,
           avatarUrl: avatar,
           avatar: avatar,
           isRegistered: Boolean(current.isRegistered),
+          isActive: current.isActive !== false,
+          isBlocked: Boolean(current.isBlocked),
           accessibilitySettings: current.accessibilitySettings,
           defaultPaymentMethod: current.defaultPaymentMethod || current.default_payment_method || null,
           defaultChangeFor: current.defaultChangeFor !== undefined ? current.defaultChangeFor : (current.default_change_for !== undefined ? current.default_change_for : null),
@@ -148,6 +160,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [refreshUser]);
 
   const isAdmin = user?.role === "admin";
+  const isEditor = user?.role === "editor";
+
+  const canAccess = useCallback((permission: string) => {
+    if (!user) return false;
+    if (user.role === "admin") return true;
+    if (user.role === "editor") {
+      return Boolean(user.permissions && user.permissions.includes(permission));
+    }
+    return false;
+  }, [user]);
+
   const session = user ? { user } : null;
 
   return (
@@ -157,6 +180,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         session,
         loading,
         isAdmin,
+        isEditor,
+        canAccess,
         refreshUser,
         signOut,
         fastAccess,

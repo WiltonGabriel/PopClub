@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   History,
   LayoutDashboard,
@@ -25,6 +26,7 @@ import {
   Layers,
   FileText,
   Check,
+  Users,
 } from "lucide-react";
 import { orderService, Order, OrderStatus } from "../../../services/orderService";
 import { shiftService, ShiftRecord } from "../../../services/shiftService";
@@ -34,6 +36,7 @@ import { OrderDetailDrawer } from "../../../components/admin/OrderDetailDrawer";
 import { printThermalReceipt } from "@/lib/thermalPrinter";
 import { useToast } from "../../../components/ui/ToastNotification";
 import { MobileOrientationBanner } from "@/components/admin/MobileOrientationBanner";
+import { useAuth } from "@/contexts/AuthContext";
 
 type DateRangeOption = "today" | "yesterday" | "last7days" | "last30days" | "custom" | "all";
 type ViewMode = "shifts" | "individual";
@@ -54,7 +57,21 @@ function formatDuration(openedAt: string, closedAt: string | null): string {
 }
 
 export default function AdminHistoricoPage() {
+  const { user, loading: authLoading, isAdmin, canAccess } = useAuth();
+  const router = useRouter();
   const { showToast } = useToast();
+
+  // Guard de Acesso: Apenas Admin ou Editor com ORDERS_HISTORY
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.push("/login?redirect=/admin/historico");
+      return;
+    }
+    if (!isAdmin && !canAccess("ORDERS_HISTORY")) {
+      router.push("/admin/pedidos?unauthorized=true");
+    }
+  }, [user, authLoading, isAdmin, canAccess, router]);
 
   // Modo de visualização: Turnos vs Pedidos Individuais
   const [viewMode, setViewMode] = useState<ViewMode>("shifts");
@@ -338,13 +355,25 @@ export default function AdminHistoricoPage() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Link
-            href="/admin/pedidos"
-            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 hover:text-primary border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-          >
-            <LayoutDashboard className="w-4 h-4 text-primary" />
-            <span className="hidden sm:inline">Central da Esteira</span>
-          </Link>
+          {isAdmin && (
+            <Link
+              href="/admin/usuarios"
+              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 hover:text-primary border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            >
+              <Users className="w-4 h-4 text-primary" />
+              <span className="hidden sm:inline">Usuários & Equipe</span>
+            </Link>
+          )}
+
+          {(isAdmin || canAccess("ORDERS_KANBAN")) && (
+            <Link
+              href="/admin/pedidos"
+              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 hover:text-primary border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            >
+              <LayoutDashboard className="w-4 h-4 text-primary" />
+              <span className="hidden sm:inline">Central da Esteira</span>
+            </Link>
+          )}
 
           <Link
             href="/admin"

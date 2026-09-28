@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
+import { Role } from "@prisma/client";
 
 export async function GET() {
   try {
@@ -8,7 +9,7 @@ export async function GET() {
     });
 
     const users = await prisma.user.findMany({
-      where: { role: "client" },
+      where: { role: Role.CLIENT },
       select: {
         id: true,
         fullName: true,

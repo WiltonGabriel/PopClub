@@ -21,8 +21,9 @@ export interface TokenPayload {
   username?: string | null;
   phone?: string | null;
   name?: string | null;
-  role: "client" | "admin";
+  role: "client" | "admin" | "editor" | string;
   isRegistered?: boolean;
+  tokenVersion?: number;
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -97,13 +98,19 @@ export function clearSessionCookies(response: { cookies: { set: (name: string, v
  */
 export async function getAuthUser(request?: Request): Promise<{
   id: string;
+  cpf: string | null;
   email: string | null;
   username: string | null;
-  role: "client" | "admin";
+  role: "client" | "admin" | "editor" | string;
+  permissions: string[];
+  isActive: boolean;
+  isBlocked: boolean;
+  blockReason: string | null;
+  tokenVersion: number;
   fullName: string | null;
   avatarUrl: string | null;
   avatar: string | null;
-  accessibilitySettings: any;
+  accessibilitySettings: unknown;
   defaultPaymentMethod?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
   defaultChangeFor?: number | null;
   phone: string | null;
@@ -138,9 +145,15 @@ export async function getAuthUser(request?: Request): Promise<{
         where: { id: payload.userId },
         select: {
           id: true,
+          cpf: true,
           email: true,
           username: true,
           role: true,
+          permissions: true,
+          isActive: true,
+          isBlocked: true,
+          blockReason: true,
+          tokenVersion: true,
           fullName: true,
           avatarUrl: true,
           accessibilitySettings: true,
@@ -157,9 +170,15 @@ export async function getAuthUser(request?: Request): Promise<{
           where: { id: payload.userId },
           select: {
             id: true,
+            cpf: true,
             email: true,
             username: true,
             role: true,
+            permissions: true,
+            isActive: true,
+            isBlocked: true,
+            blockReason: true,
+            tokenVersion: true,
             isRegistered: true,
             createdAt: true,
           },
@@ -172,16 +191,37 @@ export async function getAuthUser(request?: Request): Promise<{
 
     if (!user) return null;
 
+    // Desativação lógica (soft delete) ou bloqueio administrativo
+    if (user.isActive === false || user.isBlocked === true) {
+      return null;
+    }
+
+    // Invalidação imediata de sessão se o tokenVersion for incompatível (redefinição de cargo/senha)
+    if (
+      payload.tokenVersion !== undefined &&
+      user.tokenVersion !== undefined &&
+      payload.tokenVersion !== user.tokenVersion
+    ) {
+      return null;
+    }
+
     const defaultAvatar = "/avatars/avatar-sorvete.svg";
     const avatar = user.avatarUrl || defaultAvatar;
 
     const rawSettings = (user.accessibilitySettings as Record<string, any>) || {};
+    const normalizedRole = String(user.role || "client").toLowerCase();
 
     return {
       id: user.id,
+      cpf: user.cpf || null,
       email: user.email || null,
       username: user.username || null,
-      role: user.role as "client" | "admin",
+      role: normalizedRole,
+      permissions: Array.isArray(user.permissions) ? user.permissions : [],
+      isActive: user.isActive !== false,
+      isBlocked: Boolean(user.isBlocked),
+      blockReason: user.blockReason || null,
+      tokenVersion: user.tokenVersion || 1,
       fullName: user.fullName || null,
       avatarUrl: avatar,
       avatar,
@@ -191,10 +231,10 @@ export async function getAuthUser(request?: Request): Promise<{
       phone: user.phone || null,
       isRegistered: Boolean(user.isRegistered),
       notificationsEnabled: Boolean(user.notificationsEnabled ?? true),
-      createdAt: (user as any).createdAt ? (user as any).createdAt.toISOString() : null,
-      created_at: (user as any).createdAt ? (user as any).createdAt.toISOString() : null,
+      createdAt: user.createdAt ? (user.createdAt as Date).toISOString() : null,
+      created_at: user.createdAt ? (user.createdAt as Date).toISOString() : null,
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Erro geral em getAuthUser:", err);
     return null;
   }

@@ -45,8 +45,10 @@ import {
   LayoutGrid,
   Ban,
   ArrowRight,
-
+  Users,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { orderService, Order, OrderStatus } from "../../../services/orderService";
 import { playKitchenBellSound, initAudioUnlock } from "../../../lib/sound";
@@ -75,6 +77,21 @@ import { MobileOrientationBanner } from "@/components/admin/MobileOrientationBan
 
 export default function AdminPedidosPage() {
   const { theme, toggleTheme } = useTheme();
+  const { user, loading: authLoading, isAdmin, canAccess } = useAuth();
+  const router = useRouter();
+
+  // Guard de Acesso para a Esteira (Admin ou Editor com ORDERS_KANBAN)
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.push("/login?redirect=/admin/pedidos");
+      return;
+    }
+    if (!isAdmin && !canAccess("ORDERS_KANBAN")) {
+      router.push("/admin?unauthorized=true");
+    }
+  }, [user, authLoading, isAdmin, canAccess, router]);
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -298,6 +315,22 @@ export default function AdminPedidosPage() {
       })
       .catch((err) => console.error("Erro ao carregar presets da loja:", err));
   }, []);
+
+  // Notificação de Acesso Não Autorizado redirecionado
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("unauthorized") === "true") {
+        showToast({
+          type: "error",
+          title: "Acesso Não Autorizado",
+          message: "Acesso não autorizado para o seu perfil.",
+        });
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+    }
+  }, [showToast]);
 
   // Inicializa desbloqueio de áudio e restaura preferência de mudo
   useEffect(() => {
@@ -1645,13 +1678,25 @@ export default function AdminPedidosPage() {
 
         <div className="flex items-center gap-1.5 sm:gap-3">
           {/* Links Desktop (sm+) */}
-          <Link
-            href="/admin/historico"
-            className="hidden sm:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-          >
-            <History className="w-4 h-4 text-primary" />
-            <span>Histórico</span>
-          </Link>
+          {isAdmin && (
+            <Link
+              href="/admin/usuarios"
+              className="hidden sm:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            >
+              <Users className="w-4 h-4 text-primary" />
+              <span>Usuários & Equipe</span>
+            </Link>
+          )}
+
+          {(isAdmin || canAccess("ORDERS_HISTORY")) && (
+            <Link
+              href="/admin/historico"
+              className="hidden sm:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            >
+              <History className="w-4 h-4 text-primary" />
+              <span>Histórico</span>
+            </Link>
+          )}
 
           <Link
             href="/admin"

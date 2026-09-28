@@ -40,6 +40,7 @@ import {
   ClipboardList,
   History,
   Pencil,
+  Users,
 } from "lucide-react";
 import { notificationService, AppNotification } from "../../services/notificationService";
 import { useAuth } from "../../hooks/useAuth";
@@ -215,7 +216,7 @@ function computeProfileBadge(
 }
 
 export default function AccountPage() {
-  const { user, loading, refreshUser, isAdmin, signOut } = useAuth();
+  const { user, loading, refreshUser, isAdmin, isEditor, canAccess, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
   const { 
     addresses, 
@@ -731,7 +732,7 @@ export default function AccountPage() {
           </div>
 
           {/* ================= SEÇÃO GESTÃO DA LOJA (EXCLUSIVO ADMIN / OPERADOR) ================= */}
-          {(isAdmin || user?.role === "admin") && (
+          {isAdmin ? (
             <div className="mb-4 p-3.5 bg-gradient-to-br from-[#9306CF]/10 via-purple-500/5 to-[#940068]/10 dark:from-[#9306CF]/20 dark:via-[#1E2538] dark:to-[#940068]/20 border border-[#9306CF]/30 dark:border-zinc-800 rounded-2xl shadow-sm">
               <div className="flex items-center justify-between mb-2.5 px-0.5">
                 <div className="flex items-center gap-1.5">
@@ -760,7 +761,7 @@ export default function AccountPage() {
                         Painel Operacional / PDV
                       </p>
                       <p className="text-[11px] text-muted-foreground truncate">
-                        Dashboard, caixas e configurações
+                        Dashboard, métricas e cardápio
                       </p>
                     </div>
                   </div>
@@ -808,9 +809,113 @@ export default function AccountPage() {
                   </div>
                   <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all shrink-0" />
                 </Link>
+
+                {/* 4. Gestão de Usuários & Equipe */}
+                <Link
+                  href="/admin/usuarios"
+                  className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all active:scale-[0.99]"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 group-hover:scale-105 transition-transform shrink-0">
+                      <Users className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-heading font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
+                        Usuários & Equipe
+                      </p>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        Controle de acessos, RBAC e permissões
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+                </Link>
               </div>
             </div>
-          )}
+          ) : isEditor ? (
+            <div className="mb-4 p-3.5 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-indigo-500/10 dark:from-indigo-950/40 dark:via-[#1E2538] dark:to-indigo-950/40 border border-indigo-500/30 dark:border-zinc-800 rounded-2xl shadow-sm">
+              <div className="flex items-center justify-between mb-2.5 px-0.5">
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-indigo-500" />
+                  <span className="font-heading font-bold text-xs uppercase tracking-wider text-zinc-900 dark:text-zinc-100">
+                    Gestão da Loja
+                  </span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-600 text-white shadow-xs">
+                  Acesso Editor
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {/* 1. Painel Operacional / PDV */}
+                <Link
+                  href="/admin"
+                  className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all active:scale-[0.99]"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform shrink-0">
+                      <LayoutDashboard className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-heading font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
+                        Painel Operacional
+                      </p>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        Acesso aos módulos liberados
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+                </Link>
+
+                {/* 2. Gerenciar Pedidos (se permitido) */}
+                {canAccess("ORDERS_KANBAN") && (
+                  <Link
+                    href="/admin/pedidos"
+                    className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all active:scale-[0.99]"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="p-2 rounded-lg bg-pink-100 dark:bg-pink-950/60 text-[#940068] dark:text-pink-300 group-hover:scale-105 transition-transform shrink-0">
+                        <ClipboardList className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-heading font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
+                          Gerenciar Pedidos
+                        </p>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          Fila ao vivo, cozinha e despacho
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#940068] group-hover:translate-x-0.5 transition-all shrink-0" />
+                  </Link>
+                )}
+
+                {/* 3. Histórico de Pedidos (se permitido) */}
+                {canAccess("ORDERS_HISTORY") && (
+                  <Link
+                    href="/admin/historico"
+                    className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all active:scale-[0.99]"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform shrink-0">
+                        <History className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-heading font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
+                          Histórico de Vendas
+                        </p>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          Relatório geral de pedidos da loja
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+                  </Link>
+                )}
+              </div>
+            </div>
+          ) : null}
 
           {/* Banner de Incentivo para Completar Cadastro */}
           {user && !user.isRegistered && (

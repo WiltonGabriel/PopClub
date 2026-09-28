@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Role } from "@prisma/client";
 import { signToken, setSessionCookies, getAuthUser } from "@/lib/auth";
 import { fastAccessSchema } from "@/lib/validations/auth";
 import { cookies } from "next/headers";
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
           fullName,
           phone,
           isRegistered: false,
-          role: "client",
+          role: Role.CLIENT,
         },
       });
 

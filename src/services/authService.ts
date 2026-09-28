@@ -3,11 +3,15 @@ export interface AuthUser {
   email?: string | null;
   username?: string | null;
   phone?: string | null;
-  role: "client" | "admin";
+  cpf?: string | null;
+  role: "client" | "admin" | "editor";
+  permissions?: string[];
   fullName?: string | null;
   avatarUrl?: string | null;
   avatar?: string | null;
   isRegistered?: boolean;
+  isActive?: boolean;
+  isBlocked?: boolean;
   accessibilitySettings?: any;
   defaultPaymentMethod?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
   defaultChangeFor?: number | null;

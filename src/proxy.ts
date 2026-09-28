@@ -64,13 +64,20 @@ export async function proxy(request: NextRequest) {
     let isAuthorized = false;
     if (token) {
       const payload = await verifyJwtEdge(token, JWT_SECRET);
-      if (
-        payload &&
-        payload.role !== "client" &&
-        payload.role === "admin" &&
-        (payload as any).isRegistered !== false
-      ) {
-        isAuthorized = true;
+      if (payload && (payload as any).isRegistered !== false) {
+        const role = payload.role?.toLowerCase();
+        
+        // A rota /admin/usuarios é estritamente exclusiva para Administradores
+        if (pathname.startsWith("/admin/usuarios")) {
+          if (role === "admin") {
+            isAuthorized = true;
+          } else if (role === "editor") {
+            const forbiddenRedirect = new URL("/admin/pedidos?unauthorized=true", request.url);
+            return NextResponse.redirect(forbiddenRedirect);
+          }
+        } else if (role === "admin" || role === "editor") {
+          isAuthorized = true;
+        }
       }
     }
 

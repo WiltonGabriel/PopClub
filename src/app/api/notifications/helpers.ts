@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { Role } from "@prisma/client";
 import { 
   DEFAULT_LOYALTY_BADGES, 
   LoyaltyBadgeConfig, 
@@ -38,8 +39,8 @@ export async function getTargetClients(audience: TargetAudienceType | string, lo
     },
   });
 
-  // Se houver clientes específicos, filtra por role === 'client', senão inclui todos
-  const clients = allUsers.filter((u) => u.role === "client");
+  // Se houver clientes específicos, filtra por role === Role.CLIENT, senão inclui todos
+  const clients = allUsers.filter((u) => u.role === Role.CLIENT);
   const baseList = clients.length > 0 ? clients : allUsers;
 
   if (audience === "LOYALTY" || (loyaltyBadgeIds && loyaltyBadgeIds.length > 0)) {
