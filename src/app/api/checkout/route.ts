@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { prisma } from "@/lib/prisma";
+import { prisma, DBAddonItem, DBCoupon } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getAuthUser } from "@/lib/auth";
 import { z } from "zod";
@@ -172,13 +172,13 @@ export async function POST(request: Request) {
     const allSelectedAddonIds = Array.from(
       new Set(items.flatMap((i) => (i.selectedAddons || []).map((a) => a.id)))
     );
-    const dbAddons = allSelectedAddonIds.length > 0
+    const dbAddons: DBAddonItem[] = allSelectedAddonIds.length > 0
       ? await prisma.addonItem.findMany({
           where: { id: { in: allSelectedAddonIds } },
           include: { group: true },
         })
       : [];
-    const dbAddonsMap = new Map(dbAddons.map((a: (typeof dbAddons)[number]) => [a.id, a]));
+    const dbAddonsMap = new Map(dbAddons.map((a) => [a.id, a]));
 
     let calculatedSubtotal = 0;
     let promoDiscountTotal = 0;
@@ -328,7 +328,7 @@ export async function POST(request: Request) {
       }
 
       const cleanCode = couponCode.trim().toUpperCase();
-      const coupon = await prisma.coupon.findUnique({
+      const coupon: DBCoupon | null = await prisma.coupon.findUnique({
         where: { code: cleanCode },
       });
 

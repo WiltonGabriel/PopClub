@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, DBCoupon } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 
 export async function PUT(
@@ -63,7 +63,7 @@ export async function PUT(
       }
     }
 
-    const updated = await prisma.coupon.update({
+    const updated: DBCoupon = await prisma.coupon.update({
       where: { id },
       data: {
         ...(cleanCode && { code: cleanCode }),

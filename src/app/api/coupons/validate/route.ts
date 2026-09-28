@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, DBCoupon } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getAuthUser } from "@/lib/auth";
 import { couponLimiter, getIpFromRequest } from "@/lib/rateLimit";
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     }
 
     const cleanCode = code.trim().toUpperCase();
-    const coupon = await prisma.coupon.findUnique({
+    const coupon: DBCoupon | null = await prisma.coupon.findUnique({
       where: { code: cleanCode },
     });
 
