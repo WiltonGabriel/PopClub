@@ -60,6 +60,11 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { playDingSound } from "../../lib/sound";
+import { 
+  LoyaltyBadgeConfig, 
+  DEFAULT_LOYALTY_BADGES, 
+  loyaltyBadgeService 
+} from "../../services/loyaltyBadgeService";
 
 interface AvatarPresetItem {
   id: string;
@@ -121,60 +126,91 @@ function formatRelativeTime(dateString: string): string {
   }
 }
 
-interface FidelityBadgeInfo {
+interface ProfileBadgeInfo {
   label: string;
   badgeClass: string;
   icon: string;
+  isStaffBadge?: boolean;
 }
 
-function getFidelityBadge(createdAtDate?: string | Date | null): FidelityBadgeInfo {
-  if (!createdAtDate) {
+function computeProfileBadge(
+  userRole: string | undefined | null,
+  isRegistered: boolean | undefined | null,
+  createdAtDate: string | Date | null | undefined,
+  loyaltyBadges: LoyaltyBadgeConfig[] = DEFAULT_LOYALTY_BADGES
+): ProfileBadgeInfo | null {
+  const normalizedRole = String(userRole || "").toUpperCase();
+
+  // 1. Regra de Prioridade por Cargo (Admin / Editor)
+  if (normalizedRole === "ADMIN") {
     return {
-      label: "Novo Membro 🌟",
-      badgeClass: "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30",
-      icon: "🌟",
+      label: "Administrador",
+      icon: "👑",
+      badgeClass: "bg-gradient-to-r from-amber-500/15 via-purple-500/15 to-violet-500/15 text-purple-700 dark:text-purple-300 border-purple-500/40 shadow-xs font-bold",
+      isStaffBadge: true,
+    };
+  }
+
+  if (normalizedRole === "EDITOR" || normalizedRole === "OPERATOR") {
+    return {
+      label: "Editor / Operação",
+      icon: "🛡️",
+      badgeClass: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/40 shadow-xs font-bold",
+      isStaffBadge: true,
+    };
+  }
+
+  // 2. Se for Acesso Rápido (não registrado), omite o selo de fidelidade
+  if (!isRegistered) {
+    return null;
+  }
+
+  // 3. Regra para Clientes Cadastrados: calcular a partir de createdAt e da régua dinâmica
+  if (!createdAtDate) {
+    const defaultBadge = loyaltyBadges[0] || DEFAULT_LOYALTY_BADGES[0];
+    return {
+      label: defaultBadge.name,
+      icon: defaultBadge.icon || "🌟",
+      badgeClass: defaultBadge.badgeClass || "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30 font-semibold",
     };
   }
 
   const created = new Date(createdAtDate);
   const now = new Date();
-  
   let months = (now.getFullYear() - created.getFullYear()) * 12 + (now.getMonth() - created.getMonth());
   if (now.getDate() < created.getDate()) {
     months = Math.max(0, months - 1);
   }
 
-  if (months < 1) {
-    return {
-      label: "Novo Membro 🌟",
-      badgeClass: "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30",
-      icon: "🌟",
-    };
+  // Ordena os selos pelo minMonths crescente
+  const sorted = [...(loyaltyBadges.length > 0 ? loyaltyBadges : DEFAULT_LOYALTY_BADGES)].sort(
+    (a, b) => a.minMonths - b.minMonths
+  );
+
+  // Filtra os selos conquistados e pega o maior alcançado
+  const qualifying = sorted.filter((b) => months >= (b.minMonths || 0));
+  const activeBadge = qualifying.length > 0 ? qualifying[qualifying.length - 1] : sorted[0];
+
+  // Formatação de tempo decorrido
+  let tenureText = "";
+  if (months >= 1) {
+    if (months < 12) {
+      tenureText = months === 1 ? "Há 1 mês" : `Há ${months} meses`;
+    } else {
+      const years = Math.floor(months / 12);
+      const remMonths = months % 12;
+      if (years === 1 && remMonths === 0) tenureText = "Há 1 ano";
+      else if (remMonths === 0) tenureText = `Há ${years} anos`;
+      else tenureText = `Há ${years} ${years === 1 ? "ano" : "anos"}`;
+    }
   }
 
-  if (months <= 5) {
-    const textMonths = months === 1 ? "1 mês" : `${months} meses`;
-    return {
-      label: `Cliente Bronze • Há ${textMonths}`,
-      badgeClass: "bg-amber-700/10 text-amber-800 dark:text-amber-300 border-amber-700/30",
-      icon: "🥉",
-    };
-  }
+  const label = tenureText ? `${activeBadge.name} • ${tenureText}` : activeBadge.name;
 
-  if (months <= 11) {
-    return {
-      label: `Cliente Prata • Há ${months} meses`,
-      badgeClass: "bg-slate-200/70 text-slate-800 dark:bg-slate-800/80 dark:text-slate-200 border-slate-300 dark:border-slate-700",
-      icon: "🥈",
-    };
-  }
-
-  const years = Math.floor(months / 12);
-  const textYears = years === 1 ? "1 ano" : `${years} anos`;
   return {
-    label: `Cliente Ouro VIP • Há ${textYears}`,
-    badgeClass: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40 shadow-xs",
-    icon: "👑",
+    label,
+    icon: activeBadge.icon || "🌟",
+    badgeClass: activeBadge.badgeClass || "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30 font-semibold",
   };
 }
 
@@ -209,9 +245,15 @@ export default function AccountPage() {
   const [currentView, setCurrentView] = useState<AccountView>("menu");
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [fetching, setFetching] = useState(true);
+  const [loyaltyBadges, setLoyaltyBadges] = useState<LoyaltyBadgeConfig[]>(DEFAULT_LOYALTY_BADGES);
 
+  useEffect(() => {
+    loyaltyBadgeService.getBadges().then(setLoyaltyBadges).catch(() => null);
+  }, []);
+
+  const userRole = user?.role || profile?.role || (isAdmin ? "ADMIN" : "CLIENT");
   const userCreatedAt = profile?.created_at || (user as any)?.createdAt || (user as any)?.created_at;
-  const fidelityBadge = getFidelityBadge(userCreatedAt);
+  const profileBadge = computeProfileBadge(userRole, user?.isRegistered, userCreatedAt, loyaltyBadges);
 
   // Navegação Drill-down reativa
   const handleSelectSection = (sectionId: string) => {
@@ -685,14 +727,14 @@ export default function AccountPage() {
               </div>
             </div>
 
-            {/* Selo / Badge de Fidelidade (Exclusivo usuários cadastrados) */}
-            {user?.isRegistered && (
+            {/* Badge de Cargo ou Selo de Fidelidade */}
+            {profileBadge && (
               <div className="mt-3 pt-3 border-t border-gray-100 dark:border-zinc-800/80 flex items-center justify-between">
                 <div
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${fidelityBadge.badgeClass}`}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${profileBadge.badgeClass}`}
                 >
-                  <span>{fidelityBadge.icon}</span>
-                  <span>{fidelityBadge.label}</span>
+                  <span>{profileBadge.icon}</span>
+                  <span>{profileBadge.label}</span>
                 </div>
               </div>
             )}
@@ -917,12 +959,12 @@ export default function AccountPage() {
                     Gerencie sua identidade, avatar oficial e dados cadastrais.
                   </p>
                 </div>
-                {user?.isRegistered && (
+                {profileBadge && (
                   <div
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border self-start sm:self-auto ${fidelityBadge.badgeClass}`}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border self-start sm:self-auto ${profileBadge.badgeClass}`}
                   >
-                    <span>{fidelityBadge.icon}</span>
-                    <span>{fidelityBadge.label}</span>
+                    <span>{profileBadge.icon}</span>
+                    <span>{profileBadge.label}</span>
                   </div>
                 )}
               </div>

@@ -738,8 +738,8 @@ export default function Storefront() {
                 </button>
 
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 sm:w-60 rounded-2xl bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 shadow-2xl py-2 z-[100] animate-in fade-in slide-in-from-top-2 duration-150">
-                    <div className="px-4 py-2 border-b border-gray-100 dark:border-zinc-800/80">
+                  <div className="absolute right-0 mt-2 w-56 sm:w-60 rounded-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200/80 dark:border-zinc-800 shadow-md p-2 z-[100] animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="px-3 py-2 border-b border-gray-100 dark:border-zinc-800/80 mb-1">
                       <p className="text-xs font-semibold text-foreground dark:text-foreground">
                         Bem-vindo ao PopShake
                       </p>
@@ -750,7 +750,7 @@ export default function Storefront() {
                       <Link
                         href="/login"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
                       >
                         <UserIcon className="w-4 h-4 text-primary dark:text-violet-400" />
                         Entrar na Conta
@@ -763,7 +763,7 @@ export default function Storefront() {
                     <button
                       type="button"
                       onClick={() => toggleTheme()}
-                      className="w-full flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors text-left cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors text-left cursor-pointer"
                     >
                       {theme === "dark" ? (
                         <Sun className="w-4 h-4 text-amber-500 shrink-0" />
@@ -830,7 +830,7 @@ export default function Storefront() {
 
                 {/* Dropdown Menu com z-[100] garantido acima de qualquer barra */}
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-60 sm:w-64 rounded-2xl bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 shadow-2xl p-2 z-[100] animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="absolute right-0 mt-2 w-60 sm:w-64 rounded-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200/80 dark:border-zinc-800 shadow-md p-2 z-[100] animate-in fade-in slide-in-from-top-2 duration-150">
                     {/* Cabeçalho do Dropdown */}
                     <div className="px-3 py-2 border-b border-gray-100 dark:border-zinc-800/80 mb-2">
                       <p className="text-xs font-semibold text-foreground dark:text-foreground truncate">
@@ -838,8 +838,8 @@ export default function Storefront() {
                       </p>
                       <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
                       {isAdmin && (
-                        <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary dark:text-violet-400 border border-primary/30 px-1.5 py-0.5 rounded">
-                          Admin
+                        <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary dark:text-violet-400 border border-primary/30 px-2 py-0.5 rounded-full">
+                          Acesso ADM
                         </span>
                       )}
                     </div>
@@ -849,10 +849,15 @@ export default function Storefront() {
                       {isAdmin ? (
                         <>
                           {/* Moldura Delimitada para Atalhos Operacionais do Administrador */}
-                          <div className="border border-zinc-200 dark:border-zinc-800 bg-popover/95 backdrop-blur-sm rounded-xl p-1.5 shadow-lg space-y-0.5">
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground px-2 py-0.5 block">
-                              Operação & Gestão
-                            </span>
+                          <div className="border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/40 rounded-xl p-1.5 shadow-xs space-y-0.5">
+                            <div className="flex items-center justify-between px-2 py-0.5">
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">
+                                Gestão da Loja
+                              </span>
+                              <span className="text-[8px] font-extrabold uppercase tracking-wider bg-primary/10 text-primary dark:text-violet-400 border border-primary/20 px-1 py-0.2 rounded">
+                                Acesso ADM
+                              </span>
+                            </div>
                             <Link
                               href="/admin"
                               onClick={() => setUserMenuOpen(false)}

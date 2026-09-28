@@ -43,6 +43,7 @@ import { CouponManagement } from "../../components/admin/CouponManagement";
 import { AnalyticsDashboard } from "../../components/admin/AnalyticsDashboard";
 import { DeliveryFeeSettings } from "../../components/admin/DeliveryFeeSettings";
 import { CardBadgesSection } from "../../components/admin/CardBadgesSection";
+import { LoyaltyBadgesSection } from "../../components/admin/LoyaltyBadgesSection";
 import { OrderFlowSettings } from "../../components/admin/OrderFlowSettings";
 import { AvatarPresetManager } from "../../components/admin/AvatarPresetManager";
 import { VisualIdentitySection } from "../../components/admin/VisualIdentitySection";
@@ -919,7 +920,7 @@ export default function AdminDashboard() {
 
               {/* CONTEÚDO DA ABA 4: BANNERS (Faixas e Carrossel da Vitrine) */}
               {activeTab === "banners" && (
-                <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 sm:p-7 shadow-sm space-y-8 animate-in fade-in duration-150">
+                <section className="bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 sm:p-7 shadow-sm space-y-8 animate-in fade-in duration-150">
                   {/* SEÇÃO 1: Faixa de Destaque da Vitrine (Home Banner) */}
                   <div className="space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-border/30">
@@ -1079,6 +1080,9 @@ export default function AdminDashboard() {
 
                   {/* SEÇÃO 3: Gestão de Selos / Badges Flutuantes dos Cards */}
                   <CardBadgesSection onBadgesUpdated={fetchPromos} />
+
+                  {/* SEÇÃO 4: Gestão de Selos de Fidelidade (Perfil do Cliente) */}
+                  <LoyaltyBadgesSection />
                 </section>
               )}
 
