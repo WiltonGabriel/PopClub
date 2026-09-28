@@ -41,9 +41,18 @@ function formatOrder(o: any) {
     },
     cancellation_reason: o.cancellationReason || null,
     cancelled_at: o.cancelledAt ? o.cancelledAt.toISOString() : null,
+    courier_name: o.courierName || null,
+    courier_phone: o.courierPhone || null,
+    courier_code: o.courierCode || null,
+    order_pin: o.orderPin || null,
+    dispatched_at: o.dispatchedAt ? o.dispatchedAt.toISOString() : null,
+    delivered_at: o.deliveredAt ? o.deliveredAt.toISOString() : null,
+    delivery_issue: o.deliveryIssue || null,
+    delivery_issue_notes: o.deliveryIssueNotes || null,
+    delivery_issue_at: o.deliveryIssueAt ? o.deliveryIssueAt.toISOString() : null,
     created_at: o.createdAt.toISOString(),
     updated_at: o.updatedAt.toISOString(),
-    items: (o.items || []).map((it: any) => ({
+    items: (o.items || []).map((it: (typeof o.items)[number]) => ({
       id: it.id,
       order_id: it.orderId,
       product_id: it.productId,
@@ -264,6 +273,25 @@ export async function PATCH(request: Request) {
       dataToUpdate.cancellationReason =
         cancellationReason || (isAdmin ? "Cancelado pela administração" : "Cancelado pelo cliente");
       dataToUpdate.cancelledAt = new Date();
+    } else if (status === "completed") {
+      dataToUpdate.deliveredAt = new Date();
+      dataToUpdate.isGpsTrackingActive = false;
+    }
+
+    if (body.deliveryIssue) {
+      dataToUpdate.deliveryIssue = String(body.deliveryIssue);
+      dataToUpdate.deliveryIssueNotes = body.deliveryIssueNotes ? String(body.deliveryIssueNotes) : null;
+      dataToUpdate.deliveryIssueAt = new Date();
+    }
+
+    if (body.courierName) {
+      dataToUpdate.courierName = String(body.courierName);
+    }
+    if (body.courierCode) {
+      dataToUpdate.courierCode = String(body.courierCode);
+    }
+    if (body.orderPin) {
+      dataToUpdate.orderPin = String(body.orderPin);
     }
 
     const updated = await prisma.order.update({

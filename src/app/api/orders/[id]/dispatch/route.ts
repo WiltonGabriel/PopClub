@@ -19,18 +19,28 @@ export async function POST(
       return apiError("ID do pedido não informado.", 400);
     }
 
-    let body: any = {};
+    interface DispatchBody {
+      enableGps?: boolean;
+      courierName?: string;
+      courierPhone?: string;
+      courierCode?: string;
+    }
+
+    let body: DispatchBody = {};
     try {
-      body = await request.json();
+      body = (await request.json()) as DispatchBody;
     } catch {
       // Body vazio é aceitável, assume enableGps = false
     }
 
     const enableGps = Boolean(body.enableGps);
+    const courierName = body.courierName?.trim() || null;
+    const courierPhone = body.courierPhone?.trim() || null;
+    const courierCode = body.courierCode?.trim() || null;
 
     const existingOrder = await prisma.order.findUnique({
       where: { id },
-      select: { id: true, status: true, trackingToken: true },
+      select: { id: true, status: true, trackingToken: true, orderPin: true },
     });
 
     if (!existingOrder) {
@@ -41,12 +51,22 @@ export async function POST(
     const trackingToken =
       existingOrder.trackingToken || crypto.randomUUID().replace(/-/g, "");
 
+    const orderPin = existingOrder.orderPin || id.slice(-4).toUpperCase();
+
     const updated = await prisma.order.update({
       where: { id },
       data: {
         status: "delivering",
         trackingToken,
         isGpsTrackingActive: enableGps,
+        courierName,
+        courierPhone,
+        courierCode,
+        orderPin,
+        dispatchedAt: new Date(),
+        deliveryIssue: null,
+        deliveryIssueNotes: null,
+        deliveryIssueAt: null,
       },
       include: {
         items: { include: { product: true } },

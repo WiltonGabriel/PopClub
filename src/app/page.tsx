@@ -650,8 +650,8 @@ export default function Storefront() {
           <div className="flex-1 flex justify-center items-center min-w-0 px-1">
             <HeaderAddressButton
               isMobile
-              className="min-h-[38px] sm:min-h-[40px] px-3.5 py-2 max-w-[170px] truncate text-xs font-semibold rounded-full border-border/50 bg-white/80 dark:bg-[#181D2D]/80 shadow-xs"
-              spanClassName="max-w-[110px] truncate font-semibold"
+              className="min-h-[38px] sm:min-h-[40px] px-3.5 py-2 w-auto min-w-[150px] max-w-[200px] truncate text-xs font-semibold rounded-full border-border/50 bg-white/80 dark:bg-[#181D2D]/80 shadow-xs"
+              spanClassName="w-auto max-w-[140px] truncate font-semibold"
             />
           </div>
 
@@ -699,7 +699,10 @@ export default function Storefront() {
           {/* ── DIREITA: Actions Desktop ── */}
           <div className="flex items-center gap-2 shrink-0">
 
-            {/* 1. [ Meus Pedidos ] — Desktop only: Apenas ícone com badge dinâmico */}
+            {/* 1. [ Modo de Edição / Cliente ] — exclusivo para Administrador no Desktop (à esquerda de Pedidos) */}
+            {isAdmin && <AdminEditModeToggle />}
+
+            {/* 2. [ Meus Pedidos ] — Desktop only: Apenas ícone com badge dinâmico */}
             <Link
               href="/pedidos"
               className="hidden md:flex relative h-10 w-10 rounded-full items-center justify-center border border-border/50 hover:border-primary/50 bg-white/60 dark:bg-[#181D2D]/60 hover:bg-muted/80 text-foreground transition-all shrink-0 shadow-xs group cursor-pointer"
@@ -717,9 +720,6 @@ export default function Storefront() {
                 </span>
               )}
             </Link>
-
-            {/* 2. [ Modo de Edição / Visualizar ] — exclusivo para Administrador no Desktop */}
-            {isAdmin && <AdminEditModeToggle />}
 
             {/* 3. [ Ícone do Carrinho ] — Compacto (apenas ícone), imediatamente à esquerda do Perfil */}
             <button

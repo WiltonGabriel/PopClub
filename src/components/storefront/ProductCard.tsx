@@ -123,11 +123,11 @@ export function ProductCard({
       {/* ── LADO ESQUERDO NO MOBILE (65%) / INFERIOR NO DESKTOP: Conteúdo & Preço ── */}
       <div className="order-1 md:order-2 w-[65%] md:w-full pr-3 md:pr-0 md:p-3 flex flex-col justify-between h-full py-0.5 md:flex-1 gap-1">
         <div>
-          <h3 className="font-heading font-semibold text-zinc-900 dark:text-zinc-100 text-sm leading-tight line-clamp-1 md:line-clamp-2">
+          <h3 className="font-heading font-bold text-zinc-900 dark:text-white text-sm leading-tight line-clamp-1 md:line-clamp-2">
             {product.name}
           </h3>
           {product.description && (
-            <p className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed mt-0.5">
+            <p className="text-xs text-zinc-600 dark:text-zinc-200 line-clamp-2 leading-relaxed mt-0.5">
               {product.description}
             </p>
           )}

@@ -30,12 +30,12 @@ export function AdminEditModeToggle() {
         {isEditMode ? (
           <>
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span className="hidden sm:inline">Modo Edição</span>
+            <span>Edição</span>
           </>
         ) : (
           <>
             <span className="w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-500" />
-            <span className="hidden sm:inline">Visualizar</span>
+            <span>Cliente</span>
           </>
         )}
       </span>

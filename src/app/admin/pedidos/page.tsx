@@ -69,6 +69,8 @@ import { OrderTriageBar } from "../../../components/admin/OrderTriageBar";
 import { OrderAcceptDialog } from "../../../components/admin/OrderAcceptDialog";
 import { OrderRejectDialog } from "../../../components/admin/OrderRejectDialog";
 import { OrderDispatchDialog } from "../../../components/admin/OrderDispatchDialog";
+import { OrderDeliveryInbox } from "../../../components/admin/OrderDeliveryInbox";
+import { OrderDeliveryIssueDialog } from "../../../components/admin/OrderDeliveryIssueDialog";
 import { MobileOrientationBanner } from "@/components/admin/MobileOrientationBanner";
 
 export default function AdminPedidosPage() {
@@ -78,7 +80,7 @@ export default function AdminPedidosPage() {
 
   // Estados de Responsividade Mobile
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileKanbanTab, setMobileKanbanTab] = useState<"novos" | "preparo" | "entrega" | "concluidos" | "cancelados">("novos");
+  const [mobileKanbanTab, setMobileKanbanTab] = useState<"fila" | "preparo" | "entrega" | "concluidos" | "cancelados">("fila");
   
   // Modo de Exibição da Esteira (Padrão/Detalhado vs. Compacto/Alta Densidade - persistido em localStorage)
   const [adminViewMode, setAdminViewMode] = useState<"detailed" | "compact">(() => {
@@ -139,7 +141,7 @@ export default function AdminPedidosPage() {
   });
 
   const promptUpdateStatus = (order: Order, stage: { nextStatus: OrderStatus; label: string }) => {
-    if (stage.nextStatus === "delivering") {
+    if (order.status === "preparing" || stage.nextStatus === "delivering" || stage.nextStatus === "ready") {
       setOrderToDispatch(order);
       setIsDispatchModalOpen(true);
       return;
@@ -262,6 +264,8 @@ export default function AdminPedidosPage() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [orderToDispatch, setOrderToDispatch] = useState<Order | null>(null);
   const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
+  const [orderForIssue, setOrderForIssue] = useState<Order | null>(null);
+  const [isIssueModalOpen, setIsIssueModalOpen] = useState(false);
 
   // Controle de Som Operacional & Notificações Nativas
   const [isSoundMuted, setIsSoundMuted] = useState<boolean>(false);
@@ -865,10 +869,33 @@ export default function AdminPedidosPage() {
     }
   };
 
+  const handleOpenIssueDialog = (order: Order) => {
+    setOrderForIssue(order);
+    setIsIssueModalOpen(true);
+  };
+
+  const handleCompleteDelivery = async (order: Order, courierCode?: string, orderCode?: string) => {
+    try {
+      await orderService.completeDelivery(order.id, courierCode, orderCode);
+      showToast({
+        title: "Entrega Concluída!",
+        message: `Pedido #${order.id.substring(0, 6)} arquivado com sucesso.`,
+        type: "success",
+      });
+      fetchOrders();
+    } catch (err: unknown) {
+      showToast({
+        title: "Erro ao concluir",
+        message: (err instanceof Error ? err.message : "Erro desconhecido") || "Não foi possível concluir a entrega.",
+        type: "error",
+      });
+    }
+  };
+
   const handleUpdateStatus = async (orderId: string, currentStatus: OrderStatus) => {
     const stage = getNextStage(currentStatus);
     if (!stage) return;
-    if (stage.nextStatus === "delivering") {
+    if (currentStatus === "preparing" || stage.nextStatus === "delivering" || stage.nextStatus === "ready") {
       const found = orders.find((o) => o.id === orderId);
       if (found) {
         setOrderToDispatch(found);
@@ -964,6 +991,10 @@ export default function AdminPedidosPage() {
   }, [activeOrders]);
   const cancelledOrders = orders.filter((o) => o.status === "cancelled");
   const pendingOrders = useMemo(() => orders.filter((o) => o.status === "pending"), [orders]);
+  const deliveringOrders = useMemo(
+    () => orders.filter((o) => o.status === "delivering" || o.status === "ready"),
+    [orders]
+  );
 
   // Badge inteligente de tempo decorrido
   const renderOrderTimeBadge = (order: Order) => {
@@ -1960,6 +1991,14 @@ export default function AdminPedidosPage() {
           onToggleSound={handleSoundToggleClick}
         />
 
+        {/* Sub-Inbox de Entrega: Finalização e Auditoria de Corridas */}
+        <OrderDeliveryInbox
+          deliveringOrders={deliveringOrders}
+          onCompleteOrder={handleCompleteDelivery}
+          onReportIssue={handleOpenIssueDialog}
+          onViewOrderDetails={(order) => setSelectedOrderForDrawer(order)}
+        />
+
         {/* Métricas Rápidas Operacionais */}
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
           <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-sm flex items-center justify-between">
@@ -2022,11 +2061,11 @@ export default function AdminPedidosPage() {
         {/* Abas do Kanban no Mobile (< md) */}
         <div className="md:hidden flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
           {([
-            { key: "novos" as const, label: "Novos", color: "hsl(var(--primary))", count: orders.filter((o) => ["pending", "accepted"].includes(o.status)).length },
-            { key: "preparo" as const, label: "Preparo", color: "#EAB308", count: orders.filter((o) => ["preparing"].includes(o.status)).length },
-            { key: "entrega" as const, label: "Entrega", color: "hsl(var(--accent))", count: orders.filter((o) => ["ready", "delivering"].includes(o.status)).length },
-            { key: "concluidos" as const, label: "Concluídos", color: "#10B981", count: orders.filter((o) => ["completed"].includes(o.status)).length },
-            { key: "cancelados" as const, label: "Cancelados", color: "#EF4444", count: orders.filter((o) => ["cancelled"].includes(o.status)).length },
+            { key: "fila" as const, label: "Fila", color: "hsl(var(--primary))", count: orders.filter((o) => o.status === "accepted").length },
+            { key: "preparo" as const, label: "Em Preparo", color: "#EAB308", count: orders.filter((o) => o.status === "preparing").length },
+            { key: "entrega" as const, label: "A Caminho / Pronto", color: "hsl(var(--accent))", count: orders.filter((o) => ["ready", "delivering"].includes(o.status)).length },
+            { key: "concluidos" as const, label: "Concluídos", color: "#10B981", count: orders.filter((o) => o.status === "completed").length },
+            { key: "cancelados" as const, label: "Cancelados", color: "#EF4444", count: orders.filter((o) => o.status === "cancelled").length },
           ]).map((tab) => {
             const isActive = mobileKanbanTab === tab.key;
             return (
@@ -2057,7 +2096,7 @@ export default function AdminPedidosPage() {
 
         {/* Coluna Ativa do Kanban no Mobile (< md) */}
         <div className="md:hidden space-y-4">
-          {mobileKanbanTab === "novos" && renderKanbanColumn("Novos", ["pending", "accepted"], "hsl(var(--primary))", "novos")}
+          {mobileKanbanTab === "fila" && renderKanbanColumn("Fila", ["accepted"], "hsl(var(--primary))", "fila")}
           {mobileKanbanTab === "preparo" && renderKanbanColumn("Em Preparo", ["preparing"], "#EAB308", "preparo")}
           {mobileKanbanTab === "entrega" && renderKanbanColumn("A Caminho / Pronto", ["ready", "delivering"], "hsl(var(--accent))", "entrega")}
           {mobileKanbanTab === "concluidos" && renderKanbanColumn("Concluídos", ["completed"], "#10B981", "concluidos")}
@@ -2066,7 +2105,7 @@ export default function AdminPedidosPage() {
 
         {/* Grid Principal do Kanban em 5 Colunas (md+) */}
         <section className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4 overflow-x-auto pb-4 items-start">
-          {renderKanbanColumn("Novos", ["pending", "accepted"], "hsl(var(--primary))", "novos")}
+          {renderKanbanColumn("Fila", ["accepted"], "hsl(var(--primary))", "fila")}
           {renderKanbanColumn("Em Preparo", ["preparing"], "#EAB308", "preparo")}
           {renderKanbanColumn("A Caminho / Pronto", ["ready", "delivering"], "hsl(var(--accent))", "entrega")}
           {renderKanbanColumn("Concluídos", ["completed"], "#10B981", "concluidos")}
@@ -2144,6 +2183,19 @@ export default function AdminPedidosPage() {
           setOrderToDispatch(null);
         }}
         onDispatched={() => {
+          fetchOrders();
+        }}
+      />
+
+      {/* Modal Operacional de Ocorrências e Problemas de Entrega */}
+      <OrderDeliveryIssueDialog
+        order={orderForIssue}
+        isOpen={isIssueModalOpen}
+        onClose={() => {
+          setIsIssueModalOpen(false);
+          setOrderForIssue(null);
+        }}
+        onResolved={() => {
           fetchOrders();
         }}
       />

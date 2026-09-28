@@ -32,6 +32,15 @@ import { CompleteRegistrationModal } from "@/components/auth/CompleteRegistratio
 
 const STORE_WHATSAPP = process.env.NEXT_PUBLIC_STORE_WHATSAPP || "5584999999999";
 
+const DELIVERY_ISSUE_LABELS: Record<string, string> = {
+  CLIENTE_AUSENTE: "Cliente ausente / Não atende o interfone/telefone",
+  ENDERECO_INCORRETO: "Endereço não localizado / Número inexistente",
+  PEDIDO_AVARIADO: "Avaria no transporte do pedido",
+  RECUSA_CLIENTE: "Recusa do cliente",
+  PROBLEMA_VEICULO: "Imprevisto mecânico no trajeto com entregador",
+  SUSPEITA_GOLPE: "Dificuldade de acesso / Insegurança no local",
+};
+
 const STATUS_CONFIG: Record<
   OrderStatus,
   { label: string; badgeClass: string; toastMsg: string; description: string }
@@ -43,10 +52,10 @@ const STATUS_CONFIG: Record<
     description: "Recebemos seu pedido! A cozinha já vai iniciar o preparo.",
   },
   accepted: {
-    label: "Confirmado",
+    label: "Na Fila",
     badgeClass: "bg-primary/10 text-primary dark:bg-primary/95/40 dark:text-primary/30 border-primary/20 dark:border-primary/90/40",
-    toastMsg: "confirmado pela cozinha",
-    description: "Pedido confirmado! A equipe está separando seus acompanhamentos.",
+    toastMsg: "confirmado na fila de preparo",
+    description: "Pedido confirmado! Na fila de espera para início do preparo.",
   },
   preparing: {
     label: "Em Preparo",
@@ -382,6 +391,25 @@ export default function PedidosPage() {
                       </div>
                     </div>
 
+                    {/* Aviso de Ocorrência na Entrega (se houver) */}
+                    {order.delivery_issue && (
+                      <div className="p-2.5 bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-700/60 rounded-xl flex items-start gap-2 text-xs text-left">
+                        <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                        <div className="space-y-0.5 min-w-0">
+                          <strong className="text-amber-900 dark:text-amber-200 block font-bold">
+                            Aviso sobre sua entrega
+                          </strong>
+                          <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-snug">
+                            Tivemos um imprevisto:{" "}
+                            <strong>
+                              {DELIVERY_ISSUE_LABELS[order.delivery_issue] || order.delivery_issue}
+                            </strong>
+                            {order.delivery_issue_notes ? ` (${order.delivery_issue_notes})` : ""}. Nossa equipe já está em contato via WhatsApp!
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {/* ── LINHA 2: Resumo Principal + Total ── */}
                     <div className="flex items-center justify-between gap-3 text-xs sm:text-sm pt-1">
                       <p className="font-semibold text-foreground truncate flex-1">
@@ -430,7 +458,9 @@ export default function PedidosPage() {
                             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
                             <span>
                               {order.status === "pending"
-                                ? "Aguardando Loja"
+                                ? "Recebido (Triagem)"
+                                : order.status === "accepted"
+                                ? "Na Fila"
                                 : order.status === "ready"
                                 ? "Pronto p/ Saída"
                                 : "Em Preparo"}

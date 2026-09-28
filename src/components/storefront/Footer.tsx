@@ -54,11 +54,11 @@ export function Footer() {
                 Sorveteria
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-zinc-200 leading-relaxed">
               O açaí mais cremoso e batido na hora, marmitas fartas, sorvetes e a
               verdadeira explosão de recheios que você ama.
             </p>
-            <div className="flex items-center gap-2 pt-1 text-xs text-gray-600 dark:text-gray-300 font-medium">
+            <div className="flex items-center gap-2 pt-1 text-xs text-gray-700 dark:text-zinc-200 font-medium">
               <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
               <span>Qualidade garantida & Os melhores sabores</span>
             </div>
@@ -66,14 +66,14 @@ export function Footer() {
 
           {/* Coluna 2: Atendimento & Horário */}
           <div className="space-y-3">
-            <h3 className="font-heading font-bold text-sm uppercase tracking-wider text-gray-800 dark:text-gray-200">
+            <h3 className="font-heading font-bold text-sm uppercase tracking-wider text-zinc-900 dark:text-white">
               Horário de Funcionamento
             </h3>
-            <ul className="space-y-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+            <ul className="space-y-2 text-xs sm:text-sm text-gray-700 dark:text-zinc-200">
               <li className="flex items-start gap-2">
                 <Clock className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold text-foreground block">Todos os dias</span>
+                  <span className="font-semibold text-foreground dark:text-white block">Todos os dias</span>
                   <span>13:00 às 23:30</span>
                 </div>
               </li>
@@ -86,10 +86,10 @@ export function Footer() {
 
           {/* Coluna 3: Contato & WhatsApp */}
           <div className="space-y-3">
-            <h3 className="font-heading font-bold text-sm uppercase tracking-wider text-gray-800 dark:text-gray-200">
+            <h3 className="font-heading font-bold text-sm uppercase tracking-wider text-zinc-900 dark:text-white">
               Fale Conosco
             </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-xs text-gray-600 dark:text-zinc-200">
               Dúvidas sobre o cardápio ou seu pedido em andamento?
             </p>
             <a
@@ -105,19 +105,19 @@ export function Footer() {
 
           {/* Coluna 4: Formas de Pagamento */}
           <div className="space-y-3">
-            <h3 className="font-heading font-bold text-sm uppercase tracking-wider text-gray-800 dark:text-gray-200">
+            <h3 className="font-heading font-bold text-sm uppercase tracking-wider text-zinc-900 dark:text-white">
               Formas de Pagamento
             </h3>
-            <div className="flex flex-wrap gap-2 text-xs text-gray-600 dark:text-gray-300">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-border/30 font-medium">
+            <div className="flex flex-wrap gap-2 text-xs text-gray-700 dark:text-zinc-100">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-border/40 font-medium">
                 <QrCode className="w-3.5 h-3.5 text-emerald-500" />
                 <span>Pix na Entrega</span>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-border/30 font-medium">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-border/40 font-medium">
                 <CreditCard className="w-3.5 h-3.5 text-blue-500" />
                 <span>Cartão (Maquininha)</span>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-border/30 font-medium">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-border/40 font-medium">
                 <Banknote className="w-3.5 h-3.5 text-amber-500" />
                 <span>Dinheiro</span>
               </div>
@@ -128,14 +128,14 @@ export function Footer() {
         {/* Linha Divisória */}
         <div className="border-t border-gray-200/80 dark:border-border/40 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           {/* Copyright Oficial */}
-          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+          <p className="text-xs text-gray-600 dark:text-zinc-300 font-medium">
             © 2026 Pop Shake Sorveteria. Todos os direitos reservados.
           </p>
 
           {/* Créditos Equipe ADP */}
-          <p className="text-xs text-gray-400 dark:text-gray-500 font-normal">
+          <p className="text-xs text-gray-500 dark:text-zinc-300 font-normal">
             Desenvolvido pela{" "}
-            <span className="font-bold text-gray-600 dark:text-gray-300 hover:text-primary transition-colors">
+            <span className="font-bold text-gray-700 dark:text-white hover:text-primary transition-colors">
               Equipe ADP
             </span>
           </p>

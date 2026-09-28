@@ -56,6 +56,15 @@ export interface Order {
   branch_id?: string | null;
   cancellation_reason?: string | null;
   cancelled_at?: string | null;
+  courier_name?: string | null;
+  courier_phone?: string | null;
+  courier_code?: string | null;
+  order_pin?: string | null;
+  dispatched_at?: string | null;
+  delivered_at?: string | null;
+  delivery_issue?: string | null;
+  delivery_issue_notes?: string | null;
+  delivery_issue_at?: string | null;
   created_at: string;
   updated_at?: string;
   items?: OrderItem[];
@@ -269,12 +278,16 @@ export const orderService = {
 
   async dispatchOrder(
     orderId: string,
-    enableGps: boolean
+    enableGpsOrOptions: boolean | { enableGps?: boolean; courierName?: string; courierPhone?: string; courierCode?: string }
   ): Promise<{ order: Order; trackingToken?: string | null; trackingUrl?: string | null }> {
+    const payload = typeof enableGpsOrOptions === "boolean"
+      ? { enableGps: enableGpsOrOptions }
+      : enableGpsOrOptions;
+
     const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}/dispatch`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ enableGps }),
+      body: JSON.stringify(payload),
     });
     const data = await safeParseResponse<{
       order: Order;
@@ -285,5 +298,64 @@ export const orderService = {
       dispatchOrderEvent("order_updated", data.order);
     }
     return data;
+  },
+
+  async reportDeliveryIssue(
+    orderId: string,
+    issue: string,
+    notes?: string,
+    resolution: "reprepare" | "cancel" = "reprepare"
+  ): Promise<Order> {
+    const nextStatus: OrderStatus = resolution === "cancel" ? "cancelled" : "preparing";
+    const res = await fetch("/api/orders", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        orderId,
+        status: nextStatus,
+        deliveryIssue: issue,
+        deliveryIssueNotes: notes,
+        cancellationReason: resolution === "cancel" ? (notes || issue) : undefined,
+      }),
+    });
+    const data = await safeParseResponse<Order | { order?: Order; data?: Order }>(
+      res,
+      "Erro ao registrar ocorrência de entrega."
+    );
+    const orderObj: Order =
+      "order" in data && data.order
+        ? data.order
+        : "data" in data && data.data
+        ? data.data
+        : (data as Order);
+
+    dispatchOrderEvent("order_updated", orderObj);
+    return orderObj;
+  },
+
+  async completeDelivery(orderId: string, courierCode?: string, orderCode?: string): Promise<Order> {
+    const res = await fetch("/api/orders", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        orderId,
+        status: "completed",
+        courierCode,
+        orderPin: orderCode,
+      }),
+    });
+    const data = await safeParseResponse<Order | { order?: Order; data?: Order }>(
+      res,
+      "Erro ao concluir entrega."
+    );
+    const orderObj: Order =
+      "order" in data && data.order
+        ? data.order
+        : "data" in data && data.data
+        ? data.data
+        : (data as Order);
+
+    dispatchOrderEvent("order_updated", orderObj);
+    return orderObj;
   },
 };

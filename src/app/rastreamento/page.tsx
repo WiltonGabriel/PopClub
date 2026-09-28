@@ -16,6 +16,7 @@ import {
   ChevronUp,
   MessageCircle,
   Navigation,
+  AlertTriangle,
 } from "lucide-react";
 import { Order, orderService } from "@/services/orderService";
 import { storeSettingsService, StoreSettings } from "@/services/storeSettingsService";
@@ -42,6 +43,15 @@ const LeafletDeliveryMap = dynamic(
     ),
   }
 );
+
+const DELIVERY_ISSUE_LABELS: Record<string, string> = {
+  CLIENTE_AUSENTE: "Cliente ausente / Não atende o interfone/telefone",
+  ENDERECO_INCORRETO: "Endereço não localizado / Número inexistente",
+  PEDIDO_AVARIADO: "Avaria no transporte do pedido",
+  RECUSA_CLIENTE: "Recusa do cliente",
+  PROBLEMA_VEICULO: "Imprevisto mecânico no trajeto com entregador",
+  SUSPEITA_GOLPE: "Dificuldade de acesso / Insegurança no local",
+};
 
 // Coordenadas padrão da Loja Pop Shake (Várzea Grande - MT)
 const POP_SHAKE_DEFAULT_COORDS = {
@@ -677,7 +687,7 @@ function TrackingContent() {
               </div>
               <div className="min-w-0">
                 <span className="font-heading font-bold text-xs text-foreground block truncate">
-                  Entregador Pop Shake
+                  {order.courier_name ? `Entregador: ${order.courier_name}` : "Entregador Pop Shake"}
                 </span>
                 <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
@@ -698,23 +708,48 @@ function TrackingContent() {
             </button>
           </div>
 
-          {/* Stepper Visual Compacto */}
-          <div className="grid grid-cols-4 gap-1 text-center text-[9px] pt-1 border-t border-border/40">
+          {/* Feedback de Ocorrência (se houver) */}
+          {order.delivery_issue && (
+            <div className="p-2.5 bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-700/60 rounded-xl flex items-start gap-2 text-xs">
+              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="space-y-0.5 text-left">
+                <strong className="text-amber-900 dark:text-amber-200 block font-bold">
+                  Aviso sobre sua entrega
+                </strong>
+                <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-snug">
+                  Tivemos um imprevisto com sua entrega:{" "}
+                  <strong>
+                    {DELIVERY_ISSUE_LABELS[order.delivery_issue] || order.delivery_issue}
+                  </strong>
+                  {order.delivery_issue_notes ? ` (${order.delivery_issue_notes})` : ""}. Nossa equipe já está em contato via WhatsApp!
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Stepper Visual Compacto de 5 Etapas */}
+          <div className="grid grid-cols-5 gap-1 text-center text-[9px] pt-1 border-t border-border/40">
             <div className="space-y-1">
-              <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto font-bold text-[10px]">
+              <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto font-bold text-[9px]">
                 ✓
               </div>
-              <span className="font-bold text-foreground">Confirmado</span>
+              <span className="font-bold text-foreground">Recebido</span>
             </div>
             <div className="space-y-1">
-              <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto font-bold text-[10px]">
+              <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto font-bold text-[9px]">
                 ✓
               </div>
-              <span className="font-bold text-foreground">Pronto</span>
+              <span className="font-bold text-foreground">Na Fila</span>
+            </div>
+            <div className="space-y-1">
+              <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto font-bold text-[9px]">
+                ✓
+              </div>
+              <span className="font-bold text-foreground">Preparo</span>
             </div>
             <div className="space-y-1">
               <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center mx-auto font-bold text-[10px] ${
+                className={`w-5 h-5 rounded-full flex items-center justify-center mx-auto font-bold text-[9px] ${
                   isArriving ? "bg-emerald-500 text-white" : "bg-primary text-white animate-pulse"
                 }`}
               >
@@ -724,14 +759,14 @@ function TrackingContent() {
             </div>
             <div className="space-y-1">
               <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center mx-auto font-bold text-[10px] ${
+                className={`w-5 h-5 rounded-full flex items-center justify-center mx-auto font-bold text-[9px] ${
                   isArriving ? "bg-emerald-500 text-white animate-bounce" : "bg-muted text-muted-foreground"
                 }`}
               >
-                📍
+                🎉
               </div>
               <span className={`font-bold ${isArriving ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
-                Chegando
+                Entregue
               </span>
             </div>
           </div>
@@ -794,13 +829,29 @@ function TrackingContent() {
   // REGRA ESTRITA: Exibe Stepper Visual da esteira sem abrir o mapa
   // --------------------------------------------------------------------------
   const isPending = order.status === "pending";
-  const isAcceptedOrPreparing = ["accepted", "preparing"].includes(order.status);
+  const isAccepted = order.status === "accepted";
+  const isPreparing = order.status === "preparing";
+  const isDelivering = (order.status as string) === "delivering";
   const isReady = order.status === "ready";
+  const isDeliveringOrReady = isDelivering || isReady;
   const isCompleted = order.status === "completed";
   const isCancelled = order.status === "cancelled";
   const isPickup =
     !order.delivery_address?.street ||
     order.delivery_address?.street.toLowerCase().includes("retirada");
+
+  // Índices das 5 etapas operacionais
+  const stepIndex = isCancelled
+    ? -1
+    : isCompleted
+    ? 4
+    : isDeliveringOrReady
+    ? 3
+    : isPreparing
+    ? 2
+    : isAccepted
+    ? 1
+    : 0;
 
   return (
     <main className="min-h-screen bg-background flex flex-col">
@@ -839,7 +890,7 @@ function TrackingContent() {
           {/* Header do Card */}
           <div className="text-center space-y-2">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white shadow-xl shadow-primary/25 mx-auto text-3xl">
-              {isCompleted ? "🎉" : isCancelled ? "❌" : isPending ? "⏳" : isReady ? (isPickup ? "🛍️" : "📦") : "🥣"}
+              {isCompleted ? "🎉" : isCancelled ? "❌" : isPending ? "⏳" : isAccepted ? "📋" : isPreparing ? "🥣" : isReady ? (isPickup ? "🛍️" : "📦") : "🛵"}
             </div>
             <h1 className="font-heading text-xl sm:text-2xl font-black uppercase tracking-tight text-foreground">
               {isCompleted
@@ -848,9 +899,13 @@ function TrackingContent() {
                 ? "Pedido Cancelado"
                 : isPending
                 ? "Pedido Recebido!"
+                : isAccepted
+                ? "Na Fila de Espera"
+                : isPreparing
+                ? "Em Preparo na Cozinha"
                 : isReady
                 ? (isPickup ? "Pronto para Retirada!" : "Pronto p/ Saída!")
-                : "Preparando seu Pedido"}
+                : "Saiu para Entrega!"}
             </h1>
             <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
               {isCompleted
@@ -858,102 +913,143 @@ function TrackingContent() {
                 : isCancelled
                 ? `Este pedido foi cancelado. Motivo: ${order.cancellation_reason || "Informado pela loja"}`
                 : isPending
-                ? "Recebemos seu pedido com sucesso! A loja já foi notificada e vai confirmar o início do preparo em instantes."
+                ? "Recebemos seu pedido com sucesso! A loja foi notificada e vai confirmar o pedido na fila em instantes."
+                : isAccepted
+                ? "Pedido confirmado! Está posicionado na fila de produção da cozinha aguardando o preparo."
+                : isPreparing
+                ? "Seu pedido está sendo montado e embalado com todo o carinho pela nossa equipe."
                 : isReady
                 ? (isPickup
                     ? "Seu pedido está embalado e aguardando você no balcão da sorveteria!"
-                    : "Seu pedido está pronto e embalado na expedição, aguardando o entregador iniciar a rota.")
-                : "Seu pedido foi confirmado pela equipe e está sendo montado com todo o capricho na cozinha!"}
+                    : `Seu pedido está pronto com ${order.courier_name || "o entregador"} e saindo para entrega!`)
+                : `Seu pedido saiu para entrega com ${order.courier_name || "o entregador"}. Fique atento à campainha!`}
             </p>
           </div>
 
-          {/* Stepper Visual da Esteira de Produção */}
+          {/* Feedback de Ocorrência com Orientação de Suporte */}
+          {order.delivery_issue && (
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/60 border-2 border-amber-300 dark:border-amber-700/70 rounded-2xl flex items-start gap-3.5 text-left animate-in fade-in duration-200">
+              <div className="w-9 h-9 rounded-xl bg-amber-200 dark:bg-amber-900/80 flex items-center justify-center shrink-0 text-amber-800 dark:text-amber-200">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="space-y-1 text-xs min-w-0 flex-1">
+                <strong className="block font-bold text-amber-950 dark:text-amber-100 text-sm">
+                  Tivemos um imprevisto com sua entrega
+                </strong>
+                <p className="text-xs text-amber-800 dark:text-amber-300/90 leading-relaxed">
+                  Motivo:{" "}
+                  <strong className="font-bold underline">
+                    {DELIVERY_ISSUE_LABELS[order.delivery_issue] || order.delivery_issue}
+                  </strong>
+                  {order.delivery_issue_notes ? ` (${order.delivery_issue_notes})` : ""}.
+                </p>
+                <p className="text-[11px] text-amber-700 dark:text-amber-300/80 font-medium">
+                  Nossa equipe já está em contato via WhatsApp para garantir que tudo seja resolvido!
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Stepper Visual da Esteira de Produção (5 Etapas) */}
           <div className="py-4 border-y border-border/50 space-y-4">
             <span className="font-mono text-[10px] uppercase font-bold text-muted-foreground block text-center tracking-wider">
-              Progresso do Atendimento
+              Linha do Tempo Operacional
             </span>
 
-            <div className="grid grid-cols-4 gap-1 sm:gap-2 text-center text-[11px]">
-              {/* Etapa 1: Confirmado / Recebido */}
+            <div className="grid grid-cols-5 gap-1 text-center text-[10px]">
+              {/* Etapa 1: Recebido */}
               <div className="space-y-1.5">
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto font-bold text-xs ${
-                    isPending
-                      ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-700 animate-pulse"
-                      : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
-                  }`}
-                >
-                  {isPending ? "⏳" : "✓"}
-                </div>
-                <span className={`block text-[10px] leading-tight ${isPending ? "font-bold text-amber-600 dark:text-amber-400" : "font-bold text-foreground"}`}>
-                  {isPending ? "Aguardando" : "Confirmado"}
-                </span>
-              </div>
-
-              {/* Etapa 2: Na Cozinha / Em Preparo */}
-              <div className="space-y-1.5">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto font-bold text-xs ${
-                    isAcceptedOrPreparing
-                      ? "bg-primary text-white shadow-md shadow-primary/30 animate-pulse"
-                      : isReady || isCompleted
+                    stepIndex > 0
                       ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                      : stepIndex === 0
+                      ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-700 animate-pulse"
                       : "bg-muted text-muted-foreground"
                   }`}
                 >
-                  {isReady || isCompleted ? "✓" : "🥣"}
+                  {stepIndex > 0 ? "✓" : "📝"}
                 </div>
-                <span
-                  className={`block text-[10px] leading-tight ${
-                    isAcceptedOrPreparing
-                      ? "font-bold text-primary dark:text-muted-foreground"
-                      : isReady || isCompleted
-                      ? "font-bold text-foreground"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  Na Cozinha
+                <span className={`block text-[10px] leading-tight ${stepIndex === 0 ? "font-bold text-amber-600 dark:text-amber-400" : "font-semibold text-foreground"}`}>
+                  Recebido
                 </span>
+                <span className="block text-[9px] text-muted-foreground">Triagem</span>
               </div>
 
-              {/* Etapa 3: A Caminho / Pronto Retirada */}
+              {/* Etapa 2: Na Fila de Espera */}
               <div className="space-y-1.5">
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto font-bold text-xs ${
-                    isReady
-                      ? "bg-blue-600 text-white shadow-md shadow-blue-500/30 animate-pulse"
-                      : isCompleted
-                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300"
+                    stepIndex > 1
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                      : stepIndex === 1
+                      ? "bg-primary text-white shadow-md shadow-primary/30 animate-pulse"
                       : "bg-muted text-muted-foreground opacity-60"
                   }`}
                 >
-                  {isCompleted ? "✓" : isPickup ? "🛍️" : "🛵"}
+                  {stepIndex > 1 ? "✓" : "📋"}
                 </div>
-                <span
-                  className={`block text-[10px] leading-tight ${
-                    isReady
-                      ? "font-bold text-blue-600 dark:text-blue-400"
-                      : "text-muted-foreground opacity-60"
-                  }`}
-                >
-                  {isPickup ? "No Balcão" : "A Caminho"}
+                <span className={`block text-[10px] leading-tight ${stepIndex === 1 ? "font-bold text-primary dark:text-muted-foreground" : "font-semibold text-foreground"}`}>
+                  Na Fila
                 </span>
+                <span className="block text-[9px] text-muted-foreground">Aguardando</span>
               </div>
 
-              {/* Etapa 4: Entregue / Concluído */}
+              {/* Etapa 3: Em Preparo na Cozinha */}
               <div className="space-y-1.5">
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto font-bold text-xs ${
-                    isCompleted
+                    stepIndex > 2
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                      : stepIndex === 2
+                      ? "bg-amber-500 text-white shadow-md shadow-amber-500/30 animate-pulse"
+                      : "bg-muted text-muted-foreground opacity-60"
+                  }`}
+                >
+                  {stepIndex > 2 ? "✓" : "🥣"}
+                </div>
+                <span className={`block text-[10px] leading-tight ${stepIndex === 2 ? "font-bold text-amber-600 dark:text-amber-400" : "font-semibold text-foreground"}`}>
+                  Em Preparo
+                </span>
+                <span className="block text-[9px] text-muted-foreground">Cozinha</span>
+              </div>
+
+              {/* Etapa 4: A Caminho / Pronto */}
+              <div className="space-y-1.5">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto font-bold text-xs ${
+                    stepIndex > 3
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                      : stepIndex === 3
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-500/30 animate-pulse"
+                      : "bg-muted text-muted-foreground opacity-60"
+                  }`}
+                >
+                  {stepIndex > 3 ? "✓" : isPickup ? "🛍️" : "🛵"}
+                </div>
+                <span className={`block text-[10px] leading-tight ${stepIndex === 3 ? "font-bold text-blue-600 dark:text-blue-400" : "font-semibold text-foreground"}`}>
+                  {isPickup ? "No Balcão" : "A Caminho"}
+                </span>
+                <span className="block text-[9px] text-muted-foreground truncate max-w-[65px] mx-auto">
+                  {order.courier_name || (isPickup ? "Retirada" : "Entrega")}
+                </span>
+              </div>
+
+              {/* Etapa 5: Pedido Entregue (Concluído) */}
+              <div className="space-y-1.5">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto font-bold text-xs ${
+                    stepIndex === 4
                       ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/30"
                       : "bg-muted text-muted-foreground opacity-60"
                   }`}
                 >
                   🎉
                 </div>
-                <span className={`block text-[10px] leading-tight ${isCompleted ? "font-bold text-emerald-600 dark:text-emerald-400" : "text-muted-foreground opacity-60"}`}>
+                <span className={`block text-[10px] leading-tight ${stepIndex === 4 ? "font-bold text-emerald-600 dark:text-emerald-400" : "text-muted-foreground opacity-60"}`}>
                   Entregue
                 </span>
+                <span className="block text-[9px] text-muted-foreground">Concluído</span>
               </div>
             </div>
           </div>
