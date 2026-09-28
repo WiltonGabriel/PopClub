@@ -22,10 +22,8 @@ import {
   CreditCard,
   Banknote,
   Zap,
-  Calendar,
   Layers,
   FileText,
-  Building,
   Check,
 } from "lucide-react";
 import { orderService, Order, OrderStatus } from "../../../services/orderService";
@@ -1091,6 +1089,7 @@ export default function AdminHistoricoPage() {
                     order.delivery_address?.street.toLowerCase().includes("retirada");
                   const totalItems = order.items?.reduce((acc, it) => acc + it.quantity, 0) || 0;
                   const firstItem = order.items?.[0]?.product?.name || "Item";
+                  const shiftCode = order.shift_code || (order.shift_id ? shiftCodeMap.get(order.shift_id) : null);
 
                   return (
                     <div
@@ -1112,19 +1111,15 @@ export default function AdminHistoricoPage() {
 
                           {getStatusBadge(order.status)}
 
-                          {(() => {
-                            const shiftCode = order.shift_code || (order.shift_id ? shiftCodeMap.get(order.shift_id) : null);
-                            if (!shiftCode) return null;
-                            return (
-                              <span
-                                className="inline-flex items-center gap-1 font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40"
-                                title={`Turno / Esteira de Origem: ${shiftCode}`}
-                              >
-                                <Layers className="w-3 h-3 text-purple-500 shrink-0" />
-                                <span>{shiftCode}</span>
-                              </span>
-                            );
-                          })()}
+                          {shiftCode && (
+                            <span
+                              className="inline-flex items-center gap-1 font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40"
+                              title={`Turno / Esteira de Origem: ${shiftCode}`}
+                            >
+                              <Layers className="w-3 h-3 text-purple-500 shrink-0" />
+                              <span>{shiftCode}</span>
+                            </span>
+                          )}
 
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300">
                             {isPickup ? "🛍️ Retirada" : "🛵 Entrega"}

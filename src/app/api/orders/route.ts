@@ -1,10 +1,35 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { Prisma, OrderStatus } from "@prisma/client";
 import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
 
-function formatOrder(o: any, shiftCode?: string | null) {
+type DbOrderPayload = Prisma.OrderGetPayload<{
+  include: {
+    items: {
+      include: {
+        product: true;
+      };
+    };
+    user: {
+      select: {
+        fullName: true;
+        username: true;
+        email: true;
+        phone: true;
+      };
+    };
+  };
+}>;
+
+type AddonItemSummary = {
+  id: string;
+  name: string;
+  groupName?: string;
+  price: number;
+  quantity: number;
+};
+
+function formatOrder(o: DbOrderPayload, shiftCode?: string | null) {
   return {
     id: o.id,
     user_id: o.userId,
@@ -53,13 +78,13 @@ function formatOrder(o: any, shiftCode?: string | null) {
     delivery_issue_at: o.deliveryIssueAt ? o.deliveryIssueAt.toISOString() : null,
     created_at: o.createdAt.toISOString(),
     updated_at: o.updatedAt.toISOString(),
-    items: (o.items || []).map((it: (typeof o.items)[number]) => ({
+    items: (o.items || []).map((it) => ({
       id: it.id,
       order_id: it.orderId,
       product_id: it.productId,
       quantity: it.quantity,
       price_at_time: Number(it.priceAtTime),
-      selected_addons: (it as any).selectedAddons || null,
+      selected_addons: (it.selectedAddons as unknown as AddonItemSummary[]) || null,
       product: it.product
         ? {
             id: it.product.id,
