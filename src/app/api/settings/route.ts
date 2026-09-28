@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { z } from "zod";
@@ -163,7 +162,7 @@ export async function PUT(request: Request) {
       return apiError("Acesso negado. Apenas administradores podem alterar configurações da loja.", 403, "FORBIDDEN");
     }
 
-    let body: any;
+    let body: unknown;
     try {
       body = await request.json();
     } catch {
@@ -204,7 +203,7 @@ export async function PUT(request: Request) {
     const effectiveLat = storeLatitude !== undefined ? storeLatitude : latitude;
     const effectiveLng = storeLongitude !== undefined ? storeLongitude : longitude;
 
-    const dataToUpdate: any = {};
+    const dataToUpdate: Record<string, unknown> = {};
     if (deliveryFee !== undefined) dataToUpdate.deliveryFee = deliveryFee;
     if (freeDeliveryThreshold !== undefined) dataToUpdate.freeDeliveryThreshold = freeDeliveryThreshold;
     if (whatsappNumber !== undefined) dataToUpdate.whatsappNumber = whatsappNumber;

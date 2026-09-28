@@ -2,6 +2,16 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
 
+interface CourierPayload {
+  name?: string;
+  phone?: string;
+  vehicle?: string;
+  plate?: string | null;
+  pixKey?: string | null;
+  status?: string;
+  isActive?: boolean;
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -13,21 +23,21 @@ export async function PUT(
     }
 
     const { id } = await params;
-    let body: any;
+    let body: CourierPayload;
     try {
-      body = await request.json();
+      body = (await request.json()) as CourierPayload;
     } catch {
       return apiError("Corpo da requisição inválido.", 400);
     }
 
     const { name, phone, vehicle, plate, pixKey, status, isActive } = body || {};
 
-    const dataToUpdate: any = {};
-    if (name !== undefined) dataToUpdate.name = name.trim();
-    if (phone !== undefined) dataToUpdate.phone = phone.trim();
-    if (vehicle !== undefined) dataToUpdate.vehicle = vehicle.trim();
-    if (plate !== undefined) dataToUpdate.plate = plate ? plate.trim().toUpperCase() : null;
-    if (pixKey !== undefined) dataToUpdate.pixKey = pixKey ? pixKey.trim() : null;
+    const dataToUpdate: Record<string, unknown> = {};
+    if (name !== undefined) dataToUpdate.name = String(name).trim();
+    if (phone !== undefined) dataToUpdate.phone = String(phone).trim();
+    if (vehicle !== undefined) dataToUpdate.vehicle = String(vehicle).trim();
+    if (plate !== undefined) dataToUpdate.plate = plate ? String(plate).trim().toUpperCase() : null;
+    if (pixKey !== undefined) dataToUpdate.pixKey = pixKey ? String(pixKey).trim() : null;
     if (status !== undefined) dataToUpdate.status = status;
     if (isActive !== undefined) dataToUpdate.isActive = Boolean(isActive);
 

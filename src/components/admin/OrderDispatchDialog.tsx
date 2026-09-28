@@ -1,21 +1,17 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import {
   Bike,
   X,
   Copy,
   Check,
   MessageCircle,
-  User,
   ShieldCheck,
   Loader2,
   Navigation,
   MapPin,
   ExternalLink,
-  DollarSign,
-  CreditCard,
-  Phone,
 } from "lucide-react";
 import { Order, orderService } from "../../services/orderService";
 import { courierService, Courier } from "../../services/courierService";
@@ -133,49 +129,36 @@ export function OrderDispatchDialog({
     }
   })();
 
-  const changeInfo = useMemo(() => {
+  const changeInfo = (() => {
     if (order.payment_method_type === "dinheiro" && order.change_for) {
       const trocoDevolver = order.change_to_return ? ` • Troco a devolver: R$ ${Number(order.change_to_return).toFixed(2).replace(".", ",")}` : "";
       return `\n💵 *Troco para:* R$ ${Number(order.change_for).toFixed(2).replace(".", ",")}${trocoDevolver}`;
     }
     return "";
-  }, [order.payment_method_type, order.change_for, order.change_to_return]);
+  })();
 
   const totalFormatted = Number(order.total_amount || 0).toFixed(2).replace(".", ",");
 
   // Template Completo para o WhatsApp do Entregador
   const trackingUrl = dispatchedData?.trackingUrl || `${typeof window !== "undefined" ? window.location.origin : ""}/entrega/${order.tracking_token || "rastreamento"}`;
 
-  const courierWhatsAppText = useMemo(() => {
-    return (
-      `🍧 *NOVO DESPACHO - POP SHAKE*\n` +
-      `━━━━━━━━━━━━━━━━━━━━\n` +
-      `🏍️ *Entregador:* ${courierName || "Motoboy"}\n` +
-      `📦 *Pedido:* #${order.id.substring(0, 6)}\n` +
-      `👤 *Cliente:* ${clientName}\n\n` +
-      `📍 *Endereço de Entrega:*\n` +
-      `${addressText}\n` +
-      `🗺️ *Google Maps / Rota GPS:*\n` +
-      `${googleMapsUrl}\n\n` +
-      `💵 *Valor a Cobrar:* R$ ${totalFormatted}\n` +
-      `💳 *Forma de Pagamento:* ${paymentMethodLabel}` +
-      `${changeInfo}\n\n` +
-      `📲 *Link de Rastreamento ao Vivo:*\n` +
-      `${trackingUrl}\n` +
-      `━━━━━━━━━━━━━━━━━━━━\n` +
-      `Por favor, confirme a saída do pedido. Bom trabalho! 🚀`
-    );
-  }, [
-    courierName,
-    order.id,
-    clientName,
-    addressText,
-    googleMapsUrl,
-    totalFormatted,
-    paymentMethodLabel,
-    changeInfo,
-    trackingUrl,
-  ]);
+  const courierWhatsAppText =
+    `🍧 *NOVO DESPACHO - POP SHAKE*\n` +
+    `━━━━━━━━━━━━━━━━━━━━\n` +
+    `🏍️ *Entregador:* ${courierName || "Motoboy"}\n` +
+    `📦 *Pedido:* #${order.id.substring(0, 6)}\n` +
+    `👤 *Cliente:* ${clientName}\n\n` +
+    `📍 *Endereço de Entrega:*\n` +
+    `${addressText}\n` +
+    `🗺️ *Google Maps / Rota GPS:*\n` +
+    `${googleMapsUrl}\n\n` +
+    `💵 *Valor a Cobrar:* R$ ${totalFormatted}\n` +
+    `💳 *Forma de Pagamento:* ${paymentMethodLabel}` +
+    `${changeInfo}\n\n` +
+    `📲 *Link de Rastreamento ao Vivo:*\n` +
+    `${trackingUrl}\n` +
+    `━━━━━━━━━━━━━━━━━━━━\n` +
+    `Por favor, confirme a saída do pedido. Bom trabalho! 🚀`;
 
   const isSafetyConfirmed = confirmSafetyText.trim() === "CONFIRMO";
   const isCourierValid = Boolean(courierName.trim());

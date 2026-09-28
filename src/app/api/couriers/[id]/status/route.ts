@@ -13,14 +13,14 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    let body: any;
+    let body: Record<string, unknown> = {};
     try {
-      body = await request.json();
+      body = (await request.json()) as Record<string, unknown>;
     } catch {
       return apiError("Corpo da requisição inválido.", 400);
     }
 
-    const { status } = body || {};
+    const status = body?.status as string | undefined;
     if (!status || !["available", "in_transit", "off_duty"].includes(status)) {
       return apiError("Status inválido. Use 'available', 'in_transit' ou 'off_duty'.", 400);
     }

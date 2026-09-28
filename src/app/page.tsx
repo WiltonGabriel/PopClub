@@ -140,7 +140,7 @@ export default function Storefront() {
   const { isAdmin, user, refreshUser } = useAuth();
   const { isEditMode } = useEditMode();
   const canEdit = isAdmin && isEditMode;
-  const { addItem, totalItems, itemsTotal } = useCart();
+  const { totalItems, itemsTotal } = useCart();
   const { theme, toggleTheme } = useTheme();
   const { activeOrders } = useOrders();
 
@@ -178,7 +178,7 @@ export default function Storefront() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Identidade Visual Dinâmica (Fundo e Loading)
-  const [visualSettings, setVisualSettings] = useState<LoadingSettingsData>(() =>
+  const [, setVisualSettings] = useState<LoadingSettingsData>(() =>
     loadingSettingsService.getCachedLoadingSettings()
   );
 
@@ -606,10 +606,6 @@ export default function Storefront() {
 
   const formattedTotal = itemsTotal.toFixed(2).replace(".", ",");
 
-  const isCategoryMode = Boolean(
-    mobileCategoryView ||
-    (activeCategory && activeCategory !== "all" && activeCategory !== "todas")
-  );
 
   return (
     <div

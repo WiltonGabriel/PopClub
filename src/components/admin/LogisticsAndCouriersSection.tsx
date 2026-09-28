@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import dynamic from "next/dynamic";
 import {
-  Truck,
   Bike,
   DollarSign,
   Gift,
@@ -14,7 +13,6 @@ import {
   Search,
   Crosshair,
   CheckCircle2,
-  AlertCircle,
   AlertTriangle,
   Loader2,
   Save,
@@ -28,14 +26,10 @@ import {
   Copy,
   ExternalLink,
   ShieldCheck,
-  Calendar,
-  Layers,
-  Power,
   Compass,
 } from "lucide-react";
 import {
   storeSettingsService,
-  StoreSettings,
   BusinessHourDay,
 } from "@/services/storeSettingsService";
 import {
@@ -72,6 +66,12 @@ const DEFAULT_DAYS: BusinessHourDay[] = [
   { day: "sunday", label: "Domingo", isOpen: true, openTime: "13:00", closeTime: "23:00" },
 ];
 
+interface AddressSearchResult {
+  displayName: string;
+  latitude: number;
+  longitude: number;
+}
+
 export function LogisticsAndCouriersSection() {
   const { showToast } = useToast();
 
@@ -93,7 +93,7 @@ export function LogisticsAndCouriersSection() {
   const [isStoreSettingsLoaded, setIsStoreSettingsLoaded] = useState(false);
   const [storeSearchQuery, setStoreSearchQuery] = useState("");
   const [isSearchingStore, setIsSearchingStore] = useState(false);
-  const [storeSearchResults, setStoreSearchResults] = useState<any[]>([]);
+  const [storeSearchResults, setStoreSearchResults] = useState<AddressSearchResult[]>([]);
   const [isLocatingStore, setIsLocatingStore] = useState(false);
 
   // Horários e Dias da Semana
@@ -192,7 +192,7 @@ export function LogisticsAndCouriersSection() {
     }
   };
 
-  const handleSelectSearchResult = (res: any) => {
+  const handleSelectSearchResult = (res: AddressSearchResult) => {
     setStoreLatitude(res.latitude);
     setStoreLongitude(res.longitude);
     setLatInput(res.latitude.toFixed(6));
@@ -269,8 +269,11 @@ export function LogisticsAndCouriersSection() {
     });
   };
 
-  // Atualizar Horário de um dia específico
-  const handleUpdateDay = (index: number, field: keyof BusinessHourDay, value: any) => {
+  const handleUpdateDay = <K extends keyof BusinessHourDay>(
+    index: number,
+    field: K,
+    value: BusinessHourDay[K]
+  ) => {
     setBusinessHours((prev) => {
       const copy = [...prev];
       copy[index] = { ...copy[index], [field]: value };
@@ -316,12 +319,13 @@ export function LogisticsAndCouriersSection() {
         title: "Logística Atualizada!",
         message: "Sede física, regras de frete e horários de funcionamento salvos com sucesso.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
+      const msg = err instanceof Error ? err.message : "Não foi possível gravar as configurações.";
       showToast({
         type: "error",
         title: "Erro ao Salvar",
-        message: err.message || "Não foi possível gravar as configurações.",
+        message: msg,
       });
     } finally {
       setSavingSettings(false);
@@ -386,8 +390,9 @@ export function LogisticsAndCouriersSection() {
         });
       }
       setIsCourierModalOpen(false);
-    } catch (err: any) {
-      showToast({ type: "error", title: "Erro ao Salvar", message: err.message || "Falha ao gravar entregador." });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Falha ao gravar entregador.";
+      showToast({ type: "error", title: "Erro ao Salvar", message: msg });
     } finally {
       setSavingCourier(false);
     }
@@ -404,8 +409,9 @@ export function LogisticsAndCouriersSection() {
         title: "Entregador Removido",
         message: `${courier.name} foi desvinculado da frota ativa.`,
       });
-    } catch (err: any) {
-      showToast({ type: "error", title: "Erro ao Remover", message: err.message || "Falha ao excluir entregador." });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Falha ao excluir entregador.";
+      showToast({ type: "error", title: "Erro ao Remover", message: msg });
     }
   };
 
@@ -422,11 +428,12 @@ export function LogisticsAndCouriersSection() {
         title: "Status Atualizado",
         message: `${courier.name} agora está marcado como "${getStatusLabel(nextStatus)}".`,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setCouriers((prev) =>
         prev.map((c) => (c.id === courier.id ? { ...c, status: courier.status } : c))
       );
-      showToast({ type: "error", title: "Erro ao Alterar", message: err.message || "Falha ao atualizar status." });
+      const msg = err instanceof Error ? err.message : "Falha ao atualizar status.";
+      showToast({ type: "error", title: "Erro ao Alterar", message: msg });
     }
   };
 

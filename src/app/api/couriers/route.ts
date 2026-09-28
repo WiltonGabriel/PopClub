@@ -65,14 +65,14 @@ export async function POST(request: Request) {
       return apiError("Acesso negado. Apenas administradores podem cadastrar entregadores.", 403, "FORBIDDEN");
     }
 
-    let body: any;
+    let body: Record<string, unknown> = {};
     try {
-      body = await request.json();
+      body = (await request.json()) as Record<string, unknown>;
     } catch {
       return apiError("Corpo da requisição inválido.", 400);
     }
 
-    const { name, phone, vehicle, plate, pixKey, status } = body || {};
+    const { name, phone, vehicle, plate, pixKey, status } = body;
 
     if (!name || typeof name !== "string" || !name.trim()) {
       return apiError("Nome do entregador é obrigatório.", 400, "VALIDATION_ERROR");
@@ -85,10 +85,10 @@ export async function POST(request: Request) {
       data: {
         name: name.trim(),
         phone: phone.trim(),
-        vehicle: vehicle?.trim() || "Moto",
-        plate: plate?.trim()?.toUpperCase() || null,
-        pixKey: pixKey?.trim() || null,
-        status: status === "in_transit" || status === "off_duty" ? status : "available",
+        vehicle: typeof vehicle === "string" && vehicle.trim() ? vehicle.trim() : "Moto",
+        plate: typeof plate === "string" && plate.trim() ? plate.trim().toUpperCase() : null,
+        pixKey: typeof pixKey === "string" && pixKey.trim() ? pixKey.trim() : null,
+        status: status === "in_transit" || status === "off_duty" ? (status as string) : "available",
         isActive: true,
       },
     });

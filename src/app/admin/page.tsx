@@ -42,7 +42,6 @@ import { ComboFormDialog } from "../../components/admin/ComboFormDialog";
 import { EditBannerModal } from "../../components/admin/EditBannerModal";
 import { CouponManagement } from "../../components/admin/CouponManagement";
 import { AnalyticsDashboard } from "../../components/admin/AnalyticsDashboard";
-import { DeliveryFeeSettings } from "../../components/admin/DeliveryFeeSettings";
 import { CardBadgesSection } from "../../components/admin/CardBadgesSection";
 import { LoyaltyBadgesSection } from "../../components/admin/LoyaltyBadgesSection";
 import { AddonsManagement } from "../../components/admin/AddonsManagement";

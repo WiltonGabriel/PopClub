@@ -11,13 +11,9 @@ import {
   Share2,
   Mail,
   Headphones,
-  CheckCircle2,
-  HelpCircle,
   HeartHandshake,
-  Smartphone,
-  Eye,
 } from "lucide-react";
-import { storeSettingsService, StoreSettings } from "@/services/storeSettingsService";
+import { storeSettingsService } from "@/services/storeSettingsService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -104,11 +100,12 @@ export function ChannelsAndSupportSection() {
         title: "Canais Salvos com Sucesso! 💬",
         message: "Configurações de WhatsApp, redes sociais e mensagens pós-venda atualizadas.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Não foi possível salvar os canais.";
       showToast({
         type: "error",
         title: "Erro ao Salvar",
-        message: err.message || "Não foi possível salvar os canais.",
+        message: msg,
       });
     } finally {
       setSaving(false);
@@ -255,9 +252,20 @@ export function ChannelsAndSupportSection() {
                 className="w-full text-xs p-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 resize-none outline-none focus:ring-2 focus:ring-primary/20"
                 placeholder="Mensagem amigável de agradecimento e solicitação de feedback..."
               />
-              <span className="text-[10px] text-muted-foreground block">
-                Pode ser acionada na esteira de pedidos concluídos para enviar ao cliente via WhatsApp.
-              </span>
+              <div className="flex items-center justify-between gap-2 pt-1">
+                <span className="text-[10px] text-muted-foreground">
+                  Acionada para pedidos concluídos.
+                </span>
+                <a
+                  href={waPostSaleLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 shrink-0"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Testar Pós-Venda
+                </a>
+              </div>
             </div>
 
             {/* Template Suporte ao Cliente */}
