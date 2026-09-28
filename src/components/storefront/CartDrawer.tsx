@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight } from "lucide-react";
 import { useCart } from "../../hooks/useCart";
+import { formatCurrency, parseSafeNumber } from "@/lib/formatters";
 
 interface CartDrawerProps {
   open: boolean;
@@ -158,9 +159,9 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                           <p key={idx} className="text-[11px] text-muted-foreground flex items-center gap-1 leading-tight">
                             <span className="w-1 h-1 rounded-full bg-primary shrink-0" />
                             <span className="truncate">{opt.name}</span>
-                            {opt.price > 0 && (
+                            {parseSafeNumber(opt.price) > 0 && (
                               <span className="text-primary dark:text-muted-foreground font-mono text-[10px] shrink-0">
-                                (+R$ {opt.price.toFixed(2).replace(".", ",")})
+                                (+{formatCurrency(opt.price)})
                               </span>
                             )}
                           </p>

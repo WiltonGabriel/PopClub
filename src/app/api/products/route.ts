@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, apiError, apiSuccess } from "@/lib/apiResponse";
+import { sanitizeText } from "@/lib/sanitize";
 
 export async function GET() {
   try {
@@ -85,25 +86,34 @@ export async function POST(request: Request) {
     }
     const { name, description, price, categoryId, category, imageUrl, stock, isAvailable, cardBadgeId, isCombo, comboItems, addonGroupIds } = body || {};
 
-    if (!name || price === undefined) {
+    const cleanName = sanitizeText(name);
+    const cleanDescription = description ? sanitizeText(description) : null;
+    const cleanCategory = category ? sanitizeText(category) : null;
+
+    if (!cleanName || price === undefined) {
       return apiError("Nome e preço do produto são obrigatórios.", 400, "VALIDATION_ERROR");
     }
-    if (typeof name === "string" && name.length > 100) {
+    if (cleanName.length > 100) {
       return apiError("O nome do produto não pode exceder 100 caracteres.", 400, "VALIDATION_ERROR");
     }
-    if (typeof description === "string" && description.length > 1000) {
+    if (cleanDescription && cleanDescription.length > 1000) {
       return apiError("A descrição do produto não pode exceder 1000 caracteres.", 400, "VALIDATION_ERROR");
+    }
+
+    const parsedPrice = Number(price);
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      return apiError("O preço do produto deve ser um valor positivo.", 400, "VALIDATION_ERROR");
     }
 
     const parsedStock = stock !== undefined && stock !== null && stock !== "" ? Number(stock) : null;
 
     const product = await prisma.product.create({
       data: {
-        name,
-        description: description || null,
-        price: Number(price),
+        name: cleanName,
+        description: cleanDescription,
+        price: parsedPrice,
         categoryId: categoryId || null,
-        category: category || null,
+        category: cleanCategory,
         imageUrl: imageUrl || null,
         stock: parsedStock !== null && !isNaN(parsedStock) ? Math.max(0, parsedStock) : null,
         isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : true,

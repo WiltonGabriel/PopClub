@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { Prisma, OrderStatus } from "@prisma/client";
 import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
+import { sanitizeText } from "@/lib/sanitize";
 
 type DbOrderPayload = Prisma.OrderGetPayload<{
   include: {
@@ -340,8 +341,9 @@ export async function PATCH(request: Request) {
 
     const dataToUpdate: Prisma.OrderUpdateInput = { status: status as OrderStatus };
     if (status === "cancelled") {
+      const cleanReason = cancellationReason ? sanitizeText(cancellationReason) : "";
       dataToUpdate.cancellationReason =
-        cancellationReason || (isAdmin ? "Cancelado pela administração" : "Cancelado pelo cliente");
+        cleanReason || (isAdmin ? "Cancelado pela administração" : "Cancelado pelo cliente");
       dataToUpdate.cancelledAt = new Date();
     } else if (status === "completed") {
       dataToUpdate.deliveredAt = new Date();
@@ -349,19 +351,19 @@ export async function PATCH(request: Request) {
     }
 
     if (body.deliveryIssue) {
-      dataToUpdate.deliveryIssue = String(body.deliveryIssue);
-      dataToUpdate.deliveryIssueNotes = body.deliveryIssueNotes ? String(body.deliveryIssueNotes) : null;
+      dataToUpdate.deliveryIssue = sanitizeText(String(body.deliveryIssue));
+      dataToUpdate.deliveryIssueNotes = body.deliveryIssueNotes ? sanitizeText(String(body.deliveryIssueNotes)) : null;
       dataToUpdate.deliveryIssueAt = new Date();
     }
 
     if (body.courierName) {
-      dataToUpdate.courierName = String(body.courierName);
+      dataToUpdate.courierName = sanitizeText(String(body.courierName));
     }
     if (body.courierCode) {
-      dataToUpdate.courierCode = String(body.courierCode);
+      dataToUpdate.courierCode = sanitizeText(String(body.courierCode));
     }
     if (body.orderPin) {
-      dataToUpdate.orderPin = String(body.orderPin);
+      dataToUpdate.orderPin = sanitizeText(String(body.orderPin));
     }
 
     const updated = await prisma.order.update({

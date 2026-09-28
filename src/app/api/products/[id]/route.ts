@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { sanitizeText } from "@/lib/sanitize";
 
 export async function GET(
   request: Request,
@@ -86,11 +87,17 @@ export async function PUT(
     const { name, description, price, categoryId, category, imageUrl, stock, isAvailable, cardBadgeId, isCombo, comboItems, addonGroupIds } = body || {};
 
     const dataToUpdate: any = {};
-    if (name !== undefined) dataToUpdate.name = name;
-    if (description !== undefined) dataToUpdate.description = description;
-    if (price !== undefined) dataToUpdate.price = Number(price);
+    if (name !== undefined) dataToUpdate.name = sanitizeText(name);
+    if (description !== undefined) dataToUpdate.description = description ? sanitizeText(description) : null;
+    if (price !== undefined) {
+      const parsedPrice = Number(price);
+      if (isNaN(parsedPrice) || parsedPrice <= 0) {
+        return NextResponse.json({ error: "O preço deve ser um número positivo." }, { status: 400 });
+      }
+      dataToUpdate.price = parsedPrice;
+    }
     if (categoryId !== undefined) dataToUpdate.categoryId = categoryId || null;
-    if (category !== undefined) dataToUpdate.category = category;
+    if (category !== undefined) dataToUpdate.category = category ? sanitizeText(category) : null;
     if (imageUrl !== undefined) dataToUpdate.imageUrl = imageUrl;
     if (stock !== undefined) dataToUpdate.stock = stock !== null && stock !== "" ? Number(stock) : null;
     if (isAvailable !== undefined) dataToUpdate.isAvailable = Boolean(isAvailable);

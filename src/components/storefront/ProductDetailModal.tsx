@@ -19,6 +19,7 @@ import { AddonGroup, AddonItem } from "../../services/addonService";
 import { SelectedOption } from "../../contexts/CartContext";
 import { useCart } from "../../hooks/useCart";
 import { useToast } from "../ui/ToastNotification";
+import { formatCurrency, parseSafeNumber } from "@/lib/formatters";
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -149,7 +150,7 @@ export function ProductDetailModal({
   };
 
   // Cálculo de Preço Reativo e Snapshot de Adicionais
-  const basePrice = product.price;
+  const basePrice = parseSafeNumber(product.price);
   let extrasTotal = 0;
   const flatSelectedOptionsList: SelectedOption[] = [];
 
@@ -161,8 +162,9 @@ export function ProductDetailModal({
       const item = group.items.find((i) => i.id === id);
       if (item) {
         // Os primeiros `freeQuota` itens selecionados no grupo têm custo 0
-        const isFree = index < freeQuota || item.price === 0;
-        const effectivePrice = isFree ? 0 : item.price;
+        const itemPrice = parseSafeNumber(item.price);
+        const isFree = index < freeQuota || itemPrice === 0;
+        const effectivePrice = isFree ? 0 : itemPrice;
         extrasTotal += effectivePrice;
 
         flatSelectedOptionsList.push({
@@ -216,8 +218,9 @@ export function ProductDetailModal({
     product.isAvailable === false ||
     (product.stock !== undefined && product.stock !== null && product.stock <= 0);
 
+  const numProductPrice = parseSafeNumber(product.price);
   const isPromo = product.isCombo || (product.name || "").toLowerCase().includes("promo");
-  const originalPrice = isPromo ? Number((product.price * 1.25).toFixed(2)) : undefined;
+  const originalPrice = isPromo ? Number((numProductPrice * 1.25).toFixed(2)) : undefined;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-6 overflow-hidden animate-in fade-in duration-200">
@@ -349,19 +352,18 @@ export function ProductDetailModal({
                 {originalPrice ? (
                   <>
                     <span className="text-xs sm:text-sm font-medium text-muted-foreground line-through">
-                      De R$ {originalPrice.toFixed(2).replace(".", ",")}
+                      De {formatCurrency(originalPrice)}
                     </span>
                     <span className="font-heading font-black text-xl sm:text-2xl text-primary dark:text-violet-400">
-                      por R$ {product.price.toFixed(2).replace(".", ",")}
+                      por {formatCurrency(product.price)}
                     </span>
                     <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                      Economize R${" "}
-                      {(originalPrice - product.price).toFixed(2).replace(".", ",")}
+                      Economize {formatCurrency(originalPrice - numProductPrice)}
                     </span>
                   </>
                 ) : (
                   <span className="font-heading font-black text-xl sm:text-2xl text-primary dark:text-violet-400">
-                    R$ {product.price.toFixed(2).replace(".", ",")}
+                    {formatCurrency(product.price)}
                   </span>
                 )}
               </div>
@@ -446,10 +448,11 @@ export function ProductDetailModal({
                           // Preço formatado dinamicamente: se selecionado e dentro da cota grátis, é Incluso!
                           const selectedIndex = selectedInGroup.indexOf(item.id);
 
+                          const itemPrice = parseSafeNumber(item.price);
                           let priceDisplay = "Incluso";
                           let priceColor = "text-emerald-600 dark:text-emerald-400 font-bold";
 
-                          if (item.price > 0) {
+                          if (itemPrice > 0) {
                             if (isSelected && selectedIndex < freeQuota) {
                               priceDisplay = "Incluso";
                               priceColor = "text-emerald-600 dark:text-emerald-400 font-bold";
@@ -457,7 +460,7 @@ export function ProductDetailModal({
                               priceDisplay = "Incluso";
                               priceColor = "text-emerald-600 dark:text-emerald-400 font-bold";
                             } else {
-                              priceDisplay = `+ R$ ${item.price.toFixed(2).replace(".", ",")}`;
+                              priceDisplay = `+ ${formatCurrency(itemPrice)}`;
                               priceColor = "text-primary dark:text-violet-400 font-bold font-mono";
                             }
                           }
@@ -649,7 +652,7 @@ export function ProductDetailModal({
               </span>
 
               <span className="font-mono font-black text-sm sm:text-base shrink-0 ml-2">
-                • R$ {totalPrice.toFixed(2).replace(".", ",")}
+                • {formatCurrency(totalPrice)}
               </span>
             </button>
           </div>

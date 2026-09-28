@@ -1,4 +1,5 @@
 import { Order } from "@/services/orderService";
+import { formatDecimal, parseSafeNumber } from "@/lib/formatters";
 
 export function printOrderReceipt(order: Order, storeName = "Pop Shake Sorveteria") {
   if (typeof window === "undefined") return;
@@ -25,7 +26,7 @@ export function printOrderReceipt(order: Order, storeName = "Pop Shake Sorveteri
   if (order.payment_method_type === "dinheiro") {
     paymentText = "DINHEIRO";
     if (order.payment_change_for) {
-      paymentText += ` (Troco p/ R$ ${order.payment_change_for.toFixed(2).replace(".", ",")})`;
+      paymentText += ` (Troco p/ R$ ${formatDecimal(order.payment_change_for)})`;
     }
   } else if (order.payment_method_type === "cartao_maquininha") {
     paymentText = "CARTÃO (MAQUININHA)";
@@ -33,8 +34,8 @@ export function printOrderReceipt(order: Order, storeName = "Pop Shake Sorveteri
 
   const itemsHtml = (order.items || [])
     .map((item) => {
-      const itemTotal = (item.price_at_time * item.quantity).toFixed(2).replace(".", ",");
-      const unitPrice = item.price_at_time.toFixed(2).replace(".", ",");
+      const itemTotal = formatDecimal(parseSafeNumber(item.price_at_time) * parseSafeNumber(item.quantity, 1));
+      const unitPrice = formatDecimal(item.price_at_time);
       const addons = (item.selected_addons || (item as any).selectedAddons || []) as Array<{
         name: string;
         groupName?: string;
@@ -49,7 +50,7 @@ export function printOrderReceipt(order: Order, storeName = "Pop Shake Sorveteri
             .map(
               (a) =>
                 `<div>• ${a.quantity > 1 ? `${a.quantity}x ` : ""}${a.name} ${
-                  a.price > 0 ? `(+ R$ ${(a.price * a.quantity).toFixed(2).replace(".", ",")})` : "(Incluso)"
+                  parseSafeNumber(a.price) > 0 ? `(+ R$ ${formatDecimal(parseSafeNumber(a.price) * parseSafeNumber(a.quantity, 1))})` : "(Incluso)"
                 }</div>`
             )
             .join("")}
@@ -205,7 +206,7 @@ export function printOrderReceipt(order: Order, storeName = "Pop Shake Sorveteri
 
       <div class="totals-row">
         <span>Subtotal:</span>
-        <span>R$ ${(order.subtotal || order.total_amount).toFixed(2).replace(".", ",")}</span>
+        <span>R$ ${formatDecimal(order.subtotal || order.total_amount)}</span>
       </div>
 
       ${
@@ -213,7 +214,7 @@ export function printOrderReceipt(order: Order, storeName = "Pop Shake Sorveteri
           ? `
         <div class="totals-row">
           <span>Taxa de Entrega:</span>
-          <span>R$ ${Number(order.delivery_fee).toFixed(2).replace(".", ",")}</span>
+          <span>R$ ${formatDecimal(order.delivery_fee)}</span>
         </div>
       `
           : `
@@ -229,7 +230,7 @@ export function printOrderReceipt(order: Order, storeName = "Pop Shake Sorveteri
           ? `
         <div class="totals-row" style="color: #000;">
           <span>Desconto:</span>
-          <span>- R$ ${Number(order.discount_amount).toFixed(2).replace(".", ",")}</span>
+          <span>- R$ ${formatDecimal(order.discount_amount)}</span>
         </div>
       `
           : ""
@@ -237,7 +238,7 @@ export function printOrderReceipt(order: Order, storeName = "Pop Shake Sorveteri
 
       <div class="total-final">
         <span>TOTAL:</span>
-        <span>R$ ${Number(order.total_amount).toFixed(2).replace(".", ",")}</span>
+        <span>R$ ${formatDecimal(order.total_amount)}</span>
       </div>
 
       <div class="divider"></div>

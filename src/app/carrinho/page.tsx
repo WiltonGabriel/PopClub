@@ -38,6 +38,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { playDingSound, initAudioUnlock } from "../../lib/sound";
 import { NotificationPermissionBanner } from "../../components/storefront/NotificationPermissionBanner";
+import { formatCurrency, parseSafeNumber } from "@/lib/formatters";
 import { ResilientErrorAlert } from "../../components/ui/ResilientErrorAlert";
 import { AppApiError } from "@/lib/fetchClient";
 import { FastAccessModal, formatPhoneInput } from "@/components/auth/FastAccessModal";
@@ -934,11 +935,11 @@ export default function CarrinhoPage() {
                             {/* Preço unitário */}
                             <div className="flex items-center gap-2 mt-1">
                               <span className="font-mono text-xs font-semibold text-muted-foreground">
-                                Unitário: R$ {item.price.toFixed(2).replace(".", ",")}
+                                Unitário: {formatCurrency(item.price)}
                               </span>
-                              {item.originalPrice > item.price && (
+                              {parseSafeNumber(item.originalPrice) > parseSafeNumber(item.price) && (
                                 <span className="font-mono text-[11px] text-muted-foreground line-through">
-                                  R$ {item.originalPrice.toFixed(2).replace(".", ",")}
+                                  {formatCurrency(item.originalPrice)}
                                 </span>
                               )}
                             </div>
@@ -968,9 +969,9 @@ export default function CarrinhoPage() {
                                   className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg bg-primary/5/80 dark:bg-primary/95/50 border border-primary/20/50 dark:border-primary/90/40 text-primary dark:text-muted-foreground font-medium"
                                 >
                                   <span>{opt.name}</span>
-                                  {opt.price > 0 && (
+                                  {parseSafeNumber(opt.price) > 0 && (
                                     <strong className="font-mono font-bold text-[10px]">
-                                      (+R$ {opt.price.toFixed(2).replace(".", ",")})
+                                      (+{formatCurrency(opt.price)})
                                     </strong>
                                   )}
                                 </span>

@@ -6,6 +6,7 @@ import { getAuthUser } from "@/lib/auth";
 import { z } from "zod";
 import { handleApiError } from "@/lib/apiResponse";
 import { checkoutLimiter, getIpFromRequest } from "@/lib/rateLimit";
+import { sanitizeText } from "@/lib/sanitize";
 import {
   DEFAULT_LOYALTY_BADGES,
   LoyaltyBadgeConfig,
@@ -79,6 +80,15 @@ export async function POST(request: Request) {
     }
 
     const { items, deliveryAddress, paymentMethod, couponCode } = parsed.data;
+
+    // Sanitização rigorosa de entradas de texto do endereço
+    const cleanStreet = sanitizeText(deliveryAddress.street);
+    const cleanNumber = sanitizeText(deliveryAddress.number);
+    const cleanNeighborhood = sanitizeText(deliveryAddress.neighborhood);
+    const cleanCity = sanitizeText(deliveryAddress.city || "Local");
+    const cleanComplement = deliveryAddress.complement ? sanitizeText(deliveryAddress.complement) : null;
+    const cleanReference = deliveryAddress.reference ? sanitizeText(deliveryAddress.reference) : null;
+    const cleanZip = deliveryAddress.zip ? sanitizeText(deliveryAddress.zip) : null;
 
     // 0. Validação de Loja Aberta (Turno Operacional)
     let storeSettings = null;
@@ -279,6 +289,12 @@ export async function POST(request: Request) {
       }
 
       const originalPrice = Number(product.price);
+      if (isNaN(originalPrice) || originalPrice <= 0) {
+        return NextResponse.json(
+          { error: `O produto "${product.name}" possui preço inválido no sistema.` },
+          { status: 400 }
+        );
+      }
       let unitPrice = originalPrice + addonsTotalPerUnit;
 
       // Promoções aplicam desconto apenas sobre o produto original, não sobre os adicionais (regra comum)
@@ -517,13 +533,13 @@ export async function POST(request: Request) {
           paymentChangeFor: paymentMethod.changeFor || null,
           changeFor: paymentMethod.changeFor || null,
           changeToReturn: changeToReturn,
-          deliveryStreet: deliveryAddress.street,
-          deliveryNumber: deliveryAddress.number,
-          deliveryNeighborhood: deliveryAddress.neighborhood,
-          deliveryCity: deliveryAddress.city || "Local",
-          deliveryComplement: deliveryAddress.complement || null,
-          deliveryReference: deliveryAddress.reference || null,
-          deliveryZip: deliveryAddress.zip || null,
+          deliveryStreet: cleanStreet,
+          deliveryNumber: cleanNumber,
+          deliveryNeighborhood: cleanNeighborhood,
+          deliveryCity: cleanCity,
+          deliveryComplement: cleanComplement,
+          deliveryReference: cleanReference,
+          deliveryZip: cleanZip,
           deliveryLatitude: deliveryAddress.latitude || null,
           deliveryLongitude: deliveryAddress.longitude || null,
           originLatitude: storeSettings?.storeLatitude ?? -15.6536,
@@ -547,14 +563,17 @@ export async function POST(request: Request) {
         },
       });
 
-      // Decremento atômico de estoque para produtos com controle de estoque finito
+      // Decremento estritamente atômico de estoque com verificação de corrida
       for (const [prodId, totalQty] of productQtyMap.entries()) {
         const prod = productsMap.get(prodId);
         if (prod && prod.stock !== null) {
-          await tx.product.update({
-            where: { id: prodId },
+          const updateResult = await tx.product.updateMany({
+            where: { id: prodId, stock: { gte: totalQty } },
             data: { stock: { decrement: totalQty } },
           });
+          if (updateResult.count === 0) {
+            throw new Error(`ESTOQUE_ESGOTADO:${prod.name}`);
+          }
         }
       }
 
@@ -585,6 +604,16 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error: unknown) {
+    if (error instanceof Error && error.message.startsWith("ESTOQUE_ESGOTADO:")) {
+      const prodName = error.message.replace("ESTOQUE_ESGOTADO:", "");
+      return NextResponse.json(
+        {
+          error: `Estoque esgotado simultaneamente para "${prodName}". Por favor, revise os itens da sacola.`,
+          code: "INSUFFICIENT_STOCK",
+        },
+        { status: 400 }
+      );
+    }
     return handleApiError(
       error,
       "API:checkout:POST",

@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Peça seu açaí, sorvetes artesanais e marmitas com entrega rápida na Pop Shake Sorveteria.',
     start_url: '/',
     display: 'standalone',
-    background_color: 'hsl(var(--input))',
-    theme_color: 'hsl(var(--primary))',
+    background_color: '#0B0F19',
+    theme_color: '#8B5CF6',
     icons: [
       {
         src: '/icon-192x192.png',

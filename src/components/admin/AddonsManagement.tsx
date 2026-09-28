@@ -23,6 +23,7 @@ import {
   CreateAddonGroupInput,
 } from "@/services/addonService";
 import { Button } from "@/components/ui/button";
+import { formatCurrency, parseSafeNumber } from "@/lib/formatters";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/ToastNotification";
@@ -184,7 +185,7 @@ export function AddonsManagement() {
     setEditingItem(item);
     setItemForm({
       name: item.name,
-      price: item.price.toFixed(2),
+      price: parseSafeNumber(item.price).toFixed(2),
       imageUrl: item.imageUrl || "",
     });
     setIsItemModalOpen(true);
@@ -528,9 +529,9 @@ export function AddonsManagement() {
                                   {item.name}
                                 </h5>
                                 <p className="text-[11px] font-semibold text-primary dark:text-violet-400">
-                                  {item.price === 0
+                                  {parseSafeNumber(item.price) === 0
                                     ? "Grátis / Incluso"
-                                    : `+ R$ ${item.price.toFixed(2).replace(".", ",")}`}
+                                    : `+ ${formatCurrency(item.price)}`}
                                 </p>
                               </div>
                             </div>

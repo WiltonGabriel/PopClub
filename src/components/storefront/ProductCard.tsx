@@ -2,6 +2,7 @@
 
 import { Edit2, Trash2, Plus, IceCream, Coffee, Zap } from "lucide-react";
 import { Product } from "../../services/productService";
+import { formatCurrency, parseSafeNumber } from "@/lib/formatters";
 
 interface ProductCardProps {
   product: Product;
@@ -57,17 +58,15 @@ export function ProductCard({
     product.isAvailable === false ||
     (product.stock !== undefined && product.stock !== null && product.stock <= 0);
 
+  const numPrice = parseSafeNumber(product.price);
   const isPromo = product.isCombo || (product.name || "").toLowerCase().includes("promo");
-  const originalPrice = isPromo ? Number((product.price * 1.25).toFixed(2)) : undefined;
+  const originalPrice = isPromo ? Number((numPrice * 1.25).toFixed(2)) : undefined;
   const discountPercent = originalPrice
-    ? Math.round(((originalPrice - product.price) / originalPrice) * 100)
+    ? Math.round(((originalPrice - numPrice) / originalPrice) * 100)
     : null;
 
   const badge = getCategoryBadge(product);
-  const formattedPrice = new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(product.price);
+  const formattedPrice = formatCurrency(numPrice);
 
   const handleCardClick = () => {
     if (isOutOfStock) return;
@@ -143,7 +142,7 @@ export function ProductCard({
             {originalPrice && !isOutOfStock && (
               <>
                 <span className="text-[10px] sm:text-xs text-muted-foreground line-through font-medium">
-                  R$ {originalPrice.toFixed(2).replace(".", ",")}
+                  {formatCurrency(originalPrice)}
                 </span>
                 {discountPercent && discountPercent > 0 && (
                   <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded-full">

@@ -5,6 +5,7 @@ import { productService, Product } from "../../services/productService";
 import { categoryService, Category } from "../../services/categoryService";
 import { badgeService, CardBadge } from "../../services/badgeService";
 import { addonService, AddonGroup } from "../../services/addonService";
+import { formatDecimal } from "@/lib/formatters";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -126,9 +127,7 @@ export function ProductFormDialog({
   }, [badges, cardBadgeId]);
 
   const formattedPrice = useMemo(() => {
-    const num = parseFloat(price);
-    if (isNaN(num)) return "0,00";
-    return num.toFixed(2).replace(".", ",");
+    return formatDecimal(price);
   }, [price]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

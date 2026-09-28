@@ -7,6 +7,7 @@ import { Search, X, ArrowRight, ShoppingBag, Check, IceCream } from "lucide-reac
 import { Product } from "../../services/productService";
 import { useCart } from "../../hooks/useCart";
 import { useToast } from "../ui/ToastNotification";
+import { formatCurrency } from "@/lib/formatters";
 
 interface SearchAutocompleteProps {
   products: Product[];
@@ -316,7 +317,7 @@ export function SearchAutocomplete({
                   {/* Preço e Botão Rápido de Adicionar */}
                   <div className="flex items-center gap-2.5 shrink-0 pl-2">
                     <span className="font-mono font-bold text-sm text-[#35A340]">
-                      R$ {product.price.toFixed(2).replace(".", ",")}
+                      {formatCurrency(product.price)}
                     </span>
 
                     <button

@@ -4,6 +4,7 @@ import fs from "fs/promises";
 import crypto from "crypto";
 import sharp from "sharp";
 import { getAuthUser } from "@/lib/auth";
+import { addonUploadLimiter, getIpFromRequest } from "@/lib/rateLimit";
 
 const ALLOWED_MIME_TYPES = [
   "image/jpeg",
@@ -19,6 +20,15 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 export async function POST(request: Request) {
   try {
+    const ip = getIpFromRequest(request);
+    const limitCheck = addonUploadLimiter.check(ip);
+    if (!limitCheck.success) {
+      return NextResponse.json(
+        { error: "Limite de uploads excedido (máximo 20 uploads por minuto). Aguarde um instante." },
+        { status: 429 }
+      );
+    }
+
     // 0. Autenticação estrita no servidor (Apenas administradores podem fazer upload)
     const authUser = await getAuthUser(request);
     if (!authUser || authUser.role !== "admin") {
