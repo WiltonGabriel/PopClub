@@ -1,55 +1,62 @@
-import { PrismaClient, OrderStatus, PaymentMethodType } from "@prisma/client";
+import { PrismaClient, OrderStatus, PaymentMethodType, Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-// Lista de bairros e ruas realistas de Cuiabá/MT
-const CUIABA_ADDRESSES = [
-  { street: "Av. Isaac Póvoas", number: "1250", neighborhood: "Goiabeiras", zip: "78045-000" },
-  { street: "Rua Cândido Mariano", number: "480", neighborhood: "Centro Norte", zip: "78005-150" },
-  { street: "Av. Senador Metello", number: "920", neighborhood: "Porto", zip: "78025-100" },
-  { street: "Rua das Amendoeiras", number: "310", neighborhood: "Bosque da Saúde", zip: "78050-020" },
-  { street: "Av. Miguel Sutil", number: "4500", neighborhood: "Santa Rosa", zip: "78040-000" },
-  { street: "Rua Buenos Aires", number: "215", neighborhood: "Jardim das Américas", zip: "78060-600" },
-  { street: "Rua Estevão de Mendonça", number: "840", neighborhood: "Quilombo", zip: "78043-405" },
-  { street: "Av. Antártica", number: "1120", neighborhood: "Santa Marta", zip: "78043-700" },
-  { street: "Rua Almirante Barroso", number: "530", neighborhood: "Duque de Caxias", zip: "78043-300" },
-  { street: "Rua Presidente Castelo Branco", number: "740", neighborhood: "Alvorada", zip: "78048-000" },
+// Lista de bairros e ruas realistas de Cuiabá e Várzea Grande / MT
+const MT_ADDRESSES = [
+  { street: "Av. Couto Magalhães", number: "1420", neighborhood: "Centro", city: "Várzea Grande", zip: "78110-000" },
+  { street: "Av. Filinto Müller", number: "850", neighborhood: "Centro Sul", city: "Várzea Grande", zip: "78110-300" },
+  { street: "Av. Alzira Santana", number: "1200", neighborhood: "Água Limpa", city: "Várzea Grande", zip: "78125-000" },
+  { street: "Av. Isaac Póvoas", number: "1250", neighborhood: "Goiabeiras", city: "Cuiabá", zip: "78045-000" },
+  { street: "Rua Cândido Mariano", number: "480", neighborhood: "Centro Norte", city: "Cuiabá", zip: "78005-150" },
+  { street: "Av. Senador Metello", number: "920", neighborhood: "Porto", city: "Cuiabá", zip: "78025-100" },
+  { street: "Rua das Amendoeiras", number: "310", neighborhood: "Bosque da Saúde", city: "Cuiabá", zip: "78050-020" },
+  { street: "Av. Miguel Sutil", number: "4500", neighborhood: "Santa Rosa", city: "Cuiabá", zip: "78040-000" },
+  { street: "Rua Buenos Aires", number: "215", neighborhood: "Jardim das Américas", city: "Cuiabá", zip: "78060-600" },
+  { street: "Av. Historiador Rubens de Mendonça", number: "2100", neighborhood: "Bosque da Saúde", city: "Cuiabá", zip: "78050-000" },
 ];
 
 const CLIENT_PROFILES = [
-  { name: "Lucas Gabriel Oliveira", email: "lucas.oliveira@gmail.com", phone: "65992341122" },
-  { name: "Camila Fernandes Santos", email: "camila.santos@outlook.com", phone: "65984123344" },
-  { name: "Rodrigo Albuquerque Neto", email: "rodrigo.neto@gmail.com", phone: "65999887766" },
-  { name: "Mariana Costa e Silva", email: "mariana.costa@hotmail.com", phone: "65996554433" },
-  { name: "Felipe Augusto Martins", email: "felipe.martins@gmail.com", phone: "65981239988" },
-  { name: "Beatriz Lima Pimentel", email: "beatriz.lima@yahoo.com.br", phone: "65993441155" },
-  { name: "Gabriel Zanin Souza", email: "gabriel.souza@gmail.com", phone: "65984556677" },
-  { name: "Larissa Ferreira Dias", email: "larissa.dias@gmail.com", phone: "65997223311" },
-  { name: "Rafael Vinicius Silva", email: "rafael.silva@gmail.com", phone: "65991884422" },
-  { name: "Fernanda Ribeiro Dantas", email: "fernanda.dantas@gmail.com", phone: "65984332211" },
-  { name: "Thiago Pereira Chaves", email: "thiago.chaves@gmail.com", phone: "65996115599" },
-  { name: "Amanda Rocha Albuquerque", email: "amanda.rocha@gmail.com", phone: "65992003388" },
+  { name: "Lucas Gabriel Oliveira", email: "lucas.oliveira@gmail.com", phone: "(65) 99234-1122" },
+  { name: "Camila Fernandes Santos", email: "camila.santos@outlook.com", phone: "(65) 98412-3344" },
+  { name: "Rodrigo Albuquerque Neto", email: "rodrigo.neto@gmail.com", phone: "(65) 99988-7766" },
+  { name: "Mariana Costa e Silva", email: "mariana.costa@hotmail.com", phone: "(65) 99655-4433" },
+  { name: "Felipe Augusto Martins", email: "felipe.martins@gmail.com", phone: "(65) 98123-9988" },
+  { name: "Beatriz Lima Pimentel", email: "beatriz.lima@yahoo.com.br", phone: "(65) 99344-1155" },
+  { name: "Gabriel Zanin Souza", email: "gabriel.souza@gmail.com", phone: "(65) 98455-6677" },
+  { name: "Larissa Ferreira Dias", email: "larissa.dias@gmail.com", phone: "(65) 99722-3311" },
+  { name: "Rafael Vinicius Silva", email: "rafael.silva@gmail.com", phone: "(65) 99188-4422" },
+  { name: "Amanda Rocha Albuquerque", email: "amanda.rocha@gmail.com", phone: "(65) 99200-3388" },
 ];
 
 async function main() {
-  console.log("🍨 [Pop Shake Sorveteria] Iniciando seed oficial completo...");
+  console.log("🍧 [Pop Shake] Iniciando limpeza cirúrgica e semeadura oficial...");
 
-  // 1. Limpeza de dados antigos para evitar inconsistências
-  console.log("🧹 Limpando dados fictícios anteriores...");
+  // ── 1. EXPURGO DE DADOS ANTIGOS E CORROMPIDOS (XSS / DUMMY)
+  console.log("🧹 1/7: Purgando pedidos, notificações e itens corrompidos...");
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
+  await prisma.productAddonGroup.deleteMany();
+  await prisma.productAddonCategory.deleteMany();
+  await prisma.productAddon.deleteMany();
+  await prisma.addonItem.deleteMany();
+  await prisma.addonGroup.deleteMany();
   await prisma.comboItem.deleteMany();
   await prisma.promotion.deleteMany();
   await prisma.product.deleteMany();
   await prisma.category.deleteMany();
+  await prisma.cardBadge.deleteMany();
   await prisma.coupon.deleteMany();
+  await prisma.notification.deleteMany();
+  await prisma.shift.deleteMany();
   await prisma.userLocation.deleteMany();
   await prisma.user.deleteMany({
     where: { email: { not: "admin@popclub.com" } },
   });
 
-  // 2. Criar ou Atualizar Usuário Administrador
+  // ── 2. USUÁRIO ADMINISTRADOR PRINCIPAL
+  console.log("👤 2/7: Assegurando administrador oficial...");
   const adminPasswordHash = await bcrypt.hash("@64844048", 10);
   const admin = await prisma.user.upsert({
     where: { email: "admin@popclub.com" },
@@ -67,620 +74,670 @@ async function main() {
       fullName: "Administrador Pop Shake",
     },
   });
-  console.log("✅ Admin oficial configurado:", admin.email);
+  console.log(`✅ Admin configurado: ${admin.email}`);
 
-  // 3. Configurações da Loja com WhatsApp Comercial
+  // ── 3. CONFIGURAÇÕES DA LOJA E HORÁRIOS DE ATENDIMENTO
+  console.log("⚙️ 3/7: Gravando configurações da loja...");
+  const defaultBusinessHours = [
+    { day: "monday", label: "Segunda-feira", isOpen: true, openTime: "13:00", closeTime: "23:00" },
+    { day: "tuesday", label: "Terça-feira", isOpen: true, openTime: "13:00", closeTime: "23:00" },
+    { day: "wednesday", label: "Quarta-feira", isOpen: true, openTime: "13:00", closeTime: "23:00" },
+    { day: "thursday", label: "Quinta-feira", isOpen: true, openTime: "13:00", closeTime: "23:00" },
+    { day: "friday", label: "Sexta-feira", isOpen: true, openTime: "13:00", closeTime: "23:30" },
+    { day: "saturday", label: "Sábado", isOpen: true, openTime: "13:00", closeTime: "23:30" },
+    { day: "sunday", label: "Domingo", isOpen: true, openTime: "13:00", closeTime: "23:00" },
+  ];
+
   await prisma.storeSettings.upsert({
     where: { id: "store_config" },
     update: {
       deliveryFee: 5.0,
       freeDeliveryThreshold: 60.0,
-      whatsappNumber: "5565999999999",
-      whatsappMessage: "Olá! Gostaria de tirar uma dúvida sobre os pedidos da Pop Shake Sorveteria.",
+      maxDeliveryRadiusKm: 12.0,
+      whatsappNumber: "5565992345678",
+      whatsappMessage: "Olá! Gostaria de tirar uma dúvida sobre meu pedido na Pop Shake Sorveteria.",
+      isOpen: true,
+      storeLatitude: -15.6536,
+      storeLongitude: -56.1322,
+      storeAddress: "Av. Filinto Müller, 850 - Centro Sul, Várzea Grande - MT",
+      businessHours: defaultBusinessHours as unknown as Prisma.InputJsonValue,
+      instagramUrl: "https://instagram.com/popshakevg",
+      supportPhone: "(65) 99234-5678",
+      postSaleMessage: "Obrigado por pedir na Pop Shake! O que achou do seu açaí? Seu feedback é muito importante!",
+      supportMessage: "Olá! Nossa equipe está à disposição para ajudar com seu pedido.",
     },
     create: {
       id: "store_config",
       deliveryFee: 5.0,
       freeDeliveryThreshold: 60.0,
-      whatsappNumber: "5565999999999",
-      whatsappMessage: "Olá! Gostaria de tirar uma dúvida sobre os pedidos da Pop Shake Sorveteria.",
+      maxDeliveryRadiusKm: 12.0,
+      whatsappNumber: "5565992345678",
+      whatsappMessage: "Olá! Gostaria de tirar uma dúvida sobre meu pedido na Pop Shake Sorveteria.",
+      isOpen: true,
+      storeLatitude: -15.6536,
+      storeLongitude: -56.1322,
+      storeAddress: "Av. Filinto Müller, 850 - Centro Sul, Várzea Grande - MT",
+      businessHours: defaultBusinessHours as unknown as Prisma.InputJsonValue,
+      instagramUrl: "https://instagram.com/popshakevg",
+      supportPhone: "(65) 99234-5678",
+      postSaleMessage: "Obrigado por pedir na Pop Shake! O que achou do seu açaí? Seu feedback é muito importante!",
+      supportMessage: "Olá! Nossa equipe está à disposição para ajudar com seu pedido.",
     },
   });
-  console.log("✅ Configurações da loja e WhatsApp comercial salvos");
 
-  // 4. Banner de Destaque Oficial
+  // Highlight Banner
   await prisma.highlightBanner.upsert({
     where: { id: "home_highlight" },
     update: {
-      icon: "🍨",
+      icon: "🥣",
       title: "Monte do seu jeito: escolha o tamanho e adicione seus acompanhamentos favoritos",
-      subtitle: "Açaí batido na hora, cremoso e com frutas frescas, caldas e recheios artesanais.",
-      badge: "Pop Shake Sorveteria",
+      subtitle: "Açaí puro batido na hora, cremoso e com acompanhamentos selecionados à sua escolha.",
+      badge: "Refrescância Artesanal",
     },
     create: {
       id: "home_highlight",
-      icon: "🍨",
+      icon: "🥣",
       title: "Monte do seu jeito: escolha o tamanho e adicione seus acompanhamentos favoritos",
-      subtitle: "Açaí batido na hora, cremoso e com frutas frescas, caldas e recheios artesanais.",
-      badge: "Pop Shake Sorveteria",
+      subtitle: "Açaí puro batido na hora, cremoso e com acompanhamentos selecionados à sua escolha.",
+      badge: "Refrescância Artesanal",
     },
   });
 
-  // 5. Categorias Oficiais
-  console.log("📂 Cadastrando 6 categorias reais...");
-  const catDestaques = await prisma.category.create({
-    data: { name: "Destaques & Novidades", slug: "destaques-novidades" },
-  });
-  const catHits = await prisma.category.create({
-    data: { name: "Linha Hits & Marmitas", slug: "linha-hits-marmitas" },
-  });
-  const catTradicional = await prisma.category.create({
+  // ── 4. CATEGORIAS BASE DO CARDÁPIO
+  console.log("📂 4/7: Criando 4 categorias base...");
+  const catAcai = await prisma.category.create({
     data: { name: "Açaí Tradicional & Copos", slug: "acai-tradicional-copos" },
   });
-  const catRecheio = await prisma.category.create({
-    data: { name: "Explosão de Recheio", slug: "explosao-de-recheio" },
-  });
-  const catCombos = await prisma.category.create({
-    data: { name: "Combos Família", slug: "combos-familia" },
+  const catShakes = await prisma.category.create({
+    data: { name: "Shakes & Vitaminas", slug: "shakes-vitaminas" },
   });
   const catSorvetes = await prisma.category.create({
     data: { name: "Sorvetes Artesanais", slug: "sorvetes-artesanais" },
   });
-
-  // 6. Cadastro dos 21 Produtos Reais
-  console.log("📦 Cadastrando 21 produtos oficiais com fotos reais...");
-  const productsData = [
-    // ── Destaques & Novidades
-    {
-      name: "Açaí de Framboesa (Lançamento)",
-      description: "Açaí cremoso batido com framboesas frescas selecionadas e calda especial de frutas vermelhas. De R$ 15,00 por apenas R$ 10,00.",
-      price: 10.0,
-      categoryId: catDestaques.id,
-      category: catDestaques.name,
-      imageUrl: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      name: "Os Gigantes do Açaí (Barca & Marmita)",
-      description: "Linha completa com barcas, marmitas e roletas fartas com acompanhamentos à vontade. A partir de R$ 18,99 (De R$ 99,99).",
-      price: 18.99,
-      categoryId: catDestaques.id,
-      category: catDestaques.name,
-      imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      name: "Açaí 500ml Do Seu Jeito",
-      description: "Monte seu açaí escolhendo suas marcas, frutas e recheios favoritos. De R$ 15,00 por apenas R$ 10,00.",
-      price: 10.0,
-      categoryId: catDestaques.id,
-      category: catDestaques.name,
-      imageUrl: "https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      name: "Açaí na Garrafa",
-      description: "Praticidade e energia pura para levar onde quiser. Açaí batido na textura ideal para beber a qualquer hora.",
-      price: 10.01,
-      categoryId: catDestaques.id,
-      category: catDestaques.name,
-      imageUrl: "https://images.unsplash.com/photo-1579954115545-a95591f28bfc?auto=format&fit=crop&w=600&q=80",
-    },
-
-    // ── Linha Hits & Marmitas
-    {
-      name: "Marmita Recheio Base + Topo Exclusivo Hits",
-      description: "Camada dupla de recheio artesanal com açaí premium. De R$ 52,00 por apenas R$ 31,99.",
-      price: 31.99,
-      categoryId: catHits.id,
-      category: catHits.name,
-      imageUrl: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      name: "Açaí 500ml Exclusivo Hits",
-      description: "Açaí batido na textura Hits com recheio especial no fundo e topo. De R$ 35,00 por R$ 17,98.",
-      price: 17.98,
-      categoryId: catHits.id,
-      category: catHits.name,
-      imageUrl: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      name: "Hits em Dobro",
-      description: "Combo promocional com dois copos Hits recheados. De R$ 42,00 por apenas R$ 28,00.",
-      price: 28.0,
-      categoryId: catHits.id,
-      category: catHits.name,
-      imageUrl: "https://images.unsplash.com/photo-1567206563064-6f60f40a2b57?auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      name: "Monte Seu Hits (Copo/Marmita)",
-      description: "Escolha o tamanho e monte sua combinação exclusiva Hits com seus recheios artesanais preferidos.",
-      price: 16.5,
-      categoryId: catHits.id,
-      category: catHits.name,
-      imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      name: "Marmita Açaí Família (1.1 Litros)",
-      description: "Tamanho família super caprichado com recheios fartos para compartilhar. De R$ 35,99 por R$ 26,99.",
-      price: 26.99,
-      categoryId: catHits.id,
-      category: catHits.name,
-      imageUrl: "https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=600&q=80",
-    },
-
-    // ── Açaí Tradicional & Copos
-    {
-      name: "Açaí 300ml Tradicional",
-      description: "Açaí puro batido na hora. Informe preferência por +Recheio ou +Açaí nas observações. De R$ 18,50 por R$ 16,50.",
-      price: 16.5,
-      categoryId: catTradicional.id,
-      category: catTradicional.name,
-      imageUrl: "https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      name: "Açaí 500ml Tradicional",
-      description: "Açaí batido na hora com textura aveludada e ponto perfeito. De R$ 23,00 por apenas R$ 19,50.",
-      price: 19.5,
-      categoryId: catTradicional.id,
-      category: catTradicional.name,
-      imageUrl: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      name: "Açaí 700ml Tradicional",
-      description: "Copo generoso para quem tem fome de açaí puro. De R$ 28,00 por R$ 24,99.",
-      price: 24.99,
-      categoryId: catTradicional.id,
-      category: catTradicional.name,
-      imageUrl: "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      name: "Açaí Trufado 300ml",
-      description: "Trufado com beijinho ou brigadeiro de panela artesanal. De R$ 22,00 por R$ 17,00.",
-      price: 17.0,
-      categoryId: catTradicional.id,
-      category: catTradicional.name,
-      imageUrl: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=80",
-    },
-
-    // ── Explosão de Recheio
-    {
-      name: "Recheio é Vida 300ml",
-      description: "Foco total em camadas fartas de recheio intercaladas com açaí aveludado.",
-      price: 24.0,
-      categoryId: catRecheio.id,
-      category: catRecheio.name,
-      imageUrl: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      name: "Recheio é Vida 500ml",
-      description: "Recheios gourmet em todas as camadas e lateral completamente trufada.",
-      price: 28.0,
-      categoryId: catRecheio.id,
-      category: catRecheio.name,
-      imageUrl: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      name: "Recheio é Vida 700ml",
-      description: "A experiência máxima de açaí gourmet farto de recheios artesanais. De R$ 36,00 por R$ 29,99.",
-      price: 29.99,
-      categoryId: catRecheio.id,
-      category: catRecheio.name,
-      imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
-    },
-
-    // ── Combos Família
-    {
-      name: "Combo 3x Açaí 300ml",
-      description: "Sabores fixos artesanais com 3 copos de 300ml para saborear em conjunto.",
-      price: 48.0,
-      categoryId: catCombos.id,
-      category: catCombos.name,
-      imageUrl: "https://images.unsplash.com/photo-1567206563064-6f60f40a2b57?auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      name: "Combo 5x Açaí 300ml",
-      description: "5 copos de açaí cremoso para compartilhar com amigos e a família toda.",
-      price: 70.0,
-      categoryId: catCombos.id,
-      category: catCombos.name,
-      imageUrl: "https://images.unsplash.com/photo-1567206563064-6f60f40a2b57?auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      name: "Combo 10x Açaí 300ml",
-      description: "O maior combo da Pop Shake: 10 copos de 300ml perfeito para encontros, confraternizações e festas.",
-      price: 120.0,
-      categoryId: catCombos.id,
-      category: catCombos.name,
-      imageUrl: "https://images.unsplash.com/photo-1567206563064-6f60f40a2b57?auto=format&fit=crop&w=600&q=80",
-    },
-
-    // ── Sorvetes Artesanais
-    {
-      name: "Copo de Sorvete Tradicional",
-      description: "Sorvete artesanal extremamente cremoso servido em copo especial no ponto ideal.",
-      price: 10.99,
-      categoryId: catSorvetes.id,
-      category: catSorvetes.name,
-      imageUrl: "https://images.unsplash.com/photo-1505252585461-04db1eb84625?auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      name: "Sorvete Recheado Especial",
-      description: "Sorvete cremoso com recheios artesanais de chocolate, leite condensado e castanhas selecionadas.",
-      price: 13.98,
-      categoryId: catSorvetes.id,
-      category: catSorvetes.name,
-      imageUrl: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=600&q=80",
-    },
-  ];
-
-  const createdProducts: { id: string; name: string; price: any }[] = [];
-  for (const prod of productsData) {
-    const p = await prisma.product.create({
-      data: {
-        name: prod.name,
-        description: prod.description,
-        price: prod.price,
-        categoryId: prod.categoryId,
-        category: prod.category,
-        imageUrl: prod.imageUrl,
-        stock: null, // Sob Demanda / Infinito
-        isAvailable: true,
-      },
-    });
-    createdProducts.push(p);
-  }
-  console.log(`✅ ${createdProducts.length} produtos cadastrados com sucesso!`);
-
-  // 6.5 Selos (CardBadges) e vinculação a produtos
-  console.log("🏷️ Cadastrando selos e vinculando a produtos...");
-  await prisma.cardBadge.deleteMany(); // limpar selos antigos
-
-  const badgeCombo = await prisma.cardBadge.create({
-    data: { text: "Combo", icon: "⚡", bgColor: "#FEF3C7", textColor: "#B45309" },
+  const catCombos = await prisma.category.create({
+    data: { name: "Combos & Barcas", slug: "combos-barcas" },
   });
+
+  // ── 5. GRUPOS GLOBAIS DE COMPLEMENTOS (AddonGroup + AddonItem)
+  console.log("🍧 5/7: Cadastrando Grupos Globais de Complementos com regras oficiais...");
+
+  // Grupo 1: "Ponto da Base" (Obrigatório, min=1, max=1, free=1)
+  const groupBase = await prisma.addonGroup.create({
+    data: {
+      name: "Ponto da Base",
+      description: "Escolha a base perfeita para o seu copo (1 opção obrigatória)",
+      minQuantity: 1,
+      maxQuantity: 1,
+      freeQuantity: 1,
+      isRequired: true,
+      sortOrder: 1,
+      isActive: true,
+      items: {
+        create: [
+          {
+            name: "Açaí Tradicional Batido",
+            price: 0.0,
+            imageUrl: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=160&q=80",
+            isAvailable: true,
+            sortOrder: 1,
+          },
+          {
+            name: "Açaí Zero Açúcar",
+            price: 0.0,
+            imageUrl: "https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=160&q=80",
+            isAvailable: true,
+            sortOrder: 2,
+          },
+          {
+            name: "Creme de Cupuaçu Puro",
+            price: 0.0,
+            imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=160&q=80",
+            isAvailable: true,
+            sortOrder: 3,
+          },
+        ],
+      },
+    },
+    include: { items: true },
+  });
+
+  // Grupo 2: "Frutas Frescas" (Incluso, min=0, max=3, free=3)
+  const groupFrutas = await prisma.addonGroup.create({
+    data: {
+      name: "Frutas Frescas",
+      description: "Selecione até 3 opções de frutas frescas inclusas",
+      minQuantity: 0,
+      maxQuantity: 3,
+      freeQuantity: 3,
+      isRequired: false,
+      sortOrder: 2,
+      isActive: true,
+      items: {
+        create: [
+          {
+            name: "Banana Fatiada",
+            price: 0.0,
+            imageUrl: "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&w=160&q=80",
+            isAvailable: true,
+            sortOrder: 1,
+          },
+          {
+            name: "Morango Fresco",
+            price: 0.0,
+            imageUrl: "https://images.unsplash.com/photo-1464965911861-746a04b4bca6?auto=format&fit=crop&w=160&q=80",
+            isAvailable: true,
+            sortOrder: 2,
+          },
+          {
+            name: "Kiwi Picado",
+            price: 0.0,
+            imageUrl: "https://images.unsplash.com/photo-1585059895524-72359e06133a?auto=format&fit=crop&w=160&q=80",
+            isAvailable: true,
+            sortOrder: 3,
+          },
+          {
+            name: "Manga em Cubos",
+            price: 0.0,
+            imageUrl: "https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=160&q=80",
+            isAvailable: true,
+            sortOrder: 4,
+          },
+        ],
+      },
+    },
+    include: { items: true },
+  });
+
+  // Grupo 3: "Turbine seu Copo" (Cobrado à Parte, min=0, max=5, free=0)
+  const groupTurbine = await prisma.addonGroup.create({
+    data: {
+      name: "Turbine seu Copo",
+      description: "Adicionais especiais e coberturas crocantes",
+      minQuantity: 0,
+      maxQuantity: 5,
+      freeQuantity: 0,
+      isRequired: false,
+      sortOrder: 3,
+      isActive: true,
+      items: {
+        create: [
+          {
+            name: "Nutella Original",
+            price: 4.5,
+            imageUrl: "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?auto=format&fit=crop&w=160&q=80",
+            isAvailable: true,
+            sortOrder: 1,
+          },
+          {
+            name: "Leite em Pó Ninho",
+            price: 2.0,
+            imageUrl: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=160&q=80",
+            isAvailable: true,
+            sortOrder: 2,
+          },
+          {
+            name: "Paçoca Rolha",
+            price: 1.5,
+            imageUrl: "https://images.unsplash.com/photo-1505252585461-04db1eb84625?auto=format&fit=crop&w=160&q=80",
+            isAvailable: true,
+            sortOrder: 3,
+          },
+          {
+            name: "Leite Condensado",
+            price: 1.5,
+            imageUrl: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=160&q=80",
+            isAvailable: true,
+            sortOrder: 4,
+          },
+          {
+            name: "Granola Tradicional",
+            price: 1.0,
+            imageUrl: "https://images.unsplash.com/photo-1517093707567-27928cb9e57d?auto=format&fit=crop&w=160&q=80",
+            isAvailable: true,
+            sortOrder: 5,
+          },
+        ],
+      },
+    },
+    include: { items: true },
+  });
+
+  // Selos visuais
   const badgeMaisPedido = await prisma.cardBadge.create({
     data: { text: "Mais Pedido", icon: "🔥", bgColor: "#FEE2E2", textColor: "#DC2626" },
   });
-  const badgeLancamento = await prisma.cardBadge.create({
-    data: { text: "Lançamento", icon: "✨", bgColor: "#F3E8FF", textColor: "#7E22CE" },
+  const badgeDestaque = await prisma.cardBadge.create({
+    data: { text: "Destaque", icon: "⭐", bgColor: "#FEF3C7", textColor: "#B45309" },
   });
-  const badgeRefrescante = await prisma.cardBadge.create({
-    data: { text: "Refrescância Pura", icon: "❄️", bgColor: "#E0F2FE", textColor: "#0369A1" },
-  });
-  const badgeOff = await prisma.cardBadge.create({
-    data: { text: "20% OFF", icon: "🏷️", bgColor: "#DCFCE7", textColor: "#15803D" },
+  const badgeNovo = await prisma.cardBadge.create({
+    data: { text: "Novo", icon: "✨", bgColor: "#F3E8FF", textColor: "#7E22CE" },
   });
 
-  // Vincular selos a produtos por nome
-  const linkBadgeToProduct = async (badgeId: string, partialName: string) => {
-    const prod = createdProducts.find((p: any) =>
-      p.name.toLowerCase().includes(partialName.toLowerCase())
-    );
-    if (prod) {
-      await prisma.product.update({ where: { id: prod.id }, data: { cardBadgeId: badgeId } });
-    }
-  };
+  // ── 6. PRODUTOS REAIS
+  console.log("📦 6/7: Cadastrando produtos reais e vinculando complementos...");
+  const rawProducts = [
+    // Açaí Tradicional & Copos
+    {
+      name: "Copo 300ml Tradicional",
+      description: "Açaí cremoso batido na hora no copo de 300ml. Perfeito para uma pausa refrescante com seus acompanhamentos prediletos.",
+      price: 16.5,
+      categoryId: catAcai.id,
+      category: catAcai.name,
+      imageUrl: "https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=600&q=80",
+      hasAddons: true,
+      cardBadgeId: null,
+    },
+    {
+      name: "Copo 500ml Tradicional",
+      description: "Nosso copo campeão de vendas! 500ml de açaí artesanal batido na hora, montado com até 3 frutas frescas e seus adicionais favoritos.",
+      price: 21.0,
+      categoryId: catAcai.id,
+      category: catAcai.name,
+      imageUrl: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=600&q=80",
+      hasAddons: true,
+      cardBadgeId: badgeMaisPedido.id,
+    },
+    {
+      name: "Copo 700ml Tradicional",
+      description: "Para os verdadeiros amantes de açaí: copo gigante de 700ml, farto e super consistente. Escolha sua base e monte com fartura.",
+      price: 26.0,
+      categoryId: catAcai.id,
+      category: catAcai.name,
+      imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
+      hasAddons: true,
+      cardBadgeId: badgeDestaque.id,
+    },
+    {
+      name: "Açaí Trufado Especial 400ml",
+      description: "Copo de 400ml com borda trufada em creme de avelã e leite ninho, intercalado com açaí cremoso e frutas selecionadas.",
+      price: 24.0,
+      categoryId: catAcai.id,
+      category: catAcai.name,
+      imageUrl: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=80",
+      hasAddons: true,
+      cardBadgeId: badgeNovo.id,
+    },
 
-  await linkBadgeToProduct(badgeLancamento.id, "Framboesa");
-  await linkBadgeToProduct(badgeMaisPedido.id, "500ml Do Seu Jeito");
-  await linkBadgeToProduct(badgeCombo.id, "Hits em Dobro");
-  await linkBadgeToProduct(badgeCombo.id, "Combo");
-  await linkBadgeToProduct(badgeRefrescante.id, "Recheio é Vida");
-  await linkBadgeToProduct(badgeOff.id, "Sorvete Artesanal");
-  await linkBadgeToProduct(badgeOff.id, "na Garrafa");
+    // Shakes & Vitaminas
+    {
+      name: "Milk Shake Nutella 400ml",
+      description: "Delicioso milk shake artesanal com sorvete de baunilha cremoso batido com generosa dose de Nutella original e chantilly.",
+      price: 19.9,
+      categoryId: catShakes.id,
+      category: catShakes.name,
+      imageUrl: "https://images.unsplash.com/photo-1579954115545-a95591f28bfc?auto=format&fit=crop&w=600&q=80",
+      hasAddons: false,
+      cardBadgeId: badgeMaisPedido.id,
+    },
+    {
+      name: "Milk Shake Morango Silvestre 400ml",
+      description: "Batido com sorvete de morango premium e calda artesanal de pedaços de morango fresco selecionado.",
+      price: 18.5,
+      categoryId: catShakes.id,
+      category: catShakes.name,
+      imageUrl: "https://images.unsplash.com/photo-1567206563064-6f60f40a2b57?auto=format&fit=crop&w=600&q=80",
+      hasAddons: false,
+      cardBadgeId: null,
+    },
+    {
+      name: "Vitamina de Açaí Energética 500ml",
+      description: "Açaí batido com banana prata, leite e xarope de guaraná natural. A dose perfeita de energia para o seu dia.",
+      price: 16.0,
+      categoryId: catShakes.id,
+      category: catShakes.name,
+      imageUrl: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=600&q=80",
+      hasAddons: false,
+      cardBadgeId: null,
+    },
 
-  console.log("✅ Selos criados e vinculados a produtos com sucesso!");
+    // Sorvetes Artesanais
+    {
+      name: "Copo de Sorvete Tradicional (2 Bolas)",
+      description: "Duas bolas generosas de sorvete de massa artesanal. Sabores clássicos e cremosos preparados com leite fresco.",
+      price: 12.0,
+      categoryId: catSorvetes.id,
+      category: catSorvetes.name,
+      imageUrl: "https://images.unsplash.com/photo-1505252585461-04db1eb84625?auto=format&fit=crop&w=600&q=80",
+      hasAddons: false,
+      cardBadgeId: null,
+    },
+    {
+      name: "Sundae Artesanal Chocolate & Morango",
+      description: "Sorvete cremoso servido com calda quente de chocolate belga, morangos frescos e amendoim granulado crocante.",
+      price: 16.5,
+      categoryId: catSorvetes.id,
+      category: catSorvetes.name,
+      imageUrl: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=600&q=80",
+      hasAddons: false,
+      cardBadgeId: null,
+    },
+    {
+      name: "Pote Gelato Ninho Trufado 500ml",
+      description: "Pote térmico de 500ml com gelato cremoso de Leite Ninho mesclado com trufas artesanais de chocolate ao leite.",
+      price: 26.0,
+      categoryId: catSorvetes.id,
+      category: catSorvetes.name,
+      imageUrl: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=80",
+      hasAddons: false,
+      cardBadgeId: badgeDestaque.id,
+    },
 
-  // 6.8 Avatares Pré-definidos Oficiais
-  console.log("🎨 Cadastrando avatares oficiais...");
-  const avatarPresetsData = [
-    { name: "Sundae Amora", description: "Clássico sundae com calda de amora", imageUrl: "/avatars/avatar-sorvete.svg", category: "Sobremesas", order: 1 },
-    { name: "Tigela de Açaí", description: "Açaí cremoso com banana e morango", imageUrl: "/avatars/avatar-acai.svg", category: "Açaí", order: 2 },
-    { name: "Milk Shake", description: "Milk shake cremoso refrescante", imageUrl: "/avatars/avatar-shake.svg", category: "Bebidas", order: 3 },
-    { name: "Picolé Frutas", description: "Picolé artesanal de frutas tropicais", imageUrl: "/avatars/avatar-picole.svg", category: "Picolés", order: 4 },
-    { name: "Morango Pop", description: "Morango doce e selecionado", imageUrl: "/avatars/avatar-morango.svg", category: "Frutas", order: 5 },
-    { name: "Banana Split", description: "Banana ouro com toque especial", imageUrl: "/avatars/avatar-banana.svg", category: "Frutas", order: 6 },
-    { name: "Cookie Choco", description: "Cookie crocante com gotas de chocolate", imageUrl: "/avatars/avatar-cookie.svg", category: "Gourmet", order: 7 },
-    { name: "Cereja Pop", description: "Toque final irresistível", imageUrl: "/avatars/avatar-cereja.svg", category: "Frutas", order: 8 },
-    { name: "Casquinha Dupla", description: "Casquinha crocante com dois sabores", imageUrl: "/avatars/avatar-casquinha.svg", category: "Sorvetes", order: 9 },
-    { name: "Mestre Gelateiro", description: "Toque profissional de confeitaria", imageUrl: "/avatars/avatar-chef.svg", category: "Especiais", order: 10 },
+    // Combos & Barcas
+    {
+      name: "Barca Pop Suprema 1 Litro",
+      description: "Nossa famosa barca recheada com 1 Litro de açaí artesanal, decorada com frutas, creme de avelã, chocolates e confeitos.",
+      price: 52.9,
+      categoryId: catCombos.id,
+      category: catCombos.name,
+      imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
+      hasAddons: true,
+      cardBadgeId: badgeDestaque.id,
+    },
+    {
+      name: "Combo Casal 2x Copos 500ml",
+      description: "Dois copos de 500ml montados do seu jeito com economia especial para saborear a dois.",
+      price: 38.0,
+      categoryId: catCombos.id,
+      category: catCombos.name,
+      imageUrl: "https://images.unsplash.com/photo-1567206563064-6f60f40a2b57?auto=format&fit=crop&w=600&q=80",
+      hasAddons: true,
+      cardBadgeId: badgeMaisPedido.id,
+    },
+    {
+      name: "Marmita Açaí Família (1.1 Litros)",
+      description: "Marmita de 1.1 Litros super caprichada com camadas intercaladas de açaí puro e recheios generosos.",
+      price: 42.0,
+      categoryId: catCombos.id,
+      category: catCombos.name,
+      imageUrl: "https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=600&q=80",
+      hasAddons: true,
+      cardBadgeId: null,
+    },
   ];
 
-  for (const av of avatarPresetsData) {
-    await prisma.avatarPreset.upsert({
-      where: { id: `preset_${av.order}` },
-      update: {
-        name: av.name,
-        description: av.description,
-        imageUrl: av.imageUrl,
-        category: av.category,
-        order: av.order,
-        isActive: true,
-      },
-      create: {
-        id: `preset_${av.order}`,
-        name: av.name,
-        description: av.description,
-        imageUrl: av.imageUrl,
-        category: av.category,
-        order: av.order,
-        isActive: true,
+  const createdProducts: { id: string; name: string; price: number; hasAddons: boolean }[] = [];
+
+  for (const raw of rawProducts) {
+    const p = await prisma.product.create({
+      data: {
+        name: raw.name,
+        description: raw.description,
+        price: raw.price,
+        categoryId: raw.categoryId,
+        category: raw.category,
+        imageUrl: raw.imageUrl,
+        cardBadgeId: raw.cardBadgeId,
+        isAvailable: true,
+        stock: null,
       },
     });
+
+    // Se o produto suporta complementos, vincula os 3 grupos transacionalmente via ProductAddonGroup
+    if (raw.hasAddons) {
+      await prisma.productAddonGroup.createMany({
+        data: [
+          { productId: p.id, groupId: groupBase.id, sortOrder: 1 },
+          { productId: p.id, groupId: groupFrutas.id, sortOrder: 2 },
+          { productId: p.id, groupId: groupTurbine.id, sortOrder: 3 },
+        ],
+      });
+    }
+
+    createdProducts.push({ id: p.id, name: p.name, price: raw.price, hasAddons: raw.hasAddons });
   }
-  console.log("✅ Avatares oficiais cadastrados com sucesso!");
+  console.log(`✅ ${createdProducts.length} produtos criados e vinculados a complementos.`);
 
-  // 7. Cupons Promocionais
-  console.log("🎟️ Cadastrando cupons...");
-  await prisma.coupon.createMany({
-    data: [
-      {
-        code: "BEMVINDO10",
-        discountType: "percentage",
-        discountValue: 10,
-        minOrderValue: 20.0,
-        isActive: true,
-      },
-      {
-        code: "POPSHAKE5",
-        discountType: "fixed",
-        discountValue: 5.0,
-        minOrderValue: 25.0,
-        isActive: true,
-      },
-      {
-        code: "QUEROACAI",
-        discountType: "percentage",
-        discountValue: 15,
-        minOrderValue: 35.0,
-        isActive: true,
-      },
-    ],
-  });
+  // ── 7. CRIAÇÃO DE TURNOS E PEDIDOS HISTÓRICOS AUDITÁVEIS
+  console.log("⏱️ 7/7: Gerando turnos (Shifts) e pedidos históricos consistentes...");
 
-  // 8. Cadastrar Clientes Fictícios Realistas
-  console.log("👥 Cadastrando clientes com dados de contato e endereço...");
-  const defaultPasswordHash = await bcrypt.hash("cliente123", 10);
+  // Criar clientes
   const createdUsers = [];
-
+  const defaultPasswordHash = await bcrypt.hash("cliente123", 10);
   for (let i = 0; i < CLIENT_PROFILES.length; i++) {
-    const profile = CLIENT_PROFILES[i];
-    const username = `cliente_${i + 1}`;
-    const user = await prisma.user.create({
+    const prof = CLIENT_PROFILES[i];
+    const u = await prisma.user.create({
       data: {
-        email: profile.email,
-        username,
+        email: prof.email,
+        username: `cliente_${i + 1}`,
+        fullName: prof.name,
+        phone: prof.phone,
         passwordHash: defaultPasswordHash,
-        fullName: profile.name,
-        phone: profile.phone,
         role: "client",
       },
     });
 
-    // Endereço salvo para o cliente
-    const addr = CUIABA_ADDRESSES[i % CUIABA_ADDRESSES.length];
+    const addr = MT_ADDRESSES[i % MT_ADDRESSES.length];
     await prisma.userLocation.create({
       data: {
-        userId: user.id,
+        userId: u.id,
         name: "Casa",
-        addressLine: `${addr.street}, ${addr.number} - ${addr.neighborhood}, Cuiabá - MT`,
-        latitude: -15.5989 + (Math.random() - 0.5) * 0.05,
-        longitude: -56.0949 + (Math.random() - 0.5) * 0.05,
+        addressLine: `${addr.street}, ${addr.number} - ${addr.neighborhood}, ${addr.city} - MT`,
+        latitude: -15.6536 + (Math.random() - 0.5) * 0.04,
+        longitude: -56.1322 + (Math.random() - 0.5) * 0.04,
         isDefault: true,
       },
     });
 
-    createdUsers.push(user);
+    createdUsers.push(u);
   }
 
-  // 9. Geração de 105 Pedidos Históricos Distribuídos nos Últimos 45 Dias
-  console.log("📊 Gerando massa de 105 pedidos históricos realistas (últimos 45 dias)...");
+  // Turnos a semear
+  const now = new Date();
+  const shiftConfigs = [
+    {
+      code: "TURNO-20260925-001",
+      daysAgo: 3,
+      isOpen: false,
+      ordersCount: 18,
+    },
+    {
+      code: "TURNO-20260926-002",
+      daysAgo: 2,
+      isOpen: false,
+      ordersCount: 24,
+    },
+    {
+      code: "TURNO-20260927-003",
+      daysAgo: 1,
+      isOpen: false,
+      ordersCount: 28,
+    },
+    {
+      code: "TURNO-20260928-004",
+      daysAgo: 0,
+      isOpen: true,
+      ordersCount: 14,
+    },
+  ];
 
-  const now = Date.now();
-  const paymentTypes: PaymentMethodType[] = ["pix_entrega", "cartao_maquininha", "dinheiro"];
+  let currentOpenShiftId: string | null = null;
 
-  // 5 Pedidos ativos para o dia de hoje na esteira Kanban
-  const activeOrderStatuses: OrderStatus[] = ["pending", "accepted", "preparing", "preparing", "delivering"];
+  for (const sCfg of shiftConfigs) {
+    const openDate = new Date(now.getTime() - sCfg.daysAgo * 86400000);
+    openDate.setHours(13, 0, 0, 0);
 
-  // Atraso realista por status (em minutos) — quanto tempo atrás cada pedido foi criado
-  const statusDelayMinutes: Record<string, [number, number]> = {
-    pending:    [3, 8],
-    accepted:   [6, 13],
-    preparing:  [12, 22],
-    delivering: [18, 35],
-    completed:  [35, 65],
-  };
-
-  const ordersToCreate = [];
-
-  // Criar os 5 pedidos ativos de hoje
-  for (let i = 0; i < 5; i++) {
-    const status = activeOrderStatuses[i];
-    const user = createdUsers[i % createdUsers.length];
-    const addr = CUIABA_ADDRESSES[i % CUIABA_ADDRESSES.length];
-    const isDelivery = i % 3 !== 0;
-
-    // Itens aleatórios (1 a 2 itens)
-    const p1 = createdProducts[Math.floor(Math.random() * createdProducts.length)];
-    const q1 = Math.floor(Math.random() * 2) + 1;
-    const subtotal = Number(p1.price) * q1;
-    const deliveryFee = isDelivery ? (subtotal >= 60 ? 0 : 5.0) : 0;
-    const totalAmount = subtotal + deliveryFee;
-
-    // Tempo realista conforme status do pedido
-    const [minMins, maxMins] = statusDelayMinutes[status] || [5, 15];
-    const delayMins = minMins + Math.floor(Math.random() * (maxMins - minMins + 1));
-    const orderDate = new Date(now - delayMins * 60 * 1000);
-
-    ordersToCreate.push({
-      userId: user.id,
-      status,
-      subtotal,
-      deliveryFee,
-      discountAmount: 0,
-      totalAmount,
-      paymentMethodType: paymentTypes[i % paymentTypes.length],
-      paymentChangeFor: paymentTypes[i % paymentTypes.length] === "dinheiro" ? totalAmount + 20 : null,
-      deliveryStreet: isDelivery ? addr.street : "Retirada no Balcão da Loja",
-      deliveryNumber: isDelivery ? addr.number : "S/N",
-      deliveryNeighborhood: isDelivery ? addr.neighborhood : "Balcão",
-      deliveryCity: "Cuiabá",
-      deliveryZip: isDelivery ? addr.zip : null,
-      createdAt: orderDate,
-      updatedAt: orderDate,
-      items: [{ productId: p1.id, quantity: q1, priceAtTime: Number(p1.price) }],
-    });
-  }
-
-  // 3 Pedidos concluídos de hoje
-  for (let i = 0; i < 3; i++) {
-    const user = createdUsers[(i + 5) % createdUsers.length];
-    const addr = CUIABA_ADDRESSES[(i + 5) % CUIABA_ADDRESSES.length];
-    const isDelivery = true;
-
-    const p1 = createdProducts[Math.floor(Math.random() * createdProducts.length)];
-    const p2 = createdProducts[Math.floor(Math.random() * createdProducts.length)];
-    const subtotal = Number(p1.price) + Number(p2.price);
-    const deliveryFee = subtotal >= 60 ? 0 : 5.0;
-    const totalAmount = subtotal + deliveryFee;
-
-    const orderDate = new Date(now - (4 + i) * 60 * 60 * 1000); // 4 a 6 horas atrás
-
-    ordersToCreate.push({
-      userId: user.id,
-      status: "completed" as OrderStatus,
-      subtotal,
-      deliveryFee,
-      discountAmount: 0,
-      totalAmount,
-      paymentMethodType: "pix_entrega" as PaymentMethodType,
-      paymentChangeFor: null,
-      deliveryStreet: addr.street,
-      deliveryNumber: addr.number,
-      deliveryNeighborhood: addr.neighborhood,
-      deliveryCity: "Cuiabá",
-      deliveryZip: addr.zip,
-      createdAt: orderDate,
-      updatedAt: orderDate,
-      items: [
-        { productId: p1.id, quantity: 1, priceAtTime: Number(p1.price) },
-        { productId: p2.id, quantity: 1, priceAtTime: Number(p2.price) },
-      ],
-    });
-  }
-
-  // 97 Pedidos restantes espalhados pelos últimos 44 dias
-  const remainingCount = 97;
-  for (let i = 0; i < remainingCount; i++) {
-    // Distribuição de dias: mais pedidos em dias recentes
-    const dayOffset = Math.floor(Math.pow(Math.random(), 1.4) * 44) + 1; // 1 a 44 dias atrás
-
-    // Pico de horário entre 15h e 22h
-    const hour = Math.floor(15 + Math.random() * 7.5); // 15 às 22h
-    const minute = Math.floor(Math.random() * 60);
-
-    const orderDate = new Date(now - dayOffset * 86400000);
-    orderDate.setHours(hour, minute, Math.floor(Math.random() * 60), 0);
-
-    // Distribuição de status: ~90% completed, ~10% cancelled
-    const isCancelled = Math.random() < 0.1;
-    const status: OrderStatus = isCancelled ? "cancelled" : "completed";
-
-    // Formas de pagamento: 65% pix, 25% cartão, 10% dinheiro
-    const randPay = Math.random();
-    let paymentMethodType: PaymentMethodType = "pix_entrega";
-    if (randPay > 0.65 && randPay <= 0.9) {
-      paymentMethodType = "cartao_maquininha";
-    } else if (randPay > 0.9) {
-      paymentMethodType = "dinheiro";
+    let closeDate: Date | null = null;
+    if (!sCfg.isOpen) {
+      closeDate = new Date(openDate.getTime());
+      closeDate.setHours(23, 30, 0, 0);
     }
 
-    // Modalidade: 70% delivery, 30% balcão
-    const isDelivery = Math.random() < 0.7;
-    const user = createdUsers[Math.floor(Math.random() * createdUsers.length)];
-    const addr = CUIABA_ADDRESSES[Math.floor(Math.random() * CUIABA_ADDRESSES.length)];
-
-    // Itens: 1 a 3 itens variados
-    const itemCount = Math.random() < 0.6 ? 1 : Math.random() < 0.85 ? 2 : 3;
-    const items = [];
-    let subtotal = 0;
-
-    for (let j = 0; j < itemCount; j++) {
-      const prod = createdProducts[Math.floor(Math.random() * createdProducts.length)];
-      const qty = Math.random() < 0.8 ? 1 : 2;
-      items.push({
-        productId: prod.id,
-        quantity: qty,
-        priceAtTime: Number(prod.price),
-      });
-      subtotal += Number(prod.price) * qty;
-    }
-
-    const deliveryFee = isDelivery ? (subtotal >= 60 ? 0 : 5.0) : 0;
-    const totalAmount = subtotal + deliveryFee;
-
-    ordersToCreate.push({
-      userId: user.id,
-      status,
-      subtotal,
-      deliveryFee,
-      discountAmount: 0,
-      totalAmount,
-      paymentMethodType,
-      paymentChangeFor: paymentMethodType === "dinheiro" ? Math.ceil(totalAmount / 10) * 10 + 10 : null,
-      deliveryStreet: isDelivery ? addr.street : "Retirada no Balcão da Loja",
-      deliveryNumber: isDelivery ? addr.number : "S/N",
-      deliveryNeighborhood: isDelivery ? addr.neighborhood : "Balcão",
-      deliveryCity: "Cuiabá",
-      deliveryZip: isDelivery ? addr.zip : null,
-      cancellationReason: isCancelled ? (Math.random() < 0.5 ? "Cliente solicitou o cancelamento" : "Endereço fora da área de entrega") : null,
-      cancelledAt: isCancelled ? orderDate : null,
-      createdAt: orderDate,
-      updatedAt: orderDate,
-      items,
-    });
-  }
-
-  // Inserção no banco em ordem cronológica
-  ordersToCreate.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-
-  for (const ord of ordersToCreate) {
-    await prisma.order.create({
+    const shift = await prisma.shift.create({
       data: {
-        userId: ord.userId,
-        status: ord.status,
-        subtotal: ord.subtotal,
-        deliveryFee: ord.deliveryFee,
-        discountAmount: ord.discountAmount,
-        totalAmount: ord.totalAmount,
-        paymentMethodType: ord.paymentMethodType,
-        paymentChangeFor: ord.paymentChangeFor,
-        deliveryStreet: ord.deliveryStreet,
-        deliveryNumber: ord.deliveryNumber,
-        deliveryNeighborhood: ord.deliveryNeighborhood,
-        deliveryCity: ord.deliveryCity,
-        deliveryZip: ord.deliveryZip,
-        cancellationReason: ord.cancellationReason,
-        cancelledAt: ord.cancelledAt,
-        createdAt: ord.createdAt,
-        updatedAt: ord.updatedAt,
-        items: {
-          create: ord.items.map((it) => ({
-            productId: it.productId,
-            quantity: it.quantity,
-            priceAtTime: it.priceAtTime,
-            createdAt: ord.createdAt,
-          })),
+        code: sCfg.code,
+        openedAt: openDate,
+        closedAt: closeDate,
+        isOpen: sCfg.isOpen,
+        estimatedDeliveryTime: "30-50 min",
+        notes: sCfg.isOpen ? "Turno operacional em andamento no salão e delivery." : "Turno encerrado com sucesso.",
+      },
+    });
+
+    if (sCfg.isOpen) {
+      currentOpenShiftId = shift.id;
+    }
+
+    let shiftTotalRev = 0;
+    let shiftCashTotal = 0;
+    let shiftPixTotal = 0;
+    let shiftCardTotal = 0;
+    let shiftCompletedCount = 0;
+    let shiftCancelledCount = 0;
+
+    for (let i = 0; i < sCfg.ordersCount; i++) {
+      const u = createdUsers[(i + sCfg.daysAgo) % createdUsers.length];
+      const addr = MT_ADDRESSES[(i + sCfg.daysAgo) % MT_ADDRESSES.length];
+      const isDelivery = i % 4 !== 0;
+
+      // Hora do pedido ao longo do turno
+      const orderDate = new Date(openDate.getTime() + (i * 25 + Math.floor(Math.random() * 15)) * 60000);
+      if (orderDate > now) {
+        orderDate.setTime(now.getTime() - (sCfg.ordersCount - i) * 120000);
+      }
+
+      // Status
+      let orderStatus: OrderStatus = "completed";
+      if (sCfg.isOpen) {
+        if (i === sCfg.ordersCount - 1) orderStatus = "pending";
+        else if (i === sCfg.ordersCount - 2) orderStatus = "accepted";
+        else if (i === sCfg.ordersCount - 3) orderStatus = "preparing";
+        else if (i === sCfg.ordersCount - 4) orderStatus = "delivering";
+        else orderStatus = "completed";
+      } else {
+        orderStatus = i === 3 ? "cancelled" : "completed";
+      }
+
+      // Pagamento: 60% pix, 25% cartão, 15% dinheiro
+      let pType: PaymentMethodType = "pix_entrega";
+      if (i % 3 === 1) pType = "cartao_maquininha";
+      else if (i % 5 === 0) pType = "dinheiro";
+
+      // Itens e complementos selecionados
+      const prod = createdProducts[i % createdProducts.length];
+      const qty = 1;
+      let extrasCost = 0;
+
+      const selectedAddons: any[] = [];
+      if (prod.hasAddons) {
+        // Base obrigatória
+        selectedAddons.push({
+          id: groupBase.items[0].id,
+          groupName: groupBase.name,
+          name: groupBase.items[0].name,
+          price: 0,
+          quantity: 1,
+        });
+        // 2 frutas inclusas
+        selectedAddons.push({
+          id: groupFrutas.items[0].id,
+          groupName: groupFrutas.name,
+          name: groupFrutas.items[0].name,
+          price: 0,
+          quantity: 1,
+        });
+        selectedAddons.push({
+          id: groupFrutas.items[1].id,
+          groupName: groupFrutas.name,
+          name: groupFrutas.items[1].name,
+          price: 0,
+          quantity: 1,
+        });
+        // 1 adicional pago (Nutella)
+        selectedAddons.push({
+          id: groupTurbine.items[0].id,
+          groupName: groupTurbine.name,
+          name: groupTurbine.items[0].name,
+          price: 4.5,
+          quantity: 1,
+        });
+        extrasCost = 4.5;
+      }
+
+      const itemUnitPrice = prod.price + extrasCost;
+      const subtotal = itemUnitPrice * qty;
+      const deliveryFee = isDelivery ? (subtotal >= 60 ? 0 : 5.0) : 0;
+      const totalAmount = subtotal + deliveryFee;
+
+      const order = await prisma.order.create({
+        data: {
+          user: { connect: { id: u.id } },
+          shiftId: shift.id,
+          status: orderStatus,
+          subtotal,
+          deliveryFee,
+          discountAmount: 0,
+          totalAmount,
+          paymentMethodType: pType,
+          paymentChangeFor: pType === "dinheiro" ? Math.ceil(totalAmount / 10) * 10 + 10 : null,
+          changeFor: pType === "dinheiro" ? Math.ceil(totalAmount / 10) * 10 + 10 : null,
+          changeToReturn: pType === "dinheiro" ? Math.ceil(totalAmount / 10) * 10 + 10 - totalAmount : null,
+          deliveryStreet: isDelivery ? addr.street : "Retirada Balcão",
+          deliveryNumber: isDelivery ? addr.number : "S/N",
+          deliveryNeighborhood: isDelivery ? addr.neighborhood : "Loja",
+          deliveryCity: addr.city,
+          deliveryZip: isDelivery ? addr.zip : null,
+          isArchived: !sCfg.isOpen,
+          cancellationReason: orderStatus === "cancelled" ? "Cliente solicitou alteração de endereço" : null,
+          cancelledAt: orderStatus === "cancelled" ? orderDate : null,
+          createdAt: orderDate,
+          updatedAt: orderDate,
+          items: {
+            create: [
+              {
+                productId: prod.id,
+                quantity: qty,
+                priceAtTime: itemUnitPrice,
+                selectedAddons: selectedAddons.length > 0 ? (selectedAddons as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
+                createdAt: orderDate,
+              },
+            ],
+          },
         },
+      });
+
+      if (orderStatus === "completed") {
+        shiftTotalRev += totalAmount;
+        shiftCompletedCount++;
+        if (pType === "pix_entrega") shiftPixTotal += totalAmount;
+        else if (pType === "cartao_maquininha") shiftCardTotal += totalAmount;
+        else if (pType === "dinheiro") shiftCashTotal += totalAmount;
+      } else if (orderStatus === "cancelled") {
+        shiftCancelledCount++;
+      }
+    }
+
+    // Atualiza estatísticas consolidadas do turno
+    await prisma.shift.update({
+      where: { id: shift.id },
+      data: {
+        totalRevenue: shiftTotalRev,
+        totalOrders: sCfg.ordersCount,
+        completedOrders: shiftCompletedCount,
+        cancelledOrders: shiftCancelledCount,
+        pixTotal: shiftPixTotal,
+        cardTotal: shiftCardTotal,
+        cashTotal: shiftCashTotal,
       },
     });
   }
 
-  console.log(`✅ ${ordersToCreate.length} pedidos históricos criados com sucesso!`);
-  console.log("🎉 Seed oficial da Pop Shake Sorveteria concluído com êxito!");
+  // Se houver turno em aberto hoje, vincula nas StoreSettings
+  if (currentOpenShiftId) {
+    await prisma.storeSettings.update({
+      where: { id: "store_config" },
+      data: {
+        currentShiftId: currentOpenShiftId,
+        isOpen: true,
+      },
+    });
+  }
+
+  console.log("🎉 Seed concluído com sucesso total! Catálogo real, complementos vinculados e histórico por turno criados.");
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Erro ao executar seed:", e);
+    console.error("❌ Erro fatal durante a execução do seed:", e);
     process.exit(1);
   })
   .finally(async () => {

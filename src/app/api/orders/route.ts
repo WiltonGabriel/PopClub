@@ -58,6 +58,7 @@ function formatOrder(o: any) {
       product_id: it.productId,
       quantity: it.quantity,
       price_at_time: Number(it.priceAtTime),
+      selected_addons: (it as any).selectedAddons || null,
       product: it.product
         ? {
             id: it.product.id,
@@ -109,6 +110,7 @@ export async function GET(request: Request) {
     const endDate = searchParams.get("endDate");
     const search = searchParams.get("search")?.trim();
     const guestOrderIdsParam = searchParams.get("guestOrderIds")?.trim();
+    const shiftId = searchParams.get("shiftId")?.trim();
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
     const limit = Math.max(1, Math.min(100, parseInt(searchParams.get("limit") || "15", 10)));
 
@@ -148,6 +150,11 @@ export async function GET(request: Request) {
       whereClause.status = statusFilter as OrderStatus;
     }
 
+    // Filtro por Turno / Esteira
+    if (shiftId) {
+      whereClause.shiftId = shiftId;
+    }
+
     // Filtro por intervalo de datas
     if (startDate || endDate) {
       whereClause.createdAt = {};
@@ -161,14 +168,19 @@ export async function GET(request: Request) {
       }
     }
 
-    // Busca textual por ID, Nome, Usuário ou Telefone
+    // Busca textual por ID (mesmo com prefixo #), Nome, Usuário, Telefone ou Rua/Bairro
     if (search) {
+      const cleanSearch = search.trim();
+      const idSearch = cleanSearch.replace(/^#/, "").trim();
+      const digitsOnly = cleanSearch.replace(/\D/g, "");
       whereClause.OR = [
-        { id: { contains: search, mode: "insensitive" } },
-        { user: { fullName: { contains: search, mode: "insensitive" } } },
-        { user: { username: { contains: search, mode: "insensitive" } } },
-        { user: { phone: { contains: search, mode: "insensitive" } } },
-        { deliveryStreet: { contains: search, mode: "insensitive" } },
+        ...(idSearch ? [{ id: { contains: idSearch, mode: "insensitive" as const } }] : []),
+        { user: { fullName: { contains: cleanSearch, mode: "insensitive" as const } } },
+        { user: { username: { contains: cleanSearch, mode: "insensitive" as const } } },
+        { user: { phone: { contains: cleanSearch, mode: "insensitive" as const } } },
+        ...(digitsOnly.length >= 4 ? [{ user: { phone: { contains: digitsOnly, mode: "insensitive" as const } } }] : []),
+        { deliveryStreet: { contains: cleanSearch, mode: "insensitive" as const } },
+        { deliveryNeighborhood: { contains: cleanSearch, mode: "insensitive" as const } },
       ];
     }
 

@@ -9,6 +9,13 @@ export interface OrderItem {
   product_id: string;
   quantity: number;
   price_at_time: number;
+  selected_addons?: Array<{
+    id: string;
+    name: string;
+    groupName?: string;
+    price: number;
+    quantity: number;
+  }> | null;
   product?: {
     id: string;
     name: string;
@@ -204,6 +211,7 @@ export const orderService = {
     startDate?: string;
     endDate?: string;
     search?: string;
+    shiftId?: string;
   }): Promise<HistoricalOrdersResponse> {
     const query = new URLSearchParams({
       all: "true",
@@ -217,6 +225,7 @@ export const orderService = {
     if (params.startDate) query.set("startDate", params.startDate);
     if (params.endDate) query.set("endDate", params.endDate);
     if (params.search) query.set("search", params.search);
+    if (params.shiftId) query.set("shiftId", params.shiftId);
 
     const res = await fetch(`/api/orders?${query.toString()}`, {
       signal: AbortSignal.timeout(10000),

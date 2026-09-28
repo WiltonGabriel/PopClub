@@ -35,6 +35,28 @@ export function printOrderReceipt(order: Order, storeName = "Pop Shake Sorveteri
     .map((item) => {
       const itemTotal = (item.price_at_time * item.quantity).toFixed(2).replace(".", ",");
       const unitPrice = item.price_at_time.toFixed(2).replace(".", ",");
+      const addons = (item.selected_addons || (item as any).selectedAddons || []) as Array<{
+        name: string;
+        groupName?: string;
+        price: number;
+        quantity: number;
+      }>;
+      const addonsHtml =
+        addons && addons.length > 0
+          ? `
+        <div style="font-size: 10px; color: #333; padding-left: 10px; margin-top: 2px;">
+          ${addons
+            .map(
+              (a) =>
+                `<div>• ${a.quantity > 1 ? `${a.quantity}x ` : ""}${a.name} ${
+                  a.price > 0 ? `(+ R$ ${(a.price * a.quantity).toFixed(2).replace(".", ",")})` : "(Incluso)"
+                }</div>`
+            )
+            .join("")}
+        </div>
+      `
+          : "";
+
       return `
       <div style="margin-bottom: 6px;">
         <div style="display: flex; justify-content: space-between; font-weight: bold;">
@@ -45,6 +67,7 @@ export function printOrderReceipt(order: Order, storeName = "Pop Shake Sorveteri
           ${item.quantity > 1 ? `(${item.quantity} x R$ ${unitPrice})` : ""}
           ${item.product?.description ? `<div>${item.product.description}</div>` : ""}
         </div>
+        ${addonsHtml}
       </div>
     `;
     })
