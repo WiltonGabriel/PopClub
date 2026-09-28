@@ -51,6 +51,7 @@ export interface Order {
   change_to_return?: number | null;
   delivery_address?: DeliveryAddress;
   shift_id?: string | null;
+  shift_code?: string | null;
   is_archived?: boolean;
   tracking_token?: string | null;
   is_gps_tracking_active?: boolean;

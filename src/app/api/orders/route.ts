@@ -4,7 +4,7 @@ import { getAuthUser } from "@/lib/auth";
 import { Prisma, OrderStatus } from "@prisma/client";
 import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
 
-function formatOrder(o: any) {
+function formatOrder(o: any, shiftCode?: string | null) {
   return {
     id: o.id,
     user_id: o.userId,
@@ -18,6 +18,7 @@ function formatOrder(o: any) {
     change_for: o.changeFor ? Number(o.changeFor) : (o.paymentChangeFor ? Number(o.paymentChangeFor) : null),
     change_to_return: o.changeToReturn ? Number(o.changeToReturn) : null,
     shift_id: o.shiftId,
+    shift_code: shiftCode !== undefined ? shiftCode : null,
     is_archived: o.isArchived,
     tracking_token: o.trackingToken || null,
     is_gps_tracking_active: Boolean(o.isGpsTrackingActive),
@@ -98,8 +99,17 @@ export async function GET(request: Request) {
          return apiError("Acesso negado a este pedido.", 403, "FORBIDDEN");
       }
 
+      let shiftCode: string | null = null;
+      if (order.shiftId) {
+        const sh = await prisma.shift.findUnique({
+          where: { id: order.shiftId },
+          select: { code: true },
+        });
+        shiftCode = sh?.code || null;
+      }
+
       // Rastreamento público liberado via link direto do ID do pedido
-      return apiSuccess(formatOrder(order));
+      return apiSuccess(formatOrder(order, shiftCode));
     }
 
     const all = searchParams.get("all") === "true";
@@ -213,8 +223,19 @@ export async function GET(request: Request) {
       const averageTicket = validOrdersForRevenue.length > 0 ? totalRevenue / validOrdersForRevenue.length : 0;
       const totalPages = Math.ceil(total / limit) || 1;
 
+      // Resolução de códigos de turnos para os pedidos
+      const shiftIds = Array.from(new Set(orders.map((o) => o.shiftId).filter(Boolean))) as string[];
+      let shiftCodeMap = new Map<string, string>();
+      if (shiftIds.length > 0) {
+        const shiftsFound = await prisma.shift.findMany({
+          where: { id: { in: shiftIds } },
+          select: { id: true, code: true },
+        });
+        shiftCodeMap = new Map(shiftsFound.map((s) => [s.id, s.code]));
+      }
+
       return apiSuccess({
-        orders: orders.map(formatOrder),
+        orders: orders.map((o) => formatOrder(o, o.shiftId ? shiftCodeMap.get(o.shiftId) || null : null)),
         total,
         page,
         limit,
@@ -237,7 +258,19 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    return apiSuccess(orders.map(formatOrder));
+    const shiftIds = Array.from(new Set(orders.map((o) => o.shiftId).filter(Boolean))) as string[];
+    let shiftCodeMap = new Map<string, string>();
+    if (shiftIds.length > 0) {
+      const shiftsFound = await prisma.shift.findMany({
+        where: { id: { in: shiftIds } },
+        select: { id: true, code: true },
+      });
+      shiftCodeMap = new Map(shiftsFound.map((s) => [s.id, s.code]));
+    }
+
+    return apiSuccess(
+      orders.map((o) => formatOrder(o, o.shiftId ? shiftCodeMap.get(o.shiftId) || null : null))
+    );
   } catch (error: unknown) {
     return handleApiError(error, "GET /api/orders", "Erro ao listar pedidos.");
   }

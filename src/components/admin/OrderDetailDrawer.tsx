@@ -14,6 +14,7 @@ import {
   Sparkles,
   Bike,
   Printer,
+  Layers,
 } from "lucide-react";
 import { Order, OrderStatus } from "../../services/orderService";
 import { Button } from "../ui/button";
@@ -151,13 +152,22 @@ export function OrderDetailDrawer({
           {/* Header */}
           <div className="p-5 border-b border-gray-100 dark:border-border/30 flex items-center justify-between bg-gray-50/50 dark:bg-[#1F0B22]/50">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-mono font-black text-lg text-primary dark:text-muted-foreground">
                   #{order.id.substring(0, 8)}
                 </span>
                 <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${statusInfo.color}`}>
                   {statusInfo.label}
                 </span>
+                {(order.shift_code || order.shift_id) && (
+                  <span
+                    className="inline-flex items-center gap-1 font-mono text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40"
+                    title="Turno / Esteira de Origem"
+                  >
+                    <Layers className="w-3 h-3 text-purple-500" />
+                    {order.shift_code || order.shift_id}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Registrado em {createdDate.toLocaleDateString("pt-BR")} às {createdDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import {
   History,
@@ -40,6 +40,10 @@ import { MobileOrientationBanner } from "@/components/admin/MobileOrientationBan
 type DateRangeOption = "today" | "yesterday" | "last7days" | "last30days" | "custom" | "all";
 type ViewMode = "shifts" | "individual";
 
+function formatBRL(value: number): string {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+}
+
 function formatDuration(openedAt: string, closedAt: string | null): string {
   const start = new Date(openedAt).getTime();
   const end = closedAt ? new Date(closedAt).getTime() : Date.now();
@@ -60,6 +64,17 @@ export default function AdminHistoricoPage() {
   // Estados dos Turnos
   const [shifts, setShifts] = useState<ShiftRecord[]>([]);
   const [selectedShift, setSelectedShift] = useState<ShiftRecord | null>(null);
+
+  // Mapa de Id -> Código de Turno para enriquecimento rápido
+  const shiftCodeMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const s of shifts) {
+      if (s.id && s.code) {
+        map.set(s.id, s.code);
+      }
+    }
+    return map;
+  }, [shifts]);
   const [shiftOrders, setShiftOrders] = useState<Order[]>([]);
   const [shiftOrdersTotal, setShiftOrdersTotal] = useState(0);
   const [shiftOrdersPage, setShiftOrdersPage] = useState(1);
@@ -510,8 +525,8 @@ export default function AdminHistoricoPage() {
                           <span className="text-[11px] text-gray-500 dark:text-gray-400">
                             {shift.completedOrders} concluídos
                           </span>
-                          <span className="font-heading font-black text-sm text-emerald-600 dark:text-emerald-400 font-mono">
-                            {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(shift.totalRevenue)}
+                          <span className="font-heading font-extrabold text-sm text-emerald-600 dark:text-emerald-400 tracking-tight">
+                            {formatBRL(shift.totalRevenue)}
                           </span>
                         </div>
                       </div>
@@ -555,80 +570,100 @@ export default function AdminHistoricoPage() {
                 </div>
 
                 {/* Métricas Principais */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                   {/* Faturamento Bruto */}
-                  <div className="bg-gradient-to-br from-emerald-500/10 to-transparent border border-emerald-500/20 rounded-2xl p-4.5">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                  <div className="bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 rounded-2xl p-4 min-h-[108px] flex flex-col justify-between shadow-xs">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 truncate">
                         Faturamento Bruto
                       </span>
-                      <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                      <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                        <DollarSign className="w-4 h-4" />
+                      </div>
                     </div>
-                    <span className="font-heading font-black text-2xl sm:text-3xl text-emerald-600 dark:text-emerald-400 font-mono">
-                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(selectedShift.totalRevenue)}
-                    </span>
-                    <span className="block text-[11px] text-gray-500 mt-1">Exclusivo pedidos concluídos</span>
+                    <div>
+                      <span className="font-heading font-extrabold text-xl sm:text-2xl text-emerald-600 dark:text-emerald-400 tracking-tight leading-none block truncate">
+                        {formatBRL(selectedShift.totalRevenue)}
+                      </span>
+                      <span className="block text-[11px] text-gray-500 dark:text-gray-400 mt-1 truncate">
+                        Exclusivo pedidos concluídos
+                      </span>
+                    </div>
                   </div>
 
                   {/* Concluídos vs Cancelados */}
-                  <div className="bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 rounded-2xl p-4.5">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
+                  <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-2xl p-4 min-h-[108px] flex flex-col justify-between shadow-xs">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-primary truncate">
                         Status dos Pedidos
                       </span>
-                      <ShoppingBag className="w-5 h-5 text-primary" />
+                      <div className="w-8 h-8 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                        <ShoppingBag className="w-4 h-4" />
+                      </div>
                     </div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-heading font-black text-2xl sm:text-3xl text-foreground font-mono">
-                        {selectedShift.completedOrders}
-                      </span>
-                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">concluídos</span>
-                      {selectedShift.cancelledOrders > 0 && (
-                        <span className="text-xs font-bold text-red-600 dark:text-red-400">
-                          ({selectedShift.cancelledOrders} canc.)
+                    <div>
+                      <div className="flex items-baseline gap-1.5 flex-wrap">
+                        <span className="font-heading font-extrabold text-xl sm:text-2xl text-foreground tracking-tight leading-none">
+                          {selectedShift.completedOrders}
                         </span>
-                      )}
+                        <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">concluídos</span>
+                        {selectedShift.cancelledOrders > 0 && (
+                          <span className="text-xs font-semibold text-rose-500 dark:text-rose-400">
+                            ({selectedShift.cancelledOrders} canc.)
+                          </span>
+                        )}
+                      </div>
+                      <span className="block text-[11px] text-gray-500 dark:text-gray-400 mt-1 truncate">
+                        Taxa de Sucesso:{" "}
+                        {selectedShift.totalOrders > 0
+                          ? `${Math.round((selectedShift.completedOrders / selectedShift.totalOrders) * 100)}%`
+                          : "0%"}
+                      </span>
                     </div>
-                    <span className="block text-[11px] text-gray-500 mt-1">
-                      Taxa de Sucesso:{" "}
-                      {selectedShift.totalOrders > 0
-                        ? `${Math.round((selectedShift.completedOrders / selectedShift.totalOrders) * 100)}%`
-                        : "0%"}
-                    </span>
                   </div>
 
                   {/* Ticket Médio */}
-                  <div className="bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-500/20 rounded-2xl p-4.5">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300">
+                  <div className="bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent border border-purple-500/20 rounded-2xl p-4 min-h-[108px] flex flex-col justify-between shadow-xs">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 truncate">
                         Ticket Médio
                       </span>
-                      <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                      <div className="w-8 h-8 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                        <TrendingUp className="w-4 h-4" />
+                      </div>
                     </div>
-                    <span className="font-heading font-black text-2xl sm:text-3xl text-purple-600 dark:text-purple-400 font-mono">
-                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-                        selectedShift.completedOrders > 0
-                          ? selectedShift.totalRevenue / selectedShift.completedOrders
-                          : 0
-                      )}
-                    </span>
-                    <span className="block text-[11px] text-gray-500 mt-1">Média por pedido concluído</span>
+                    <div>
+                      <span className="font-heading font-extrabold text-xl sm:text-2xl text-purple-600 dark:text-purple-400 tracking-tight leading-none block truncate">
+                        {formatBRL(
+                          selectedShift.completedOrders > 0
+                            ? selectedShift.totalRevenue / selectedShift.completedOrders
+                            : 0
+                        )}
+                      </span>
+                      <span className="block text-[11px] text-gray-500 dark:text-gray-400 mt-1 truncate">
+                        Média por pedido concluído
+                      </span>
+                    </div>
                   </div>
 
                   {/* Total de Pedidos da Noite */}
-                  <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-border/40 rounded-2xl p-4.5">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <div className="bg-gray-50/80 dark:bg-white/5 border border-gray-200 dark:border-border/40 rounded-2xl p-4 min-h-[108px] flex flex-col justify-between shadow-xs">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">
                         Total de Pedidos
                       </span>
-                      <Layers className="w-5 h-5 text-gray-500" />
+                      <div className="w-8 h-8 rounded-xl bg-gray-200/60 dark:bg-white/10 text-gray-600 dark:text-gray-300 flex items-center justify-center shrink-0">
+                        <Layers className="w-4 h-4" />
+                      </div>
                     </div>
-                    <span className="font-heading font-black text-2xl sm:text-3xl text-foreground font-mono">
-                      {selectedShift.totalOrders}
-                    </span>
-                    <span className="block text-[11px] text-gray-500 mt-1">
-                      {selectedShift.cancelledOrders} cancelamentos registrados
-                    </span>
+                    <div>
+                      <span className="font-heading font-extrabold text-xl sm:text-2xl text-foreground tracking-tight leading-none block truncate">
+                        {selectedShift.totalOrders}
+                      </span>
+                      <span className="block text-[11px] text-gray-500 dark:text-gray-400 mt-1 truncate">
+                        {selectedShift.cancelledOrders} cancelamento(s)
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -639,17 +674,17 @@ export default function AdminHistoricoPage() {
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {/* PIX */}
-                    <div className="bg-white dark:bg-[#1E0922] border border-teal-200 dark:border-teal-900/40 rounded-2xl p-4 shadow-xs flex items-center justify-between">
-                      <div className="space-y-1">
-                        <span className="text-[11px] uppercase font-bold tracking-wider text-teal-700 dark:text-teal-300 flex items-center gap-1">
-                          <Zap className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" /> PIX (Entrega / Balcão)
+                    <div className="bg-white dark:bg-[#1E0922] border border-teal-200/80 dark:border-teal-900/50 rounded-2xl p-4 shadow-xs flex items-center justify-between gap-3">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <span className="text-[11px] uppercase font-bold tracking-wider text-teal-700 dark:text-teal-300 flex items-center gap-1.5 truncate">
+                          <Zap className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" /> PIX (Entrega / Balcão)
                         </span>
-                        <span className="font-heading font-black text-xl text-teal-700 dark:text-teal-300 font-mono block">
-                          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(selectedShift.pixTotal)}
+                        <span className="font-heading font-extrabold text-lg sm:text-xl text-teal-700 dark:text-teal-300 tracking-tight block truncate">
+                          {formatBRL(selectedShift.pixTotal)}
                         </span>
                       </div>
-                      <div className="text-right">
-                        <span className="text-xs font-bold text-gray-500">
+                      <div className="text-right shrink-0">
+                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800/40">
                           {selectedShift.totalRevenue > 0
                             ? `${Math.round((selectedShift.pixTotal / selectedShift.totalRevenue) * 100)}%`
                             : "0%"}
@@ -658,17 +693,17 @@ export default function AdminHistoricoPage() {
                     </div>
 
                     {/* Cartão (Maquininha) */}
-                    <div className="bg-white dark:bg-[#1E0922] border border-blue-200 dark:border-blue-900/40 rounded-2xl p-4 shadow-xs flex items-center justify-between">
-                      <div className="space-y-1">
-                        <span className="text-[11px] uppercase font-bold tracking-wider text-blue-700 dark:text-blue-300 flex items-center gap-1">
-                          <CreditCard className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" /> Cartão (Maquininha)
+                    <div className="bg-white dark:bg-[#1E0922] border border-blue-200/80 dark:border-blue-900/50 rounded-2xl p-4 shadow-xs flex items-center justify-between gap-3">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <span className="text-[11px] uppercase font-bold tracking-wider text-blue-700 dark:text-blue-300 flex items-center gap-1.5 truncate">
+                          <CreditCard className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" /> Cartão (Maquininha)
                         </span>
-                        <span className="font-heading font-black text-xl text-blue-700 dark:text-blue-300 font-mono block">
-                          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(selectedShift.cardTotal)}
+                        <span className="font-heading font-extrabold text-lg sm:text-xl text-blue-700 dark:text-blue-300 tracking-tight block truncate">
+                          {formatBRL(selectedShift.cardTotal)}
                         </span>
                       </div>
-                      <div className="text-right">
-                        <span className="text-xs font-bold text-gray-500">
+                      <div className="text-right shrink-0">
+                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40">
                           {selectedShift.totalRevenue > 0
                             ? `${Math.round((selectedShift.cardTotal / selectedShift.totalRevenue) * 100)}%`
                             : "0%"}
@@ -677,17 +712,17 @@ export default function AdminHistoricoPage() {
                     </div>
 
                     {/* Dinheiro em Espécie */}
-                    <div className="bg-white dark:bg-[#1E0922] border border-amber-200 dark:border-amber-900/40 rounded-2xl p-4 shadow-xs flex items-center justify-between">
-                      <div className="space-y-1">
-                        <span className="text-[11px] uppercase font-bold tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1">
-                          <Banknote className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> Dinheiro em Espécie
+                    <div className="bg-white dark:bg-[#1E0922] border border-amber-200/80 dark:border-amber-900/50 rounded-2xl p-4 shadow-xs flex items-center justify-between gap-3">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <span className="text-[11px] uppercase font-bold tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1.5 truncate">
+                          <Banknote className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" /> Dinheiro em Espécie
                         </span>
-                        <span className="font-heading font-black text-xl text-amber-800 dark:text-amber-300 font-mono block">
-                          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(selectedShift.cashTotal)}
+                        <span className="font-heading font-extrabold text-lg sm:text-xl text-amber-800 dark:text-amber-300 tracking-tight block truncate">
+                          {formatBRL(selectedShift.cashTotal)}
                         </span>
                       </div>
-                      <div className="text-right">
-                        <span className="text-xs font-bold text-gray-500">
+                      <div className="text-right shrink-0">
+                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40">
                           {selectedShift.totalRevenue > 0
                             ? `${Math.round((selectedShift.cashTotal / selectedShift.totalRevenue) * 100)}%`
                             : "0%"}
@@ -813,8 +848,8 @@ export default function AdminHistoricoPage() {
                                 <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 block">
                                   Total
                                 </span>
-                                <span className="font-heading font-black text-sm text-emerald-600 dark:text-emerald-400 font-mono">
-                                  R$ {order.total_amount?.toFixed(2).replace(".", ",")}
+                                <span className="font-heading font-extrabold text-sm text-emerald-600 dark:text-emerald-400">
+                                  {formatBRL(order.total_amount || 0)}
                                 </span>
                               </div>
 
@@ -886,46 +921,46 @@ export default function AdminHistoricoPage() {
         {viewMode === "individual" && (
           <div className="space-y-6">
             {/* Cards de Métricas do Filtro Individual */}
-            <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white/95 dark:bg-[#230E26]/95 backdrop-blur-md border border-gray-200 dark:border-border/40 rounded-2xl p-5 min-h-[105px] shadow-sm flex items-center justify-between gap-4 overflow-hidden">
+            <section className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              <div className="bg-white/95 dark:bg-[#230E26]/95 backdrop-blur-md border border-gray-200 dark:border-border/40 rounded-2xl p-4 sm:p-4.5 min-h-[96px] shadow-sm flex items-center justify-between gap-3 overflow-hidden">
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
-                  <span className="text-[11px] sm:text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block mb-1 truncate">
+                  <span className="text-[11px] uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block mb-1 truncate">
                     Total de Pedidos
                   </span>
-                  <span className="font-heading font-black text-2xl sm:text-3xl text-foreground leading-tight sm:leading-normal block truncate">
+                  <span className="font-heading font-extrabold text-xl sm:text-2xl text-foreground tracking-tight leading-none block truncate">
                     {total}
                   </span>
                 </div>
-                <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <ShoppingBag className="w-6 h-6" />
+                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <ShoppingBag className="w-5 h-5" />
                 </div>
               </div>
 
-              <div className="bg-white/95 dark:bg-[#230E26]/95 backdrop-blur-md border border-gray-200 dark:border-border/40 rounded-2xl p-5 min-h-[105px] shadow-sm flex items-center justify-between gap-4 overflow-hidden">
+              <div className="bg-white/95 dark:bg-[#230E26]/95 backdrop-blur-md border border-gray-200 dark:border-border/40 rounded-2xl p-4 sm:p-4.5 min-h-[96px] shadow-sm flex items-center justify-between gap-3 overflow-hidden">
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
-                  <span className="text-[11px] sm:text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block mb-1 truncate">
+                  <span className="text-[11px] uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block mb-1 truncate">
                     Faturamento do Filtro
                   </span>
-                  <span className="font-heading font-black text-2xl sm:text-3xl text-emerald-600 dark:text-emerald-400 font-mono tracking-tight leading-tight sm:leading-normal block truncate">
-                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totalRevenue)}
+                  <span className="font-heading font-extrabold text-xl sm:text-2xl text-emerald-600 dark:text-emerald-400 tracking-tight leading-none block truncate">
+                    {formatBRL(totalRevenue)}
                   </span>
                 </div>
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-                  <DollarSign className="w-6 h-6" />
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                  <DollarSign className="w-5 h-5" />
                 </div>
               </div>
 
-              <div className="bg-white/95 dark:bg-[#230E26]/95 backdrop-blur-md border border-gray-200 dark:border-border/40 rounded-2xl p-5 min-h-[105px] shadow-sm flex items-center justify-between gap-4 overflow-hidden">
+              <div className="bg-white/95 dark:bg-[#230E26]/95 backdrop-blur-md border border-gray-200 dark:border-border/40 rounded-2xl p-4 sm:p-4.5 min-h-[96px] shadow-sm flex items-center justify-between gap-3 overflow-hidden">
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
-                  <span className="text-[11px] sm:text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block mb-1 truncate">
+                  <span className="text-[11px] uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block mb-1 truncate">
                     Ticket Médio
                   </span>
-                  <span className="font-heading font-black text-2xl sm:text-3xl text-primary font-mono tracking-tight leading-tight sm:leading-normal block truncate">
-                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(averageTicket)}
+                  <span className="font-heading font-extrabold text-xl sm:text-2xl text-primary tracking-tight leading-none block truncate">
+                    {formatBRL(averageTicket)}
                   </span>
                 </div>
-                <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <TrendingUp className="w-6 h-6" />
+                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <TrendingUp className="w-5 h-5" />
                 </div>
               </div>
             </section>
@@ -1077,6 +1112,20 @@ export default function AdminHistoricoPage() {
 
                           {getStatusBadge(order.status)}
 
+                          {(() => {
+                            const shiftCode = order.shift_code || (order.shift_id ? shiftCodeMap.get(order.shift_id) : null);
+                            if (!shiftCode) return null;
+                            return (
+                              <span
+                                className="inline-flex items-center gap-1 font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40"
+                                title={`Turno / Esteira de Origem: ${shiftCode}`}
+                              >
+                                <Layers className="w-3 h-3 text-purple-500 shrink-0" />
+                                <span>{shiftCode}</span>
+                              </span>
+                            );
+                          })()}
+
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300">
                             {isPickup ? "🛍️ Retirada" : "🛵 Entrega"}
                           </span>
@@ -1117,8 +1166,8 @@ export default function AdminHistoricoPage() {
                           <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 block">
                             Valor Total
                           </span>
-                          <span className="font-heading font-black text-base text-emerald-600 dark:text-emerald-400 font-mono">
-                            R$ {order.total_amount?.toFixed(2).replace(".", ",")}
+                          <span className="font-heading font-extrabold text-base text-emerald-600 dark:text-emerald-400">
+                            {formatBRL(order.total_amount || 0)}
                           </span>
                         </div>
 

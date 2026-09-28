@@ -327,9 +327,21 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
             onClick={() => loadData(true)}
             disabled={refreshing}
             title="Recarregar catálogo de produtos"
-            className="p-2 rounded-xl border border-gray-200 dark:border-[#512B54]/40 text-gray-600 dark:text-gray-300 hover:text-[#9306CF] hover:bg-gray-100 dark:hover:bg-white/5 transition-colors disabled:opacity-50"
+            className="p-2 rounded-xl border border-gray-200 dark:border-[#512B54]/40 text-gray-600 dark:text-gray-300 hover:text-[#9306CF] hover:bg-gray-100 dark:hover:bg-white/5 transition-colors disabled:opacity-50 cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin text-[#9306CF]" : ""}`} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setEditingProduct(null);
+              setIsEditDialogOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white text-xs font-bold uppercase tracking-wider shadow-sm shadow-[#9306CF]/25 transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Novo Produto</span>
           </button>
         </div>
       </div>
@@ -405,6 +417,17 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
           <p className="text-xs text-muted-foreground mt-1 max-w-sm">
             Nenhum item corresponde aos critérios de busca ou filtros selecionados.
           </p>
+          <button
+            type="button"
+            onClick={() => {
+              setEditingProduct(null);
+              setIsEditDialogOpen(true);
+            }}
+            className="mt-4 flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] text-white text-xs font-bold uppercase tracking-wider shadow-sm transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Cadastrar Novo Produto</span>
+          </button>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-[#512B54]/40">
@@ -414,7 +437,7 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
                 <th className="py-3.5 px-4">Item</th>
                 <th className="py-3.5 px-4">Preço de Venda</th>
                 <th className="py-3.5 px-4 min-w-[260px]">Controle de Estoque</th>
-                <th className="py-3.5 px-4 text-center">Saídas no Quadro</th>
+                <th className="py-3.5 px-4 text-center">Saídas no Turno</th>
                 <th className="py-3.5 px-4 text-right">Disponibilidade</th>
                 <th className="py-3.5 px-4 text-center">Ações</th>
               </tr>
@@ -459,25 +482,6 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
                             <h3 className="font-bold text-foreground text-sm truncate">
                               {product.name}
                             </h3>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingProduct(product);
-                                setIsEditDialogOpen(true);
-                              }}
-                              title="Editar dados cadastrais do produto"
-                              className="p-1 rounded-md text-gray-400 hover:text-[#9306CF] hover:bg-[#9306CF]/10 transition-colors cursor-pointer inline-flex items-center justify-center shrink-0"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleRequestDelete(product)}
-                              title="Excluir produto do catálogo"
-                              className="p-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer inline-flex items-center justify-center shrink-0"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
                             {!isAvailable && (
                               <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950/80 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/50">
                                 Esgotado
@@ -665,15 +669,20 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
           onOpenChange={setIsEditDialogOpen}
           productToEdit={editingProduct}
           categories={categories}
-          onSaved={(updatedProduct) => {
-            setProducts((prev) =>
-              prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
-            );
+          onSaved={(savedProduct) => {
+            setProducts((prev) => {
+              const exists = prev.some((p) => p.id === savedProduct.id);
+              if (exists) {
+                return prev.map((p) => (p.id === savedProduct.id ? savedProduct : p));
+              }
+              return [savedProduct, ...prev];
+            });
+            const wasEditing = !!editingProduct;
             setIsEditDialogOpen(false);
             setEditingProduct(null);
             showToast({
-              title: "Produto atualizado!",
-              message: `${updatedProduct.name} foi atualizado com sucesso.`,
+              title: wasEditing ? "Produto atualizado!" : "Produto cadastrado!",
+              message: `${savedProduct.name} foi ${wasEditing ? "atualizado" : "adicionado ao cardápio"} com sucesso.`,
               type: "success",
             });
             loadData(true);
