@@ -698,7 +698,7 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
 
             <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
               Tem certeza que deseja excluir o produto{" "}
-              <strong className="text-foreground">"{productToDelete.name}"</strong>? Esta ação não pode ser desfeita.
+              <strong className="text-foreground">&quot;{productToDelete.name}&quot;</strong>? Esta ação não pode ser desfeita.
             </p>
 
             <div className="flex items-center justify-end gap-2.5 pt-2">

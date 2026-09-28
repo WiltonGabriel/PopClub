@@ -41,6 +41,8 @@ export const checkoutLimiter = new RateLimiter(60 * 1000, 10); // 10 requests pe
 export const couponLimiter = new RateLimiter(60 * 1000, 10); // 10 requests per minute
 export const authLimiter = new RateLimiter(60 * 1000, 5); // 5 requests per minute
 export const forgotPasswordLimiter = new RateLimiter(15 * 60 * 1000, 3); // 3 requests per 15 minutes
+export const addonUploadLimiter = new RateLimiter(60 * 1000, 20); // 20 uploads per minute
+export const addonCrudLimiter = new RateLimiter(60 * 1000, 120); // 120 requests per minute
 
 export function getIpFromRequest(request: Request): string {
   const cfConnectingIp = request.headers.get("cf-connecting-ip");

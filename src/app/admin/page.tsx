@@ -26,6 +26,7 @@ import {
   Palette,
   Send,
   User,
+  IceCream,
 } from "lucide-react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { orderService, Order } from "../../services/orderService";
@@ -44,6 +45,7 @@ import { AnalyticsDashboard } from "../../components/admin/AnalyticsDashboard";
 import { DeliveryFeeSettings } from "../../components/admin/DeliveryFeeSettings";
 import { CardBadgesSection } from "../../components/admin/CardBadgesSection";
 import { LoyaltyBadgesSection } from "../../components/admin/LoyaltyBadgesSection";
+import { AddonsManagement } from "../../components/admin/AddonsManagement";
 import { OrderFlowSettings } from "../../components/admin/OrderFlowSettings";
 import { AvatarPresetManager } from "../../components/admin/AvatarPresetManager";
 import { VisualIdentitySection } from "../../components/admin/VisualIdentitySection";
@@ -63,7 +65,7 @@ export default function AdminDashboard() {
   });
   const [fetching, setFetching] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    "metrics" | "combos" | "promotions" | "banners" | "appearance" | "coupons" | "messages" | "delivery" | "avatars"
+    "metrics" | "combos" | "promotions" | "addons" | "banners" | "appearance" | "coupons" | "messages" | "delivery" | "avatars"
   >("metrics");
   const [promoDialogOpen, setPromoDialogOpen] = useState(false);
   const [promoToEdit, setPromoToEdit] = useState<Promotion | null>(null);
@@ -552,6 +554,19 @@ export default function AdminDashboard() {
 
                 <button
                   type="button"
+                  onClick={() => setActiveTab("addons")}
+                  className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
+                    activeTab === "addons"
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  <IceCream className="w-4 h-4" />
+                  <span>🍨 Complementos</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => setActiveTab("banners")}
                   className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
                     activeTab === "banners"
@@ -917,6 +932,9 @@ export default function AdminDashboard() {
                   )}
                 </section>
               )}
+
+              {/* CONTEÚDO DA ABA 4: COMPLEMENTOS (Grupos de Adicionais Globais) */}
+              {activeTab === "addons" && <AddonsManagement />}
 
               {/* CONTEÚDO DA ABA 4: BANNERS (Faixas e Carrossel da Vitrine) */}
               {activeTab === "banners" && (

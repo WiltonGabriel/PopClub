@@ -51,6 +51,17 @@ export function ComboFormDialog({
   const [durationDays, setDurationDays] = useState<string>("");
   const [showDuration, setShowDuration] = useState(false);
   const [durationDisplay, setDurationDisplay] = useState<string[]>([]);
+  const [validUntilPreview, setValidUntilPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (durationDays && !isNaN(parseInt(durationDays))) {
+      const d = new Date();
+      d.setDate(d.getDate() + parseInt(durationDays));
+      setValidUntilPreview(d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }));
+    } else {
+      setValidUntilPreview(null);
+    }
+  }, [durationDays]);
 
   // Produtos do combo: { [productId]: quantity }
   const [comboItems, setComboItems] = useState<{ [productId: string]: number }>({});
@@ -637,9 +648,9 @@ export function ComboFormDialog({
                   placeholder="Ex: 3 (deixe vazio p/ indeterminado)"
                   className="bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 rounded-xl text-sm"
                 />
-                {durationDays && (
+                {validUntilPreview && (
                   <p className="text-[11px] text-emerald-600 font-medium">
-                    Válido até: {new Date(Date.now() + parseInt(durationDays) * 86400000).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                    Válido até: {validUntilPreview}
                   </p>
                 )}
               </div>

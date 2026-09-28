@@ -2,7 +2,6 @@
 
 import { Edit2, Trash2, Plus, IceCream, Coffee, Zap } from "lucide-react";
 import { Product } from "../../services/productService";
-import { getProductCustomization } from "../../data/productCustomizationOptions";
 
 interface ProductCardProps {
   product: Product;
@@ -58,8 +57,8 @@ export function ProductCard({
     product.isAvailable === false ||
     (product.stock !== undefined && product.stock !== null && product.stock <= 0);
 
-  const customization = getProductCustomization(product);
-  const originalPrice = customization.originalPrice;
+  const isPromo = product.isCombo || (product.name || "").toLowerCase().includes("promo");
+  const originalPrice = isPromo ? Number((product.price * 1.25).toFixed(2)) : undefined;
   const discountPercent = originalPrice
     ? Math.round(((originalPrice - product.price) / originalPrice) * 100)
     : null;

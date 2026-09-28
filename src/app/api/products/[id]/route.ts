@@ -2,13 +2,77 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: {
+        categoryRel: { select: { name: true } },
+        cardBadge: true,
+        comboItems: { include: { product: true } },
+        addonGroups: {
+          include: {
+            group: {
+              include: {
+                items: {
+                  orderBy: { sortOrder: "asc" },
+                },
+              },
+            },
+          },
+          orderBy: { sortOrder: "asc" },
+        },
+      },
+    });
+
+    if (!product) {
+      return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      id: product.id,
+      name: product.name,
+      description: product.description || "",
+      price: Number(product.price),
+      categoryId: product.categoryId,
+      category: product.categoryRel?.name || product.category || "Outros",
+      imageUrl: product.imageUrl || "",
+      stock: product.stock,
+      isAvailable: product.isAvailable,
+      cardBadgeId: product.cardBadgeId,
+      cardBadge: product.cardBadge,
+      isCombo: product.isCombo,
+      comboItems: product.comboItems?.map((ci) => ({
+        id: ci.id,
+        productId: ci.productId,
+        quantity: ci.quantity,
+        product: {
+          id: ci.product.id,
+          name: ci.product.name,
+          price: Number(ci.product.price),
+          imageUrl: ci.product.imageUrl || "",
+        },
+      })) || [],
+      addonGroupIds: product.addonGroups?.map((ag) => ag.groupId) || [],
+      addonGroups: product.addonGroups?.map((ag) => ag.group) || [],
+    });
+  } catch (error: any) {
+    console.error("Erro ao buscar detalhes do produto:", error);
+    return NextResponse.json({ error: "Erro ao buscar detalhes do produto." }, { status: 500 });
+  }
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getAuthUser(request);
-    if (user?.role !== "admin") {
+    if (!user || user.role !== "admin") {
       return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
     }
 
@@ -19,7 +83,7 @@ export async function PUT(
     } catch {
       return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
     }
-    const { name, description, price, categoryId, category, imageUrl, stock, isAvailable, cardBadgeId, isCombo, comboItems } = body || {};
+    const { name, description, price, categoryId, category, imageUrl, stock, isAvailable, cardBadgeId, isCombo, comboItems, addonGroupIds } = body || {};
 
     const dataToUpdate: any = {};
     if (name !== undefined) dataToUpdate.name = name;
@@ -28,7 +92,7 @@ export async function PUT(
     if (categoryId !== undefined) dataToUpdate.categoryId = categoryId || null;
     if (category !== undefined) dataToUpdate.category = category;
     if (imageUrl !== undefined) dataToUpdate.imageUrl = imageUrl;
-    if (stock !== undefined) dataToUpdate.stock = stock !== null ? Number(stock) : null;
+    if (stock !== undefined) dataToUpdate.stock = stock !== null && stock !== "" ? Number(stock) : null;
     if (isAvailable !== undefined) dataToUpdate.isAvailable = Boolean(isAvailable);
     if (cardBadgeId !== undefined) dataToUpdate.cardBadgeId = cardBadgeId || null;
     if (isCombo !== undefined) dataToUpdate.isCombo = Boolean(isCombo);
@@ -42,13 +106,35 @@ export async function PUT(
       };
     }
 
+    if (Array.isArray(addonGroupIds)) {
+      dataToUpdate.addonGroups = {
+        deleteMany: {},
+        create: addonGroupIds.map((groupId: string, index: number) => ({
+          groupId,
+          sortOrder: index,
+        })),
+      };
+    }
+
     const updated = await prisma.product.update({
       where: { id },
       data: dataToUpdate,
       include: {
         categoryRel: { select: { name: true } },
         cardBadge: true,
-        comboItems: { include: { product: true } }
+        comboItems: { include: { product: true } },
+        addonGroups: {
+          include: {
+            group: {
+              include: {
+                items: {
+                  orderBy: { sortOrder: "asc" }
+                }
+              }
+            }
+          },
+          orderBy: { sortOrder: "asc" }
+        }
       },
     });
 
@@ -76,6 +162,8 @@ export async function PUT(
           imageUrl: ci.product.imageUrl || ""
         }
       })) || [],
+      addonGroupIds: updated.addonGroups?.map(ag => ag.groupId) || [],
+      addonGroups: updated.addonGroups?.map(ag => ag.group) || [],
     });
   } catch (error: any) {
     console.error("Erro ao atualizar produto:", error);
@@ -92,27 +180,18 @@ export async function DELETE(
 ) {
   try {
     const user = await getAuthUser(request);
-    if (user?.role !== "admin") {
+    if (!user || user.role !== "admin") {
       return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
     }
 
     const { id } = await params;
     await prisma.product.delete({ where: { id } });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, message: "Produto excluído com sucesso." });
   } catch (error: any) {
-    console.error("Erro ao deletar produto:", error);
+    console.error("Erro ao excluir produto:", error);
     if (error.code === "P2025") {
       return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
-    }
-    if (error.code === "P2003" || error.code === "P2014") {
-      return NextResponse.json(
-        {
-          error: "Não é possível excluir este produto pois existem pedidos vinculados a ele no histórico. Recomendamos pausar sua disponibilidade na cozinha.",
-          code: "PRODUCT_HAS_ORDERS",
-        },
-        { status: 409 }
-      );
     }
     return NextResponse.json({ error: "Erro ao excluir produto." }, { status: 500 });
   }

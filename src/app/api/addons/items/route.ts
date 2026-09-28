@@ -1,0 +1,64 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getAuthUser } from "@/lib/auth";
+import { addonCrudLimiter, getIpFromRequest } from "@/lib/rateLimit";
+
+export async function POST(request: Request) {
+  try {
+    const ip = getIpFromRequest(request);
+    const limitCheck = addonCrudLimiter.check(ip);
+    if (!limitCheck.success) {
+      return NextResponse.json({ error: "Muitas requisições. Aguarde um instante." }, { status: 429 });
+    }
+
+    const user = await getAuthUser(request);
+    if (!user || user.role !== "admin") {
+      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+    }
+
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Corpo da requisição inválido." }, { status: 400 });
+    }
+
+    const { groupId, name, price, imageUrl, isAvailable, sortOrder } = body || {};
+
+    if (!groupId || typeof groupId !== "string") {
+      return NextResponse.json({ error: "ID do grupo é obrigatório." }, { status: 400 });
+    }
+    if (!name || typeof name !== "string" || !name.trim()) {
+      return NextResponse.json({ error: "O nome do adicional é obrigatório." }, { status: 400 });
+    }
+
+    const group = await prisma.addonGroup.findUnique({ where: { id: groupId } });
+    if (!group) {
+      return NextResponse.json({ error: "Grupo de complementos não encontrado." }, { status: 404 });
+    }
+
+    const parsedPrice = Math.max(0, parseFloat(String(price ?? 0)) || 0);
+
+    const item = await prisma.addonItem.create({
+      data: {
+        groupId,
+        name: name.trim(),
+        price: parsedPrice,
+        imageUrl: imageUrl?.trim() || null,
+        isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : true,
+        sortOrder: parseInt(String(sortOrder ?? 0), 10) || 0,
+      },
+    });
+
+    return NextResponse.json(
+      {
+        ...item,
+        price: Number(item.price),
+      },
+      { status: 201 }
+    );
+  } catch (error: any) {
+    console.error("Erro ao adicionar item de complemento:", error);
+    return NextResponse.json({ error: "Erro ao adicionar item de complemento." }, { status: 500 });
+  }
+}

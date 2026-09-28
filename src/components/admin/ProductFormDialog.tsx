@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { productService, Product } from "../../services/productService";
 import { Category } from "../../services/categoryService";
 import { badgeService, CardBadge } from "../../services/badgeService";
+import { addonService, AddonGroup } from "../../services/addonService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -17,7 +18,7 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle2,
-  Tag,
+  IceCream,
 } from "lucide-react";
 
 interface ProductFormDialogProps {
@@ -41,6 +42,8 @@ export function ProductFormDialog({
   const [categoryId, setCategoryId] = useState(productToEdit?.category_id || "");
   const [cardBadgeId, setCardBadgeId] = useState<string>(productToEdit?.cardBadgeId || "none");
   const [badges, setBadges] = useState<CardBadge[]>([]);
+  const [availableAddonGroups, setAvailableAddonGroups] = useState<AddonGroup[]>([]);
+  const [selectedAddonGroupIds, setSelectedAddonGroupIds] = useState<string[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -56,11 +59,24 @@ export function ProductFormDialog({
       setPrice(productToEdit?.price !== undefined ? productToEdit.price.toString() : "");
       setCategoryId(productToEdit?.category_id || (categories.length > 0 ? categories[0].id : ""));
       setCardBadgeId(productToEdit?.cardBadgeId || "none");
+      setSelectedAddonGroupIds(productToEdit?.addonGroupIds || []);
       setFile(null);
       setError("");
       setRawImageSrc(null);
       setCropModalOpen(false);
       badgeService.getBadges().then(setBadges).catch(() => {});
+
+      addonService.getGroups().then((groups) => {
+        setAvailableAddonGroups(groups.filter((g) => g.isActive));
+      }).catch(() => {});
+
+      if (productToEdit?.id && (!productToEdit.addonGroupIds || productToEdit.addonGroupIds.length === 0)) {
+        productService.getProductById(productToEdit.id).then((p) => {
+          if (p.addonGroupIds && p.addonGroupIds.length > 0) {
+            setSelectedAddonGroupIds(p.addonGroupIds);
+          }
+        }).catch(() => {});
+      }
     }
   }, [open, productToEdit, categories]);
 
@@ -166,6 +182,7 @@ export function ProductFormDialog({
             category_id: categoryId,
             category: catName,
             cardBadgeId: finalCardBadgeId,
+            addonGroupIds: selectedAddonGroupIds,
           },
           file || undefined
         );
@@ -179,6 +196,7 @@ export function ProductFormDialog({
             category: catName,
             imageUrl: "",
             cardBadgeId: finalCardBadgeId,
+            addonGroupIds: selectedAddonGroupIds,
           },
           file || undefined
         );
@@ -433,6 +451,67 @@ export function ProductFormDialog({
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                     />
                   </div>
+                </div>
+
+                {/* Seção Complementos & Modificadores */}
+                <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-border/40">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                      <IceCream className="w-4 h-4 text-primary dark:text-violet-400" />
+                      Complementos & Modificadores
+                    </Label>
+                    <span className="text-[10px] font-semibold text-muted-foreground">
+                      {selectedAddonGroupIds.length} selecionado(s)
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Marque os grupos de complementos disponíveis para o cliente personalizar este produto.
+                  </p>
+
+                  {availableAddonGroups.length === 0 ? (
+                    <div className="p-3 text-center rounded-xl bg-gray-50 dark:bg-card/40 border border-dashed border-border/60 text-xs text-muted-foreground">
+                      Nenhum grupo de complementos ativo cadastrado na aba &quot;Complementos&quot;.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
+                      {availableAddonGroups.map((group) => {
+                        const isChecked = selectedAddonGroupIds.includes(group.id);
+                        const freeText = group.freeQuantity > 0 ? `Até ${group.freeQuantity} grátis` : "Sem itens grátis";
+                        const reqText = group.isRequired ? "Obrigatório" : "Opcional";
+
+                        return (
+                          <label
+                            key={group.id}
+                            className={`flex items-start gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer select-none ${
+                              isChecked
+                                ? "bg-primary/5 dark:bg-primary/10 border-primary/40 shadow-2xs"
+                                : "bg-white dark:bg-card/40 border-gray-200 dark:border-border/50 hover:border-gray-300"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedAddonGroupIds((prev) => [...prev, group.id]);
+                                } else {
+                                  setSelectedAddonGroupIds((prev) => prev.filter((id) => id !== group.id));
+                                }
+                              }}
+                              className="mt-0.5 w-4 h-4 accent-primary rounded cursor-pointer shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-foreground truncate">{group.name}</p>
+                              <p className="text-[10px] text-muted-foreground mt-0.5">
+                                {group.items?.length || 0} opções • {reqText} • {freeText}
+                              </p>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {/* Feedback de Erro */}

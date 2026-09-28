@@ -1,4 +1,5 @@
 import { CardBadge } from "./badgeService";
+import { AddonGroup } from "./addonService";
 
 export interface Product {
   id: string;
@@ -19,6 +20,8 @@ export interface Product {
     quantity: number;
     product?: Product;
   }[];
+  addonGroupIds?: string[];
+  addonGroups?: AddonGroup[];
 }
 
 export const productService = {
@@ -75,7 +78,37 @@ export const productService = {
       cardBadge: item.cardBadge || null,
       isCombo: item.isCombo || false,
       comboItems: item.comboItems || [],
+      addonGroupIds: item.addonGroupIds || [],
+      addonGroups: item.addonGroups || [],
     }));
+  },
+
+  async getProductById(id: string): Promise<Product> {
+    const res = await fetch(`/api/products/${id}`, {
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Erro ao carregar detalhes do produto.");
+    }
+    const data = await res.json();
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description || "",
+      price: Number(data.price),
+      category_id: data.categoryId,
+      category: data.category,
+      imageUrl: data.imageUrl || "",
+      stock: data.stock !== undefined ? data.stock : null,
+      isAvailable: data.isAvailable !== undefined ? Boolean(data.isAvailable) : true,
+      cardBadgeId: data.cardBadgeId || null,
+      cardBadge: data.cardBadge || null,
+      isCombo: data.isCombo || false,
+      comboItems: data.comboItems || [],
+      addonGroupIds: data.addonGroupIds || [],
+      addonGroups: data.addonGroups || [],
+    };
   },
 
   async createProduct(product: Omit<Product, "id">, imageFile?: File): Promise<Product> {
@@ -100,6 +133,7 @@ export const productService = {
         cardBadgeId: product.cardBadgeId || null,
         isCombo: product.isCombo || false,
         comboItems: product.comboItems || [],
+        addonGroupIds: product.addonGroupIds || [],
       }),
     });
 
@@ -120,6 +154,8 @@ export const productService = {
       cardBadge: data.cardBadge,
       isCombo: data.isCombo,
       comboItems: data.comboItems || [],
+      addonGroupIds: data.addonGroupIds || [],
+      addonGroups: data.addonGroups || [],
     };
   },
 
@@ -145,6 +181,7 @@ export const productService = {
         cardBadgeId: updates.cardBadgeId,
         isCombo: updates.isCombo,
         comboItems: updates.comboItems,
+        addonGroupIds: updates.addonGroupIds,
       }),
     });
 
@@ -165,6 +202,8 @@ export const productService = {
       cardBadge: data.cardBadge,
       isCombo: data.isCombo,
       comboItems: data.comboItems || [],
+      addonGroupIds: data.addonGroupIds || [],
+      addonGroups: data.addonGroups || [],
     };
   },
 

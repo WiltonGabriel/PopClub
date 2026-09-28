@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { 
   Award, 
   Plus, 
@@ -9,11 +9,8 @@ import {
   RotateCcw, 
   Save, 
   Loader2, 
-  Check, 
   X,
-  Sparkles,
-  Clock,
-  HelpCircle
+  Clock
 } from "lucide-react";
 import { 
   LoyaltyBadgeConfig, 
@@ -40,11 +37,7 @@ export function LoyaltyBadgesSection() {
   const [formIcon, setFormIcon] = useState("🌟");
   const [formMonths, setFormMonths] = useState(0);
 
-  useEffect(() => {
-    loadBadges();
-  }, []);
-
-  const loadBadges = async () => {
+  const loadBadges = useCallback(async () => {
     setLoading(true);
     try {
       const data = await loyaltyBadgeService.getBadges();
@@ -54,7 +47,11 @@ export function LoyaltyBadgesSection() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadBadges();
+  }, [loadBadges]);
 
   const handleOpenAdd = () => {
     if (badges.length >= 6) {

@@ -1,27 +1,24 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   X,
   Plus,
   Minus,
   Check,
   Sparkles,
-  Info,
   ShoppingBag,
   Clock,
   ShieldCheck,
   Tag,
+  Utensils,
+  Loader2,
 } from "lucide-react";
-import { Product } from "../../services/productService";
+import { Product, productService } from "../../services/productService";
+import { AddonGroup, AddonItem } from "../../services/addonService";
 import { SelectedOption } from "../../contexts/CartContext";
 import { useCart } from "../../hooks/useCart";
 import { useToast } from "../ui/ToastNotification";
-import {
-  getProductCustomization,
-  CustomizationGroup,
-  CustomizationOptionItem,
-} from "../../data/productCustomizationOptions";
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -39,35 +36,58 @@ export function ProductDetailModal({
 
   const [quantity, setQuantity] = useState<number>(1);
   const [notes, setNotes] = useState<string>("");
-  // Record<groupId, optionId[]>
+  const [loadingAddons, setLoadingAddons] = useState(false);
+  const [groups, setGroups] = useState<AddonGroup[]>([]);
+  // Record<groupId, itemId[]>
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>({});
 
-  // Obter configuração de customização para o produto
-  const config = useMemo(() => {
-    if (!product) return null;
-    return getProductCustomization(product);
-  }, [product]);
+  const initSelections = useCallback((addonGroups: AddonGroup[]) => {
+    const initial: Record<string, string[]> = {};
+    addonGroups.forEach((group) => {
+      // Se for obrigatório de escolha única (min=1, max=1), pré-seleciona a 1ª opção disponível
+      if (group.isRequired && group.minQuantity === 1 && group.maxQuantity === 1) {
+        const firstAvail = group.items.find((i) => i.isAvailable);
+        if (firstAvail) {
+          initial[group.id] = [firstAvail.id];
+          return;
+        }
+      }
+      initial[group.id] = [];
+    });
+    setSelectedOptions(initial);
+  }, []);
 
-  // Inicializa seleções e reseta estado quando o modal abre ou produto muda
+  // Carrega os grupos reais associados ao produto via API
   useEffect(() => {
-    if (isOpen && product && config) {
+    if (isOpen && product) {
       setQuantity(1);
       setNotes("");
 
-      // Pré-selecionar opções obrigatórias padrão (estilo iFood)
-      const initialSelections: Record<string, string[]> = {};
-      config.groups.forEach((group) => {
-        if (group.required && group.min === 1 && group.max === 1 && group.options.length > 0) {
-          // Seleciona a primeira opção ou a popular como padrão
-          const defaultOpt = group.options.find((o) => o.isPopular) || group.options[0];
-          initialSelections[group.id] = [defaultOpt.id];
-        } else {
-          initialSelections[group.id] = [];
-        }
-      });
-      setSelectedOptions(initialSelections);
+      if (product.addonGroups && product.addonGroups.length > 0) {
+        setGroups(product.addonGroups);
+        initSelections(product.addonGroups);
+      } else {
+        setLoadingAddons(true);
+        productService
+          .getProductById(product.id)
+          .then((fullProduct) => {
+            const loadedGroups = fullProduct.addonGroups || [];
+            setGroups(loadedGroups);
+            initSelections(loadedGroups);
+          })
+          .catch((err) => {
+            console.warn("Aviso ao carregar complementos reais do produto:", err);
+            setGroups([]);
+          })
+          .finally(() => {
+            setLoadingAddons(false);
+          });
+      }
+    } else {
+      setGroups([]);
+      setSelectedOptions({});
     }
-  }, [isOpen, product, config]);
+  }, [isOpen, product, initSelections]);
 
   // Bloqueio do scroll da página quando modal aberto
   useEffect(() => {
@@ -91,58 +111,66 @@ export function ProductDetailModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen || !product || !config) return null;
+  if (!isOpen || !product) return null;
 
-  // Lógica de seleção
-  const handleToggleOption = (group: CustomizationGroup, option: CustomizationOptionItem) => {
+  // Lógica de Seleção / Toggle de Opção
+  const handleToggleOption = (group: AddonGroup, item: AddonItem) => {
+    if (!item.isAvailable) return;
+
     const current = selectedOptions[group.id] || [];
+    const isSingle = group.maxQuantity === 1;
 
     // Escolha única (Radio)
-    if (group.max === 1) {
-      setSelectedOptions((prev) => ({
-        ...prev,
-        [group.id]: [option.id],
-      }));
+    if (isSingle) {
+      if (current.includes(item.id)) {
+        // Se for obrigatório, não permite desmarcar deixando 0
+        if (group.isRequired && group.minQuantity >= 1) return;
+        setSelectedOptions((prev) => ({ ...prev, [group.id]: [] }));
+      } else {
+        setSelectedOptions((prev) => ({ ...prev, [group.id]: [item.id] }));
+      }
       return;
     }
 
-    // Múltipla escolha com limite
-    if (current.includes(option.id)) {
-      // Desmarca
+    // Múltipla escolha (Checkbox)
+    if (current.includes(item.id)) {
       setSelectedOptions((prev) => ({
         ...prev,
-        [group.id]: current.filter((id) => id !== option.id),
+        [group.id]: current.filter((id) => id !== item.id),
       }));
     } else {
-      // Marca se não atingiu o limite
-      if (current.length < group.max) {
+      if (current.length < group.maxQuantity) {
         setSelectedOptions((prev) => ({
           ...prev,
-          [group.id]: [...current, option.id],
+          [group.id]: [...current, item.id],
         }));
       }
     }
   };
 
-  // Cálculo de Preço Reativo
+  // Cálculo de Preço Reativo e Snapshot de Adicionais
   const basePrice = product.price;
-
-  // Preço dos adicionais selecionados
   let extrasTotal = 0;
   const flatSelectedOptionsList: SelectedOption[] = [];
 
-  config.groups.forEach((group) => {
+  groups.forEach((group) => {
     const selectedIds = selectedOptions[group.id] || [];
-    selectedIds.forEach((id) => {
-      const opt = group.options.find((o) => o.id === id);
-      if (opt) {
-        extrasTotal += opt.price;
+    const freeQuota = group.freeQuantity || 0;
+
+    selectedIds.forEach((id, index) => {
+      const item = group.items.find((i) => i.id === id);
+      if (item) {
+        // Os primeiros `freeQuota` itens selecionados no grupo têm custo 0
+        const isFree = index < freeQuota || item.price === 0;
+        const effectivePrice = isFree ? 0 : item.price;
+        extrasTotal += effectivePrice;
+
         flatSelectedOptionsList.push({
-          id: opt.id,
+          id: item.id,
           groupName: group.name,
-          name: opt.name,
-          price: opt.price,
-          quantity: 1, // Fixa por enquanto, para permitir extensões futuras
+          name: item.name,
+          price: effectivePrice,
+          quantity: 1,
         });
       }
     });
@@ -151,11 +179,11 @@ export function ProductDetailModal({
   const unitPrice = basePrice + extrasTotal;
   const totalPrice = unitPrice * quantity;
 
-  // Validação de grupos obrigatórios
-  const unsatisfiedRequiredGroups = config.groups.filter((group) => {
-    if (!group.required) return false;
+  // Validação de grupos obrigatórios e mínimos
+  const unsatisfiedRequiredGroups = groups.filter((group) => {
     const count = (selectedOptions[group.id] || []).length;
-    return count < group.min;
+    const minRequired = group.isRequired ? Math.max(1, group.minQuantity) : group.minQuantity;
+    return count < minRequired;
   });
 
   const isValid = unsatisfiedRequiredGroups.length === 0;
@@ -188,6 +216,9 @@ export function ProductDetailModal({
     product.isAvailable === false ||
     (product.stock !== undefined && product.stock !== null && product.stock <= 0);
 
+  const isPromo = product.isCombo || (product.name || "").toLowerCase().includes("promo");
+  const originalPrice = isPromo ? Number((product.price * 1.25).toFixed(2)) : undefined;
+
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-6 overflow-hidden animate-in fade-in duration-200">
       {/* Backdrop com Blur */}
@@ -197,27 +228,28 @@ export function ProductDetailModal({
         aria-hidden="true"
       />
 
-      {/* Modal Card / Bottom Sheet (Mobile-first Drawer / Desktop 2-Column Dialog) */}
+      {/* Modal Card / Bottom Sheet */}
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-product-title"
         className="
           relative w-full md:max-w-4xl lg:max-w-5xl h-[92vh] md:h-auto md:max-h-[85vh]
-          bg-white dark:bg-[#1E0E21] text-foreground
-          border-t md:border border-gray-200 dark:border-border/40
+          bg-white dark:bg-[#181D2D] text-foreground
+          border-t md:border border-gray-200 dark:border-zinc-800
           rounded-t-[28px] md:rounded-3xl shadow-2xl
           flex flex-col md:flex-row overflow-hidden
           z-10 animate-in slide-in-from-bottom duration-300 md:zoom-in-95 md:duration-200
         "
       >
         {/* Barra de Pega / Drag Handle no Mobile */}
-        <div className="md:hidden pt-2.5 pb-1 bg-white dark:bg-[#1E0E21] shrink-0 flex justify-center">
+        <div className="md:hidden pt-2.5 pb-1 bg-white dark:bg-[#181D2D] shrink-0 flex justify-center">
           <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full" />
         </div>
 
         {/* Botão Fechar Flutuante */}
         <button
+          type="button"
           onClick={onClose}
           aria-label="Fechar detalhes do produto"
           className="
@@ -232,10 +264,10 @@ export function ProductDetailModal({
           <X className="w-5 h-5" />
         </button>
 
-        {/* ── COLUNA ESQUERDA (50% no Desktop, Capa Panorâmica no Mobile): Foto e Tags ── */}
+        {/* ── COLUNA ESQUERDA (Foto e Badges) ── */}
         <div className="w-full md:w-1/2 h-44 sm:h-52 md:h-auto md:min-h-[440px] relative bg-muted/40 shrink-0 overflow-hidden">
           {product.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
+            /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={product.imageUrl}
               alt={product.name}
@@ -243,32 +275,32 @@ export function ProductDetailModal({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/20 md:rounded-l-3xl">
-              <span className="font-heading font-black text-6xl gradient-text-brand">
+              <span className="font-heading font-black text-6xl text-primary dark:text-violet-400">
                 {product.name[0]}
               </span>
             </div>
           )}
 
-          {/* Gradiente sutil para garantir legibilidade de badges */}
+          {/* Gradiente sutil */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none md:bg-gradient-to-t md:from-black/40 md:via-transparent md:to-black/20" />
 
-          {/* Badges e Tags Sobrepostas */}
+          {/* Badges Sobrepostas */}
           <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-20 flex flex-wrap gap-2 pointer-events-none">
-            {config.promotionalTag && (
+            {isPromo && (
               <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-xs uppercase tracking-wider px-2.5 py-1 rounded-full shadow-md">
                 <Sparkles className="w-3.5 h-3.5" />
-                {config.promotionalTag}
+                Oferta Especial
               </span>
             )}
             {product.category && (
-              <span className="inline-flex items-center gap-1 bg-white/90 dark:bg-[#230E26]/90 backdrop-blur-md text-foreground dark:text-foreground font-semibold text-[11px] px-2.5 py-1 rounded-full shadow-sm border border-white/20">
+              <span className="inline-flex items-center gap-1 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md text-foreground font-semibold text-[11px] px-2.5 py-1 rounded-full shadow-sm border border-white/20">
                 <Tag className="w-3 h-3 text-primary" />
                 {product.category}
               </span>
             )}
           </div>
 
-          {/* Selo do Card no Canto Superior Direito */}
+          {/* Selo do Card */}
           {product.cardBadge && (
             <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 pointer-events-none">
               <span
@@ -284,263 +316,250 @@ export function ProductDetailModal({
             </div>
           )}
 
-          {/* Badge de Pronta Entrega no rodapé da imagem */}
+          {/* Badge de Pronta Entrega */}
           <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 z-20 flex items-center gap-2 text-white text-xs font-medium drop-shadow pointer-events-none">
             <span className="flex items-center gap-1 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">
               <Clock className="w-3.5 h-3.5 text-emerald-400" />
               Preparo em ~15 min
             </span>
             <span className="flex items-center gap-1 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">
-              <ShieldCheck className="w-3.5 h-3.5 text-primary/30" />
+              <ShieldCheck className="w-3.5 h-3.5 text-primary/80" />
               Embalagem Selada
             </span>
           </div>
         </div>
 
-        {/* ── COLUNA DIREITA (50% no Desktop, Corpo no Mobile): Informações & Grupos ── */}
-        <div className="w-full md:w-1/2 flex flex-col flex-1 min-h-0 bg-white dark:bg-[#1E0E21]">
+        {/* ── COLUNA DIREITA (Informações e Grupos de Complementos Reais) ── */}
+        <div className="w-full md:w-1/2 flex flex-col flex-1 min-h-0 bg-white dark:bg-[#181D2D]">
           {/* Painel Rolável */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 scrollbar-thin pb-28 md:pb-6">
             {/* Cabeçalho do Produto */}
-            <div className="space-y-2 border-b border-gray-100 dark:border-border/30 pb-4">
+            <div className="space-y-2 border-b border-gray-100 dark:border-zinc-800 pb-4">
               <div className="flex items-start justify-between gap-3">
                 <h2
                   id="modal-product-title"
-                  className="font-heading font-black text-xl sm:text-2xl text-foreground dark:text-foreground leading-tight"
+                  className="font-heading font-black text-xl sm:text-2xl text-foreground leading-tight"
                 >
                   {product.name}
                 </h2>
               </div>
 
-              {/* Preços (Promocional vs Base) */}
+              {/* Preços */}
               <div className="flex items-baseline gap-2.5 pt-1">
-                {config.originalPrice ? (
+                {originalPrice ? (
                   <>
                     <span className="text-xs sm:text-sm font-medium text-muted-foreground line-through">
-                      De R$ {config.originalPrice.toFixed(2).replace(".", ",")}
+                      De R$ {originalPrice.toFixed(2).replace(".", ",")}
                     </span>
-                    <span className="font-heading font-black text-xl sm:text-2xl text-primary dark:text-muted-foreground">
+                    <span className="font-heading font-black text-xl sm:text-2xl text-primary dark:text-violet-400">
                       por R$ {product.price.toFixed(2).replace(".", ",")}
                     </span>
                     <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
                       Economize R${" "}
-                      {(config.originalPrice - product.price).toFixed(2).replace(".", ",")}
+                      {(originalPrice - product.price).toFixed(2).replace(".", ",")}
                     </span>
                   </>
                 ) : (
-                  <span className="font-heading font-black text-xl sm:text-2xl text-primary dark:text-muted-foreground">
+                  <span className="font-heading font-black text-xl sm:text-2xl text-primary dark:text-violet-400">
                     R$ {product.price.toFixed(2).replace(".", ",")}
                   </span>
                 )}
               </div>
 
-              {/* Descrição Completa */}
               {product.description && (
                 <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed pt-1">
                   {product.description}
                 </p>
               )}
-
-              {/* Caixa de Avisos de Preparo da Cozinha */}
-              {config.preparationNotice && (
-                <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-2xl p-3 flex gap-2.5 items-start mt-3">
-                  <Info className="w-4 h-4 text-primary dark:text-muted-foreground shrink-0 mt-0.5" />
-                  <p className="text-xs text-foreground dark:text-foreground leading-relaxed">
-                    {config.preparationNotice}
-                  </p>
-                </div>
-              )}
-              
-              {/* Composição do Combo (Se for um combo) */}
-              {product.isCombo && product.comboItems && product.comboItems.length > 0 && (
-                <div className="mt-4 border border-border/50 rounded-2xl p-4 bg-muted/20">
-                  <h3 className="font-heading font-bold text-sm uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-brand-pop-shake" />
-                    Incluso neste Combo
-                  </h3>
-                  <div className="space-y-3">
-                    {product.comboItems.map((item) => (
-                      <div key={item.id} className="flex items-center gap-3 bg-card border border-border/40 p-3 rounded-xl shadow-sm">
-                        <div className="w-12 h-12 bg-muted rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
-                          {item.product?.imageUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={item.product.imageUrl} alt={item.product.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-[10px] font-mono text-muted-foreground uppercase">Item</span>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="bg-brand-pop-shake/10 text-brand-pop-shake px-1.5 py-0.5 rounded font-mono text-[10px] font-bold">
-                              {item.quantity}x
-                            </span>
-                            <span className="font-semibold text-sm truncate block">{item.product?.name || "Produto Removido"}</span>
-                          </div>
-                          {item.product?.description && (
-                            <span className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{item.product.description}</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
-            {/* Grupos de Customização & Adicionais */}
-            <div className="space-y-6">
-              {config.groups.map((group) => {
-                const selectedInGroup = selectedOptions[group.id] || [];
-                const currentCount = selectedInGroup.length;
-                const isSingleChoice = group.max === 1;
+            {/* GRUPOS REAIS DE COMPLEMENTOS VINCULADOS */}
+            {loadingAddons ? (
+              <div className="p-6 flex items-center justify-center gap-2 text-muted-foreground">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                <span className="text-xs">Carregando adicionais disponíveis...</span>
+              </div>
+            ) : groups.length === 0 ? null : (
+              <div className="space-y-5">
+                {groups.map((group) => {
+                  const selectedInGroup = selectedOptions[group.id] || [];
+                  const currentCount = selectedInGroup.length;
+                  const isSingleChoice = group.maxQuantity === 1;
+                  const minReq = group.isRequired ? Math.max(1, group.minQuantity) : group.minQuantity;
+                  const isSatisfied = currentCount >= minReq;
+                  const freeQuota = group.freeQuantity || 0;
 
-                return (
-                  <section
-                    key={group.id}
-                    className="border border-gray-100 dark:border-border/30 rounded-2xl p-3.5 sm:p-4 bg-gray-50/50 dark:bg-white/[0.02]"
-                  >
-                    {/* Cabeçalho do Grupo */}
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                      <div>
-                        <h3 className="font-heading font-bold text-sm sm:text-base text-foreground dark:text-foreground">
-                          {group.name}
-                        </h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {group.instruction}
-                        </p>
+                  return (
+                    <section
+                      key={group.id}
+                      className="border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 bg-zinc-50/50 dark:bg-zinc-900/30 space-y-3"
+                    >
+                      {/* Cabeçalho do Grupo com Badges Informativas */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h3 className="font-heading font-bold text-sm sm:text-base text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                            {group.name}
+                          </h3>
+                          {group.description && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{group.description}</p>
+                          )}
+                        </div>
+
+                        {/* Badges do Grupo */}
+                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                          <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                            {currentCount}/{group.maxQuantity}
+                          </span>
+
+                          {minReq >= 1 ? (
+                            <span
+                              className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                                isSatisfied
+                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                                  : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 animate-pulse"
+                              }`}
+                            >
+                              Obrigatório • Escolha pelo menos {minReq}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-muted-foreground">
+                              Opcional
+                            </span>
+                          )}
+
+                          {freeQuota > 0 && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                              Até {freeQuota} inclusos
+                            </span>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Badges de Status e Contagem */}
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                          {currentCount}/{group.max}
-                        </span>
+                      {/* Lista de Opções do Grupo */}
+                      <div className="space-y-2">
+                        {group.items.map((item) => {
+                          const isSelected = selectedInGroup.includes(item.id);
+                          const isMaxReached =
+                            !isSelected && !isSingleChoice && currentCount >= group.maxQuantity;
+                          const isPaused = !item.isAvailable;
 
-                        {group.required ? (
-                          <span
-                            className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                              currentCount >= group.min
-                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                                : "bg-primary/10 text-primary dark:text-muted-foreground border border-primary/30 animate-pulse"
-                            }`}
-                          >
-                            Obrigatório
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full bg-gray-200/60 dark:bg-zinc-800 text-muted-foreground">
-                            Opcional
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                          // Preço formatado dinamicamente: se selecionado e dentro da cota grátis, é Incluso!
+                          const selectedIndex = selectedInGroup.indexOf(item.id);
 
-                    {/* Lista de Opções */}
-                    <div className="space-y-2">
-                      {group.options.map((option) => {
-                        const isSelected = selectedInGroup.includes(option.id);
-                        const isMaxReached =
-                          !isSelected && !isSingleChoice && currentCount >= group.max;
+                          let priceDisplay = "Incluso";
+                          let priceColor = "text-emerald-600 dark:text-emerald-400 font-bold";
 
-                        return (
-                          <button
-                            key={option.id}
-                            type="button"
-                            disabled={isMaxReached}
-                            onClick={() => handleToggleOption(group, option)}
-                            className={`
-                              w-full flex items-center justify-between p-3 sm:p-3.5 rounded-xl
-                              border transition-all duration-150 text-left gap-3
-                              ${
-                                isSelected
-                                  ? "border-primary bg-primary/8 dark:bg-primary/15 shadow-xs"
-                                  : isMaxReached
-                                  ? "border-transparent opacity-40 cursor-not-allowed bg-transparent"
-                                  : "border-gray-200/70 dark:border-border/30 hover:border-primary/40 hover:bg-white dark:hover:bg-[#230E26]/60 bg-white/70 dark:bg-[#230E26]/40 cursor-pointer"
-                              }
-                            `}
-                          >
-                            {/* Lado Esquerdo: Seletor + Nome */}
-                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                              {/* Ícone Radio / Checkbox */}
-                              {isSingleChoice ? (
-                                <div
-                                  className={`
-                                    w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors
-                                    ${
-                                      isSelected
-                                        ? "border-primary bg-primary"
-                                        : "border-gray-300 dark:border-gray-600 bg-white dark:bg-zinc-900"
-                                    }
-                                  `}
-                                >
-                                  {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                          if (item.price > 0) {
+                            if (isSelected && selectedIndex < freeQuota) {
+                              priceDisplay = "Incluso (cota grátis)";
+                              priceColor = "text-emerald-600 dark:text-emerald-400 font-bold";
+                            } else if (!isSelected && currentCount < freeQuota) {
+                              priceDisplay = `Incluso (até ${freeQuota} grátis)`;
+                              priceColor = "text-emerald-600 dark:text-emerald-400 font-bold";
+                            } else {
+                              priceDisplay = `+ R$ ${item.price.toFixed(2).replace(".", ",")}`;
+                              priceColor = "text-primary dark:text-violet-400 font-bold font-mono";
+                            }
+                          }
+
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              disabled={isPaused || isMaxReached}
+                              onClick={() => handleToggleOption(group, item)}
+                              className={`
+                                w-full flex items-center justify-between p-2.5 sm:p-3 rounded-2xl
+                                border transition-all text-left gap-3
+                                ${
+                                  isPaused
+                                    ? "border-dashed border-zinc-300 dark:border-zinc-800 bg-zinc-100/50 dark:bg-zinc-900/30 opacity-50 cursor-not-allowed"
+                                    : isSelected
+                                    ? "border-primary bg-primary/8 dark:bg-primary/15 shadow-2xs"
+                                    : isMaxReached
+                                    ? "border-transparent opacity-40 cursor-not-allowed bg-transparent"
+                                    : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#181D2D] hover:border-primary/40 cursor-pointer shadow-2xs"
+                                }
+                              `}
+                            >
+                              {/* Miniatura WebP 40x40 px + Seletor + Nome */}
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                {/* Miniatura 40x40 px com cantos arredondados */}
+                                <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-border/50 shrink-0 overflow-hidden flex items-center justify-center">
+                                  {item.imageUrl ? (
+                                    /* eslint-disable-next-line @next/next/no-img-element */
+                                    <img
+                                      src={item.imageUrl}
+                                      alt={item.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <Utensils className="w-4 h-4 text-muted-foreground/50" />
+                                  )}
                                 </div>
-                              ) : (
-                                <div
-                                  className={`
-                                    w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-colors
-                                    ${
-                                      isSelected
-                                        ? "border-primary bg-primary text-white"
-                                        : "border-gray-300 dark:border-gray-600 bg-white dark:bg-zinc-900"
-                                    }
-                                  `}
-                                >
-                                  {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                                </div>
-                              )}
 
-                              <div className="flex-1 min-w-0">
-                                <p
-                                  className={`text-sm font-medium whitespace-normal leading-snug ${
+                                {/* Checkbox / Radio Visual */}
+                                <div
+                                  className={`w-4 h-4 rounded-${
+                                    isSingleChoice ? "full" : "md"
+                                  } border flex items-center justify-center shrink-0 transition-colors ${
                                     isSelected
-                                      ? "text-foreground dark:text-foreground font-semibold"
-                                      : "text-foreground"
+                                      ? "border-primary bg-primary text-white"
+                                      : "border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800"
                                   }`}
                                 >
-                                  {option.name}
-                                </p>
-                                {option.description && (
-                                  <p className="text-xs text-muted-foreground whitespace-normal leading-tight mt-0.5">
-                                    {option.description}
+                                  {isSelected && (
+                                    isSingleChoice ? (
+                                      <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                    ) : (
+                                      <Check className="w-3 h-3 stroke-[3]" />
+                                    )
+                                  )}
+                                </div>
+
+                                <div className="min-w-0">
+                                  <p
+                                    className={`text-xs sm:text-sm font-semibold truncate ${
+                                      isSelected
+                                        ? "text-primary dark:text-violet-300"
+                                        : "text-zinc-900 dark:text-zinc-100"
+                                    }`}
+                                  >
+                                    {item.name}
                                   </p>
+                                </div>
+                              </div>
+
+                              {/* Lado Direito: Preço ou Esgotado */}
+                              <div className="shrink-0 text-right ml-2">
+                                {isPaused ? (
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded-md">
+                                    Esgotado
+                                  </span>
+                                ) : (
+                                  <span className={`text-xs ${priceColor}`}>{priceDisplay}</span>
                                 )}
                               </div>
-                            </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+            )}
 
-                            {/* Lado Direito: Preço Adicional */}
-                            <div className="shrink-0 text-xs font-semibold ml-2 text-right">
-                              {option.price > 0 ? (
-                                <span className="font-mono text-xs font-bold text-primary dark:text-muted-foreground">
-                                  + R$ {option.price.toFixed(2).replace(".", ",")}
-                                </span>
-                              ) : (
-                                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                                  Grátis
-                                </span>
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </section>
-                );
-              })}
-            </div>
-
-            {/* Campo de Observações do Pedido */}
-            <div className="border border-gray-100 dark:border-border/30 rounded-2xl p-3.5 sm:p-4 bg-gray-50/50 dark:bg-white/[0.02]">
+            {/* Observações do Pedido */}
+            <div className="border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 bg-zinc-50/50 dark:bg-zinc-900/30">
               <div className="flex items-center justify-between mb-2">
                 <label
                   htmlFor="kitchen-notes"
-                  className="font-heading font-bold text-xs sm:text-sm text-foreground dark:text-foreground"
+                  className="font-heading font-bold text-xs sm:text-sm text-foreground"
                 >
-                  Observações do Pedido
+                  Observações para a Cozinha
                 </label>
-                <span className="text-[11px] font-mono text-muted-foreground">
-                  {notes.length}/140
-                </span>
+                <span className="text-[11px] font-mono text-muted-foreground">{notes.length}/140</span>
               </div>
               <textarea
                 id="kitchen-notes"
@@ -551,8 +570,8 @@ export function ProductDetailModal({
                 placeholder="Ex: Enviar pouco leite condensado, caprichar na paçoca..."
                 className="
                   w-full rounded-xl p-3 text-base md:text-sm
-                  bg-white dark:bg-[#230E26]/60
-                  border border-gray-200 dark:border-border/40
+                  bg-white dark:bg-zinc-800/80
+                  border border-gray-200 dark:border-zinc-700
                   text-foreground placeholder:text-muted-foreground
                   outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60
                   transition-all resize-none
@@ -561,17 +580,17 @@ export function ProductDetailModal({
             </div>
           </div>
 
-          {/* ── RODAPÉ FIXO (Sticky Footer): Quantidade & Adicionar ao Carrinho ── */}
+          {/* ── RODAPÉ FIXO: Quantidade & Adicionar ao Pedido ── */}
           <div className="
             fixed bottom-0 left-0 right-0 p-3.5 sm:p-4
             pb-[calc(1rem+env(safe-area-inset-bottom,0px))]
-            bg-white/95 dark:bg-[#1E0E21]/95 backdrop-blur-md
-            border-t border-gray-200 dark:border-border/40 z-50
+            bg-white/95 dark:bg-[#181D2D]/95 backdrop-blur-md
+            border-t border-gray-200 dark:border-zinc-800 z-50
             md:relative md:bottom-auto md:p-4 md:z-auto md:pb-4
             shrink-0 flex items-center gap-3
           ">
             {/* Contador de Quantidade */}
-            <div className="flex items-center border border-gray-200 dark:border-border/50 rounded-full bg-gray-50 dark:bg-[#230E26] p-1 shrink-0 shadow-xs">
+            <div className="flex items-center border border-gray-200 dark:border-zinc-700 rounded-full bg-gray-50 dark:bg-zinc-800 p-1 shrink-0 shadow-2xs">
               <button
                 type="button"
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
@@ -579,7 +598,7 @@ export function ProductDetailModal({
                 aria-label="Diminuir quantidade"
                 className="
                   w-8 h-8 rounded-full flex items-center justify-center
-                  text-muted-foreground hover:text-foreground hover:bg-white dark:hover:bg-zinc-800
+                  text-muted-foreground hover:text-foreground hover:bg-white dark:hover:bg-zinc-700
                   disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer
                 "
               >
@@ -596,7 +615,7 @@ export function ProductDetailModal({
                 aria-label="Aumentar quantidade"
                 className="
                   w-8 h-8 rounded-full flex items-center justify-center
-                  text-muted-foreground hover:text-foreground hover:bg-white dark:hover:bg-zinc-800
+                  text-muted-foreground hover:text-foreground hover:bg-white dark:hover:bg-zinc-700
                   transition-all cursor-pointer
                 "
               >
@@ -604,7 +623,7 @@ export function ProductDetailModal({
               </button>
             </div>
 
-            {/* Botão Adicionar ao Carrinho Reativo */}
+            {/* Botão Adicionar ao Pedido */}
             <button
               type="button"
               disabled={!isValid || isOutOfStock}

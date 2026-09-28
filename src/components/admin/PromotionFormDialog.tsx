@@ -54,6 +54,17 @@ export function PromotionFormDialog({
   const [durationDays, setDurationDays] = useState<string>("");
   const [showScarcity, setShowScarcity] = useState(false);
   const [scarcityUnits, setScarcityUnits] = useState<string>("");
+  const [validUntilPreview, setValidUntilPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (durationDays && !isNaN(parseInt(durationDays))) {
+      const d = new Date();
+      d.setDate(d.getDate() + parseInt(durationDays));
+      setValidUntilPreview(d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }));
+    } else {
+      setValidUntilPreview(null);
+    }
+  }, [durationDays]);
 
   // Estados do Modal de Recorte
   const [cropModalOpen, setCropModalOpen] = useState(false);
@@ -528,9 +539,9 @@ export function PromotionFormDialog({
                     placeholder="Ex: 3 (deixe vazio p/ indeterminado)"
                     className="bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 rounded-xl text-sm"
                   />
-                  {durationDays && (
+                  {validUntilPreview && (
                     <p className="text-[11px] text-emerald-600 font-medium">
-                      Válido até: {new Date(Date.now() + parseInt(durationDays) * 86400000).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                      Válido até: {validUntilPreview}
                     </p>
                   )}
                 </div>
@@ -562,7 +573,7 @@ export function PromotionFormDialog({
                         className="bg-white dark:bg-background border-gray-200 dark:border-border/40 h-10 rounded-xl text-sm"
                       />
                       <p className="text-[10px] text-gray-500">
-                        Se definido, exibirá "Apenas {scarcityUnits || 'X'} restantes!"
+                        Se definido, exibirá &quot;Apenas {scarcityUnits || 'X'} restantes!&quot;
                       </p>
                     </div>
                   )}

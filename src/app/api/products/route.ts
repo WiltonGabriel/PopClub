@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, apiError, apiSuccess } from "@/lib/apiResponse";
@@ -15,6 +14,18 @@ export async function GET() {
           include: {
             product: true
           }
+        },
+        addonGroups: {
+          include: {
+            group: {
+              include: {
+                items: {
+                  orderBy: { sortOrder: "asc" }
+                }
+              }
+            }
+          },
+          orderBy: { sortOrder: "asc" }
         }
       },
       orderBy: { createdAt: "desc" },
@@ -44,6 +55,8 @@ export async function GET() {
           imageUrl: ci.product.imageUrl || ""
         }
       })) || [],
+      addonGroupIds: p.addonGroups?.map(ag => ag.groupId) || [],
+      addonGroups: p.addonGroups?.map(ag => ag.group) || [],
     }));
 
     return apiSuccess(formatted);
@@ -70,7 +83,7 @@ export async function POST(request: Request) {
     } catch {
       return apiError("Formato de requisição inválido ou corpo vazio.", 400, "BAD_REQUEST");
     }
-    const { name, description, price, categoryId, category, imageUrl, stock, isAvailable, cardBadgeId, isCombo, comboItems } = body || {};
+    const { name, description, price, categoryId, category, imageUrl, stock, isAvailable, cardBadgeId, isCombo, comboItems, addonGroupIds } = body || {};
 
     if (!name || price === undefined) {
       return apiError("Nome e preço do produto são obrigatórios.", 400, "VALIDATION_ERROR");
@@ -101,12 +114,30 @@ export async function POST(request: Request) {
             productId: ci.productId,
             quantity: ci.quantity || 1
           }))
-        } : undefined
+        } : undefined,
+        addonGroups: (Array.isArray(addonGroupIds) && addonGroupIds.length > 0) ? {
+          create: addonGroupIds.map((groupId: string, index: number) => ({
+            groupId,
+            sortOrder: index,
+          }))
+        } : undefined,
       },
       include: {
         categoryRel: { select: { name: true } },
         cardBadge: true,
-        comboItems: { include: { product: true } }
+        comboItems: { include: { product: true } },
+        addonGroups: {
+          include: {
+            group: {
+              include: {
+                items: {
+                  orderBy: { sortOrder: "asc" }
+                }
+              }
+            }
+          },
+          orderBy: { sortOrder: "asc" }
+        }
       },
     });
 
@@ -134,6 +165,8 @@ export async function POST(request: Request) {
           imageUrl: ci.product.imageUrl || ""
         }
       })) || [],
+      addonGroupIds: product.addonGroups?.map(ag => ag.groupId) || [],
+      addonGroups: product.addonGroups?.map(ag => ag.group) || [],
     }, 201);
   } catch (error: unknown) {
     return handleApiError(error, "API:products:POST", "Não foi possível cadastrar o produto.");

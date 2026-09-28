@@ -120,8 +120,54 @@ model Product {
   comboItems     ComboItem[]     @relation("ComboParent")
   partOfCombos   ComboItem[]     @relation("ComboChild")
   addonCategories ProductAddonCategory[]
+  addonGroups    ProductAddonGroup[]
 
   @@map("products")
+}
+
+model AddonGroup {
+  id           String              @id @default(uuid())
+  name         String
+  description  String?
+  minQuantity  Int                 @default(0) @map("min_quantity")
+  maxQuantity  Int                 @default(1) @map("max_quantity")
+  freeQuantity Int                 @default(0) @map("free_quantity")
+  isRequired   Boolean             @default(false) @map("is_required")
+  sortOrder    Int                 @default(0) @map("sort_order")
+  isActive     Boolean             @default(true) @map("is_active")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+  items        AddonItem[]
+  products     ProductAddonGroup[]
+
+  @@map("addon_groups")
+}
+
+model AddonItem {
+  id          String     @id @default(uuid())
+  groupId     String     @map("group_id")
+  name        String
+  price       Decimal    @default(0) @db.Decimal(10, 2)
+  imageUrl    String?    @map("image_url")
+  isAvailable Boolean    @default(true) @map("is_available")
+  sortOrder   Int        @default(0) @map("sort_order")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  group       AddonGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@map("addon_items")
+}
+
+model ProductAddonGroup {
+  id        String     @id @default(uuid())
+  productId String     @map("product_id")
+  groupId   String     @map("group_id")
+  sortOrder Int        @default(0) @map("sort_order")
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  group     AddonGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, groupId])
+  @@map("product_addon_groups")
 }
 
 model ProductAddonCategory {
@@ -417,5 +463,15 @@ model NotificationTemplate {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("notification_templates")
+}
+
+model BackupMetadata {
+  slot        Int      @id
+  createdAt   DateTime @map("created_at")
+  totalTables Int      @map("total_tables")
+  totalRows   Int      @map("total_rows")
+  details     Json?
+
+  @@map("_backup_metadata")
 }
 

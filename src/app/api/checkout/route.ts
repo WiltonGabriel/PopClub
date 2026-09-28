@@ -15,9 +15,10 @@ const checkoutSchema = z.object({
       selectedAddons: z.array(
         z.object({
           id: z.string(),
-          name: z.string(),
-          price: z.number().min(0),
-          quantity: z.number().int().positive()
+          name: z.string().optional().nullable(),
+          groupName: z.string().optional().nullable(),
+          price: z.number().min(0).optional().nullable(),
+          quantity: z.number().int().positive().optional().nullable().default(1)
         })
       ).optional().nullable(),
     })
@@ -106,12 +107,46 @@ export async function POST(request: Request) {
     }
 
     // 1. Validação e Recálculo Seguro de Itens no Cardápio
-    const productIds = items.map((i) => i.productId);
+    const productQtyMap = new Map<string, number>();
+    for (const item of items) {
+      productQtyMap.set(
+        item.productId,
+        (productQtyMap.get(item.productId) || 0) + item.quantity
+      );
+    }
+
+    const productIds = Array.from(productQtyMap.keys());
     const dbProducts = await prisma.product.findMany({
       where: { id: { in: productIds } },
     });
 
     const productsMap = new Map(dbProducts.map((p) => [p.id, p]));
+
+    // Validação estrita de existência, disponibilidade e estoque dos produtos
+    for (const [prodId, totalQty] of productQtyMap.entries()) {
+      const product = productsMap.get(prodId);
+      if (!product) {
+        return NextResponse.json(
+          { error: `Produto não encontrado no cardápio: ${prodId}` },
+          { status: 400 }
+        );
+      }
+      if (!product.isAvailable) {
+        return NextResponse.json(
+          { error: `O produto "${product.name}" está temporariamente indisponível ou esgotado.` },
+          { status: 400 }
+        );
+      }
+      if (product.stock !== null && product.stock < totalQty) {
+        return NextResponse.json(
+          {
+            error: `Estoque insuficiente para "${product.name}". Quantidade disponível: ${product.stock}, solicitada: ${totalQty}.`,
+            code: "INSUFFICIENT_STOCK",
+          },
+          { status: 400 }
+        );
+      }
+    }
 
     // Busca promoções vinculadas caso algum item venha de promoção
     const promoIds = items
@@ -127,6 +162,18 @@ export async function POST(request: Request) {
 
     const promotionsMap = new Map(dbPromotions.map((p) => [p.id, p]));
 
+    // Busca e validação segura de complementos (AddonItem) cadastrados no banco
+    const allSelectedAddonIds = Array.from(
+      new Set(items.flatMap((i) => (i.selectedAddons || []).map((a) => a.id)))
+    );
+    const dbAddons = allSelectedAddonIds.length > 0
+      ? await prisma.addonItem.findMany({
+          where: { id: { in: allSelectedAddonIds } },
+          include: { group: true },
+        })
+      : [];
+    const dbAddonsMap = new Map(dbAddons.map((a) => [a.id, a]));
+
     let calculatedSubtotal = 0;
     let promoDiscountTotal = 0;
     let hasCombosInCart = false;
@@ -140,45 +187,92 @@ export async function POST(request: Request) {
     }[] = [];
 
     for (const item of items) {
-      const product = productsMap.get(item.productId);
-      if (!product) {
-        return NextResponse.json(
-          { error: `Produto não encontrado no cardápio: ${item.productId}` },
-          { status: 400 }
-        );
-      }
+      const product = productsMap.get(item.productId)!;
 
       if (product.isCombo) {
         hasCombosInCart = true;
       }
 
-      let addonsTotal = 0;
+      let addonsTotalPerUnit = 0;
+      let finalSelectedAddons: Array<{
+        id: string;
+        name: string;
+        groupName: string;
+        price: number;
+        quantity: number;
+      }> | null = null;
+
       if (item.selectedAddons && item.selectedAddons.length > 0) {
-        // Validação estrita: Busca o preço oficial de cada Addon no Banco de Dados
-        const addonIds = item.selectedAddons.map((a: { id: string }) => a.id);
-        const dbAddons: Array<{ id: string; price: unknown }> = await (prisma as any).productAddon.findMany({
-          where: { id: { in: addonIds } }
-        });
-
-        const dbAddonsMap = new Map<string, { id: string; price: unknown }>(
-          dbAddons.map((a) => [a.id, a])
-        );
-
+        finalSelectedAddons = [];
+        // Validação estrita: verifica se todos os addons existem e não estão pausados
         for (const addon of item.selectedAddons) {
-          const officialAddon = dbAddonsMap.get(addon.id);
-          const officialPrice = officialAddon ? Number(officialAddon.price) : 0;
-          addonsTotal += (officialPrice * addon.quantity);
+          const dbAddon = dbAddonsMap.get(addon.id);
+          if (!dbAddon) {
+            return NextResponse.json(
+              { error: `Complemento selecionado não encontrado ou indisponível.` },
+              { status: 400 }
+            );
+          }
+          if (!dbAddon.isAvailable || (dbAddon.group && !dbAddon.group.isActive)) {
+            return NextResponse.json(
+              { error: `O complemento "${dbAddon.name}" está pausado na cozinha ou esgotado no momento.` },
+              { status: 400 }
+            );
+          }
+        }
+
+        // Agrupamento por grupo para aplicar a cota de itens grátis (freeQuantity)
+        const selectionsByGroup = new Map<string, Array<{ dbAddon: typeof dbAddons[0]; quantity: number }>>();
+        for (const addon of item.selectedAddons) {
+          const dbAddon = dbAddonsMap.get(addon.id)!;
+          const list = selectionsByGroup.get(dbAddon.groupId) || [];
+          list.push({ dbAddon, quantity: addon.quantity || 1 });
+          selectionsByGroup.set(dbAddon.groupId, list);
+        }
+
+        for (const [, groupSelections] of selectionsByGroup.entries()) {
+          const group = groupSelections[0]?.dbAddon.group;
+          let freeSlotsLeft = group?.freeQuantity ?? 0;
+
+          for (const sel of groupSelections) {
+            const rawPrice = Number(sel.dbAddon.price);
+            for (let q = 0; q < sel.quantity; q++) {
+              let chargedPrice = rawPrice;
+              if (freeSlotsLeft > 0) {
+                chargedPrice = 0;
+                freeSlotsLeft--;
+              } else if (rawPrice === 0) {
+                chargedPrice = 0;
+              }
+
+              addonsTotalPerUnit += chargedPrice;
+
+              const existingSnap = finalSelectedAddons.find(
+                (s) => s.id === sel.dbAddon.id && s.price === chargedPrice
+              );
+              if (existingSnap) {
+                existingSnap.quantity += 1;
+              } else {
+                finalSelectedAddons.push({
+                  id: sel.dbAddon.id,
+                  name: sel.dbAddon.name,
+                  groupName: group?.name || "Complementos",
+                  price: chargedPrice,
+                  quantity: 1,
+                });
+              }
+            }
+          }
         }
       }
 
       const originalPrice = Number(product.price);
-      let unitPrice = originalPrice + addonsTotal;
+      let unitPrice = originalPrice + addonsTotalPerUnit;
 
       // Promoções aplicam desconto apenas sobre o produto original, não sobre os adicionais (regra comum)
       // Combos NÃO devem aceitar promoções "De/Por" individuais, pois já são agrupamentos fechados.
       if (item.promotionId && !product.isCombo) {
         const promo = promotionsMap.get(item.promotionId);
-        // Verifica se a promoção existe, está ativa e contém este produto
         const isInPromo = promo?.productId === item.productId;
         if (promo && isInPromo) {
           let discountOnBase = 0;
@@ -186,23 +280,22 @@ export async function POST(request: Request) {
             const pct = Number(promo.discountValue);
             discountOnBase = Number((originalPrice * (pct / 100)).toFixed(2));
           } else {
-            // Em desconto fixo por produto
             const fixed = Number(promo.discountValue);
-            discountOnBase = Math.min(originalPrice, fixed); // Não desconta mais que o preço base
+            discountOnBase = Math.min(originalPrice, fixed);
           }
-          unitPrice = (originalPrice - discountOnBase) + addonsTotal;
+          unitPrice = (originalPrice - discountOnBase) + addonsTotalPerUnit;
           promoDiscountTotal += discountOnBase * item.quantity;
         }
       }
 
-      calculatedSubtotal += (originalPrice + addonsTotal) * item.quantity;
+      calculatedSubtotal += (originalPrice + addonsTotalPerUnit) * item.quantity;
 
       validatedOrderItems.push({
         productId: product.id,
         quantity: item.quantity,
         priceAtTime: unitPrice,
         promotionId: item.promotionId || null,
-        selectedAddons: item.selectedAddons || null,
+        selectedAddons: finalSelectedAddons && finalSelectedAddons.length > 0 ? finalSelectedAddons : null,
       });
     }
 
@@ -387,6 +480,17 @@ export async function POST(request: Request) {
           },
         },
       });
+
+      // Decremento atômico de estoque para produtos com controle de estoque finito
+      for (const [prodId, totalQty] of productQtyMap.entries()) {
+        const prod = productsMap.get(prodId);
+        if (prod && prod.stock !== null) {
+          await tx.product.update({
+            where: { id: prodId },
+            data: { stock: { decrement: totalQty } },
+          });
+        }
+      }
 
       // Se utilizou cupom, incrementa o contador de usos
       if (validCouponId) {
