@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { productService, Product } from "../../services/productService";
-import { Category } from "../../services/categoryService";
+import { categoryService, Category } from "../../services/categoryService";
 import { badgeService, CardBadge } from "../../services/badgeService";
 import { addonService, AddonGroup } from "../../services/addonService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
@@ -19,6 +19,7 @@ import {
   Loader2,
   CheckCircle2,
   IceCream,
+  ChevronDown,
 } from "lucide-react";
 
 interface ProductFormDialogProps {
@@ -48,6 +49,23 @@ export function ProductFormDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Categorias ativas com fallback assíncrono caso o componente pai ainda não as tenha carregado
+  const [internalCategories, setInternalCategories] = useState<Category[]>(categories || []);
+
+  useEffect(() => {
+    if (categories && categories.length > 0) {
+      setInternalCategories(categories);
+    } else if (open) {
+      categoryService.getCategories().then((cats) => {
+        if (cats && cats.length > 0) setInternalCategories(cats);
+      }).catch(() => {});
+    }
+  }, [categories, open]);
+
+  const activeCategories = useMemo(() => {
+    return internalCategories.length > 0 ? internalCategories : categories;
+  }, [internalCategories, categories]);
+
   // Estados para o Modal de Recorte
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
@@ -57,7 +75,17 @@ export function ProductFormDialog({
       setName(productToEdit?.name || "");
       setDescription(productToEdit?.description || "");
       setPrice(productToEdit?.price !== undefined ? productToEdit.price.toString() : "");
-      setCategoryId(productToEdit?.category_id || (categories.length > 0 ? categories[0].id : ""));
+
+      const list = activeCategories.length > 0 ? activeCategories : categories;
+      const currentCatId = productToEdit?.category_id || productToEdit?.categoryId;
+      const currentCatName = productToEdit?.category;
+      const foundCategory = list.find((c) =>
+        (currentCatId && c.id === currentCatId) ||
+        (currentCatName && (c.name.toLowerCase() === currentCatName.toLowerCase() || c.id === currentCatName))
+      );
+      const targetId = foundCategory?.id || currentCatId || (list.length > 0 ? list[0].id : "");
+      setCategoryId(targetId);
+
       setCardBadgeId(productToEdit?.cardBadgeId || "none");
       setSelectedAddonGroupIds(productToEdit?.addonGroupIds || []);
       setFile(null);
@@ -78,7 +106,7 @@ export function ProductFormDialog({
         }).catch(() => {});
       }
     }
-  }, [open, productToEdit, categories]);
+  }, [open, productToEdit, categories, activeCategories]);
 
   const previewUrl = useMemo(() => {
     if (file) {
@@ -88,8 +116,9 @@ export function ProductFormDialog({
   }, [file, productToEdit?.imageUrl]);
 
   const selectedCategory = useMemo(() => {
-    return categories.find((c) => c.id === categoryId);
-  }, [categories, categoryId]);
+    const list = activeCategories.length > 0 ? activeCategories : categories;
+    return list.find((c) => c.id === categoryId || c.name.toLowerCase() === categoryId.toLowerCase()) || null;
+  }, [activeCategories, categories, categoryId]);
 
   const selectedBadge = useMemo(() => {
     if (!cardBadgeId || cardBadgeId === "none") return null;
@@ -169,7 +198,7 @@ export function ProductFormDialog({
 
     try {
       let result: Product;
-      const catName = selectedCategory?.name;
+      const catName = selectedCategory?.name || productToEdit?.category || "Outros";
       const finalCardBadgeId = cardBadgeId === "none" ? null : cardBadgeId;
 
       if (productToEdit) {
@@ -204,8 +233,8 @@ export function ProductFormDialog({
 
       onSaved(result);
       onOpenChange(false);
-    } catch (err: any) {
-      setError(err.message || "Erro ao salvar o produto.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro ao salvar o produto.");
     } finally {
       setLoading(false);
     }
@@ -250,9 +279,9 @@ export function ProductFormDialog({
                         <span className="text-xs font-medium">Nenhuma foto selecionada</span>
                       </div>
                     )}
-                    {selectedCategory && (
-                      <span className="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
-                        {selectedCategory.name}
+                    {(selectedCategory?.name || productToEdit?.category) && (
+                      <span className="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-md truncate max-w-[150px] shadow-sm tracking-wide">
+                        {selectedCategory?.name || productToEdit?.category}
                       </span>
                     )}
                     {selectedBadge && (
@@ -340,48 +369,67 @@ export function ProductFormDialog({
                   />
                 </div>
 
-                {/* Preço e Categoria */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Preço de Venda */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="price" className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                      Preço de Venda (R$)
-                    </Label>
-                    <div className="relative flex items-center">
-                      <span className="absolute left-3.5 font-bold text-sm text-primary dark:text-muted-foreground pointer-events-none">
-                        R$
-                      </span>
-                      <Input
-                        id="price"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                        required
-                        className="h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-card dark:border-border/50 dark:text-white pl-10 focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary font-semibold"
-                        placeholder="0,00"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Categoria */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="category" className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                {/* Categoria (Linha Própria, Confortável e Visível) */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <Label
+                      htmlFor="category-select"
+                      className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300"
+                    >
                       Categoria
                     </Label>
-                    <Select value={categoryId} onValueChange={(val) => setCategoryId(val || "")} required>
-                      <SelectTrigger className="w-full h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-card dark:border-border/50 dark:text-white focus:border-primary focus:ring-2 focus:ring-primary/20">
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl border border-gray-200 dark:border-border/50 bg-white dark:bg-[#1F0B22] shadow-xl max-h-60 z-[60]">
-                        {categories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id} className="cursor-pointer text-sm py-2 hover:bg-primary/10">
-                            {cat.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <span className="text-[10px] font-semibold text-primary dark:text-muted-foreground">
+                      obrigatório
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <select
+                      id="category-select"
+                      value={categoryId}
+                      onChange={(e) => setCategoryId(e.target.value)}
+                      required
+                      className="w-full h-11 pl-3.5 pr-10 rounded-xl bg-white border border-gray-200 text-gray-900 dark:bg-card dark:border-border/50 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none cursor-pointer"
+                    >
+                      <option value="" disabled>
+                        Selecione uma categoria...
+                      </option>
+                      {activeCategories.map((cat) => (
+                        <option
+                          key={cat.id}
+                          value={cat.id}
+                          className="py-1 text-gray-900 dark:text-white bg-white dark:bg-[#1F0B22]"
+                        >
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Preço de Venda (R$) */}
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="price"
+                    className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300"
+                  >
+                    Preço de Venda (R$)
+                  </Label>
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3.5 font-bold text-sm text-primary dark:text-muted-foreground pointer-events-none">
+                      R$
+                    </span>
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      required
+                      className="h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-card dark:border-border/50 dark:text-white pl-10 focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary font-semibold text-sm"
+                      placeholder="0,00"
+                    />
                   </div>
                 </div>
 

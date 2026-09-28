@@ -7,6 +7,7 @@ export interface Product {
   description: string;
   price: number;
   category_id?: string;
+  categoryId?: string;
   category?: string;
   imageUrl: string;
   stock?: number | null;
@@ -64,22 +65,23 @@ export const productService = {
       ? data.data
       : [];
 
-    return rawList.map((item: any) => ({
-      id: item.id,
-      name: item.name,
-      description: item.description || "",
+    return rawList.map((item: Record<string, unknown>) => ({
+      id: String(item.id),
+      name: String(item.name || ""),
+      description: String(item.description || ""),
       price: Number(item.price),
-      category_id: item.categoryId,
-      category: item.category,
-      imageUrl: item.imageUrl || "",
-      stock: item.stock !== undefined ? item.stock : null,
+      category_id: (item.categoryId as string) || (item.category_id as string),
+      categoryId: (item.categoryId as string) || (item.category_id as string),
+      category: item.category as string,
+      imageUrl: String(item.imageUrl || ""),
+      stock: item.stock !== undefined ? (item.stock as number | null) : null,
       isAvailable: item.isAvailable !== undefined ? Boolean(item.isAvailable) : true,
-      cardBadgeId: item.cardBadgeId || null,
-      cardBadge: item.cardBadge || null,
-      isCombo: item.isCombo || false,
-      comboItems: item.comboItems || [],
-      addonGroupIds: item.addonGroupIds || [],
-      addonGroups: item.addonGroups || [],
+      cardBadgeId: (item.cardBadgeId as string | null) || null,
+      cardBadge: (item.cardBadge as Product["cardBadge"]) || null,
+      isCombo: Boolean(item.isCombo),
+      comboItems: (item.comboItems as Product["comboItems"]) || [],
+      addonGroupIds: (item.addonGroupIds as string[]) || [],
+      addonGroups: (item.addonGroups as Product["addonGroups"]) || [],
     }));
   },
 
