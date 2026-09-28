@@ -16,6 +16,13 @@ export interface OrderItem {
     price: number;
     quantity: number;
   }> | null;
+  selectedAddons?: Array<{
+    id: string;
+    name: string;
+    groupName?: string;
+    price: number;
+    quantity: number;
+  }> | null;
   product?: {
     id: string;
     name: string;
@@ -48,7 +55,9 @@ export interface Order {
   payment_method_type?: string;
   payment_change_for?: number | null;
   change_for?: number | null;
+  changeFor?: number | null;
   change_to_return?: number | null;
+  changeToReturn?: number | null;
   delivery_address?: DeliveryAddress;
   shift_id?: string | null;
   shift_code?: string | null;

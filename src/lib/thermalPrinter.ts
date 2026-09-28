@@ -36,7 +36,7 @@ export function printOrderReceipt(order: Order, storeName = "Pop Shake Sorveteri
     .map((item) => {
       const itemTotal = formatDecimal(parseSafeNumber(item.price_at_time) * parseSafeNumber(item.quantity, 1));
       const unitPrice = formatDecimal(item.price_at_time);
-      const addons = (item.selected_addons || (item as any).selectedAddons || []) as Array<{
+      const addons = (item.selected_addons || item.selectedAddons || []) as Array<{
         name: string;
         groupName?: string;
         price: number;
@@ -246,17 +246,17 @@ export function printOrderReceipt(order: Order, storeName = "Pop Shake Sorveteri
       <div style="font-size: 12px; line-height: 1.4;">
         <div><strong>Pagamento:</strong> ${paymentText}</div>
         ${
-          order.payment_method_type === "dinheiro" && (order.change_for || order.payment_change_for || (order as any).changeFor)
+          order.payment_method_type === "dinheiro" && (order.change_for || order.payment_change_for || order.changeFor)
             ? `
           <div style="margin-top: 6px; padding: 6px; border: 2px solid #000; background: #fdfdfd; font-size: 12px; line-height: 1.5;">
-            <div>Total do Pedido: R$ ${Number(order.total_amount).toFixed(2).replace(".", ",")}</div>
-            <div>Pagar com: R$ ${Number(order.change_for || order.payment_change_for || (order as any).changeFor).toFixed(2).replace(".", ",")}</div>
+            <div>Total do Pedido: R$ ${formatDecimal(order.total_amount)}</div>
+            <div>Pagar com: R$ ${formatDecimal(order.change_for || order.payment_change_for || order.changeFor)}</div>
             <div style="font-weight: 900; font-size: 14px; margin-top: 4px; border-top: 1px dashed #000; padding-top: 3px;">
-              LEVAR DE TROCO: R$ ${Number(
+              LEVAR DE TROCO: R$ ${formatDecimal(
                 order.change_to_return ??
-                (order as any).changeToReturn ??
-                Math.max(0, Number(order.change_for || order.payment_change_for || (order as any).changeFor) - Number(order.total_amount))
-              ).toFixed(2).replace(".", ",")}
+                order.changeToReturn ??
+                Math.max(0, Number(order.change_for || order.payment_change_for || order.changeFor) - Number(order.total_amount))
+              )}
             </div>
           </div>
         `

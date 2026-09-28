@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { getAuthUser } from "@/lib/auth";
 import { sanitizeText } from "@/lib/sanitize";
 
@@ -61,7 +62,7 @@ export async function GET(
       addonGroupIds: product.addonGroups?.map((ag) => ag.groupId) || [],
       addonGroups: product.addonGroups?.map((ag) => ag.group) || [],
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao buscar detalhes do produto:", error);
     return NextResponse.json({ error: "Erro ao buscar detalhes do produto." }, { status: 500 });
   }
@@ -78,15 +79,41 @@ export async function PUT(
     }
 
     const { id } = await params;
-    let body: any;
+    let body: Record<string, unknown> | null = null;
     try {
-      body = await request.json();
+      body = (await request.json()) as Record<string, unknown>;
     } catch {
       return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
     }
-    const { name, description, price, categoryId, category, imageUrl, stock, isAvailable, cardBadgeId, isCombo, comboItems, addonGroupIds } = body || {};
+    const {
+      name,
+      description,
+      price,
+      categoryId,
+      category,
+      imageUrl,
+      stock,
+      isAvailable,
+      cardBadgeId,
+      isCombo,
+      comboItems,
+      addonGroupIds,
+    } = (body || {}) as {
+      name?: string;
+      description?: string;
+      price?: number | string;
+      categoryId?: string;
+      category?: string;
+      imageUrl?: string;
+      stock?: number | string;
+      isAvailable?: boolean;
+      cardBadgeId?: string;
+      isCombo?: boolean;
+      comboItems?: Array<{ productId: string; quantity?: number }>;
+      addonGroupIds?: string[];
+    };
 
-    const dataToUpdate: any = {};
+    const dataToUpdate: Prisma.ProductUncheckedUpdateInput = {};
     if (name !== undefined) dataToUpdate.name = sanitizeText(name);
     if (description !== undefined) dataToUpdate.description = description ? sanitizeText(description) : null;
     if (price !== undefined) {
@@ -106,7 +133,7 @@ export async function PUT(
     if (isCombo && Array.isArray(comboItems)) {
       dataToUpdate.comboItems = {
         deleteMany: {}, // Clean old items
-        create: comboItems.map((ci: any) => ({
+        create: comboItems.map((ci) => ({
           productId: ci.productId,
           quantity: ci.quantity || 1
         }))
@@ -172,9 +199,9 @@ export async function PUT(
       addonGroupIds: updated.addonGroups?.map(ag => ag.groupId) || [],
       addonGroups: updated.addonGroups?.map(ag => ag.group) || [],
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao atualizar produto:", error);
-    if (error.code === "P2025") {
+    if (error && typeof error === "object" && "code" in error && (error as { code: string }).code === "P2025") {
       return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
     }
     return NextResponse.json({ error: "Erro ao atualizar produto." }, { status: 500 });
@@ -195,9 +222,9 @@ export async function DELETE(
     await prisma.product.delete({ where: { id } });
 
     return NextResponse.json({ success: true, message: "Produto excluído com sucesso." });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao excluir produto:", error);
-    if (error.code === "P2025") {
+    if (error && typeof error === "object" && "code" in error && (error as { code: string }).code === "P2025") {
       return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
     }
     return NextResponse.json({ error: "Erro ao excluir produto." }, { status: 500 });

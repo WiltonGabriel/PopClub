@@ -78,13 +78,39 @@ export async function POST(request: Request) {
       return apiError("Limite máximo de 300 produtos ativos atingido.", 400, "QUOTA_EXCEEDED");
     }
 
-    let body: any;
+    let body: Record<string, unknown> | null = null;
     try {
-      body = await request.json();
+      body = (await request.json()) as Record<string, unknown>;
     } catch {
       return apiError("Formato de requisição inválido ou corpo vazio.", 400, "BAD_REQUEST");
     }
-    const { name, description, price, categoryId, category, imageUrl, stock, isAvailable, cardBadgeId, isCombo, comboItems, addonGroupIds } = body || {};
+    const {
+      name,
+      description,
+      price,
+      categoryId,
+      category,
+      imageUrl,
+      stock,
+      isAvailable,
+      cardBadgeId,
+      isCombo,
+      comboItems,
+      addonGroupIds,
+    } = (body || {}) as {
+      name?: string;
+      description?: string;
+      price?: number | string;
+      categoryId?: string;
+      category?: string;
+      imageUrl?: string;
+      stock?: number | string;
+      isAvailable?: boolean;
+      cardBadgeId?: string;
+      isCombo?: boolean;
+      comboItems?: Array<{ productId: string; quantity?: number }>;
+      addonGroupIds?: string[];
+    };
 
     const cleanName = sanitizeText(name);
     const cleanDescription = description ? sanitizeText(description) : null;
@@ -120,7 +146,7 @@ export async function POST(request: Request) {
         cardBadgeId: cardBadgeId || null,
         isCombo: isCombo ? true : false,
         comboItems: (isCombo && Array.isArray(comboItems)) ? {
-          create: comboItems.map((ci: any) => ({
+          create: comboItems.map((ci) => ({
             productId: ci.productId,
             quantity: ci.quantity || 1
           }))

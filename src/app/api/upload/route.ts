@@ -184,7 +184,7 @@ export async function POST(request: Request) {
       size: webpBuffer.length,
       format: "webp",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro no processamento da imagem com Sharp:", error);
     return NextResponse.json(
       { error: "Falha ao otimizar e converter a imagem no servidor." },
