@@ -1,3 +1,11 @@
+export interface BusinessHourDay {
+  day: string;
+  label: string;
+  isOpen: boolean;
+  openTime: string;
+  closeTime: string;
+}
+
 export interface StoreSettings {
   id: string;
   deliveryFee: number;
@@ -12,6 +20,13 @@ export interface StoreSettings {
   storeLatitude?: number | null;
   storeLongitude?: number | null;
   storeAddress?: string | null;
+  maxDeliveryRadiusKm?: number | null;
+  businessHours?: BusinessHourDay[];
+  instagramUrl?: string | null;
+  facebookUrl?: string | null;
+  supportPhone?: string | null;
+  postSaleMessage?: string | null;
+  supportMessage?: string | null;
   openedAt?: string | null;
   closedAt?: string | null;
   updatedAt?: string;
@@ -49,6 +64,21 @@ export const storeSettingsService = {
         storeLatitude: -15.6536,
         storeLongitude: -56.1322,
         storeAddress: "Várzea Grande, MT",
+        maxDeliveryRadiusKm: 10,
+        businessHours: [
+          { day: "monday", label: "Segunda-feira", isOpen: true, openTime: "13:00", closeTime: "22:00" },
+          { day: "tuesday", label: "Terça-feira", isOpen: true, openTime: "13:00", closeTime: "22:00" },
+          { day: "wednesday", label: "Quarta-feira", isOpen: true, openTime: "13:00", closeTime: "22:00" },
+          { day: "thursday", label: "Quinta-feira", isOpen: true, openTime: "13:00", closeTime: "22:00" },
+          { day: "friday", label: "Sexta-feira", isOpen: true, openTime: "13:00", closeTime: "23:00" },
+          { day: "saturday", label: "Sábado", isOpen: true, openTime: "13:00", closeTime: "23:30" },
+          { day: "sunday", label: "Domingo", isOpen: true, openTime: "13:00", closeTime: "23:00" },
+        ],
+        instagramUrl: "https://instagram.com/popshake",
+        facebookUrl: "",
+        supportPhone: "5565999999999",
+        postSaleMessage: "Obrigado pelo seu pedido no Pop Shake! Como foi sua experiência hoje? Avalie nosso atendimento e ganhe um cupom de desconto para o próximo pedido! 🍧",
+        supportMessage: "Olá! Preciso de ajuda com meu pedido no Pop Shake.",
       };
     }
   },
@@ -66,6 +96,13 @@ export const storeSettingsService = {
     storeLatitude?: number | null;
     storeLongitude?: number | null;
     storeAddress?: string | null;
+    maxDeliveryRadiusKm?: number | null;
+    businessHours?: BusinessHourDay[];
+    instagramUrl?: string | null;
+    facebookUrl?: string | null;
+    supportPhone?: string | null;
+    postSaleMessage?: string | null;
+    supportMessage?: string | null;
     openedAt?: string | null;
     closedAt?: string | null;
   }): Promise<StoreSettings> {

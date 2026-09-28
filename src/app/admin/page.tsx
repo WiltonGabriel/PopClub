@@ -51,6 +51,9 @@ import { AvatarPresetManager } from "../../components/admin/AvatarPresetManager"
 import { VisualIdentitySection } from "../../components/admin/VisualIdentitySection";
 import { CommunicationSection } from "../../components/admin/CommunicationSection";
 import { MobileOrientationBanner } from "../../components/admin/MobileOrientationBanner";
+import { LogisticsAndCouriersSection } from "../../components/admin/LogisticsAndCouriersSection";
+import { ChannelsAndSupportSection } from "../../components/admin/ChannelsAndSupportSection";
+import { MessageCircle } from "lucide-react";
 
 export default function AdminDashboard() {
   const { theme, toggleTheme } = useTheme();
@@ -65,7 +68,7 @@ export default function AdminDashboard() {
   });
   const [fetching, setFetching] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    "metrics" | "combos" | "promotions" | "addons" | "banners" | "appearance" | "coupons" | "messages" | "delivery" | "avatars"
+    "metrics" | "combos" | "promotions" | "addons" | "banners" | "appearance" | "coupons" | "messages" | "logistics" | "channels" | "delivery" | "avatars"
   >("metrics");
   const [promoDialogOpen, setPromoDialogOpen] = useState(false);
   const [promoToEdit, setPromoToEdit] = useState<Promotion | null>(null);
@@ -615,6 +618,32 @@ export default function AdminDashboard() {
 
                 <button
                   type="button"
+                  onClick={() => setActiveTab("logistics")}
+                  className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
+                    activeTab === "logistics" || activeTab === "delivery"
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  <Truck className="w-4 h-4" />
+                  <span>🛵 Logística & Entregadores</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("channels")}
+                  className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
+                    activeTab === "channels"
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>💬 Canais & Atendimento</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => setActiveTab("messages")}
                   className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
                     activeTab === "messages"
@@ -623,20 +652,7 @@ export default function AdminDashboard() {
                   }`}
                 >
                   <Send className="w-4 h-4" />
-                  <span>💬 Comunicação & Mensagens</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("delivery")}
-                  className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
-                    activeTab === "delivery"
-                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
-                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                  }`}
-                >
-                  <Truck className="w-4 h-4" />
-                  <span>🛵 Entrega & WhatsApp</span>
+                  <span>📢 Disparos & Notificações</span>
                 </button>
 
                 <button
@@ -1118,18 +1134,25 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {/* CONTEÚDO DA ABA 5.5: COMUNICAÇÃO & MENSAGENS */}
-              {activeTab === "messages" && (
-                <div className="animate-in fade-in duration-150">
-                  <CommunicationSection />
+              {/* CONTEÚDO: LOGÍSTICA & ENTREGADORES */}
+              {(activeTab === "logistics" || activeTab === "delivery") && (
+                <div className="space-y-6 animate-in fade-in duration-150">
+                  <LogisticsAndCouriersSection />
+                  <OrderFlowSettings />
                 </div>
               )}
 
-              {/* CONTEÚDO DA ABA 6: TAXA DE ENTREGA & ESTEIRA */}
-              {activeTab === "delivery" && (
-                <div className="space-y-6 animate-in fade-in duration-150">
-                  <DeliveryFeeSettings />
-                  <OrderFlowSettings />
+              {/* CONTEÚDO: CANAIS & ATENDIMENTO */}
+              {activeTab === "channels" && (
+                <div className="animate-in fade-in duration-150">
+                  <ChannelsAndSupportSection />
+                </div>
+              )}
+
+              {/* CONTEÚDO: DISPAROS & NOTIFICAÇÕES */}
+              {activeTab === "messages" && (
+                <div className="animate-in fade-in duration-150">
+                  <CommunicationSection />
                 </div>
               )}
 

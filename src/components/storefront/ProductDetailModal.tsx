@@ -407,19 +407,19 @@ export function ProductDetailModal({
 
                         {/* Badges do Grupo */}
                         <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-                          <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
-                            {currentCount}/{group.maxQuantity}
+                          <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-zinc-200/80 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                            {currentCount} de {group.maxQuantity} selecionado{group.maxQuantity === 1 ? "" : "s"}
                           </span>
 
                           {minReq >= 1 ? (
                             <span
-                              className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                              className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
                                 isSatisfied
                                   ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                                   : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 animate-pulse"
                               }`}
                             >
-                              Obrigatório • Escolha pelo menos {minReq}
+                              [ Obrigatório • Escolha {minReq} ]
                             </span>
                           ) : (
                             <span className="text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-muted-foreground">
@@ -451,10 +451,10 @@ export function ProductDetailModal({
 
                           if (item.price > 0) {
                             if (isSelected && selectedIndex < freeQuota) {
-                              priceDisplay = "Incluso (cota grátis)";
+                              priceDisplay = "Incluso";
                               priceColor = "text-emerald-600 dark:text-emerald-400 font-bold";
                             } else if (!isSelected && currentCount < freeQuota) {
-                              priceDisplay = `Incluso (até ${freeQuota} grátis)`;
+                              priceDisplay = "Incluso";
                               priceColor = "text-emerald-600 dark:text-emerald-400 font-bold";
                             } else {
                               priceDisplay = `+ R$ ${item.price.toFixed(2).replace(".", ",")}`;

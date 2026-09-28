@@ -24,6 +24,21 @@ const DEFAULT_SETTINGS = {
   storeLatitude: -15.6536,
   storeLongitude: -56.1322,
   storeAddress: "Várzea Grande, MT",
+  maxDeliveryRadiusKm: 10,
+  businessHours: [
+    { day: "monday", label: "Segunda-feira", isOpen: true, openTime: "13:00", closeTime: "22:00" },
+    { day: "tuesday", label: "Terça-feira", isOpen: true, openTime: "13:00", closeTime: "22:00" },
+    { day: "wednesday", label: "Quarta-feira", isOpen: true, openTime: "13:00", closeTime: "22:00" },
+    { day: "thursday", label: "Quinta-feira", isOpen: true, openTime: "13:00", closeTime: "22:00" },
+    { day: "friday", label: "Sexta-feira", isOpen: true, openTime: "13:00", closeTime: "23:00" },
+    { day: "saturday", label: "Sábado", isOpen: true, openTime: "13:00", closeTime: "23:30" },
+    { day: "sunday", label: "Domingo", isOpen: true, openTime: "13:00", closeTime: "23:00" },
+  ],
+  instagramUrl: "https://instagram.com/popshake",
+  facebookUrl: "",
+  supportPhone: "5565999999999",
+  postSaleMessage: "Obrigado pelo seu pedido no Pop Shake! Como foi sua experiência hoje? Avalie nosso atendimento e ganhe um cupom de desconto para o próximo pedido! 🍧",
+  supportMessage: "Olá! Preciso de ajuda com meu pedido no Pop Shake.",
 };
 
 const coerceOptionalNumber = (val: unknown) => {
@@ -55,6 +70,13 @@ const settingsUpdateSchema = z.object({
   latitude: z.preprocess(coerceNullableNumber, z.number().nullable()).optional(),
   longitude: z.preprocess(coerceNullableNumber, z.number().nullable()).optional(),
   storeAddress: z.string().nullable().optional(),
+  maxDeliveryRadiusKm: z.preprocess(coerceNullableNumber, z.number().min(0).nullable()).optional(),
+  businessHours: z.any().optional(),
+  instagramUrl: z.string().nullable().optional(),
+  facebookUrl: z.string().nullable().optional(),
+  supportPhone: z.string().nullable().optional(),
+  postSaleMessage: z.string().nullable().optional(),
+  supportMessage: z.string().nullable().optional(),
   openedAt: z.string().nullable().optional(),
   closedAt: z.string().nullable().optional(),
 });
@@ -93,6 +115,13 @@ export async function GET() {
       storeLatitude: settings.storeLatitude ?? DEFAULT_SETTINGS.storeLatitude,
       storeLongitude: settings.storeLongitude ?? DEFAULT_SETTINGS.storeLongitude,
       storeAddress: settings.storeAddress || DEFAULT_SETTINGS.storeAddress,
+      maxDeliveryRadiusKm: settings.maxDeliveryRadiusKm ?? DEFAULT_SETTINGS.maxDeliveryRadiusKm,
+      businessHours: settings.businessHours || DEFAULT_SETTINGS.businessHours,
+      instagramUrl: settings.instagramUrl || DEFAULT_SETTINGS.instagramUrl,
+      facebookUrl: settings.facebookUrl || DEFAULT_SETTINGS.facebookUrl,
+      supportPhone: settings.supportPhone || DEFAULT_SETTINGS.supportPhone,
+      postSaleMessage: settings.postSaleMessage || DEFAULT_SETTINGS.postSaleMessage,
+      supportMessage: settings.supportMessage || DEFAULT_SETTINGS.supportMessage,
       openedAt: settings.openedAt ? settings.openedAt.toISOString() : null,
       closedAt: settings.closedAt ? settings.closedAt.toISOString() : null,
       updatedAt: settings.updatedAt.toISOString(),
@@ -113,6 +142,13 @@ export async function GET() {
       storeLatitude: DEFAULT_SETTINGS.storeLatitude,
       storeLongitude: DEFAULT_SETTINGS.storeLongitude,
       storeAddress: DEFAULT_SETTINGS.storeAddress,
+      maxDeliveryRadiusKm: DEFAULT_SETTINGS.maxDeliveryRadiusKm,
+      businessHours: DEFAULT_SETTINGS.businessHours,
+      instagramUrl: DEFAULT_SETTINGS.instagramUrl,
+      facebookUrl: DEFAULT_SETTINGS.facebookUrl,
+      supportPhone: DEFAULT_SETTINGS.supportPhone,
+      postSaleMessage: DEFAULT_SETTINGS.postSaleMessage,
+      supportMessage: DEFAULT_SETTINGS.supportMessage,
       openedAt: null,
       closedAt: null,
       updatedAt: new Date().toISOString(),
@@ -154,6 +190,13 @@ export async function PUT(request: Request) {
       latitude,
       longitude,
       storeAddress,
+      maxDeliveryRadiusKm,
+      businessHours,
+      instagramUrl,
+      facebookUrl,
+      supportPhone,
+      postSaleMessage,
+      supportMessage,
       openedAt,
       closedAt,
     } = parsed.data;
@@ -174,6 +217,13 @@ export async function PUT(request: Request) {
     if (effectiveLat !== undefined) dataToUpdate.storeLatitude = effectiveLat;
     if (effectiveLng !== undefined) dataToUpdate.storeLongitude = effectiveLng;
     if (storeAddress !== undefined) dataToUpdate.storeAddress = storeAddress;
+    if (maxDeliveryRadiusKm !== undefined) dataToUpdate.maxDeliveryRadiusKm = maxDeliveryRadiusKm;
+    if (businessHours !== undefined) dataToUpdate.businessHours = businessHours;
+    if (instagramUrl !== undefined) dataToUpdate.instagramUrl = instagramUrl;
+    if (facebookUrl !== undefined) dataToUpdate.facebookUrl = facebookUrl;
+    if (supportPhone !== undefined) dataToUpdate.supportPhone = supportPhone;
+    if (postSaleMessage !== undefined) dataToUpdate.postSaleMessage = postSaleMessage;
+    if (supportMessage !== undefined) dataToUpdate.supportMessage = supportMessage;
     if (openedAt !== undefined) dataToUpdate.openedAt = openedAt ? new Date(openedAt) : null;
     if (closedAt !== undefined) dataToUpdate.closedAt = closedAt ? new Date(closedAt) : null;
 
@@ -194,6 +244,13 @@ export async function PUT(request: Request) {
         storeLatitude: effectiveLat ?? DEFAULT_SETTINGS.storeLatitude,
         storeLongitude: effectiveLng ?? DEFAULT_SETTINGS.storeLongitude,
         storeAddress: storeAddress || DEFAULT_SETTINGS.storeAddress,
+        maxDeliveryRadiusKm: maxDeliveryRadiusKm ?? DEFAULT_SETTINGS.maxDeliveryRadiusKm,
+        businessHours: businessHours ?? DEFAULT_SETTINGS.businessHours,
+        instagramUrl: instagramUrl || DEFAULT_SETTINGS.instagramUrl,
+        facebookUrl: facebookUrl || DEFAULT_SETTINGS.facebookUrl,
+        supportPhone: supportPhone || DEFAULT_SETTINGS.supportPhone,
+        postSaleMessage: postSaleMessage || DEFAULT_SETTINGS.postSaleMessage,
+        supportMessage: supportMessage || DEFAULT_SETTINGS.supportMessage,
         openedAt: openedAt ? new Date(openedAt) : null,
         closedAt: closedAt ? new Date(closedAt) : null,
       },
@@ -215,6 +272,13 @@ export async function PUT(request: Request) {
         storeLatitude: settings.storeLatitude ?? DEFAULT_SETTINGS.storeLatitude,
         storeLongitude: settings.storeLongitude ?? DEFAULT_SETTINGS.storeLongitude,
         storeAddress: settings.storeAddress || DEFAULT_SETTINGS.storeAddress,
+        maxDeliveryRadiusKm: settings.maxDeliveryRadiusKm ?? DEFAULT_SETTINGS.maxDeliveryRadiusKm,
+        businessHours: settings.businessHours || DEFAULT_SETTINGS.businessHours,
+        instagramUrl: settings.instagramUrl || DEFAULT_SETTINGS.instagramUrl,
+        facebookUrl: settings.facebookUrl || DEFAULT_SETTINGS.facebookUrl,
+        supportPhone: settings.supportPhone || DEFAULT_SETTINGS.supportPhone,
+        postSaleMessage: settings.postSaleMessage || DEFAULT_SETTINGS.postSaleMessage,
+        supportMessage: settings.supportMessage || DEFAULT_SETTINGS.supportMessage,
         openedAt: settings.openedAt ? settings.openedAt.toISOString() : null,
         closedAt: settings.closedAt ? settings.closedAt.toISOString() : null,
         updatedAt: settings.updatedAt.toISOString(),

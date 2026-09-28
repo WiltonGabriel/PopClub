@@ -374,12 +374,34 @@ model StoreSettings {
   storeLatitude         Float?    @default(-15.6536) @map("store_latitude")
   storeLongitude        Float?    @default(-56.1322) @map("store_longitude")
   storeAddress          String?   @default("Várzea Grande, MT") @map("store_address")
+  maxDeliveryRadiusKm   Float?    @default(10) @map("max_delivery_radius_km")
+  businessHours         Json?     @map("business_hours")
+  instagramUrl          String?   @default("https://instagram.com/popshake") @map("instagram_url")
+  facebookUrl           String?   @map("facebook_url")
+  supportPhone          String?   @map("support_phone")
+  postSaleMessage       String?   @default("Obrigado pelo seu pedido no Pop Shake! Como foi sua experiência hoje? Avalie nosso atendimento e ganhe um cupom de desconto para o próximo pedido! 🍧") @map("post_sale_message")
+  supportMessage        String?   @default("Olá! Preciso de ajuda com meu pedido no Pop Shake.") @map("support_message")
   faviconUrl            String?   @default("/favicon.ico") @map("favicon_url")
   openedAt               DateTime? @map("opened_at")
   closedAt               DateTime? @map("closed_at")
   updatedAt              DateTime  @updatedAt @map("updated_at")
 
   @@map("store_settings")
+}
+
+model Courier {
+  id         String   @id @default(uuid())
+  name       String
+  phone      String
+  vehicle    String?  @default("Moto")
+  plate      String?
+  pixKey     String?  @map("pix_key")
+  status     String   @default("available") // "available", "in_transit", "off_duty"
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("couriers")
 }
 
 model Shift {

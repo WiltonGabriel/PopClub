@@ -721,7 +721,10 @@ export default function Storefront() {
               )}
             </Link>
 
-            {/* 3. [ Ícone do Carrinho ] — Compacto (apenas ícone), imediatamente à esquerda do Perfil */}
+            {/* 3. [ Sino de Notificações ] */}
+            <NotificationBell />
+
+            {/* 4. [ Ícone do Carrinho / Sacola ] — Imediatamente à direita do Sino e antes do Avatar/Perfil */}
             <button
               type="button"
               onClick={() => setCartDrawerOpen(true)}
@@ -736,9 +739,6 @@ export default function Storefront() {
                 </span>
               )}
             </button>
-
-            {/* Sino de Notificações — Posicionado OBRIGATORIAMENTE ao lado esquerdo da foto de perfil / avatar */}
-            <NotificationBell />
 
             {/* 4. [ Menu de Perfil / Administrador / Visitante ] */}
             {!user ? (

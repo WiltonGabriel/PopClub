@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Bike,
   X,
@@ -11,17 +11,16 @@ import {
   ShieldCheck,
   Loader2,
   Navigation,
+  MapPin,
+  ExternalLink,
+  DollarSign,
+  CreditCard,
+  Phone,
 } from "lucide-react";
 import { Order, orderService } from "../../services/orderService";
+import { courierService, Courier } from "../../services/courierService";
 import { Button } from "../ui/button";
 import { useToast } from "../ui/ToastNotification";
-
-const PRESET_COURIERS = [
-  { name: "Carlos Silva (Motoboy 01)", phone: "(65) 99234-5678", code: "MB-01" },
-  { name: "Marcos Vinícius (Motoboy 02)", phone: "(65) 99876-5432", code: "MB-02" },
-  { name: "Lucas Ferreira (Motoboy 03)", phone: "(65) 99111-2233", code: "MB-03" },
-  { name: "Retirada no Balcão", phone: "", code: "BALCAO" },
-];
 
 interface OrderDispatchDialogProps {
   order: Order | null;
@@ -38,6 +37,8 @@ export function OrderDispatchDialog({
 }: OrderDispatchDialogProps) {
   const { showToast } = useToast();
 
+  const [couriers, setCouriers] = useState<Courier[]>([]);
+  const [loadingCouriers, setLoadingCouriers] = useState(true);
   const [enableGps, setEnableGps] = useState(true);
   const [courierPhone, setCourierPhone] = useState("");
   const [loading, setLoading] = useState(false);
@@ -46,20 +47,41 @@ export function OrderDispatchDialog({
     trackingUrl: string;
   } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [templateCopied, setTemplateCopied] = useState(false);
 
-  const [selectedCourierPreset, setSelectedCourierPreset] = useState<string>("Carlos Silva (Motoboy 01)");
-  const [courierName, setCourierName] = useState("Carlos Silva (Motoboy 01)");
-  const [courierCode, setCourierCode] = useState("MB-01");
+  const [selectedCourierId, setSelectedCourierId] = useState<string>("");
+  const [courierName, setCourierName] = useState("");
+  const [courierCode, setCourierCode] = useState("");
   const [confirmSafetyText, setConfirmSafetyText] = useState("");
+
+  // Carrega lista de motoboys do banco de dados
+  useEffect(() => {
+    if (isOpen) {
+      setLoadingCouriers(true);
+      courierService
+        .getCouriers()
+        .then((data) => {
+          setCouriers(data);
+          if (order && !order.courier_name && data.length > 0) {
+            const firstAvail = data.find((c) => c.status === "available") || data[0];
+            setSelectedCourierId(firstAvail.id);
+            setCourierName(firstAvail.name);
+            setCourierPhone(firstAvail.phone);
+            setCourierCode(firstAvail.plate || "MB-01");
+          }
+        })
+        .catch((err) => {
+          console.error("Erro ao carregar entregadores:", err);
+        })
+        .finally(() => {
+          setLoadingCouriers(false);
+        });
+    }
+  }, [isOpen, order]);
 
   useEffect(() => {
     if (isOpen && order) {
       setEnableGps(true);
-      const defaultPreset = PRESET_COURIERS[0];
-      setSelectedCourierPreset(defaultPreset.name);
-      setCourierName(order.courier_name || defaultPreset.name);
-      setCourierPhone(order.courier_phone || defaultPreset.phone);
-      setCourierCode(order.courier_code || defaultPreset.code);
       setConfirmSafetyText("");
       setDispatchedData(
         order.tracking_token
@@ -70,6 +92,13 @@ export function OrderDispatchDialog({
           : null
       );
       setCopied(false);
+      setTemplateCopied(false);
+
+      if (order.courier_name) {
+        setCourierName(order.courier_name);
+        setCourierPhone(order.courier_phone || "");
+        setCourierCode(order.courier_code || "");
+      }
     }
   }, [isOpen, order]);
 
@@ -80,28 +109,130 @@ export function OrderDispatchDialog({
     ? `${order.delivery_address.street}, ${order.delivery_address.number} - ${order.delivery_address.neighborhood}`
     : "Endereço não informado";
 
+  // Google Maps URL
+  const delLat = order.delivery_address?.latitude;
+  const delLng = order.delivery_address?.longitude;
+  const googleMapsUrl =
+    delLat && delLng
+      ? `https://www.google.com/maps/search/?api=1&query=${delLat},${delLng}`
+      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+          `${addressText}, ${order.delivery_address?.city || "Várzea Grande"} - MT`
+        )}`;
+
+  // Informações de Pagamento
+  const paymentMethodLabel = (() => {
+    switch (order.payment_method_type) {
+      case "dinheiro":
+        return "Dinheiro em Espécie";
+      case "cartao_maquininha":
+        return "Cartão (Levar maquininha na entrega)";
+      case "pix_entrega":
+        return "Pix na Entrega (Conferir comprovante)";
+      default:
+        return order.payment_method_type || "A combinar";
+    }
+  })();
+
+  const changeInfo = useMemo(() => {
+    if (order.payment_method_type === "dinheiro" && order.change_for) {
+      const trocoDevolver = order.change_to_return ? ` • Troco a devolver: R$ ${Number(order.change_to_return).toFixed(2).replace(".", ",")}` : "";
+      return `\n💵 *Troco para:* R$ ${Number(order.change_for).toFixed(2).replace(".", ",")}${trocoDevolver}`;
+    }
+    return "";
+  }, [order.payment_method_type, order.change_for, order.change_to_return]);
+
+  const totalFormatted = Number(order.total_amount || 0).toFixed(2).replace(".", ",");
+
+  // Template Completo para o WhatsApp do Entregador
+  const trackingUrl = dispatchedData?.trackingUrl || `${typeof window !== "undefined" ? window.location.origin : ""}/entrega/${order.tracking_token || "rastreamento"}`;
+
+  const courierWhatsAppText = useMemo(() => {
+    return (
+      `🍧 *NOVO DESPACHO - POP SHAKE*\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `🏍️ *Entregador:* ${courierName || "Motoboy"}\n` +
+      `📦 *Pedido:* #${order.id.substring(0, 6)}\n` +
+      `👤 *Cliente:* ${clientName}\n\n` +
+      `📍 *Endereço de Entrega:*\n` +
+      `${addressText}\n` +
+      `🗺️ *Google Maps / Rota GPS:*\n` +
+      `${googleMapsUrl}\n\n` +
+      `💵 *Valor a Cobrar:* R$ ${totalFormatted}\n` +
+      `💳 *Forma de Pagamento:* ${paymentMethodLabel}` +
+      `${changeInfo}\n\n` +
+      `📲 *Link de Rastreamento ao Vivo:*\n` +
+      `${trackingUrl}\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `Por favor, confirme a saída do pedido. Bom trabalho! 🚀`
+    );
+  }, [
+    courierName,
+    order.id,
+    clientName,
+    addressText,
+    googleMapsUrl,
+    totalFormatted,
+    paymentMethodLabel,
+    changeInfo,
+    trackingUrl,
+  ]);
+
   const isSafetyConfirmed = confirmSafetyText.trim() === "CONFIRMO";
   const isCourierValid = Boolean(courierName.trim());
   const canDispatch = isSafetyConfirmed && isCourierValid && !loading;
 
-  const handlePresetChange = (presetName: string) => {
-    setSelectedCourierPreset(presetName);
-    if (presetName === "manual") {
+  const handleSelectCourier = (courierId: string) => {
+    setSelectedCourierId(courierId);
+    if (courierId === "balcao") {
+      setCourierName("Retirada no Balcão");
+      setCourierPhone("");
+      setCourierCode("BALCAO");
+      setEnableGps(false);
+      return;
+    }
+    if (courierId === "manual") {
       setCourierName("");
       setCourierPhone("");
       setCourierCode("");
-    } else {
-      const found = PRESET_COURIERS.find((c) => c.name === presetName);
-      if (found) {
-        setCourierName(found.name);
-        setCourierPhone(found.phone);
-        setCourierCode(found.code);
-        if (found.code === "BALCAO") {
-          setEnableGps(false);
-        } else {
-          setEnableGps(true);
-        }
-      }
+      return;
+    }
+
+    const found = couriers.find((c) => c.id === courierId);
+    if (found) {
+      setCourierName(found.name);
+      setCourierPhone(found.phone);
+      setCourierCode(found.plate || "MB-01");
+      setEnableGps(true);
+    }
+  };
+
+  const handleOpenCourierWhatsApp = () => {
+    const rawDigits = courierPhone.replace(/\D/g, "");
+    const phoneNo55 = rawDigits.startsWith("55") && (rawDigits.length === 12 || rawDigits.length === 13)
+      ? rawDigits.slice(2)
+      : rawDigits;
+    const finalPhone = rawDigits ? `55${phoneNo55}` : null;
+
+    const encoded = encodeURIComponent(courierWhatsAppText);
+    const waUrl = finalPhone
+      ? `https://wa.me/${finalPhone}?text=${encoded}`
+      : `https://api.whatsapp.com/send?text=${encoded}`;
+
+    window.open(waUrl, "_blank");
+  };
+
+  const handleCopyTemplate = async () => {
+    try {
+      await navigator.clipboard.writeText(courierWhatsAppText);
+      setTemplateCopied(true);
+      showToast({
+        title: "Template Copiado!",
+        message: "Dados completos do pedido copiados para envio manual ao entregador.",
+        type: "success",
+      });
+      setTimeout(() => setTemplateCopied(false), 2500);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -163,52 +294,27 @@ export function OrderDispatchDialog({
     }
   };
 
-  const handleSendWhatsApp = () => {
-    if (!dispatchedData?.trackingUrl) return;
-    const rawDigits = courierPhone.replace(/\D/g, "");
-    const phoneNo55 = rawDigits.startsWith("55") && (rawDigits.length === 12 || rawDigits.length === 13)
-      ? rawDigits.slice(2)
-      : rawDigits;
-    const finalPhone = rawDigits ? `55${phoneNo55}` : null;
-
-    const message = encodeURIComponent(
-      `🍧 *Pop Shake Sorveteria — Nova Entrega*\n\n` +
-        `Olá! Você foi escalado para entregar o pedido *#${order.id.substring(0, 6)}*.\n\n` +
-        `👤 *Cliente:* ${clientName}\n` +
-        `📍 *Endereço:* ${addressText}\n\n` +
-        `📲 *Abra o link abaixo no seu celular para ver a rota e ativar seu GPS:*\n` +
-        `${dispatchedData.trackingUrl}\n\n` +
-        `Bom trabalho e dirija com segurança!`
-    );
-
-    const waUrl = finalPhone
-      ? `https://wa.me/${finalPhone}?text=${message}`
-      : `https://api.whatsapp.com/send?text=${message}`;
-
-    window.open(waUrl, "_blank");
-  };
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-lg bg-card border-2 border-border rounded-t-3xl sm:rounded-2xl shadow-2xl p-6 space-y-5 animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto"
+        className="w-full sm:max-w-xl bg-card border-2 border-border rounded-t-3xl sm:rounded-2xl shadow-2xl p-6 space-y-5 animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border/50 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary dark:text-muted-foreground flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary dark:text-violet-400 flex items-center justify-center">
               <Bike className="w-5 h-5" />
             </div>
             <div>
               <span className="font-mono text-[10px] uppercase font-bold text-primary tracking-wider">
-                Controle de Despacho
+                Logística & Despacho
               </span>
               <h2 className="font-heading text-lg font-black uppercase tracking-tight">
-                Despachar Entrega 🛵
+                Despachar Pedido #{order.id.substring(0, 6)} 🛵
               </h2>
             </div>
           </div>
@@ -221,59 +327,98 @@ export function OrderDispatchDialog({
           </button>
         </div>
 
-        {/* Resumo da Entrega */}
-        <div className="bg-muted/40 rounded-xl p-3.5 space-y-2 text-xs border border-border/40">
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground font-mono">Pedido:</span>
-            <strong className="font-mono font-bold text-foreground">#{order.id.substring(0, 6)}</strong>
+        {/* Resumo do Pedido e Destino */}
+        <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60 text-xs space-y-2">
+          <div className="flex justify-between items-start">
+            <div>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">Cliente:</span>
+              <p className="font-bold text-foreground text-sm">{clientName}</p>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">A Cobrar:</span>
+              <p className="font-black text-emerald-600 dark:text-emerald-400 text-sm font-mono">
+                R$ {totalFormatted}
+              </p>
+            </div>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Cliente:</span>
-            <strong className="text-foreground">{clientName}</strong>
+
+          <div className="pt-2 border-t border-border/40 flex items-start gap-2">
+            <MapPin className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+            <div className="min-w-0 flex-1">
+              <p className="text-foreground truncate">{addressText}</p>
+              <a
+                href={googleMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 mt-0.5"
+              >
+                <span>Abrir rota no Google Maps</span>
+                <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            </div>
           </div>
-          <div className="flex justify-between items-start gap-2">
-            <span className="text-muted-foreground shrink-0">Endereço:</span>
-            <span className="text-right text-foreground font-medium">{addressText}</span>
+
+          <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[11px]">
+            <span className="text-muted-foreground">Forma de Pagamento:</span>
+            <span className="font-bold text-foreground">{paymentMethodLabel}</span>
           </div>
         </div>
 
-        {/* Seção 1: Configuração antes de despachar */}
         {!dispatchedData ? (
           <div className="space-y-4">
-            {/* Atribuição de Entregador */}
-            <div className="space-y-2 p-3.5 rounded-xl bg-muted/30 border border-border/60">
+            {/* Seleção do Entregador Cadastrado */}
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="font-heading font-bold text-xs uppercase tracking-wide text-foreground flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-primary" />
-                  Atribuir Entregador / Motoboy *
+                <label className="font-heading font-bold text-xs uppercase tracking-wide text-foreground">
+                  Selecione o Entregador (Motoboy) *
                 </label>
                 <span className="text-[10px] text-muted-foreground">Obrigatório</span>
               </div>
 
-              {/* Selector Presets */}
-              <div className="grid grid-cols-2 gap-1.5">
-                {PRESET_COURIERS.map((courier) => {
-                  const isSelected = selectedCourierPreset === courier.name;
-                  return (
-                    <button
-                      key={courier.name}
-                      type="button"
-                      onClick={() => handlePresetChange(courier.name)}
-                      className={`px-2.5 py-1.5 rounded-lg text-left text-xs font-medium border transition-colors cursor-pointer ${
-                        isSelected
-                          ? "bg-primary/10 border-primary text-primary font-bold dark:bg-primary/20 dark:text-white"
-                          : "bg-background border-border/70 text-foreground hover:bg-muted"
-                      }`}
-                    >
-                      <div className="truncate">{courier.name}</div>
-                      <div className="text-[10px] opacity-70 font-mono">
-                        {courier.code ? `Cód: ${courier.code}` : "Sem código"}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+              {loadingCouriers ? (
+                <div className="p-4 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  <span>Carregando entregadores da base...</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto pr-1">
+                  {couriers.map((courier) => {
+                    const isSelected = selectedCourierId === courier.id;
+                    return (
+                      <button
+                        key={courier.id}
+                        type="button"
+                        onClick={() => handleSelectCourier(courier.id)}
+                        className={`px-3 py-2 rounded-xl text-left text-xs font-medium border transition-colors cursor-pointer ${
+                          isSelected
+                            ? "bg-primary/10 border-primary text-primary font-bold dark:bg-primary/20 dark:text-white"
+                            : "bg-background border-border/70 text-foreground hover:bg-muted"
+                        }`}
+                      >
+                        <div className="truncate font-bold">{courier.name}</div>
+                        <div className="text-[10px] opacity-75 font-mono truncate">
+                          {courier.vehicle || "Moto"} {courier.plate ? `• ${courier.plate}` : ""}
+                        </div>
+                      </button>
+                    );
+                  })}
 
+                  <button
+                    type="button"
+                    onClick={() => handleSelectCourier("balcao")}
+                    className={`px-3 py-2 rounded-xl text-left text-xs font-medium border transition-colors cursor-pointer ${
+                      selectedCourierId === "balcao"
+                        ? "bg-primary/10 border-primary text-primary font-bold dark:bg-primary/20 dark:text-white"
+                        : "bg-background border-border/70 text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <div className="truncate font-bold">🏪 Retirada no Balcão</div>
+                    <div className="text-[10px] opacity-70">Sem entregador</div>
+                  </button>
+                </div>
+              )}
+
+              {/* Campos do Entregador Selecionado */}
               <div className="pt-1.5 space-y-2">
                 <div className="grid grid-cols-3 gap-2">
                   <div className="col-span-2 space-y-1">
@@ -286,14 +431,14 @@ export function OrderDispatchDialog({
                       value={courierName}
                       onChange={(e) => {
                         setCourierName(e.target.value);
-                        setSelectedCourierPreset("manual");
+                        setSelectedCourierId("manual");
                       }}
                       className="w-full h-9 px-2.5 rounded-lg bg-background border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                     />
                   </div>
                   <div className="col-span-1 space-y-1">
                     <label className="text-[11px] font-semibold text-muted-foreground">
-                      Código / PIN
+                      Placa / Código
                     </label>
                     <input
                       type="text"
@@ -307,18 +452,68 @@ export function OrderDispatchDialog({
 
                 <div className="space-y-1">
                   <label className="text-[11px] font-semibold text-muted-foreground">
-                    WhatsApp do Entregador (para rota direta)
+                    WhatsApp do Entregador com DDD (para acionamento nativo)
                   </label>
                   <input
                     type="tel"
                     placeholder="(65) 99999-9999"
                     value={courierPhone}
                     onChange={(e) => setCourierPhone(e.target.value)}
-                    className="w-full h-9 px-2.5 rounded-lg bg-background border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="w-full h-9 px-2.5 rounded-lg bg-background border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono"
                   />
                 </div>
               </div>
             </div>
+
+            {/* AÇÃO RÁPIDA: ENVIAR TEMPLATE VIA WHATSAPP AO ENTREGADOR */}
+            {selectedCourierId !== "balcao" && Boolean(courierPhone) && (
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-green-500/10 border border-emerald-500/30 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5 uppercase tracking-wide">
+                    <MessageCircle className="w-4 h-4 text-emerald-600" />
+                    Template Pronto de Despacho (WhatsApp)
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-mono">
+                    Nativo wa.me
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Envie o pedido formatado com endereço, link do Google Maps, valor a cobrar e pagamento para o motoboy via WhatsApp com 1 clique:
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleOpenCourierWhatsApp}
+                    className="flex-1 h-10 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Abrir Conversa no WhatsApp</span>
+                    <ExternalLink className="w-3 h-3 opacity-70" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCopyTemplate}
+                    className="h-10 px-3 rounded-xl border border-emerald-500/40 bg-white dark:bg-[#181D2D] hover:bg-emerald-50 text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    title="Copiar texto do template"
+                  >
+                    {templateCopied ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-[11px]">Copiado!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span className="text-[11px]">Copiar</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* GPS Switch */}
             <div className="p-3 rounded-xl bg-primary/5 dark:bg-[#230E26]/60 border border-primary/20 space-y-1.5">
@@ -335,7 +530,7 @@ export function OrderDispatchDialog({
                   type="checkbox"
                   checked={enableGps}
                   onChange={(e) => setEnableGps(e.target.checked)}
-                  className="w-4 h-4 accent-[hsl(var(--primary))] cursor-pointer rounded"
+                  className="w-4 h-4 accent-primary cursor-pointer rounded"
                 />
               </div>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -359,7 +554,7 @@ export function OrderDispatchDialog({
                 )}
               </div>
               <p className="text-[11px] text-amber-700 dark:text-amber-300/90 leading-tight">
-                Para liberar a saída da entrega e autorizar o motoboy, digite exatamente{" "}
+                Para liberar a saída e atualizar o pedido para &quot;A Caminho&quot;, digite exatamente{" "}
                 <strong className="font-mono bg-amber-200/60 dark:bg-amber-900/60 px-1 py-0.5 rounded text-amber-900 dark:text-amber-100">
                   CONFIRMO
                 </strong>
@@ -377,9 +572,9 @@ export function OrderDispatchDialog({
             <div className="flex items-center justify-between pt-2">
               <div className="text-[11px] text-muted-foreground">
                 {!isCourierValid ? (
-                  <span className="text-destructive">Selecione um entregador</span>
+                  <span className="text-destructive font-semibold">Selecione um entregador</span>
                 ) : !isSafetyConfirmed ? (
-                  <span className="text-amber-600 dark:text-amber-400">Digite CONFIRMO acima</span>
+                  <span className="text-amber-600 dark:text-amber-400 font-medium">Digite CONFIRMO acima</span>
                 ) : (
                   <span className="text-emerald-600 dark:text-emerald-400 font-medium">Pronto para despachar</span>
                 )}
@@ -398,7 +593,7 @@ export function OrderDispatchDialog({
                   type="button"
                   onClick={handleConfirmDispatch}
                   disabled={!canDispatch}
-                  className="h-10 px-6 rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed text-white font-heading text-xs font-bold uppercase tracking-wider shadow-md shadow-primary/20 flex items-center gap-2"
+                  className="h-10 px-6 rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed text-white font-heading text-xs font-bold uppercase tracking-wider shadow-md shadow-primary/20 flex items-center gap-2 cursor-pointer"
                 >
                   {loading ? (
                     <>
@@ -416,7 +611,7 @@ export function OrderDispatchDialog({
             </div>
           </div>
         ) : (
-          /* Seção 2: Pós-despacho com Link e Botões de Ação */
+          /* Seção Pós-despacho com Link e Ações */
           <div className="space-y-4 animate-in fade-in duration-200">
             <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800/60 text-xs space-y-2">
               <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-bold">
@@ -424,7 +619,7 @@ export function OrderDispatchDialog({
                 <span>Pedido Despachado com Sucesso!</span>
               </div>
               <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
-                Envie o link abaixo para o entregador. Ele poderá visualizar a rota e transmitir a localização em tempo real:
+                Link de rastreamento gerado. O motoboy pode abrir o link no celular para transmitir o GPS e acompanhar a rota:
               </p>
 
               <div className="bg-white dark:bg-black/40 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-900 font-mono text-[11px] break-all select-all text-foreground">
@@ -446,18 +641,18 @@ export function OrderDispatchDialog({
                 ) : (
                   <>
                     <Copy className="w-4 h-4 text-muted-foreground" />
-                    <span>Copiar Link</span>
+                    <span>Copiar Link de Rastreio</span>
                   </>
                 )}
               </Button>
 
               <Button
                 type="button"
-                onClick={handleSendWhatsApp}
+                onClick={handleOpenCourierWhatsApp}
                 className="h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-emerald-600/20"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>WhatsApp Entregador</span>
+                <span>Abrir WhatsApp do Motoboy</span>
               </Button>
             </div>
 
