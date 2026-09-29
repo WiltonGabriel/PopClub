@@ -109,7 +109,7 @@ export async function GET(
       },
       orders: formattedOrders,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao carregar histórico do cliente:", error);
     return NextResponse.json({ error: "Erro ao carregar histórico do cliente." }, { status: 500 });
   }

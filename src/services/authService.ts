@@ -12,7 +12,7 @@ export interface AuthUser {
   isRegistered?: boolean;
   isActive?: boolean;
   isBlocked?: boolean;
-  accessibilitySettings?: any;
+  accessibilitySettings?: Record<string, unknown> | null;
   defaultPaymentMethod?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
   defaultChangeFor?: number | null;
   default_payment_method?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
@@ -41,7 +41,7 @@ export const authService = {
     addressId?: string;
     isNoNumber?: boolean;
     updatedName?: string;
-    newAddress?: any;
+    newAddress?: unknown;
   }) {
     const res = await fetch("/api/auth/verify-device", {
       method: "POST",

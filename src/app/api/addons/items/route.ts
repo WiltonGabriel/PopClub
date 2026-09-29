@@ -16,7 +16,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
     }
 
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       body = await request.json();
     } catch {
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
         groupId,
         name: name.trim(),
         price: parsedPrice,
-        imageUrl: imageUrl?.trim() || null,
+        imageUrl: typeof imageUrl === "string" ? imageUrl.trim() : null,
         isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : true,
         sortOrder: parseInt(String(sortOrder ?? 0), 10) || 0,
       },
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao adicionar item de complemento:", error);
     return NextResponse.json({ error: "Erro ao adicionar item de complemento." }, { status: 500 });
   }

@@ -27,7 +27,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
     }
 
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       body = await request.json();
     } catch {
@@ -46,7 +46,7 @@ export async function PATCH(
       cpf,
     } = body;
 
-    const dataToUpdate: any = {};
+    const dataToUpdate: Record<string, unknown> = {};
     let shouldInvalidateSession = false;
 
     // 1. Verificação de Alteração de Cargo (Role)
@@ -91,7 +91,7 @@ export async function PATCH(
       if (!Array.isArray(permissions)) {
         return NextResponse.json({ error: "Permissões devem ser uma lista." }, { status: 400 });
       }
-      dataToUpdate.permissions = permissions.filter((p: any) => typeof p === "string");
+      dataToUpdate.permissions = permissions.filter((p: unknown) => typeof p === "string");
       shouldInvalidateSession = true;
     }
 
@@ -223,7 +223,7 @@ export async function PATCH(
     });
 
     return NextResponse.json(updatedUser);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao atualizar usuário:", error);
     return NextResponse.json({ error: "Erro ao atualizar usuário." }, { status: 500 });
   }
@@ -292,7 +292,7 @@ export async function DELETE(
       success: true,
       message: "Usuário desativado com sucesso.",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao desativar usuário:", error);
     return NextResponse.json({ error: "Erro ao desativar usuário." }, { status: 500 });
   }

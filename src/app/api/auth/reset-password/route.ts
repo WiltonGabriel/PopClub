@@ -4,13 +4,17 @@ import { hashPassword } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       body = await request.json();
     } catch {
       return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
     }
-    const { email, code, newPassword } = body || {};
+    const { email, code, newPassword } = (body || {}) as {
+      email?: string;
+      code?: string;
+      newPassword?: string;
+    };
 
     if (!email || !code || !newPassword) {
       return NextResponse.json({ error: "Todos os campos são obrigatórios." }, { status: 400 });
@@ -61,7 +65,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ success: true, message: "Senha redefinida com sucesso." });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro no reset-password:", error);
     return NextResponse.json(
       { error: "Erro interno no servidor ao redefinir a senha." },

@@ -9,7 +9,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Tag, Sparkles, Image as ImageIcon, Loader2, Clock, Eye } from "lucide-react";
+import { Tag, Sparkles, Loader2, Clock, Eye } from "lucide-react";
 import { ImageCropperDialog } from "./ImageCropperDialog";
 
 interface PromotionFormDialogProps {
@@ -213,8 +213,8 @@ export function PromotionFormDialog({
 
       onSaved();
       onOpenChange(false);
-    } catch (err: any) {
-      setError(err.message || "Erro ao salvar promoção");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro ao salvar promoção");
     } finally {
       setLoading(false);
     }
@@ -367,7 +367,7 @@ export function PromotionFormDialog({
                 </Label>
                 <Select
                   value={discountType}
-                  onValueChange={(val: any) => {
+                  onValueChange={(val: string | null) => {
                     if (val === "percentage" || val === "fixed") setDiscountType(val);
                   }}
                 >

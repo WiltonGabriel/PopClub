@@ -15,7 +15,8 @@ export async function PATCH(
     }
 
     const user = await getAuthUser(request);
-    if (!user || (user.role !== "admin" && (user as any).role !== "editor" && (user as any).role !== "operator")) {
+    const role = (user as { role?: string } | null)?.role;
+    if (!user || (role !== "admin" && role !== "editor" && role !== "operator")) {
       return NextResponse.json({ error: "Acesso negado. Apenas operadores e administradores." }, { status: 403 });
     }
 
@@ -49,7 +50,7 @@ export async function PATCH(
         ? `"${updated.name}" agora está ATIVO no cardápio.`
         : `"${updated.name}" foi PAUSADO na cozinha.`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao alternar disponibilidade do complemento:", error);
     return NextResponse.json({ error: "Erro ao alternar disponibilidade do complemento." }, { status: 500 });
   }

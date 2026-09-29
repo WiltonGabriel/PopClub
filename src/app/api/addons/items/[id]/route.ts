@@ -21,7 +21,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       body = await request.json();
     } catch {
@@ -35,7 +35,7 @@ export async function PUT(
 
     const { name, price, imageUrl, isAvailable, sortOrder } = body || {};
 
-    const dataToUpdate: any = {};
+    const dataToUpdate: Record<string, unknown> = {};
     if (name !== undefined) dataToUpdate.name = String(name).trim();
     if (price !== undefined) dataToUpdate.price = Math.max(0, parseFloat(String(price)) || 0);
     if (isAvailable !== undefined) dataToUpdate.isAvailable = Boolean(isAvailable);
@@ -59,9 +59,9 @@ export async function PUT(
       ...updated,
       price: Number(updated.price),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao atualizar item de complemento:", error);
-    if (error.code === "P2025") {
+    if ((error as { code?: string })?.code === "P2025") {
       return NextResponse.json({ error: "Item de complemento não encontrado." }, { status: 404 });
     }
     return NextResponse.json({ error: "Erro ao atualizar item de complemento." }, { status: 500 });
@@ -98,9 +98,9 @@ export async function DELETE(
     await prisma.addonItem.delete({ where: { id } });
 
     return NextResponse.json({ success: true, message: "Item de complemento removido com sucesso." });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao excluir item de complemento:", error);
-    if (error.code === "P2025") {
+    if ((error as { code?: string })?.code === "P2025") {
       return NextResponse.json({ error: "Item de complemento não encontrado." }, { status: 404 });
     }
     return NextResponse.json({ error: "Erro ao excluir item de complemento." }, { status: 500 });

@@ -7,7 +7,6 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { productService, Product } from "../../services/productService";
-import { promotionService, Promotion } from "../../services/promotionService";
 import { badgeService, CardBadge } from "../../services/badgeService";
 import {
   UtensilsCrossed,
@@ -18,7 +17,6 @@ import {
   Percent,
   DollarSign,
   Search,
-  Check,
   AlertCircle,
   Loader2,
   TrendingDown,
@@ -244,9 +242,9 @@ export function ComboFormDialog({
 
       onSaved();
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || "Erro ao salvar combo.");
+      setError(err instanceof Error ? err.message : "Erro ao salvar combo.");
     } finally {
       setLoading(false);
     }

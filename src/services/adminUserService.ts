@@ -39,7 +39,7 @@ export interface UserHistoryItem {
     productName: string;
     quantity: number;
     priceAtTime: number;
-    selectedAddons?: any;
+    selectedAddons?: unknown;
   }[];
 }
 

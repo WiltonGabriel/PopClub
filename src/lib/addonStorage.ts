@@ -15,8 +15,9 @@ export async function deleteAddonImageFile(imageUrl?: string | null): Promise<vo
 
     const fullPath = path.join(process.cwd(), "public", "uploads", "addons", filename);
     await fs.unlink(fullPath);
-  } catch (err: any) {
-    if (err.code !== "ENOENT") {
+  } catch (err: unknown) {
+    const errorWithCode = err as { code?: string };
+    if (errorWithCode?.code !== "ENOENT") {
       console.warn("Aviso ao excluir imagem de addon:", err);
     }
   }

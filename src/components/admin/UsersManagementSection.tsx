@@ -1,57 +1,37 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import Image from "next/image";
 import {
   Users,
   UserPlus,
   Search,
-  Filter,
   Shield,
   ShieldCheck,
-  ShieldAlert,
-  User as UserIcon,
-  Zap,
   Key,
   Lock,
   Unlock,
   Trash2,
   History,
-  MoreVertical,
-  Check,
   X,
   AlertTriangle,
-  ChevronDown,
-  ChevronUp,
   RefreshCw,
   ShoppingBag,
   DollarSign,
   TrendingUp,
-  Calendar,
-  Phone,
-  Mail,
-  FileText,
-  Clock,
-  Sparkles,
-  ExternalLink,
-  ChevronRight,
-  Eye,
   Sliders,
   CheckCircle2,
-  XCircle,
 } from "lucide-react";
 import {
   adminUserService,
   AdminUserListItem,
   UserDossier,
-  UserHistoryItem,
 } from "@/services/adminUserService";
 import { formatCpf, cleanCpf, validateCpf } from "@/lib/cpf";
 import {
-  PERMISSION_KEYS,
   PERMISSION_DEFINITIONS,
   DEFAULT_EDITOR_PERMISSIONS,
   ALL_PERMISSIONS,
-  PermissionKey,
 } from "@/lib/permissions";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -94,7 +74,6 @@ export function UsersManagementSection() {
   const [formPassword, setFormPassword] = useState("");
   const [formRole, setFormRole] = useState<"ADMIN" | "EDITOR" | "CLIENT">("EDITOR");
   const [formPermissions, setFormPermissions] = useState<string[]>([...DEFAULT_EDITOR_PERMISSIONS]);
-  const [permissionsSectionOpen, setPermissionsSectionOpen] = useState(true);
 
   // Exibe feedback temporário com auto-dismiss
   const showFeedback = (type: "success" | "error", text: string) => {
@@ -117,8 +96,8 @@ export function UsersManagementSection() {
       setUsers(res.users);
       setTotalPages(res.pagination.totalPages || 1);
       setTotalCount(res.pagination.total || 0);
-    } catch (err: any) {
-      showFeedback("error", err.message || "Erro ao carregar lista de usuários.");
+    } catch (err: unknown) {
+      showFeedback("error", err instanceof Error ? err.message : "Erro ao carregar lista de usuários.");
     } finally {
       setLoading(false);
     }
@@ -139,7 +118,6 @@ export function UsersManagementSection() {
     setFormPassword("");
     setFormRole("EDITOR");
     setFormPermissions([...DEFAULT_EDITOR_PERMISSIONS]);
-    setPermissionsSectionOpen(true);
     setUserModalOpen(true);
   };
 
@@ -154,7 +132,6 @@ export function UsersManagementSection() {
     setFormPassword("");
     setFormRole((user.role.toUpperCase() as "ADMIN" | "EDITOR" | "CLIENT") || "EDITOR");
     setFormPermissions(Array.isArray(user.permissions) ? [...user.permissions] : [...DEFAULT_EDITOR_PERMISSIONS]);
-    setPermissionsSectionOpen(true);
     setUserModalOpen(true);
   };
 
@@ -165,7 +142,6 @@ export function UsersManagementSection() {
     setFormFullName(user.fullName || user.username || "");
     setFormRole((user.role.toUpperCase() as "ADMIN" | "EDITOR" | "CLIENT") || "CLIENT");
     setFormPermissions(Array.isArray(user.permissions) ? [...user.permissions] : [...DEFAULT_EDITOR_PERMISSIONS]);
-    setPermissionsSectionOpen(false);
     setUserModalOpen(true);
   };
 
@@ -177,8 +153,8 @@ export function UsersManagementSection() {
     try {
       const dossier = await adminUserService.getUserHistory(user.id);
       setUserDossier(dossier);
-    } catch (err: any) {
-      showFeedback("error", err.message || "Erro ao carregar histórico do cliente.");
+    } catch (err: unknown) {
+      showFeedback("error", err instanceof Error ? err.message : "Erro ao carregar histórico do cliente.");
       setHistoryDrawerOpen(false);
     } finally {
       setHistoryLoading(false);
@@ -235,8 +211,8 @@ export function UsersManagementSection() {
         setUserModalOpen(false);
         fetchUsers();
       }
-    } catch (err: any) {
-      showFeedback("error", err.message || "Erro ao salvar alterações.");
+    } catch (err: unknown) {
+      showFeedback("error", err instanceof Error ? err.message : "Erro ao salvar alterações.");
     } finally {
       setActionLoading(false);
     }
@@ -278,8 +254,8 @@ export function UsersManagementSection() {
       showFeedback("success", `Senha de ${selectedUser.fullName || selectedUser.username} resetada com sucesso!`);
       setPasswordModalOpen(false);
       setNewPassword("");
-    } catch (err: any) {
-      showFeedback("error", err.message || "Erro ao resetar senha.");
+    } catch (err: unknown) {
+      showFeedback("error", err instanceof Error ? err.message : "Erro ao resetar senha.");
     } finally {
       setActionLoading(false);
     }
@@ -304,8 +280,8 @@ export function UsersManagementSection() {
       setBlockModalOpen(false);
       setBlockReason("");
       fetchUsers();
-    } catch (err: any) {
-      showFeedback("error", err.message || "Erro ao alterar status de bloqueio.");
+    } catch (err: unknown) {
+      showFeedback("error", err instanceof Error ? err.message : "Erro ao alterar status de bloqueio.");
     } finally {
       setActionLoading(false);
     }
@@ -326,8 +302,8 @@ export function UsersManagementSection() {
       await adminUserService.deleteUser(user.id);
       showFeedback("success", `Conta de ${user.fullName || user.username} desativada com sucesso.`);
       fetchUsers();
-    } catch (err: any) {
-      showFeedback("error", err.message || "Erro ao desativar conta.");
+    } catch (err: unknown) {
+      showFeedback("error", err instanceof Error ? err.message : "Erro ao desativar conta.");
     }
   };
 
@@ -457,7 +433,7 @@ export function UsersManagementSection() {
                 <button
                   key={p.id}
                   onClick={() => {
-                    setFilter(p.id as any);
+                    setFilter(p.id as "all" | "team" | "registered" | "fast_access" | "blocked");
                     setPage(1);
                   }}
                   className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
@@ -524,9 +500,12 @@ export function UsersManagementSection() {
                       <td className="py-3.5 px-4 sm:px-6">
                         <div className="flex items-center gap-3">
                           <div className="relative">
-                            <img
+                            <Image
                               src={u.avatarUrl || "/avatars/avatar-sorvete.svg"}
                               alt={u.fullName || "Avatar"}
+                              width={40}
+                              height={40}
+                              unoptimized
                               className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-border/40 bg-gray-100 dark:bg-background"
                             />
                             {isAdmin && (
@@ -1153,9 +1132,12 @@ export function UsersManagementSection() {
             {/* Header do Drawer */}
             <div className="p-5 border-b border-border/50 bg-gray-50/70 dark:bg-background/40 flex items-center justify-between">
               <div className="flex items-center gap-3 min-w-0">
-                <img
+                <Image
                   src={selectedUser?.avatarUrl || "/avatars/avatar-sorvete.svg"}
                   alt={selectedUser?.fullName || "Avatar"}
+                  width={44}
+                  height={44}
+                  unoptimized
                   className="w-11 h-11 rounded-full object-cover border border-gray-200 dark:border-border/40"
                 />
                 <div className="min-w-0">

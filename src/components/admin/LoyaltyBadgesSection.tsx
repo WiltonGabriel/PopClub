@@ -181,11 +181,11 @@ export function LoyaltyBadgesSection() {
         title: "Selos de Fidelidade Salvos",
         message: "A régua de selos foi atualizada e já está refletindo no perfil dos clientes.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       showToast({
         type: "error",
         title: "Erro ao Salvar",
-        message: err.message || "Não foi possível gravar as alterações.",
+        message: err instanceof Error ? err.message : "Não foi possível gravar as alterações.",
       });
     } finally {
       setSaving(false);

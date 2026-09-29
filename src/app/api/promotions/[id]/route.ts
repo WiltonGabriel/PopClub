@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { Prisma, DiscountType } from "@prisma/client";
 
 export async function GET(
   request: Request,
@@ -61,7 +62,7 @@ export async function GET(
         imageUrl: promo.product.imageUrl || "",
       } : undefined,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao buscar promoção:", error);
     return NextResponse.json({ error: "Erro ao carregar dados da promoção." }, { status: 500 });
   }
@@ -78,7 +79,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       body = await request.json();
     } catch {
@@ -104,22 +105,22 @@ export async function PUT(
       scarcityUnits,
     } = body || {};
 
-    const dataToUpdate: any = {};
-    if (title !== undefined) dataToUpdate.title = title;
-    if (badge !== undefined) dataToUpdate.badge = badge;
-    if (description !== undefined) dataToUpdate.description = description;
-    if (bannerImageUrl !== undefined) dataToUpdate.bannerImageUrl = bannerImageUrl;
-    if (gradientStart !== undefined) dataToUpdate.gradientStart = gradientStart;
-    if (gradientEnd !== undefined) dataToUpdate.gradientEnd = gradientEnd;
-    if (discountType !== undefined) dataToUpdate.discountType = discountType;
+    const dataToUpdate: Prisma.PromotionUncheckedUpdateInput = {};
+    if (title !== undefined) dataToUpdate.title = String(title);
+    if (badge !== undefined) dataToUpdate.badge = String(badge);
+    if (description !== undefined) dataToUpdate.description = description ? String(description) : null;
+    if (bannerImageUrl !== undefined) dataToUpdate.bannerImageUrl = bannerImageUrl ? String(bannerImageUrl) : null;
+    if (gradientStart !== undefined) dataToUpdate.gradientStart = String(gradientStart);
+    if (gradientEnd !== undefined) dataToUpdate.gradientEnd = String(gradientEnd);
+    if (discountType !== undefined) dataToUpdate.discountType = String(discountType) as DiscountType;
     if (discountValue !== undefined) dataToUpdate.discountValue = Number(discountValue);
-    if (isActive !== undefined) dataToUpdate.isActive = isActive;
-    if (expiresAt !== undefined) dataToUpdate.expiresAt = expiresAt ? new Date(expiresAt) : null;
-    if (showDuration !== undefined) dataToUpdate.showDuration = showDuration;
-    if (durationDisplay !== undefined) dataToUpdate.durationDisplay = durationDisplay;
-    if (productId !== undefined) dataToUpdate.productId = productId || null;
-    if (autoBanner !== undefined) dataToUpdate.autoBanner = autoBanner;
-    if (showScarcity !== undefined) dataToUpdate.showScarcity = showScarcity;
+    if (isActive !== undefined) dataToUpdate.isActive = Boolean(isActive);
+    if (expiresAt !== undefined) dataToUpdate.expiresAt = expiresAt ? new Date(String(expiresAt)) : null;
+    if (showDuration !== undefined) dataToUpdate.showDuration = Boolean(showDuration);
+    if (durationDisplay !== undefined) dataToUpdate.durationDisplay = Array.isArray(durationDisplay) ? durationDisplay.map(String) : [];
+    if (productId !== undefined) dataToUpdate.productId = productId ? String(productId) : null;
+    if (autoBanner !== undefined) dataToUpdate.autoBanner = Boolean(autoBanner);
+    if (showScarcity !== undefined) dataToUpdate.showScarcity = Boolean(showScarcity);
     if (scarcityUnits !== undefined) dataToUpdate.scarcityUnits = scarcityUnits !== null ? Number(scarcityUnits) : null;
 
     const updated = await prisma.promotion.update({
@@ -131,9 +132,9 @@ export async function PUT(
     });
 
     return NextResponse.json(updated);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao atualizar promoção:", error);
-    if (error.code === "P2025") {
+    if ((error as { code?: string })?.code === "P2025") {
       return NextResponse.json({ error: "Promoção não encontrada." }, { status: 404 });
     }
     return NextResponse.json({ error: "Erro ao atualizar promoção." }, { status: 500 });
@@ -154,9 +155,9 @@ export async function DELETE(
     await prisma.promotion.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao deletar promoção:", error);
-    if (error.code === "P2025") {
+    if ((error as { code?: string })?.code === "P2025") {
       return NextResponse.json({ error: "Promoção não encontrada." }, { status: 404 });
     }
     return NextResponse.json({ error: "Erro ao excluir promoção." }, { status: 500 });

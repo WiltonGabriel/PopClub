@@ -76,11 +76,11 @@ export function AddonsManagement() {
         initialExpanded[g.id] = true;
       });
       setExpandedGroups(initialExpanded);
-    } catch (err: any) {
+    } catch (err: unknown) {
       showToast({
         type: "error",
         title: "Erro ao Carregar",
-        message: err.message || "Não foi possível carregar os grupos de complementos.",
+        message: err instanceof Error ? err.message : "Não foi possível carregar os grupos de complementos.",
       });
     } finally {
       setLoading(false);
@@ -147,8 +147,8 @@ export function AddonsManagement() {
         showToast({ type: "success", title: "Grupo Criado", message: `"${created.name}" foi adicionado com sucesso.` });
       }
       setIsGroupModalOpen(false);
-    } catch (err: any) {
-      showToast({ type: "error", title: "Erro ao Salvar", message: err.message || "Falha ao gravar grupo." });
+    } catch (err: unknown) {
+      showToast({ type: "error", title: "Erro ao Salvar", message: err instanceof Error ? err.message : "Falha ao gravar grupo." });
     } finally {
       setSavingGroup(false);
     }
@@ -163,8 +163,8 @@ export function AddonsManagement() {
       await addonService.deleteGroup(group.id);
       setGroups((prev) => prev.filter((g) => g.id !== group.id));
       showToast({ type: "success", title: "Grupo Excluído", message: `"${group.name}" foi removido com sucesso.` });
-    } catch (err: any) {
-      showToast({ type: "error", title: "Erro ao Excluir", message: err.message || "Falha ao excluir grupo." });
+    } catch (err: unknown) {
+      showToast({ type: "error", title: "Erro ao Excluir", message: err instanceof Error ? err.message : "Falha ao excluir grupo." });
     }
   };
 
@@ -202,8 +202,8 @@ export function AddonsManagement() {
       const url = await addonService.uploadThumb(file, itemForm.imageUrl);
       setItemForm((prev) => ({ ...prev, imageUrl: url }));
       showToast({ type: "success", title: "Miniatura Otimizada", message: "Imagem convertida em WebP 160x160 px com sucesso." });
-    } catch (err: any) {
-      showToast({ type: "error", title: "Erro no Upload", message: err.message || "Falha ao enviar miniatura." });
+    } catch (err: unknown) {
+      showToast({ type: "error", title: "Erro no Upload", message: err instanceof Error ? err.message : "Falha ao enviar miniatura." });
     } finally {
       setUploadingImage(false);
     }
@@ -256,8 +256,8 @@ export function AddonsManagement() {
         showToast({ type: "success", title: "Opção Adicionada", message: `"${created.name}" foi adicionada ao grupo.` });
       }
       setIsItemModalOpen(false);
-    } catch (err: any) {
-      showToast({ type: "error", title: "Erro ao Salvar", message: err.message || "Falha ao gravar item." });
+    } catch (err: unknown) {
+      showToast({ type: "error", title: "Erro ao Salvar", message: err instanceof Error ? err.message : "Falha ao gravar item." });
     } finally {
       setSavingItem(false);
     }
@@ -276,8 +276,8 @@ export function AddonsManagement() {
         )
       );
       showToast({ type: "success", title: "Opção Excluída", message: `"${item.name}" foi removida.` });
-    } catch (err: any) {
-      showToast({ type: "error", title: "Erro ao Excluir", message: err.message || "Falha ao remover item." });
+    } catch (err: unknown) {
+      showToast({ type: "error", title: "Erro ao Excluir", message: err instanceof Error ? err.message : "Falha ao remover item." });
     }
   };
 
@@ -306,7 +306,7 @@ export function AddonsManagement() {
         title: nextState ? "Ativado no Cardápio" : "Pausado na Cozinha",
         message: res.message,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Reverte em caso de erro
       setGroups((prev) =>
         prev.map((g) =>
@@ -323,7 +323,7 @@ export function AddonsManagement() {
       showToast({
         type: "error",
         title: "Erro ao Alterar",
-        message: err.message || "Não foi possível atualizar o status do adicional.",
+        message: err instanceof Error ? err.message : "Não foi possível atualizar o status do adicional.",
       });
     }
   };

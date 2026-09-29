@@ -31,7 +31,7 @@ export async function GET(
     }
 
     return NextResponse.json(group);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao buscar grupo de complementos:", error);
     return NextResponse.json({ error: "Erro ao buscar grupo de complementos." }, { status: 500 });
   }
@@ -54,7 +54,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       body = await request.json();
     } catch {
@@ -63,7 +63,7 @@ export async function PUT(
 
     const { name, description, minQuantity, maxQuantity, freeQuantity, isRequired, sortOrder, isActive } = body || {};
 
-    const dataToUpdate: any = {};
+    const dataToUpdate: Record<string, unknown> = {};
     if (name !== undefined) dataToUpdate.name = String(name).trim();
     if (description !== undefined) dataToUpdate.description = description ? String(description).trim() : null;
     if (minQuantity !== undefined) dataToUpdate.minQuantity = Math.max(0, parseInt(String(minQuantity), 10) || 0);
@@ -75,7 +75,7 @@ export async function PUT(
 
     // Ajusta min vs max se necessário
     if (dataToUpdate.minQuantity !== undefined && dataToUpdate.maxQuantity !== undefined) {
-      if (dataToUpdate.maxQuantity < dataToUpdate.minQuantity) {
+      if ((dataToUpdate.maxQuantity as number) < (dataToUpdate.minQuantity as number)) {
         dataToUpdate.maxQuantity = dataToUpdate.minQuantity;
       }
     }
@@ -93,9 +93,9 @@ export async function PUT(
       ...updated,
       productsCount: updated._count.products,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao atualizar grupo de complementos:", error);
-    if (error.code === "P2025") {
+    if ((error as { code?: string })?.code === "P2025") {
       return NextResponse.json({ error: "Grupo de complementos não encontrado." }, { status: 404 });
     }
     return NextResponse.json({ error: "Erro ao atualizar grupo de complementos." }, { status: 500 });
@@ -137,9 +137,9 @@ export async function DELETE(
     });
 
     return NextResponse.json({ success: true, message: "Grupo de complementos removido com sucesso." });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao excluir grupo de complementos:", error);
-    if (error.code === "P2025") {
+    if ((error as { code?: string })?.code === "P2025") {
       return NextResponse.json({ error: "Grupo de complementos não encontrado." }, { status: 404 });
     }
     return NextResponse.json({ error: "Erro ao excluir grupo de complementos." }, { status: 500 });

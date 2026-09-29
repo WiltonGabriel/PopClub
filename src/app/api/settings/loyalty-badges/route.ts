@@ -25,7 +25,7 @@ export async function GET() {
     }
 
     return NextResponse.json(DEFAULT_LOYALTY_BADGES);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao buscar selos de fidelidade:", error);
     return NextResponse.json(DEFAULT_LOYALTY_BADGES);
   }
@@ -38,7 +38,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
     }
 
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       body = await request.json();
     } catch {
@@ -55,10 +55,10 @@ export async function PUT(request: Request) {
     }
 
     // Ordena do menor para o maior tempo mínimo
-    const sortedBadges = [...rawBadges].sort((a: any, b: any) => (a.minMonths ?? 0) - (b.minMonths ?? 0));
+    const sortedBadges = [...rawBadges].sort((a: Partial<LoyaltyBadgeConfig>, b: Partial<LoyaltyBadgeConfig>) => (a.minMonths ?? 0) - (b.minMonths ?? 0));
 
     // Validação e normalização dos selos
-    const validatedBadges: LoyaltyBadgeConfig[] = sortedBadges.map((b: any, index: number) => {
+    const validatedBadges: LoyaltyBadgeConfig[] = sortedBadges.map((b: Partial<LoyaltyBadgeConfig>, index: number) => {
       const level = typeof b.level === "number" && b.level >= 1 && b.level <= 6 ? b.level : (index + 1);
       const name = String(b.name || `Selo Nível ${level}`).trim();
       const icon = String(b.icon || "🌟").trim();
@@ -120,7 +120,7 @@ export async function PUT(request: Request) {
       success: true,
       badges: validatedBadges,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao atualizar selos de fidelidade:", error);
     return NextResponse.json({ error: "Erro ao salvar selos de fidelidade." }, { status: 500 });
   }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { Prisma, DiscountType } from "@prisma/client";
 
 export async function GET(request: Request) {
   try {
@@ -11,7 +12,7 @@ export async function GET(request: Request) {
     const isAdmin = user?.role === "admin";
 
     // Se não for admin e não pediu all explicitamente, filtra apenas as ativas e não vencidas
-    const whereClause: any = all && isAdmin ? {} : { 
+    const whereClause: Prisma.PromotionWhereInput = all && isAdmin ? {} : { 
       isActive: true,
       OR: [
         { expiresAt: null },
@@ -71,7 +72,7 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json(formatted);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao buscar promoções:", error);
     return NextResponse.json({ error: "Erro ao buscar promoções." }, { status: 500 });
   }
@@ -84,7 +85,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
     }
 
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       body = await request.json();
     } catch {
@@ -116,21 +117,21 @@ export async function POST(request: Request) {
 
     const promo = await prisma.promotion.create({
       data: {
-        title,
-        badge,
-        description: description || null,
-        bannerImageUrl: bannerImageUrl || null,
-        gradientStart: gradientStart || "hsl(var(--primary))",
-        gradientEnd: gradientEnd || "#881BAA",
-        discountType: discountType || "percentage",
+        title: String(title),
+        badge: String(badge),
+        description: description ? String(description) : null,
+        bannerImageUrl: bannerImageUrl ? String(bannerImageUrl) : null,
+        gradientStart: String(gradientStart || "hsl(var(--primary))"),
+        gradientEnd: String(gradientEnd || "#881BAA"),
+        discountType: (discountType as DiscountType) || "percentage",
         discountValue: Number(discountValue || 0),
-        isActive: isActive !== undefined ? isActive : true,
-        expiresAt: expiresAt ? new Date(expiresAt) : null,
-        showDuration: showDuration || false,
-        durationDisplay: durationDisplay || [],
-        productId: productId || null,
-        autoBanner: autoBanner || false,
-        showScarcity: showScarcity || false,
+        isActive: isActive !== undefined ? Boolean(isActive) : true,
+        expiresAt: expiresAt ? new Date(String(expiresAt)) : null,
+        showDuration: Boolean(showDuration),
+        durationDisplay: Array.isArray(durationDisplay) ? durationDisplay.map(String) : [],
+        productId: productId ? String(productId) : null,
+        autoBanner: Boolean(autoBanner),
+        showScarcity: Boolean(showScarcity),
         scarcityUnits: scarcityUnits !== undefined && scarcityUnits !== null ? Number(scarcityUnits) : null,
       },
       include: {
@@ -139,7 +140,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(promo);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao criar promoção:", error);
     return NextResponse.json({ error: "Erro ao cadastrar promoção." }, { status: 500 });
   }

@@ -575,7 +575,7 @@ async function runSmokeTests() {
 
   // F3: Gating de Cupons por isRegistered
   try {
-    const validateCouponGating = (user, couponCode) => {
+    const validateCouponGating = (user, _couponCode) => {
       if (!user) {
         return { valid: false, error: "Identificação obrigatória." };
       }
@@ -710,7 +710,7 @@ async function runSmokeTests() {
     const fullNumber = "789";
     const fullNeighborhood = "Centro";
     const maskedFormat = `${fullStreet}, nº [    ] - Bairro ${fullNeighborhood}`;
-    const maskOk = maskedFormat.includes("nº [    ]") && !maskedFormat.includes("789");
+    const maskOk = maskedFormat.includes("nº [    ]") && !maskedFormat.includes(fullNumber);
 
     // 2. Suporte a S/N (Sem Número)
     const normalizeNum = (num) => String(num || "").trim().toLowerCase();

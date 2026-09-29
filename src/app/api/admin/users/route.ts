@@ -110,7 +110,7 @@ export async function GET(request: Request) {
         totalPages: Math.ceil(total / limit),
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao listar usuários:", error);
     return NextResponse.json({ error: "Erro ao listar usuários." }, { status: 500 });
   }
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
     }
 
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       body = await request.json();
     } catch {
@@ -208,7 +208,7 @@ export async function POST(request: Request) {
     let finalPermissions: string[] = [];
     if (normalizedRole === "EDITOR") {
       if (Array.isArray(permissions) && permissions.length > 0) {
-        finalPermissions = permissions.filter((p: any) => typeof p === "string");
+        finalPermissions = permissions.filter((p: unknown) => typeof p === "string");
       } else {
         finalPermissions = [...DEFAULT_EDITOR_PERMISSIONS];
       }
@@ -247,7 +247,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(newUser, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao cadastrar membro da equipe:", error);
     return NextResponse.json({ error: "Erro ao cadastrar membro da equipe." }, { status: 500 });
   }

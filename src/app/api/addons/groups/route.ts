@@ -44,7 +44,7 @@ export async function GET() {
     }));
 
     return NextResponse.json(formatted);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao listar grupos de complementos:", error);
     return NextResponse.json(
       { error: "Não foi possível carregar os grupos de complementos." },
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
     }
 
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       body = await request.json();
     } catch {
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     const group = await prisma.addonGroup.create({
       data: {
         name: name.trim(),
-        description: description?.trim() || null,
+        description: description ? String(description).trim() : null,
         minQuantity: minQ,
         maxQuantity: Math.max(minQ, maxQ),
         freeQuantity: freeQ,
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao criar grupo de complementos:", error);
     return NextResponse.json({ error: "Erro ao criar grupo de complementos." }, { status: 500 });
   }

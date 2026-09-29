@@ -100,7 +100,7 @@ export async function POST(request: Request) {
       size: webpBuffer.length,
       format: "webp",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro no processamento da miniatura do complemento:", error);
     return NextResponse.json(
       { error: "Falha ao processar e otimizar a miniatura do complemento." },
