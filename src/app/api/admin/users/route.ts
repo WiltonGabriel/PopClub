@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser, hashPassword } from "@/lib/auth";
 import { cleanCpf, validateCpf } from "@/lib/cpf";
-import { DEFAULT_EDITOR_PERMISSIONS } from "@/lib/permissions";
+import { DEFAULT_EDITOR_PERMISSIONS, isUserAdmin } from "@/lib/permissions";
 import { Role, Prisma } from "@prisma/client";
 
 export async function GET(request: Request) {
   try {
     const authUser = await getAuthUser(request);
-    if (!authUser || authUser.role !== "admin") {
+    if (!authUser || !isUserAdmin(authUser)) {
       return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
     }
 
@@ -119,7 +119,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const authUser = await getAuthUser(request);
-    if (!authUser || authUser.role !== "admin") {
+    if (!authUser || !isUserAdmin(authUser)) {
       return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
     }
 

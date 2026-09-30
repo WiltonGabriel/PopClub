@@ -3,6 +3,7 @@ import { getAuthUser } from "@/lib/auth";
 import { Prisma, OrderStatus } from "@prisma/client";
 import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
 import { sanitizeText } from "@/lib/sanitize";
+import { hasPermission } from "@/lib/permissions";
 
 type DbOrderPayload = Prisma.OrderGetPayload<{
   include: {
@@ -120,8 +121,9 @@ export async function GET(request: Request) {
         return apiError("Pedido não encontrado.", 404, "NOT_FOUND");
       }
 
-      // BOLA / IDOR Protection: Ensure user can only see their own orders unless ADMIN
-      if (order.userId && (!authUser || authUser.id !== order.userId) && authUser?.role !== "admin") {
+      // BOLA / IDOR Protection: Ensure user can only see their own orders unless ADMIN or STAFF with ORDERS_KANBAN / ORDERS_HISTORY
+      const canViewAnyOrder = hasPermission(authUser, "ORDERS_KANBAN") || hasPermission(authUser, "ORDERS_HISTORY");
+      if (order.userId && (!authUser || authUser.id !== order.userId) && !canViewAnyOrder) {
          return apiError("Acesso negado a este pedido.", 403, "FORBIDDEN");
       }
 
@@ -152,7 +154,8 @@ export async function GET(request: Request) {
 
     let whereClause: Prisma.OrderWhereInput = {};
 
-    if (authUser?.role === "admin" && all) {
+    const canViewAll = hasPermission(authUser, "ORDERS_KANBAN") || hasPermission(authUser, "ORDERS_HISTORY");
+    if (canViewAll && all) {
       whereClause = {};
       if (!includeArchived) {
         whereClause.isArchived = false;
@@ -330,10 +333,11 @@ export async function PATCH(request: Request) {
     }
 
     const isAdmin = authUser?.role === "admin";
+    const canManageOrders = hasPermission(authUser, "ORDERS_KANBAN");
     const isOwner = Boolean(authUser?.id && existingOrder.userId === authUser.id);
 
-    // Se não for admin, só tem permissão para cancelar caso seja o dono E o pedido ainda esteja "pending"
-    if (!isAdmin) {
+    // Se não tiver permissão para gerenciar a esteira, só tem permissão para cancelar caso seja o dono E o pedido ainda esteja "pending"
+    if (!canManageOrders) {
       if (!isOwner || status !== "cancelled" || existingOrder.status !== "pending") {
         return apiError("Você não tem permissão para alterar o status deste pedido.", 403, "FORBIDDEN");
       }

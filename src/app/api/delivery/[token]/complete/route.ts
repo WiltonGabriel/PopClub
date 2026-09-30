@@ -32,6 +32,7 @@ export async function POST(
       where: { id: order.id },
       data: {
         status: "completed",
+        deliveredAt: new Date(),
         isGpsTrackingActive: false,
       },
     });

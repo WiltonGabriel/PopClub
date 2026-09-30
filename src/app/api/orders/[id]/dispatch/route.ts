@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
+import { hasPermission } from "@/lib/permissions";
 import crypto from "crypto";
 
 export async function POST(
@@ -10,8 +11,8 @@ export async function POST(
 ) {
   try {
     const authUser = await getAuthUser(request);
-    if (!authUser || authUser.role !== "admin") {
-      return apiError("Acesso restrito à administração.", 403, "FORBIDDEN");
+    if (!authUser || !hasPermission(authUser, "ORDERS_KANBAN")) {
+      return apiError("Acesso restrito à administração e operadores de esteira.", 403, "FORBIDDEN");
     }
 
     const { id } = await params;

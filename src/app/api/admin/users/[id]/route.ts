@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser, hashPassword } from "@/lib/auth";
 import { cleanCpf, validateCpf } from "@/lib/cpf";
 import { Role } from "@prisma/client";
+import { isUserAdmin } from "@/lib/permissions";
 
 export async function PATCH(
   request: Request,
@@ -10,7 +11,7 @@ export async function PATCH(
 ) {
   try {
     const authUser = await getAuthUser(request);
-    if (!authUser || authUser.role !== "admin") {
+    if (!authUser || !isUserAdmin(authUser)) {
       return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
     }
 
@@ -235,7 +236,7 @@ export async function DELETE(
 ) {
   try {
     const authUser = await getAuthUser(request);
-    if (!authUser || authUser.role !== "admin") {
+    if (!authUser || !isUserAdmin(authUser)) {
       return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
     }
 

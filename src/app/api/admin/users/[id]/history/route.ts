@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { isUserAdmin } from "@/lib/permissions";
 
 export async function GET(
   request: Request,
@@ -8,7 +9,7 @@ export async function GET(
 ) {
   try {
     const authUser = await getAuthUser(request);
-    if (!authUser || authUser.role !== "admin") {
+    if (!isUserAdmin(authUser)) {
       return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
     }
 

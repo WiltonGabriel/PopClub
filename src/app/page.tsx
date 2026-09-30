@@ -911,7 +911,7 @@ export default function Storefront() {
                             onClick={() => setUserMenuOpen(false)}
                             className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
                           >
-                            <Users className="w-4 h-4 text-amber-500 shrink-0" />
+                            <Users className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
                             <span>Gestão de Usuários</span>
                           </Link>
                         </div>
