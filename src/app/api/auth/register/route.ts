@@ -69,6 +69,7 @@ export async function POST(request: Request) {
         passwordHash,
         fullName: fullName || cleanUsername,
         role: Role.CLIENT,
+        isRegistered: true,
       },
       select: {
         id: true,
@@ -76,6 +77,7 @@ export async function POST(request: Request) {
         username: true,
         fullName: true,
         role: true,
+        isRegistered: true,
       },
     });
 
@@ -84,6 +86,7 @@ export async function POST(request: Request) {
       email: user.email,
       username: user.username,
       role: user.role,
+      isRegistered: true,
     });
 
     const cookieStore = await cookies();

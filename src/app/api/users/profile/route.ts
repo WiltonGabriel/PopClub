@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 
 const DEFAULT_AVATAR = "/avatars/avatar-sorvete.svg";
+const GUEST_DEFAULT_AVATAR = "/avatars/avatar-guest-user.svg";
 const DEFAULT_ACCESSIBILITY = {
   fontSize: "normal",
   colorBlindMode: "none",
@@ -38,7 +39,8 @@ export async function GET(request: Request) {
 
     if (!profile) return NextResponse.json({ error: "Perfil não encontrado." }, { status: 404 });
 
-    const avatar = profile.avatarUrl || DEFAULT_AVATAR;
+    const defaultAvatar = profile.isRegistered === false ? GUEST_DEFAULT_AVATAR : DEFAULT_AVATAR;
+    const avatar = profile.avatarUrl || defaultAvatar;
     const rawSettings = (profile.accessibilitySettings as Record<string, any>) || {};
     const accessibilitySettings = {
       fontSize: rawSettings.fontSize || DEFAULT_ACCESSIBILITY.fontSize,
@@ -91,9 +93,9 @@ async function handleUpdateProfile(request: Request) {
       return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
     }
 
-    // Gating de Avatar: Clientes em Acesso Rápido usam o avatar padrão
+    // Gating de Avatar: Clientes em Acesso Rápido usam o avatar padrão neutro
     const requestedAvatar = body?.avatar_url || body?.avatar;
-    if (requestedAvatar && requestedAvatar !== DEFAULT_AVATAR && !authUser.isRegistered) {
+    if (requestedAvatar && requestedAvatar !== GUEST_DEFAULT_AVATAR && !authUser.isRegistered) {
       return NextResponse.json(
         {
           error: "Personalização de avatar disponível após completar o cadastro.",
@@ -144,7 +146,8 @@ async function handleUpdateProfile(request: Request) {
       data: dataToUpdate,
     });
 
-    const avatar = updated.avatarUrl || DEFAULT_AVATAR;
+    const defaultAvatar = updated.isRegistered === false ? GUEST_DEFAULT_AVATAR : DEFAULT_AVATAR;
+    const avatar = updated.avatarUrl || defaultAvatar;
     const updatedRaw = (updated.accessibilitySettings as Record<string, any>) || {};
     const accessibilitySettings = {
       fontSize: updatedRaw.fontSize || DEFAULT_ACCESSIBILITY.fontSize,

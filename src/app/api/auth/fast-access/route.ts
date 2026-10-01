@@ -58,6 +58,8 @@ export async function POST(request: Request) {
           phone: currentAuth.phone,
           email: currentAuth.email,
           role: currentAuth.role,
+          avatarUrl: currentAuth.avatarUrl,
+          avatar: currentAuth.avatar,
           isRegistered: currentAuth.isRegistered,
         },
       });
@@ -75,14 +77,17 @@ export async function POST(request: Request) {
       },
     });
 
+    const GUEST_DEFAULT_AVATAR = "/avatars/avatar-guest-user.svg";
+
     if (!existingUser) {
-      // 1. Cliente novo: cria conta em Acesso Rápido (isRegistered = false)
+      // 1. Cliente novo: cria conta em Acesso Rápido (isRegistered = false) com avatar neutro
       const newUser = await prisma.user.create({
         data: {
           fullName,
           phone,
           isRegistered: false,
           role: Role.CLIENT,
+          avatarUrl: GUEST_DEFAULT_AVATAR,
         },
       });
 
@@ -102,6 +107,8 @@ export async function POST(request: Request) {
           phone: newUser.phone,
           email: null,
           role: newUser.role,
+          avatarUrl: GUEST_DEFAULT_AVATAR,
+          avatar: GUEST_DEFAULT_AVATAR,
           isRegistered: false,
         },
         isNewUser: true,
@@ -114,6 +121,16 @@ export async function POST(request: Request) {
       } catch {}
 
       return response;
+    }
+
+    // Se o cliente for de Acesso Rápido e não tiver avatar configurado ou tiver o sorvete antigo, sincroniza para avatar neutro
+    let userAvatar = existingUser.avatarUrl;
+    if (!existingUser.isRegistered && (!userAvatar || userAvatar === "/avatars/avatar-sorvete.svg")) {
+      userAvatar = GUEST_DEFAULT_AVATAR;
+      await prisma.user.update({
+        where: { id: existingUser.id },
+        data: { avatarUrl: GUEST_DEFAULT_AVATAR },
+      });
     }
 
     // Se o pedido for Retirada no Balcão: BYPASS DE SEGURANÇA (não exige endereço nem número residencial)
@@ -172,6 +189,8 @@ export async function POST(request: Request) {
         phone: existingUser.phone,
         email: existingUser.email,
         role: existingUser.role,
+        avatarUrl: userAvatar || (existingUser.isRegistered ? "/avatars/avatar-sorvete.svg" : GUEST_DEFAULT_AVATAR),
+        avatar: userAvatar || (existingUser.isRegistered ? "/avatars/avatar-sorvete.svg" : GUEST_DEFAULT_AVATAR),
         isRegistered: Boolean(existingUser.isRegistered),
       },
     });

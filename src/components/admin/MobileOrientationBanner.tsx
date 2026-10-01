@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Smartphone, RotateCw, X } from "lucide-react";
+import { Tablet, Monitor, X } from "lucide-react";
 
 export function MobileOrientationBanner() {
   const [isVisible, setIsVisible] = useState(false);
@@ -18,7 +18,7 @@ export function MobileOrientationBanner() {
       if (isNarrow && isPortrait) {
         setIsVisible(true);
       } else {
-        // Se girou para paisagem (horizontal) ou alargou a tela, oculta automaticamente
+        // Se abriu em tela maior ou tablet na horizontal, oculta automaticamente
         setIsVisible(false);
       }
     };
@@ -52,24 +52,24 @@ export function MobileOrientationBanner() {
             <X className="w-5 h-5" />
           </button>
           
-          <div className="relative w-16 h-16 rounded-2xl bg-primary/10 dark:bg-primary/90/30 text-primary dark:text-primary/40 flex items-center justify-center mb-4">
-            <Smartphone className="w-8 h-8 animate-pulse" />
-            <RotateCw className="w-5 h-5 absolute -bottom-1 -right-1 text-pink-500 animate-spin-slow" />
+          <div className="relative w-16 h-16 rounded-2xl bg-primary/10 dark:bg-primary/20 text-primary dark:text-violet-400 flex items-center justify-center mb-4">
+            <Tablet className="w-8 h-8 -rotate-90 text-primary dark:text-violet-400" />
+            <Monitor className="w-4 h-4 absolute -bottom-1 -right-1 text-accent dark:text-purple-300 bg-white dark:bg-[#1a1a2e] rounded-full p-0.5" />
           </div>
           
           <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
             Melhor Experiência de Gestão
           </h2>
           
-          <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
-            A central operacional possui muitas informações simultâneas. Para trabalhar com mais agilidade e sem cortes, recomendamos acessar pelo <strong>computador</strong> ou virar seu celular para a <strong>horizontal (modo paisagem)</strong>.
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+            Recomendamos utilizar um tablet na horizontal ou um computador/notebook para uma melhor experiência de gestão.
           </p>
           
           <button
             onClick={handleDismiss}
-            className="w-full py-3 px-4 bg-primary hover:bg-primary text-white font-medium rounded-xl transition-colors active:scale-95 cursor-pointer"
+            className="w-full py-3 px-4 bg-primary hover:bg-primary/90 text-white font-medium rounded-xl transition-colors active:scale-95 cursor-pointer text-xs uppercase tracking-wider font-heading font-bold"
           >
-            Continuar na Vertical
+            Prosseguir no Celular
           </button>
         </div>
       </div>

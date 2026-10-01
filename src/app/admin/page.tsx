@@ -27,7 +27,6 @@ import {
   Send,
   User,
   IceCream,
-  Users,
   MessageCircle,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -56,7 +55,6 @@ import { CommunicationSection } from "../../components/admin/CommunicationSectio
 import { MobileOrientationBanner } from "../../components/admin/MobileOrientationBanner";
 import { LogisticsAndCouriersSection } from "../../components/admin/LogisticsAndCouriersSection";
 import { ChannelsAndSupportSection } from "../../components/admin/ChannelsAndSupportSection";
-import { UsersManagementSection } from "../../components/admin/UsersManagementSection";
 import { TAB_PERMISSION_MAP, PermissionKey } from "../../lib/permissions";
 
 export type AdminTab =
@@ -71,8 +69,7 @@ export type AdminTab =
   | "logistics"
   | "channels"
   | "delivery"
-  | "avatars"
-  | "users";
+  | "avatars";
 
 export default function AdminDashboard() {
   const { theme, toggleTheme } = useTheme();
@@ -260,21 +257,13 @@ export default function AdminDashboard() {
     const tabParam = searchParams.get("tab") as AdminTab | null;
 
     if (tabParam) {
-      if (tabParam === "users") {
-        if (!isAdmin) {
+      const requiredPerm = TAB_PERMISSION_MAP[tabParam];
+      if (requiredPerm) {
+        if (!isAdmin && !canAccess(requiredPerm)) {
           router.push("/admin/pedidos?unauthorized=true");
           return;
         }
-        setActiveTab("users");
-      } else {
-        const requiredPerm = TAB_PERMISSION_MAP[tabParam];
-        if (requiredPerm) {
-          if (!isAdmin && !canAccess(requiredPerm)) {
-            router.push("/admin/pedidos?unauthorized=true");
-            return;
-          }
-          setActiveTab(tabParam);
-        }
+        setActiveTab(tabParam);
       }
     } else if (isEditor && !isAdmin) {
       // Se não houver parâmetro e for Editor, verifica se tem acesso à aba padrão (metrics)
@@ -350,17 +339,6 @@ export default function AdminDashboard() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          {/* Link para Gestão de Usuários & Equipe (Admin apenas) */}
-          {isAdmin && (
-            <Link
-              href="/admin/usuarios"
-              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-            >
-              <Users className="w-4 h-4 text-primary" />
-              <span className="hidden sm:inline">Usuários & Equipe</span>
-            </Link>
-          )}
-
           {(isAdmin || canAccess("ORDERS_HISTORY")) && (
             <Link
               href="/admin/historico"
@@ -776,22 +754,6 @@ export default function AdminDashboard() {
                   >
                     <Sparkles className="w-4 h-4" />
                     <span>✨ Avatares Oficiais</span>
-                  </button>
-                )}
-
-                {/* Aba Exclusiva de Administradores: Gestão de Usuários */}
-                {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("users")}
-                    className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
-                      activeTab === "users"
-                        ? "bg-primary text-white shadow-sm font-semibold"
-                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    }`}
-                  >
-                    <Users className="w-4 h-4 text-amber-400" />
-                    <span>👥 Usuários & Equipe</span>
                   </button>
                 )}
               </div>
@@ -1287,13 +1249,6 @@ export default function AdminDashboard() {
               {activeTab === "avatars" && (
                 <div className="animate-in fade-in duration-150">
                   <AvatarPresetManager />
-                </div>
-              )}
-
-              {/* CONTEÚDO DA ABA 12: GESTÃO DE USUÁRIOS & EQUIPE (ESTRITAMENTE ADMINISTRADORES) */}
-              {activeTab === "users" && isAdmin && (
-                <div className="animate-in fade-in duration-150">
-                  <UsersManagementSection />
                 </div>
               )}
             </div>

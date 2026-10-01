@@ -82,7 +82,7 @@ export function BottomNav({
               : false;
 
           const isProfile = id === "profile";
-          const hasCustomAvatar = isProfile && (user?.avatar || user?.avatarUrl);
+          const userAvatar = isProfile ? (user?.avatarUrl || user?.avatar) : null;
 
           return (
             <Link
@@ -109,17 +109,21 @@ export function BottomNav({
             >
               {/* Ícone ou Foto de Perfil */}
               <div className="relative flex items-center justify-center w-7 h-7 mb-0.5">
-                {hasCustomAvatar ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={(user.avatar || user.avatarUrl) as string}
-                    alt="Perfil"
-                    className={`w-6 h-6 rounded-full object-cover transition-all ${
+                {isProfile && userAvatar ? (
+                  <div
+                    className={`w-6 h-6 rounded-full overflow-hidden flex items-center justify-center transition-all ${
                       isActive
                         ? "ring-2 ring-brand-pop-shake ring-offset-1 ring-offset-background"
-                        : "ring-1 ring-border"
+                        : "ring-1 ring-border/80"
                     }`}
-                  />
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={userAvatar}
+                      alt="Perfil"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                 ) : (
                   <Icon
                     className={`w-5 h-5 transition-colors ${

@@ -17,6 +17,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { UsersManagementSection } from "@/components/admin/UsersManagementSection";
+import { MobileOrientationBanner } from "@/components/admin/MobileOrientationBanner";
 
 export default function AdminUsuariosPage() {
   const { user, loading, isAdmin } = useAuth();
@@ -47,6 +48,7 @@ export default function AdminUsuariosPage() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans pb-16 bg-transparent text-foreground transition-colors duration-200">
+      <MobileOrientationBanner />
       {/* Header do Painel */}
       <header className="bg-white/80 dark:bg-[#1F0B22]/90 backdrop-blur-xl border-b border-gray-200 dark:border-border/40 px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-xs">
         <div className="flex items-center gap-3">

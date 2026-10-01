@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const current = await authService.getCurrentUser();
       if (current) {
-        const defaultAvatar = "/avatars/avatar-sorvete.svg";
+        const defaultAvatar = current.isRegistered === false ? "/avatars/avatar-guest-user.svg" : "/avatars/avatar-sorvete.svg";
         const avatar = current.avatar || current.avatarUrl || defaultAvatar;
 
         const appUser: AppUser = {

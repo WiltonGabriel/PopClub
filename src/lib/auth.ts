@@ -205,7 +205,7 @@ export async function getAuthUser(request?: Request): Promise<{
       return null;
     }
 
-    const defaultAvatar = "/avatars/avatar-sorvete.svg";
+    const defaultAvatar = user.isRegistered === false ? "/avatars/avatar-guest-user.svg" : "/avatars/avatar-sorvete.svg";
     const avatar = user.avatarUrl || defaultAvatar;
 
     const rawSettings = (user.accessibilitySettings as Record<string, any>) || {};

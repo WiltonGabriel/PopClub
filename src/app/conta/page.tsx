@@ -41,6 +41,7 @@ import {
   History,
   Pencil,
   Users,
+  Lock,
 } from "lucide-react";
 import { notificationService, AppNotification } from "../../services/notificationService";
 import { useAuth } from "../../hooks/useAuth";
@@ -432,7 +433,8 @@ export default function AccountPage() {
       if (prof) {
         setProfile(prof);
         setFullName(prof.full_name || "");
-        const userAvatar = prof.avatar || prof.avatar_url || user.avatar || user.avatarUrl || "/avatars/avatar-sorvete.svg";
+        const defaultAvatar = user.isRegistered === false ? "/avatars/avatar-guest-user.svg" : "/avatars/avatar-sorvete.svg";
+        const userAvatar = prof.avatar || prof.avatar_url || user.avatar || user.avatarUrl || defaultAvatar;
         setSelectedAvatar(userAvatar);
         setModalAvatarChoice(userAvatar);
 
@@ -498,8 +500,8 @@ export default function AccountPage() {
   };
 
   // Confirmar escolha de avatar no modal
-  const handleConfirmAvatarModal = () => {
-    if (modalAvatarChoice !== "/avatars/avatar-sorvete.svg" && (!user || !user.isRegistered)) {
+  const handleConfirmAvatarModal = async () => {
+    if (!user || user.isRegistered === false) {
       showToast({
         type: "warning",
         title: "Recurso Exclusivo",
@@ -511,6 +513,21 @@ export default function AccountPage() {
     }
     setSelectedAvatar(modalAvatarChoice);
     setIsAvatarModalOpen(false);
+
+    try {
+      await userService.updateProfile(user.id, {
+        avatar: modalAvatarChoice,
+        avatar_url: modalAvatarChoice,
+      });
+      await refreshUser();
+      showToast({
+        type: "success",
+        title: "Avatar Atualizado!",
+        message: "Seu novo avatar foi salvo com sucesso.",
+      });
+    } catch (err: unknown) {
+      console.error("Erro ao sincronizar avatar imediatamente:", err);
+    }
   };
 
   // Salvar configurações de acessibilidade
@@ -631,7 +648,8 @@ export default function AccountPage() {
     (s) => s.id === (currentView !== "menu" ? currentView : activeSection)
   );
 
-  const currentDisplayAvatar = selectedAvatar || profile?.avatar || profile?.avatar_url || user?.avatar || "/avatars/avatar-sorvete.svg";
+  const defaultAvatar = user?.isRegistered === false ? "/avatars/avatar-guest-user.svg" : "/avatars/avatar-sorvete.svg";
+  const currentDisplayAvatar = selectedAvatar || profile?.avatar || profile?.avatar_url || user?.avatar || defaultAvatar;
 
   return (
     <div className="min-h-screen bg-transparent text-foreground flex flex-col font-sans transition-colors duration-200">
@@ -816,19 +834,19 @@ export default function AccountPage() {
                   className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all active:scale-[0.99]"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 group-hover:scale-105 transition-transform shrink-0">
+                    <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-primary dark:text-violet-400 group-hover:scale-105 transition-transform shrink-0">
                       <Users className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
                       <p className="font-heading font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
-                        Usuários & Equipe
+                         Usuários & Equipe
                       </p>
                       <p className="text-[11px] text-muted-foreground truncate">
                         Controle de acessos, RBAC e permissões
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
                 </Link>
               </div>
             </div>
@@ -1069,51 +1087,78 @@ export default function AccountPage() {
                 <div className="relative group shrink-0">
                   <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full border-4 border-primary/40 p-1.5 bg-white dark:bg-[#181D2D] shadow-xl overflow-hidden transition-transform group-hover:scale-105">
                     <Image
-                      src={selectedAvatar}
+                      src={currentDisplayAvatar}
                       alt="Avatar Atual Selecionado"
                       width={128}
                       height={128}
                       className="w-full h-full object-contain"
                     />
                   </div>
-                  {/* Botão circular sobreposto com sparkles */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setModalAvatarChoice(selectedAvatar);
-                      setIsAvatarModalOpen(true);
-                    }}
-                    title="Escolher Avatar"
-                    aria-label="Escolher Avatar"
-                    className="absolute bottom-1 right-1 w-10 h-10 rounded-full bg-gradient-to-r from-violet-600 to-purple-600 text-white flex items-center justify-center shadow-lg border-2 border-white dark:border-[#181D2D] hover:scale-110 active:scale-95 transition-all cursor-pointer"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <div className="flex-1 text-center sm:text-left space-y-2">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] text-xs font-bold uppercase tracking-wider border border-[#9306CF]/20">
-                    <Sparkles className="w-3.5 h-3.5" /> Avatar Exclusivo Pop Shake
-                  </div>
-                  <h3 className="font-heading font-bold text-lg text-gray-900 dark:text-white">
-                    Ilustração do Seu Perfil
-                  </h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Escolha um dos avatares oficiais disponíveis para personalizar sua conta e pedidos.
-                  </p>
-                  <div>
-                    <Button
+                  {/* Botão circular sobreposto com sparkles apenas para cadastrados */}
+                  {user?.isRegistered !== false && (
+                    <button
                       type="button"
-                      variant="outline"
                       onClick={() => {
                         setModalAvatarChoice(selectedAvatar);
                         setIsAvatarModalOpen(true);
                       }}
-                      className="h-9 px-4 rounded-xl border-[#9306CF]/30 text-[#9306CF] dark:text-[#C7A9C9] hover:bg-[#9306CF]/10 text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer"
+                      title="Escolher Avatar"
+                      aria-label="Escolher Avatar"
+                      className="absolute bottom-1 right-1 w-10 h-10 rounded-full bg-gradient-to-r from-violet-600 to-purple-600 text-white flex items-center justify-center shadow-lg border-2 border-white dark:border-[#181D2D] hover:scale-110 active:scale-95 transition-all cursor-pointer"
                     >
-                      <Sparkles className="w-3.5 h-3.5" /> Escolher Avatar
-                    </Button>
-                  </div>
+                      <Sparkles className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex-1 text-center sm:text-left space-y-2">
+                  {user?.isRegistered === false ? (
+                    <>
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-bold uppercase tracking-wider border border-amber-500/20">
+                        <Lock className="w-3.5 h-3.5" /> Acesso Rápido
+                      </div>
+                      <h3 className="font-heading font-bold text-lg text-gray-900 dark:text-white">
+                        Avatar Padrão do Usuário
+                      </h3>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        A personalização com ilustrações oficiais é exclusiva para clientes cadastrados. Crie sua senha para escolher seu avatar exclusivo.
+                      </p>
+                      <div>
+                        <Button
+                          type="button"
+                          onClick={() => setIsCompleteRegModalOpen(true)}
+                          className="h-9 px-4 rounded-xl font-heading font-bold uppercase tracking-wider text-xs bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white shadow-md shadow-[#9306CF]/20 flex items-center gap-2 cursor-pointer"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" /> Completar Cadastro e Personalizar
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#9306CF]/10 text-[#9306CF] dark:text-[#C7A9C9] text-xs font-bold uppercase tracking-wider border border-[#9306CF]/20">
+                        <Sparkles className="w-3.5 h-3.5" /> Avatar Exclusivo Pop Shake
+                      </div>
+                      <h3 className="font-heading font-bold text-lg text-gray-900 dark:text-white">
+                        Ilustração do Seu Perfil
+                      </h3>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Escolha um dos avatares oficiais disponíveis para personalizar sua conta e pedidos.
+                      </p>
+                      <div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setModalAvatarChoice(selectedAvatar);
+                            setIsAvatarModalOpen(true);
+                          }}
+                          className="h-9 px-4 rounded-xl border-[#9306CF]/30 text-[#9306CF] dark:text-[#C7A9C9] hover:bg-[#9306CF]/10 text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" /> Escolher Avatar
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
               

@@ -26,7 +26,6 @@ import {
   Layers,
   FileText,
   Check,
-  Users,
 } from "lucide-react";
 import { orderService, Order, OrderStatus } from "../../../services/orderService";
 import { shiftService, ShiftRecord } from "../../../services/shiftService";
@@ -355,16 +354,6 @@ export default function AdminHistoricoPage() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          {isAdmin && (
-            <Link
-              href="/admin/usuarios"
-              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 hover:text-primary border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-            >
-              <Users className="w-4 h-4 text-primary" />
-              <span className="hidden sm:inline">Usuários & Equipe</span>
-            </Link>
-          )}
-
           {(isAdmin || canAccess("ORDERS_KANBAN")) && (
             <Link
               href="/admin/pedidos"

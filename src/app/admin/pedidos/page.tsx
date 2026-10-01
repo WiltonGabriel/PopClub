@@ -45,7 +45,6 @@ import {
   LayoutGrid,
   Ban,
   ArrowRight,
-  Users,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -1678,16 +1677,6 @@ export default function AdminPedidosPage() {
 
         <div className="flex items-center gap-1.5 sm:gap-3">
           {/* Links Desktop (sm+) */}
-          {isAdmin && (
-            <Link
-              href="/admin/usuarios"
-              className="hidden sm:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-            >
-              <Users className="w-4 h-4 text-primary" />
-              <span>Usuários & Equipe</span>
-            </Link>
-          )}
-
           {(isAdmin || canAccess("ORDERS_HISTORY")) && (
             <Link
               href="/admin/historico"
