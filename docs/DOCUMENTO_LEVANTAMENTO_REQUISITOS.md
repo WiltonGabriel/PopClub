@@ -421,9 +421,23 @@ Para validar a aderência do sistema ao dia a dia da **Pop Shake Sorveteria & A�
 
 ## 9. REFERÊNCIAS
 
-1. ASSOCIAÇÃO BRASILEIRA DE NORMAS TÉCNICAS. **NBR 6023**: Informação e documentação – Referências – Elaboração. Rio de Janeiro: ABNT, 2018.
-2. ASSOCIAÇÃO BRASILEIRA DE NORMAS TÉCNICAS. **NBR 14724**: Informação e documentação – Trabalhos acadêmicos – Apresentação. Rio de Janeiro: ABNT, 2011.
-3. BRASIL. **Lei nº 13.709, de 14 de agosto de 2018**. Lei Geral de Proteção de Dados Pessoais (LGPD). Brasília, DF: Presidência da República, 2018.
-4. CENTRO UNIVERSITÁRIO DE VÁRZEA GRANDE (UNIVAG). **Manual de Normas e Orientações para Projetos Integradores Extensionistas**. Várzea Grande: UNIVAG, 2024.
-5. SOMMERVILLE, Ian. **Engenharia de Software**. 10. ed. São Paulo: Pearson Education do Brasil, 2019.
-6. PRESSMAN, Roger S.; MAXIM, Bruce R. **Engenharia de Software: uma abordagem profissional**. 9. ed. Porto Alegre: AMGH, 2021.
+### Legislação e Normas Técnicas
+1. ASSOCIAÇÃO BRASILEIRA DE NORMAS TÉCNICAS. **ABNT NBR 6023**: Informação e documentação – Referências – Elaboração. 2. ed. Rio de Janeiro: ABNT, 2018. 74 p.
+2. ASSOCIAÇÃO BRASILEIRA DE NORMAS TÉCNICAS. **ABNT NBR 14724**: Informação e documentação – Trabalhos acadêmicos – Apresentação. 3. ed. Rio de Janeiro: ABNT, 2011. 15 p.
+3. BRASIL. **Lei nº 13.709, de 14 de agosto de 2018**. Lei Geral de Proteção de Dados Pessoais (LGPD). Brasília, DF: Presidência da República, Secretaria-Geral, Subchefia para Assuntos Jurídicos, 2018. Disponível em: http://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm. Acesso em: 20 set. 2026.
+
+### Literatura de Engenharia de Software e Requisitos
+4. PRESSMAN, Roger S.; MAXIM, Bruce R. **Engenharia de software: uma abordagem profissional**. 9. ed. Porto Alegre: AMGH/Bookman, 2021. 968 p. ISBN 9786558040101. (Capítulo 8: Engenharia de Requisitos; Capítulo 9: Modelagem de Requisitos).
+5. SOMMERVILLE, Ian. **Engenharia de software**. 10. ed. São Paulo: Pearson Education do Brasil, 2019. 768 p. ISBN 9788543024974. (Capítulo 4: Engenharia de Requisitos e Rastreabilidade).
+6. WIEGERS, Karl; BEATTY, Joy. **Software Requirements**. 3. ed. Redmond, WA: Microsoft Press, 2013. 672 p. ISBN 9780735679665.
+
+### Estudos Setoriais e Dados de Mercado Gastronômico
+7. ASSOCIAÇÃO BRASILEIRA DE BARES E RESTAURANTES (ABRASEL). **Pesquisa Nacional de Delivery e Relacionamento com Marketplaces**. Brasília, DF: Abrasel Nacional, 2023. Disponível em: https://abrasel.com.br/. Acesso em: 15 set. 2026. (Fundamentação do diagnóstico de comissões de 12% a 27% sobre vendas de alimentação fora do lar).
+
+### Documentação Técnica Oficial das Tecnologias Utilizadas
+8. LEAFLET. **Leaflet API Reference**: an open-source JavaScript library for mobile-friendly interactive maps. Versão 1.9. 2024. Disponível em: https://leafletjs.com/reference.html. Acesso em: 18 set. 2026.
+9. MOZILLA DEVELOPER NETWORK (MDN). **Progressive Web Apps (PWAs)**. MDN Web Docs, 2024. Disponível em: https://developer.mozilla.org/pt-BR/docs/Web/Progressive_web_apps. Acesso em: 18 set. 2026.
+10. POSTGRESQL GLOBAL DEVELOPMENT GROUP. **PostgreSQL 16.0 Documentation**. 2024. Disponível em: https://www.postgresql.org/docs/16/. Acesso em: 18 set. 2026.
+11. PRISMA. **Prisma ORM Documentation**: Next-generation ORM for Node.js and TypeScript. Versão 6. 2024. Disponível em: https://www.prisma.io/docs. Acesso em: 18 set. 2026.
+12. VERCEL. **Next.js Documentation**: The React Framework for the Web. Versão 16 (App Router & Standalone Mode). 2024. Disponível em: https://nextjs.org/docs. Acesso em: 18 set. 2026.
+13. W3C. **Web App Manifest**: W3C Working Draft. World Wide Web Consortium, 2024. Disponível em: https://www.w3.org/TR/appmanifest/. Acesso em: 18 set. 2026.
