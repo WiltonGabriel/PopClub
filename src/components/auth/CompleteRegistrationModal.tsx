@@ -6,12 +6,11 @@ import {
   Mail,
   Lock,
   Sparkles,
-  ShieldCheck,
   CheckCircle2,
   Loader2,
-  Tag,
-  Gift,
+  TicketPercent,
   Smile,
+  Award,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -31,7 +30,7 @@ export function CompleteRegistrationModal({
   onClose,
   onSuccess,
   title = "Completar meu Cadastro",
-  subtitle = "Adicione e-mail e senha para liberar cupons de desconto, avatares exclusivos e acesso aos seus pedidos em qualquer aparelho.",
+  subtitle = "Adicione e-mail e senha para desbloquear seus cupons, personalizar seu avatar e evoluir seus selos de fidelidade na loja.",
 }: CompleteRegistrationModalProps) {
   const { user, completeProfile } = useAuth();
 
@@ -105,7 +104,7 @@ export function CompleteRegistrationModal({
               Cadastro Completo!
             </h3>
             <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-              Cupons de desconto, personalização de avatares e login em outros aparelhos liberados com sucesso!
+              Cupons exclusivos, personalização de avatares e selos de fidelidade liberados com sucesso!
             </p>
           </div>
         ) : (
@@ -124,20 +123,20 @@ export function CompleteRegistrationModal({
 
             {/* Badges de Benefícios */}
             <div className="grid grid-cols-3 gap-2 mb-5">
-              <div className="p-2 rounded-xl bg-muted/40 border border-border text-center">
-                <Tag className="w-4 h-4 text-primary mx-auto mb-1" />
-                <p className="text-[10px] font-bold text-foreground">Cupons</p>
-                <p className="text-[9px] text-muted-foreground">Descontos ativos</p>
+              <div className="p-2 sm:p-2.5 rounded-xl bg-muted/40 dark:bg-muted/20 border border-border/60 text-center flex flex-col items-center justify-center transition-colors">
+                <TicketPercent className="w-4 h-4 text-primary shrink-0 mb-1" />
+                <p className="text-[11px] sm:text-xs font-bold text-foreground leading-tight">Cupons</p>
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground leading-tight mt-0.5">Descontos exclusivos</p>
               </div>
-              <div className="p-2 rounded-xl bg-muted/40 border border-border text-center">
-                <Smile className="w-4 h-4 text-primary mx-auto mb-1" />
-                <p className="text-[10px] font-bold text-foreground">Avatares</p>
-                <p className="text-[9px] text-muted-foreground">Personalizados</p>
+              <div className="p-2 sm:p-2.5 rounded-xl bg-muted/40 dark:bg-muted/20 border border-border/60 text-center flex flex-col items-center justify-center transition-colors">
+                <Smile className="w-4 h-4 text-primary shrink-0 mb-1" />
+                <p className="text-[11px] sm:text-xs font-bold text-foreground leading-tight">Avatares</p>
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground leading-tight mt-0.5">Fotos de perfil</p>
               </div>
-              <div className="p-2 rounded-xl bg-muted/40 border border-border text-center">
-                <ShieldCheck className="w-4 h-4 text-primary mx-auto mb-1" />
-                <p className="text-[10px] font-bold text-foreground">Multi-dispositivo</p>
-                <p className="text-[9px] text-muted-foreground">Sincronizado</p>
+              <div className="p-2 sm:p-2.5 rounded-xl bg-muted/40 dark:bg-muted/20 border border-border/60 text-center flex flex-col items-center justify-center transition-colors">
+                <Award className="w-4 h-4 text-primary shrink-0 mb-1" />
+                <p className="text-[11px] sm:text-xs font-bold text-foreground leading-tight">Fidelidade</p>
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground leading-tight mt-0.5">+ Tempo, + vantagens</p>
               </div>
             </div>
 
