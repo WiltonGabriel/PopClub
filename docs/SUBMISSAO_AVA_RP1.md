@@ -9,7 +9,10 @@
 - **Disciplina:** Projeto Extensionista Integrador — Desenvolvimento de Progressive Web Apps (PWAs) com Frameworks Avançados (Semestre 2026/2)
 - **Título do Projeto:** POPCLUB: Plataforma de Delivery PWA e Gestão Operacional para Pequenos Negócios Gastronômicos
 - **Entidade Parceira / Cliente Beneficiário:** Pop Shake Sorveteria & Açaí Artesanal (Várzea Grande – MT)
-- **Acadêmico Responsável:** Wilton Gabriel Albuquerque Pereira
+- **Equipe de Desenvolvimento (Equipe ADP):**
+  - **Wilton Gabriel Albuquerque Pereira** — Arquiteto de Software & Mantenedor Principal
+  - **Adriel Felipe** — Analista de Documentação
+  - **João Lucas** — Analista de Qualidade & Relacionamento
 
 ---
 
@@ -25,9 +28,9 @@ Apresentamos a entrega formal da **Tarefa 2 (Relatório Periódico 1 - RP1)** do
 Neste primeiro ciclo (RP1), foram concluídas com êxito as fases de diagnóstico situacional, imersão prática de campo, engenharia de requisitos detalhada e prototipação funcional da plataforma **PopClub**:
 
 - **Engenharia de Requisitos Exaustiva:** Especificação formal de **32 Requisitos Funcionais (RF01 a RF32)** e **16 Requisitos Não-Funcionais (RNF01 a RNF16)** no padrão ABNT / UNIVAG Anexo III, com matriz de rastreabilidade bidirecional correlacionando regras de negócio, componentes do código e tabelas do banco de dados relacional (`schema.prisma`).
-- **Arquitetura e Infraestrutura de Produção:** Estruturação de aplicação em modo **Next.js Standalone (Node.js 20)** integrada ao **Prisma ORM**, banco de dados **PostgreSQL 16 Alpine**, proxy reverso **Traefik v3** com SSL automático Let's Encrypt, gate corporativo **Authelia** e isolamento seguro da camada de banco via rede mesh **Tailscale (WireGuard)**.
-- **Vitrine PWA Mobile Touch-First:** Desenvolvimento de Progressive Web App de alta performance com suporte estrito aos modos claro e escuro (WCAG AA), fluxo de **Acesso Rápido (*Fast Access*)** com compra sem fricção cadastral, seleção dinâmica de adicionais (cálculo de cotas gratuitas e itens pagos) e blindagem contra manipulação de preços no checkout (*anti-tampering* no backend).
-- **Central Operacional de Balcão e Cozinha:** Esteira visual **Kanban** com colunas dinâmicas (Fila, Em Preparo, Pronto e Em Rota), alertas sonoros via síntese Web Audio API nativa (sino de cozinha), geração de comandas térmicas padronizadas (80mm e 58mm) e switch instantâneo **"Pausar na Cozinha"** para insumos esgotados.
+- **Arquitetura e Infraestrutura de Produção:** Aplicação em modo **Next.js 16 Standalone (Node.js 20, React 19)** integrada ao **Prisma ORM 6**, banco de dados **PostgreSQL 16 Alpine**, proxy reverso **Traefik v3** com SSL automático Let's Encrypt, gate corporativo **Authelia**, mapas gratuitos com **Leaflet / OpenStreetMap / OSRM** e isolamento seguro da camada de banco via rede mesh **Tailscale (WireGuard)**.
+- **Vitrine PWA Mobile Touch-First:** Progressive Web App de alta performance com suporte estrito aos modos claro e escuro (WCAG AA), fluxo de **Acesso Rápido (*Fast Access*)** com compra sem fricção cadastral, seleção dinâmica de adicionais (cálculo de cotas gratuitas e itens pagos) e blindagem contra manipulação de preços no checkout (*anti-tampering* no backend).
+- **Central Operacional de Balcão e Cozinha:** Esteira visual **Kanban** com colunas dinâmicas (Fila, Em Preparo, Pronto e Em Rota), alertas sonoros nativos via Web Audio API (sino de cozinha), geração de comandas térmicas padronizadas (80mm e 58mm) e switch instantâneo **"Pausar na Cozinha"** para insumos esgotados.
 - **Logística e Despacho via WhatsApp:** Despacho ágil diretamente no WhatsApp dos motoboys cadastrados contendo rota traçada no Google Maps, valor a cobrar com troco discriminado e link seguro de telemetria com GPS ao vivo (`/entrega/[token]`).
 - **Gestão Financeira por Expediente (Shifts):** Controle de turnos operacionais com **bloqueio terminante de fechamento** em caso de pedidos ativos na esteira (`PENDING_ORDERS_ACTIVE`) e conciliação financeira segregada em Dinheiro (com controle de trocos), Cartão na Maquininha e Pix na Entrega.
 
@@ -69,6 +72,8 @@ Para o fechamento do projeto no segundo ciclo, estão planejadas as seguintes a�
 Agradecemos as orientações pedagógicas e permanecemos à disposição para quaisquer esclarecimentos.
 
 Atenciosamente,  
-**Wilton Gabriel Albuquerque Pereira**  
-Acadêmico Desenvolvedor — Tecnologia em Análise e Desenvolvimento de Sistemas  
+**Equipe ADP — Tecnologia em Análise e Desenvolvimento de Sistemas**  
+- **Wilton Gabriel Albuquerque Pereira** (Arquiteto de Software & Mantenedor Principal)  
+- **Adriel Felipe** (Analista de Documentação)  
+- **João Lucas** (Analista de Qualidade & Relacionamento)  
 Centro Universitário de Várzea Grande (UNIVAG)
