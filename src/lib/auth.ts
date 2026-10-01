@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import jwt, { type SignOptions } from "jsonwebtoken";
 import { cookies } from "next/headers";
 import { prisma } from "./prisma";
 
@@ -40,8 +40,8 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   }
 }
 
-export function signToken(payload: TokenPayload, expiresIn: string = "30d"): string {
-  return jwt.sign(payload, getJwtSecret(), { expiresIn: expiresIn as any });
+export function signToken(payload: TokenPayload, expiresIn: SignOptions["expiresIn"] = "30d"): string {
+  return jwt.sign(payload, getJwtSecret(), { expiresIn });
 }
 
 export function verifyToken(token: string): TokenPayload | null {
@@ -52,18 +52,34 @@ export function verifyToken(token: string): TokenPayload | null {
   }
 }
 
+export interface CookieOptions {
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: boolean | "lax" | "strict" | "none";
+  maxAge?: number;
+  path?: string;
+  expires?: Date;
+  domain?: string;
+}
+
+export interface CookieResponseTarget {
+  cookies: {
+    set: (name: string, val: string, opts?: CookieOptions) => void;
+  };
+}
+
 /**
  * Define o cookie de sessão HttpOnly popshake_session (e auth_token para compatibilidade).
  */
 export function setSessionCookies(
-  response: { cookies: { set: (name: string, val: string, opts: any) => void } },
+  response: CookieResponseTarget,
   token: string,
   isHttps: boolean = false
 ) {
-  const cookieOptions = {
+  const cookieOptions: CookieOptions = {
     httpOnly: true,
     secure: isHttps,
-    sameSite: "lax" as const,
+    sameSite: "lax",
     maxAge: SESSION_MAX_AGE_SECONDS,
     path: "/",
   };
@@ -71,7 +87,7 @@ export function setSessionCookies(
   try {
     response.cookies.set(SESSION_COOKIE_NAME, token, cookieOptions);
     response.cookies.set(LEGACY_COOKIE_NAME, token, cookieOptions);
-  } catch (err) {
+  } catch (err: unknown) {
     console.warn("Aviso ao definir cookies de sessão:", err);
   }
 }
@@ -79,8 +95,8 @@ export function setSessionCookies(
 /**
  * Remove os cookies de sessão no logout.
  */
-export function clearSessionCookies(response: { cookies: { set: (name: string, val: string, opts: any) => void } }) {
-  const clearOptions = {
+export function clearSessionCookies(response: CookieResponseTarget) {
+  const clearOptions: CookieOptions = {
     path: "/",
     maxAge: 0,
     expires: new Date(0),
@@ -88,9 +104,29 @@ export function clearSessionCookies(response: { cookies: { set: (name: string, v
   try {
     response.cookies.set(SESSION_COOKIE_NAME, "", clearOptions);
     response.cookies.set(LEGACY_COOKIE_NAME, "", clearOptions);
-  } catch (err) {
+  } catch (err: unknown) {
     console.warn("Aviso ao limpar cookies de sessão:", err);
   }
+}
+
+interface AuthDbUserRecord {
+  id: string;
+  cpf: string | null;
+  email: string | null;
+  username: string | null;
+  role: string;
+  permissions: unknown;
+  isActive: boolean;
+  isBlocked: boolean;
+  blockReason: string | null;
+  tokenVersion: number;
+  fullName?: string | null;
+  avatarUrl?: string | null;
+  accessibilitySettings?: unknown;
+  phone?: string | null;
+  isRegistered?: boolean | null;
+  notificationsEnabled?: boolean | null;
+  createdAt: Date;
 }
 
 /**
@@ -139,7 +175,7 @@ export async function getAuthUser(request?: Request): Promise<{
     const payload = verifyToken(token);
     if (!payload?.userId) return null;
 
-    let user: any = null;
+    let user: AuthDbUserRecord | null = null;
     try {
       user = await prisma.user.findUnique({
         where: { id: payload.userId },
@@ -163,8 +199,9 @@ export async function getAuthUser(request?: Request): Promise<{
           createdAt: true,
         },
       });
-    } catch (err: any) {
-      console.warn("Aviso: Falha ao carregar campos estendidos do usuário, tentando campos essenciais:", err?.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn("Aviso: Falha ao carregar campos estendidos do usuário, tentando campos essenciais:", message);
       try {
         user = await prisma.user.findUnique({
           where: { id: payload.userId },
@@ -183,7 +220,7 @@ export async function getAuthUser(request?: Request): Promise<{
             createdAt: true,
           },
         });
-      } catch (fallbackErr: any) {
+      } catch (fallbackErr: unknown) {
         console.error("Erro crítico ao consultar usuário no banco:", fallbackErr);
         return null;
       }
@@ -208,8 +245,21 @@ export async function getAuthUser(request?: Request): Promise<{
     const defaultAvatar = user.isRegistered === false ? "/avatars/avatar-guest-user.svg" : "/avatars/avatar-sorvete.svg";
     const avatar = user.avatarUrl || defaultAvatar;
 
-    const rawSettings = (user.accessibilitySettings as Record<string, any>) || {};
+    const rawSettings =
+      user.accessibilitySettings && typeof user.accessibilitySettings === "object"
+        ? (user.accessibilitySettings as Record<string, unknown>)
+        : {};
     const normalizedRole = String(user.role || "client").toLowerCase();
+
+    const allowedPaymentMethods = ["pix_entrega", "cartao_maquininha", "dinheiro"] as const;
+    const defaultPaymentMethod =
+      typeof rawSettings.defaultPaymentMethod === "string" &&
+      (allowedPaymentMethods as readonly string[]).includes(rawSettings.defaultPaymentMethod)
+        ? (rawSettings.defaultPaymentMethod as (typeof allowedPaymentMethods)[number])
+        : null;
+
+    const defaultChangeFor =
+      typeof rawSettings.defaultChangeFor === "number" ? rawSettings.defaultChangeFor : null;
 
     return {
       id: user.id,
@@ -217,8 +267,10 @@ export async function getAuthUser(request?: Request): Promise<{
       email: user.email || null,
       username: user.username || null,
       role: normalizedRole,
-      permissions: Array.isArray(user.permissions) ? user.permissions : [],
-      isActive: user.isActive !== false,
+      permissions: Array.isArray(user.permissions)
+        ? (user.permissions.filter((p): p is string => typeof p === "string"))
+        : [],
+      isActive: Boolean(user.isActive),
       isBlocked: Boolean(user.isBlocked),
       blockReason: user.blockReason || null,
       tokenVersion: user.tokenVersion || 1,
@@ -226,8 +278,8 @@ export async function getAuthUser(request?: Request): Promise<{
       avatarUrl: avatar,
       avatar,
       accessibilitySettings: user.accessibilitySettings || null,
-      defaultPaymentMethod: rawSettings.defaultPaymentMethod || null,
-      defaultChangeFor: rawSettings.defaultChangeFor !== undefined ? rawSettings.defaultChangeFor : null,
+      defaultPaymentMethod,
+      defaultChangeFor,
       phone: user.phone || null,
       isRegistered: Boolean(user.isRegistered),
       notificationsEnabled: Boolean(user.notificationsEnabled ?? true),

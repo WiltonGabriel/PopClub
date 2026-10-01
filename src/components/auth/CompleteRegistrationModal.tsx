@@ -32,7 +32,7 @@ export function CompleteRegistrationModal({
   title = "Completar meu Cadastro",
   subtitle = "Adicione e-mail e senha para desbloquear seus cupons, personalizar seu avatar e evoluir seus selos de fidelidade na loja.",
 }: CompleteRegistrationModalProps) {
-  const { user, completeProfile } = useAuth();
+  const { completeProfile } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -76,8 +76,9 @@ export function CompleteRegistrationModal({
         if (onSuccess) onSuccess();
         onClose();
       }, 1200);
-    } catch (err: any) {
-      setError(err.message || "Erro ao completar cadastro.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro ao completar cadastro.";
+      setError(message);
     } finally {
       setLoading(false);
     }
