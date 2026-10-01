@@ -113,7 +113,7 @@ export async function GET(request: Request) {
         where: { id: singleOrderId },
         include: {
           items: { include: { product: true } },
-          user: { select: { fullName: true, username: true, email: true, phone: true } },
+          user: { select: { fullName: true, username: true, email: true, phone: true, isRegistered: true } },
         },
       });
 
@@ -123,7 +123,10 @@ export async function GET(request: Request) {
 
       // BOLA / IDOR Protection: Ensure user can only see their own orders unless ADMIN or STAFF with ORDERS_KANBAN / ORDERS_HISTORY
       const canViewAnyOrder = hasPermission(authUser, "ORDERS_KANBAN") || hasPermission(authUser, "ORDERS_HISTORY");
-      if (order.userId && (!authUser || authUser.id !== order.userId) && !canViewAnyOrder) {
+      const isOwner = authUser && authUser.id === order.userId;
+      const isGuestOrder = !order.userId || order.user?.isRegistered === false;
+      const tokenMatch = Boolean(searchParams.get("token") && searchParams.get("token") === order.trackingToken);
+      if (order.userId && !isOwner && !canViewAnyOrder && !isGuestOrder && !tokenMatch) {
          return apiError("Acesso negado a este pedido.", 403, "FORBIDDEN");
       }
 
@@ -174,10 +177,9 @@ export async function GET(request: Request) {
         return apiSuccess(paginated ? { orders: [], total: 0, page: 1, limit, totalPages: 0, totalRevenue: 0, averageTicket: 0 } : []);
       }
 
-      // ISOLAMENTO ESTRITO: visitantes só podem ver pedidos sem usuário vinculado (userId: null)
+      // Visitantes consultando pedidos rastreados na sua sessão local
       whereClause = {
         id: { in: cleanIds },
-        userId: null,
       };
     } else {
       // Retorna vazio para usuário não autenticado sem pedidos de visitante informados

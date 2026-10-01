@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 
 import { prisma, DBAddonItem, DBCoupon } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
-import { getAuthUser } from "@/lib/auth";
+import { Prisma, Role } from "@prisma/client";
+import { getAuthUser, signToken, setSessionCookies } from "@/lib/auth";
+import { cookies } from "next/headers";
 import { z } from "zod";
 import { handleApiError } from "@/lib/apiResponse";
 import { checkoutLimiter, getIpFromRequest } from "@/lib/rateLimit";
 import { sanitizeText } from "@/lib/sanitize";
+import { sanitizeAndNormalizePhone } from "@/lib/validations/auth";
+import crypto from "crypto";
 import {
   DEFAULT_LOYALTY_BADGES,
   LoyaltyBadgeConfig,
@@ -49,6 +52,9 @@ const checkoutSchema = z.object({
   }),
 
   couponCode: z.string().optional().nullable(),
+  customerName: z.string().trim().optional().nullable(),
+  name: z.string().trim().optional().nullable(),
+  fullName: z.string().trim().optional().nullable(),
   customerPhone: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
   userId: z.string().optional().nullable(),
@@ -81,6 +87,9 @@ export async function POST(request: Request) {
 
     const { items, deliveryAddress, paymentMethod, couponCode } = parsed.data;
 
+    const rawPhone = parsed.data.customerPhone || parsed.data.phone || null;
+    const rawName = parsed.data.customerName || parsed.data.fullName || parsed.data.name || null;
+
     // Sanitização rigorosa de entradas de texto do endereço
     const cleanStreet = sanitizeText(deliveryAddress.street);
     const cleanNumber = sanitizeText(deliveryAddress.number);
@@ -110,16 +119,109 @@ export async function POST(request: Request) {
       );
     }
 
-    // Obtém usuário autenticado obrigatoriamente (compras anônimas 100% bloqueadas)
+    // Identificação de Turno Operacional Ativo
+    let targetShiftId: string | null = storeSettings?.currentShiftId || null;
+    if (!targetShiftId) {
+      const activeShift = await prisma.shift.findFirst({
+        where: { isOpen: true, closedAt: null },
+        orderBy: { openedAt: "desc" },
+        select: { id: true },
+      });
+      if (activeShift) {
+        targetShiftId = activeShift.id;
+      }
+    }
+
+    // Identificação e Autenticação (Cliente Logado ou Acesso Rápido)
     const authUser = await getAuthUser(request);
-    if (!authUser?.id) {
-      return NextResponse.json(
-        {
-          error: "Identificação obrigatória. Utilize o Acesso Rápido ou entre na sua conta para finalizar o pedido.",
-          code: "AUTH_REQUIRED",
-        },
-        { status: 401 }
-      );
+    let targetUserId: string;
+    let targetIsRegistered = false;
+    let targetUserPhone: string | null = null;
+    let sessionTokenToSet: string | null = null;
+    const GUEST_DEFAULT_AVATAR = "/avatars/avatar-guest-user.svg";
+
+    if (authUser?.id) {
+      targetUserId = authUser.id;
+      targetIsRegistered = Boolean(authUser.isRegistered);
+      targetUserPhone = authUser.phone || null;
+
+      // Se for cliente de Acesso Rápido e forneceu nome atualizado, atualiza
+      if (!authUser.isRegistered && rawName && rawName.trim().length >= 3 && rawName !== authUser.fullName) {
+        try {
+          await prisma.user.update({
+            where: { id: authUser.id },
+            data: { fullName: sanitizeText(rawName.trim()) },
+          });
+        } catch {}
+      }
+    } else {
+      // Cliente visitante sem sessão prévia: exige dados mínimos de Acesso Rápido
+      if (!rawPhone || typeof rawPhone !== "string" || rawPhone.replace(/\D/g, "").length < 10) {
+        return NextResponse.json(
+          {
+            error: "Identificação obrigatória. Utilize o Acesso Rápido (Nome e WhatsApp) ou entre na sua conta para finalizar o pedido.",
+            code: "AUTH_REQUIRED",
+          },
+          { status: 401 }
+        );
+      }
+
+      const cleanPhone = sanitizeAndNormalizePhone(rawPhone);
+      if (!cleanPhone || cleanPhone.length !== 11) {
+        return NextResponse.json(
+          {
+            error: "Por favor, informe um WhatsApp válido com DDD (ex: 65999998888).",
+            code: "INVALID_PHONE",
+          },
+          { status: 400 }
+        );
+      }
+
+      const cleanName = rawName && rawName.trim().length >= 2
+        ? sanitizeText(rawName.trim())
+        : "Cliente Acesso Rápido";
+
+      // Localiza usuário existente pelo telefone ou cria novo registro no banco
+      let existingUser = await prisma.user.findFirst({
+        where: { phone: cleanPhone },
+      });
+
+      if (existingUser) {
+        targetUserId = existingUser.id;
+        targetIsRegistered = Boolean(existingUser.isRegistered);
+        targetUserPhone = existingUser.phone;
+
+        if (!existingUser.isRegistered && cleanName !== "Cliente Acesso Rápido" && cleanName !== existingUser.fullName) {
+          try {
+            existingUser = await prisma.user.update({
+              where: { id: existingUser.id },
+              data: { fullName: cleanName },
+            });
+          } catch {}
+        }
+      } else {
+        const newUser = await prisma.user.create({
+          data: {
+            fullName: cleanName,
+            phone: cleanPhone,
+            isRegistered: false,
+            role: Role.CLIENT,
+            avatarUrl: GUEST_DEFAULT_AVATAR,
+          },
+        });
+        targetUserId = newUser.id;
+        targetIsRegistered = false;
+        targetUserPhone = newUser.phone;
+        existingUser = newUser;
+      }
+
+      sessionTokenToSet = signToken({
+        userId: existingUser.id,
+        phone: existingUser.phone,
+        name: existingUser.fullName,
+        role: existingUser.role,
+        isRegistered: targetIsRegistered,
+      });
     }
 
     // 1. Validação e Recálculo Seguro de Itens no Cardápio
@@ -333,7 +435,7 @@ export async function POST(request: Request) {
     let validCouponCode: string | null = null;
 
     if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
-      if (!authUser.isRegistered) {
+      if (!targetIsRegistered) {
         return NextResponse.json(
           {
             error: "🏷️ Cupom indisponível: Descontos e cupons são exclusivos para clientes com cadastro completo. Complete seu cadastro para aplicar este cupom.",
@@ -392,7 +494,7 @@ export async function POST(request: Request) {
         const requiredName = requiredBadge?.name || "VIP";
 
         const dbUser = await prisma.user.findUnique({
-          where: { id: authUser.id },
+          where: { id: targetUserId },
           select: { createdAt: true, isRegistered: true },
         });
 
@@ -421,11 +523,11 @@ export async function POST(request: Request) {
       // Regra de Uso Único por Cliente
       if (coupon.oncePerUser) {
         const rawBody = typeof json === "object" && json !== null ? (json as Record<string, unknown>) : {};
-        const clientUserId = authUser?.id || (typeof rawBody.userId === "string" ? rawBody.userId : undefined);
+        const clientUserId = targetUserId || (typeof rawBody.userId === "string" ? rawBody.userId : undefined);
         const clientPhone =
           (typeof rawBody.customerPhone === "string" ? rawBody.customerPhone : undefined) ||
           (typeof rawBody.phone === "string" ? rawBody.phone : undefined) ||
-          authUser?.phone;
+          targetUserPhone;
 
         const conditions: Prisma.OrderWhereInput[] = [];
         if (clientUserId) {
@@ -515,12 +617,15 @@ export async function POST(request: Request) {
     }
 
     // 3. Persistência Transacional do Pedido
+    const trackingToken = crypto.randomUUID().replace(/-/g, "");
+
     const order = await prisma.$transaction(async (tx) => {
-      // Criação do pedido
+      // Criação do pedido vinculado atomicamente ao usuário e ao turno
       const newOrder = await tx.order.create({
         data: {
-          user: { connect: { id: authUser.id } },
-          shiftId: storeSettings?.currentShiftId || null,
+          user: { connect: { id: targetUserId } },
+          shiftId: targetShiftId,
+          trackingToken: trackingToken,
           isArchived: false,
           status: "pending",
           subtotal: calculatedSubtotal,
@@ -560,6 +665,13 @@ export async function POST(request: Request) {
           items: {
             include: { product: true },
           },
+          user: {
+            select: {
+              fullName: true,
+              phone: true,
+              email: true,
+            },
+          },
         },
       });
 
@@ -588,11 +700,22 @@ export async function POST(request: Request) {
       return newOrder;
     });
 
-    return NextResponse.json(
+    let isHttps = false;
+    try {
+      const proto = request.headers.get("x-forwarded-proto");
+      isHttps = proto === "https" || (typeof request.url === "string" && request.url.startsWith("https://"));
+    } catch {
+      isHttps = false;
+    }
+
+    const response = NextResponse.json(
       {
         success: true,
         order: {
           id: order.id,
+          trackingToken: order.trackingToken,
+          tracking_token: order.trackingToken,
+          trackingUrl: `/entrega/${order.trackingToken}`,
           status: order.status,
           subtotal: Number(order.subtotal),
           discountAmount: Number(order.discountAmount),
@@ -603,6 +726,16 @@ export async function POST(request: Request) {
       },
       { status: 201 }
     );
+
+    if (sessionTokenToSet) {
+      setSessionCookies(response, sessionTokenToSet, isHttps);
+      try {
+        const cookieStore = await cookies();
+        setSessionCookies({ cookies: cookieStore } as any, sessionTokenToSet, isHttps);
+      } catch {}
+    }
+
+    return response;
   } catch (error: unknown) {
     if (error instanceof Error && error.message.startsWith("ESTOQUE_ESGOTADO:")) {
       const prodName = error.message.replace("ESTOQUE_ESGOTADO:", "");

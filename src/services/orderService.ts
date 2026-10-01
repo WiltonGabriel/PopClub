@@ -108,6 +108,13 @@ export interface CheckoutPayload {
     productId: string;
     quantity: number;
     promotionId?: string | null;
+    selectedAddons?: Array<{
+      id: string;
+      name?: string | null;
+      groupName?: string | null;
+      price?: number | null;
+      quantity?: number | null;
+    }> | null;
   }[];
   deliveryAddress: {
     street: string;
@@ -125,6 +132,12 @@ export interface CheckoutPayload {
     changeFor?: number | null;
   };
   couponCode?: string | null;
+  customerName?: string | null;
+  name?: string | null;
+  fullName?: string | null;
+  customerPhone?: string | null;
+  phone?: string | null;
+  userId?: string | null;
 }
 
 async function safeParseResponse<T>(res: Response, fallbackErrorMessage: string): Promise<T> {
@@ -284,8 +297,10 @@ export const orderService = {
     return this.updateOrderStatus(orderId, "cancelled", cancellationReason);
   },
 
-  async getOrderById(orderId: string): Promise<Order> {
-    const res = await fetch(`/api/orders?id=${encodeURIComponent(orderId)}`, {
+  async getOrderById(orderId: string, token?: string): Promise<Order> {
+    let url = `/api/orders?id=${encodeURIComponent(orderId)}`;
+    if (token) url += `&token=${encodeURIComponent(token)}`;
+    const res = await fetch(url, {
       signal: AbortSignal.timeout(10000),
     });
     const data = await safeParseResponse<Order | { order?: Order; data?: Order }>(

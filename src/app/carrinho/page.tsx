@@ -46,7 +46,7 @@ import { CompleteRegistrationModal } from "@/components/auth/CompleteRegistratio
 
 export default function CarrinhoPage() {
   const router = useRouter();
-  const { user, fastAccess, signOut } = useAuth();
+  const { user, fastAccess, signOut, refreshUser } = useAuth();
 
   const handleBack = () => {
     if (typeof window !== "undefined" && window.history.length > 1) {
@@ -291,6 +291,10 @@ export default function CarrinhoPage() {
   };
 
   const handleFastAccessSuccess = (verifiedAddress?: any) => {
+    if (user) {
+      if (user.fullName) setInlineName(user.fullName);
+      if (user.phone) setInlinePhone(formatPhoneInput(user.phone));
+    }
     if (verifiedAddress) {
       if (verifiedAddress.street) setStreet(verifiedAddress.street);
       if (verifiedAddress.number) setNumber(verifiedAddress.number);
@@ -558,15 +562,22 @@ export default function CarrinhoPage() {
           changeFor: paymentType === "dinheiro" && changeFor ? parseFloat(changeFor) : null,
         },
         couponCode: appliedCoupon?.code || null,
+        customerName: inlineName.trim() || user?.fullName || null,
+        name: inlineName.trim() || user?.fullName || null,
+        customerPhone: (inlinePhone ? inlinePhone.replace(/\D/g, "") : null) || user?.phone || null,
+        phone: (inlinePhone ? inlinePhone.replace(/\D/g, "") : null) || user?.phone || null,
       };
 
       const result = await orderService.createCheckoutOrder(payload);
       playDingSound();
-      if (!user && result.order?.id) {
+      if (result.order?.id) {
         trackGuestOrder(result.order.id);
       }
       setOrderSuccessId(result.order.id);
       clearCart();
+      if (!user) {
+        refreshUser().catch(() => {});
+      }
     } catch (err: any) {
       setCheckoutError(err.message || "Erro ao processar pedido no servidor.");
       setCheckoutErrorObj(err);
@@ -609,16 +620,22 @@ export default function CarrinhoPage() {
         {/* Banner para Solicitação Amigável de Permissão de Notificação */}
         <NotificationPermissionBanner className="mb-6 max-w-md w-full text-left" />
 
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-3">
           <Link
             href="/pedidos"
-            className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 font-mono text-xs uppercase tracking-widest font-bold flex items-center gap-2"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 font-mono text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-2 rounded-xl shadow-md"
           >
             Acompanhar Meus Pedidos <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
+            href={`/rastreamento?id=${orderSuccessId}`}
+            className="border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 font-mono text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-2 rounded-xl"
+          >
+            Rastrear em Tempo Real
+          </Link>
+          <Link
             href="/"
-            className="border-2 border-border hover:bg-muted px-6 py-3 font-mono text-xs uppercase tracking-widest font-bold"
+            className="border-2 border-border hover:bg-muted px-6 py-3 font-mono text-xs uppercase tracking-widest font-bold flex items-center justify-center rounded-xl"
           >
             Voltar ao Cardápio
           </Link>

@@ -62,7 +62,7 @@ export function setSessionCookies(
 ) {
   const cookieOptions = {
     httpOnly: true,
-    secure: isHttps || process.env.NODE_ENV === "production",
+    secure: isHttps,
     sameSite: "lax" as const,
     maxAge: SESSION_MAX_AGE_SECONDS,
     path: "/",
