@@ -1,300 +1,357 @@
-# DOCUMENTO EXECUTIVO DE ENGENHARIA E LEVANTAMENTO DE REQUISITOS
-## Plataforma PopClub — Ecossistema Integrado de PWA Delivery, Gestão de Cozinha e Logística Operacional
+# CENTRO UNIVERSITÁRIO DE VÁRZEA GRANDE — UNIVAG
+## CURSO DE TECNOLOGIA EM ANÁLISE E DESENVOLVIMENTO DE SISTEMAS
+### PROJETO EXTENSIONISTA INTEGRADOR
+### DESENVOLVIMENTO DE PROGRESSIVE WEB APPS (PWAs) COM FRAMEWORKS AVANÇADOS
+
+<br><br><br>
+
+# POPCLUB: PLATAFORMA DE DELIVERY PWA E GESTÃO OPERACIONAL
+## Relatório Parcial de Levantamento de Requisitos (Tarefa 2)
+
+<br><br><br><br>
+
+**Autor:** Wilton Gabriel Albuquerque Pereira  
+**Matrícula / Identificação:** Acadêmico do Curso de Análise e Desenvolvimento de Sistemas  
+**Instituição de Ensino Superior:** Centro Universitário de Várzea Grande (UNIVAG)  
+**Entidade Parceira / Cliente:** Pop Shake Sorveteria & Açaí Artesanal  
+**Área de Aplicação:** Gastronomia Comercial, Logística Urbana de Delivery e Engenharia de Software  
+
+<br><br><br><br>
+
+**VÁRZEA GRANDE – MT**  
+**2026**
 
 ---
 
-### INFORMAÇÕES DE CONTROLE DO DOCUMENTO
-- **Projeto:** PopClub (Pop Shake Sorveteria & Açaí Artesanal)
-- **Versão:** 2.0.0
-- **Status:** Aprovado / Homologado para Produção
-- **Classificação:** Documento Técnico e Estratégico de Engenharia de Software
-- **Autor / Responsável:** Engenharia de Requisitos, Arquitetura de Software e Operações
-- **Ambiente Alvo:** Web / PWA Mobile (iOS/Android) e Terminais Desktop/Tablet de Balcão e Cozinha
+## SUMÁRIO
+
+1. **[1. INTRODUÇÃO E JUSTIFICATIVA DO PROJETO](#1-introdução-e-justificativa-do-projeto)**
+   - 1.1. Contexto do Problema e Caracterização da Entidade Parceira
+   - 1.2. Justificativa de Negócio, Social e Pedagógica
+   - 1.3. Objetivos do Projeto (Geral e Específicos)
+   - 1.4. Mapeamento de Partes Interessadas (Stakeholders) e Personas
+2. **[2. REQUISITOS DE NEGÓCIO E MODELO OPERACIONAL](#2-requisitos-de-negócio-e-modelo-operacional)**
+   - 2.1. Dinâmica da Cozinha, Perecibilidade Térmica e Ponto de Montagem
+   - 2.2. Modelo Logístico e Despacho de Corridas
+   - 2.3. Gestão Financeira por Expediente (Controle de Turnos Operacionais)
+   - 2.4. Gamificação e Regras de Retenção e Fidelidade
+3. **[3. REQUISITOS DE HARDWARE, AMBIENTE E INFRAESTRUTURA](#3-requisitos-de-hardware-ambiente-e-infraestrutura)**
+   - 3.1. Equipamentos do Ponto de Venda (PDV), Balcão e Cozinha
+   - 3.2. Dispositivos dos Consumidores e Entregadores
+   - 3.3. Topologia de Infraestrutura, Nuvem e DevOps
+4. **[4. REQUISITOS LEGAIS, FISCAIS E SEGURANÇA (COMPLIANCE)](#4-requisitos-legais-fiscais-e-segurança-compliance)**
+   - 4.1. Conformidade com a Lei Geral de Proteção de Dados (LGPD)
+   - 4.2. Controle de Acesso Baseado em Papéis (RBAC) e Blindagem Anti-Tampering
+5. **[5. ESPECIFICAÇÃO DOS REQUISITOS FUNCIONAIS (RF)](#5-especificação-dos-requisitos-funcionais-rf)**
+   - 5.1. Módulo: Vitrine e Customização de Produtos (RF01 a RF06)
+   - 5.2. Módulo: Autenticação, Perfis e Fidelidade (RF07 a RF12)
+   - 5.3. Módulo: Checkout, Frete e Rastreamento (RF13 a RF18)
+   - 5.4. Módulo: Painel Operacional & Esteira Kanban (RF19 a RF25)
+   - 5.5. Módulo: Gestão Administrativa, Usuários & Turnos (RF26 a RF32)
+6. **[6. ESPECIFICAÇÃO DOS REQUISITOS NÃO-FUNCIONAIS (RNF)](#6-especificação-dos-requisitos-não-funcionais-rnf)**
+   - 6.1. Desempenho e Eficiência (RNF01 a RNF04)
+   - 6.2. Usabilidade e Ergonomia Visual (RNF05 a RNF08)
+   - 6.3. Confiabilidade, Integridade e Tolerância a Falhas (RNF09 a RNF12)
+   - 6.4. Segurança e Hardening (RNF13 a RNF16)
+7. **[7. MATRIZ DE RASTREABILIDADE BIDIRECIONAL](#7-matriz-de-rastreabilidade-bidirecional)**
+8. **[REFERÊNCIAS](#referências)**
 
 ---
 
-## 1. INTRODUÇÃO E ESCOPO DO NEGÓCIO
+## 1. INTRODUÇÃO E JUSTIFICATIVA DO PROJETO
 
-### 1.1. Contexto & Oportunidade
-A indústria de gastronomia e sobremesas geladas (especialmente operações focadas em açaí artesanal batido na hora, sorvetes e taças gourmet) enfrentou nos últimos anos um dilema estrutural de rentabilidade gerado pela dependência de marketplaces intermediários (como iFood, Rappi e Delivery Much). Essas plataformas impõem:
-1. **Take-rates e Comissões Opressivas:** Taxas que variam entre 12% e 27% sobre o faturamento bruto de cada pedido, comprimindo as margens operacionais de produtos que já possuem custo de insumo elevado.
-2. **Desapropriação da Base de Clientes:** O restaurante não possui acesso aos dados completos de seus consumidores (e-mails, números de contato direto e histórico de consumo), impedindo campanhas ativas de retenção e personalização.
-3. **Falta de Ergonomia para Itens Altamente Perecíveis:** Os sistemas genéricos de delivery não atendem às particularidades térmicas de sobremesas geladas, que demandam controle minucioso do tempo decorrido entre a montagem, o acoplamento do entregador e a chegada à residência do cliente.
+### 1.1. Contexto do Problema e Caracterização da Entidade Parceira
+O comércio varejista de alimentos, especialmente no segmento de sobremesas geladas e açaí artesanal, desempenha papel econômico fundamental na geração de renda e emprego em municípios como Várzea Grande e Cuiabá (Mato Grosso). A entidade parceira deste projeto extensionista, o estabelecimento comercial **Pop Shake Sorveteria & Açaí Artesanal**, opera com foco na preparação imediata de açaí batido na hora, gelatos artesanais, milkshakes e barcas temáticas.
 
-O projeto **PopClub** foi concebido como a resposta definitiva a esse cenário: um canal próprio de vendas diretas baseado na tecnologia **Progressive Web App (PWA)**, integrado a uma central operacional em tempo real para balcão, cozinha e despacho de motoboys. O PWA elimina a barreira de download das lojas de aplicativos tradicionais (Apple App Store e Google Play Store), permitindo acesso instantâneo via navegador com opção de instalação nativa na tela inicial do dispositivo do cliente.
+Entretanto, a operação comercial da loja vinha enfrentando barreiras severas de crescimento e sustentabilidade decorrentes da dependência compulsória dos grandes marketplaces agregadores de delivery (como iFood e plataformas correlatas). O diagnóstico inicial do ecossistema identificou três fragilidades críticas:
+
+1. **Margens Asfixiadas por Taxas Oligopolistas:** Os agregadores hegemônicos cobram comissões que variam entre 12% e 27% sobre o faturamento bruto de cada transação, além de mensalidades fixas para manutenção de loja virtual. Para itens cujo custo de mercadoria vendida (CMV) com frutas frescas, leites especiais e chocolates nobres já oscila entre 35% e 45%, essa intermediação reduz a margem operacional líquida do pequeno empresário a níveis críticos.
+2. **Expropriação da Relação com a Base Consumidora:** Nas plataformas terceiras, o estabelecimento não tem acesso legítimo aos dados cadastrais dos clientes (e-mails, números de contato telefônico e hábitos de consumo). Tal barreira impede a criação de programas próprios de pós-venda, canais de suporte humanizado e campanhas direcionadas de retenção.
+3. **Incompatibilidade com Produtos de Altíssima Perecibilidade Térmica:** O açaí batido artesanal e os sorvetes possuem um comportamento físico-químico particular: em ambientes de calor tropical intenso como a Baixada Cuiabana (onde temperaturas externas superam 38°C rotineiramente), o tempo limite entre a finalização da montagem na bancada refrigerada e a acomodação na embalagem térmica do entregador é de aproximadamente **4 minutos**. Aplicativos generalistas não oferecem esteira dedicada de sincronismo entre cozinha, balcão e motoboys, gerando frequentes reclamações de derretimento do produto e desperdício de insumos.
+
+**Figura 1 – Modelo Tradicional de Intermediação versus Ecossistema Proprietário PopClub**
 
 ```mermaid
-flowchart LR
-    subgraph CanalLegado ["Canal Tradicional Terceirizado"]
-        Marketplace["Marketplace Terceiro\n(Comissões de 12% a 27%)"] --> LojaMkt["Loja Sem Dados do Cliente"]
+flowchart TD
+    subgraph MercadoTradicional ["Cenário Atual: Dependência de Agregadores Terceiros"]
+        MktPlace["Marketplace Terceirizado\n(Taxas de 12% a 27% sobre o Bruto)"]
+        ConsumidorA["Cliente Final"] -->|Paga Preço Inflacionado| MktPlace
+        MktPlace -->|Repassa Valor com Desconto Severo| LojaParceira["Loja Parceira\n(Sem Acesso a Dados do Cliente)"]
+        LojaParceira -->|Descompasso de Produção| LogisticaLenta["Logística Genérica\n(Risco de Derretimento do Açaí)"]
     end
 
-    subgraph CanalPopClub ["Ecossistema Proprietário PopClub"]
-        ClientePWA["Cliente Final\n(PWA Direto / Zero Fricção)"] -->|"Zero Comissão"| PopPlatform["Plataforma PopClub\n(Controle Total de Dados e Margem)"]
-        PopPlatform --> Cozinha["Esteira de Cozinha / Balcão"]
-        PopPlatform --> Despacho["Frota de Motoboys Própria/Fixa"]
-        PopPlatform --> Gestor["Fechamento de Caixa por Turno"]
+    subgraph EcossistemaPopClub ["Solução Proposta: Ecossistema Proprietário PopClub (PWA)"]
+        ConsumidorB["Cliente Final (PWA Móvel)"] -->|Zero Taxa de Intermediação| PlataformaPopClub["Plataforma PopClub\n(Canal Direto / Controle Total de Margem)"]
+        PlataformaPopClub --> CozinhaKanban["Cozinha & Balcão\n(Kanban em Tempo Real + Alerta Sonoro)"]
+        PlataformaPopClub --> LogisticaWhatsApp["Despacho Ágil via WhatsApp\n(Rotas GPS + Telemetria ao Vivo)"]
+        PlataformaPopClub --> CaixaTurno["Fechamento de Caixa por Turno\n(Auditoria Dinheiro, Pix e Cartão)"]
     end
 ```
+*Fonte: Elaborado pelos autores (2026).*
 
 ---
 
-### 1.2. Objetivos Estratégicos
-O desenvolvimento e a implantação do PopClub norteiam-se por quatro metas quantitativas e qualitativas essenciais:
+### 1.2. Justificativa de Negócio, Social e Pedagógica
+A concepção da plataforma **PopClub** ancora-se na necessidade de promover a emancipação digital do pequeno empreendedor local, unindo rigor acadêmico em Engenharia de Software ao impacto extensionista comunitário:
 
-1. **Maximização da Margem Líquida por Pedido (Take-Rate Zero):** Redirecionar os clientes recorrentes para o canal proprietário, eliminando intermediários financeiros e custos ocultos de intermediação.
-2. **Fidelização Contínua e Aumento de LTV (Lifetime Value):** Implementação de um programa nativo de retenção que recompensa o cliente por tempo de vínculo à marca, distribuindo cupons progressivos com travas de segurança contra uso indevido.
-3. **Padronização e Agilidade da Linha de Produção:** Criação de uma esteira visual (Kanban) integrada a alertas sonoros no balcão e comandas térmicas padronizadas (58mm e 80mm), minimizando o tempo de montagem do açaí e evitando o derretimento do produto.
-4. **Governança e Integridade Contábil por Expediente:** Segregação de todas as movimentações financeiras em turnos formais de operação, assegurando que o caixa físico, pagamentos em maquininhas de cartão e transferências Pix sejam conciliados e auditados antes do fechamento do dia.
-
----
-
-### 1.3. Partes Interessadas (Stakeholders) e Personas
-
-| Stakeholder / Persona | Perfil e Necessidades Principais | Ponto de Contato no Sistema |
-| :--- | :--- | :--- |
-| **Cliente Final — Acesso Rápido** *(Fast Access)* | Consumidor que busca velocidade máxima na primeira compra. Não deseja preencher formulários longos ou criar senhas. Exige escolha rápida de complementos e submissão com telefone e nome. | Vitrine do PWA, modal de personalização, checkout com criação automática de perfil temporário e avatar padrão. |
-| **Cliente Final — Cadastrado** *(Fidelizado)* | Consumidor frequente que deseja acumular benefícios, salvar endereços recorrentes, consultar histórico de pedidos e utilizar cupons de desconto exclusivos atrelados ao seu nível de fidelidade. | Área logada `/conta`, visualização de selos de fidelidade (Novo, Bronze, Prata, Ouro VIP), carteira de endereços salvos. |
-| **Operador de Caixa / Atendente** | Responsável pela triagem inicial dos pedidos, conferência de viabilidade de entrega, validação de valores de troco em dinheiro, comunicação com clientes e impressão de comprovantes térmicos. | Inbox de Triagem em `/admin/pedidos`, alertas sonoros de sino de cozinha, gaveta de detalhes do pedido, acionador de impressão de comanda. |
-| **Equipe de Cozinha (Montagem)** | Colaboradores dedicados à preparação das tigelas, barcas e copos de açaí/sorvete. Precisam de visibilidade clara dos adicionais inclusos, itens pagos e observações, além da capacidade de suspender insumos esgotados instantaneamente. | Coluna "Em Preparo" do Kanban, switch operacional "Pausar na Cozinha" na gestão de complementos e estoque. |
-| **Entregador (Courier / Motoboy)** | Profissional de entrega (próprio ou diarista parceiro) que recebe a rota GPS, dados de contato do cliente, valor a receber em dinheiro e link de rastreamento com atualização de localização. | Template de despacho enviado diretamente para o WhatsApp, link público de rastreamento `/entrega/[token]`. |
-| **Administrador / Gestor do Negócio** | Proprietário ou gerente geral responsável pela abertura e fechamento de turnos, configuração de fretes georreferenciados, auditoria financeira de caixa, gestão de equipe e precificação do cardápio. | Painel Executivo `/admin`, módulo de turnos `/admin/historico`, gestão de usuários com matriz RBAC `/admin/usuarios`. |
+- **Dimensão Econômica e de Negócio:** Ao implantar um canal de vendas direto via web aplicativo progressivo (PWA), a empresa parceira retém 100% da receita de seus pedidos (*take-rate zero*), permitindo praticar preços mais competitivos, investir na qualificação dos ingredientes e oferecer políticas atrativas de frete próprio.
+- **Dimensão Social e Extensionista:** O projeto fomenta a retenção de riqueza na economia do município de Várzea Grande, melhora a renda dos entregadores locais parceiros (que recebem ordens claras de serviço com acerto de corridas transparente via Pix) e oferece ao cidadão consumidor um canal direto e seguro de atendimento.
+- **Dimensão Pedagógica e Tecnológica:** A execução deste projeto viabiliza a aplicação prática dos conceitos fundamentais do curso de Análise e Desenvolvimento de Sistemas do UNIVAG, englobando elicitação e rastreabilidade de requisitos, modelagem relacional avançada com PostgreSQL e Prisma ORM, segurança da informação (LGPD, RBAC e criptografia bcrypt) e desenvolvimento de interfaces reativas com Next.js em modo Standalone de alta performance.
 
 ---
 
-## 2. REQUISITOS DE NEGÓCIO E OPERAÇÃO (ALÉM DO SOFTWARE)
+### 1.3. Objetivos do Projeto (Geral e Específicos)
 
-### 2.1. Dinâmica de Cozinha e Ponto de Montagem
+#### Objetivo Geral
+Projetar, especificar, desenvolver e implantar uma solução computacional completa composta por um **Progressive Web App (PWA)** de delivery para os consumidores e uma **Central Operacional em Tempo Real** para a gestão de pedidos, esteira de cozinha, logística de motoboys e fechamento de turnos financeiros da sorveteria parceira.
 
-#### A. Tratamento de Produtos Perecíveis com Perda Térmica Crítica
-Ao contrário de pizzarias ou hamburguerias, onde os produtos são servidos aquecidos e possuem tolerância térmica moderada, o açaí artesanal batido e o sorvete sofrem degradação imediata de textura, aeração e consistência se expostos à temperatura ambiente (especialmente no clima quente da região de Várzea Grande e Cuiabá - MT).
-- O tempo máximo recomendado entre o término da montagem do pote e a saída da embalagem térmica com o motoboy é de **4 minutos**.
-- O sistema deve segregar o fluxo entre o status `preparing` (em montagem na bancada refrigerada) e `ready` (embalado em saco térmico lacrado, aguardando acoplamento imediato do entregador).
-
-#### B. Regra Operacional da "Pausa na Cozinha"
-Durante os horários de pico, é comum o esgotamento repentino de adicionais altamente demandados (ex: leite em pó, morangos frescos, Nutella ou caldas especiais).
-- **Diretriz de Operação:** O operador não deve precisar apagar complementos, editar preços ou republicar o cardápio para gerenciar faltas momentâneas.
-- **Mecanismo Sistêmico:** A funcionalidade de "Pausa na Cozinha" fornece um interruptor (*toggle switch*) instantâneo nos módulos de adicionais e estoque. Ao pausar um item:
-  1. Ele deixa de ser selecionável imediatamente nos modais de customização do PWA de todos os clientes conectados.
-  2. Pedidos já submetidos que continham o item continuam preservados no histórico e nas comandas.
-  3. Tentativas de finalização de checkout iniciadas antes da pausa com o item no carrinho são interceptadas no servidor com a mensagem: *"O complemento [Nome] está pausado na cozinha ou esgotado no momento."*
-
-#### C. Embalagem Selada e Cálculo de Tempo Médio de Preparo
-- Todo pedido deve ser despachado com lacre termocolante ou grampo inviolável para salvaguarda sanitária.
-- O tempo de entrega informado ao cliente na vitrine (ex: "30-50 min") é dinamicamente ajustado no momento da abertura do turno ou adaptado pelo atendente no ato de aceitação do pedido na esteira de triagem, refletindo a saturação real da cozinha.
+#### Objetivos Específicos
+1. Realizar o levantamento detalhado e exaustivo dos requisitos de software, operacionais e de negócio que regem o ciclo de vida do pedido gastronômico perecível.
+2. Desenvolver uma interface PWA responsiva com experiência visual refinada (suporte estrito aos modos claro e escuro sem perda de contraste), permitindo navegação fluida e compra rápida sem atrito cadastral compulsório (*Fast Access*).
+3. Projetar uma esteira visual de produção baseada na metodologia Kanban para a cozinha, integrada a alertas sonoros e emissão padronizada de comandas térmicas (80mm e 58mm).
+4. Implementar mecanismos de segurança contra fraudes no checkout (recálculo integral de preços no servidor) e conformidade integral com a Lei Geral de Proteção de Dados (LGPD) por meio de exclusão lógica (*soft delete*) e anonimização de credenciais.
+5. Estruturar a gestão financeira por expedientes de trabalho (*shifts*), garantindo a conciliação rigorosa de numerário físico, transações de cartão e comprovantes Pix antes do encerramento de cada jornada.
 
 ---
 
-### 2.2. Modelo Logístico & Despacho de Corridas
+### 1.4. Mapeamento de Partes Interessadas (Stakeholders) e Personas
+
+**Tabela 1 – Partes Interessadas (Stakeholders) e Personas Operacionais**
+
+| Stakeholder / Persona | Categoria | Papel Operacional e Necessidades no Ecossistema | Ponto de Contato com a Plataforma |
+| :--- | :--- | :--- | :--- |
+| **Cliente de Acesso Rápido** *(Fast Access)* | Externo | Consumidor ocasional ou de primeira viagem que exige velocidade absoluta. Rejeita o preenchimento de formulários longos e criação prévia de senhas. Necessita de identificação mínima (nome e telefone) e seleção ágil de complementos. | Vitrine do PWA, modal de personalização de itens, checkout simplificado com avatar lúdico gerado automaticamente. |
+| **Cliente Cadastrado** *(Fidelizado)* | Externo | Cliente recorrente que busca acumular vantagens com o passar do tempo. Deseja histórico detalhado de compras, carteira de endereços salvos e acesso exclusivo a cupons progressivos baseados em seu tempo de relacionamento. | Área pessoal `/conta`, visualização de selos de fidelidade (Novo Membro, Bronze, Prata, Ouro VIP), cupons direcionados. |
+| **Operador de Caixa / Atendente** | Interno | Responsável pela triagem inicial dos pedidos entrantes, validação de viabilidade de entrega, controle de troco para dinheiro físico, despacho de comandas térmicas e atendimento a dúvidas. | Barra de Triagem em `/admin/pedidos`, acionamento sonoro do sino de balcão, gaveta de detalhes e módulo de impressão térmica. |
+| **Equipe de Cozinha (Montagem)** | Interno | Operadores de bancada encarregados da manipulação e montagem das taças e copos de açaí/gelato. Necessitam de visibilidade clara de adicionais inclusos, itens cobrados e do recurso de suspensão imediata de insumos esgotados. | Coluna "Em Preparo" do Kanban de pedidos, switch instantâneo "Pausar na Cozinha" no controle de complementos e estoque. |
+| **Entregador (Courier / Motoboy)** | Operacional | Profissional de entrega (próprio ou fixo da escala) que necessita de dados consolidados de rota (geolocalização e referências), valor a cobrar, troco a devolver e instruções claras de corrida. | Template de despacho via WhatsApp com link direto de rota no Google Maps e página de telemetria pública `/entrega/[token]`. |
+| **Administrador / Gestor Geral** | Gerencial | Proprietário ou gerente encarregado da abertura e fechamento de turnos diários, conciliação do caixa por método de pagamento, auditoria financeira, precificação do cardápio e gestão de permissões de equipe. | Painel Executivo `/admin`, módulo de turnos em `/admin/historico`, gestão granular de equipe e usuários em `/admin/usuarios`. |
+
+*Fonte: Elaborado pelos autores (2026).*
+
+---
+
+## 2. REQUISITOS DE NEGÓCIO E MODELO OPERACIONAL
+
+### 2.1. Dinâmica da Cozinha, Perecibilidade Térmica e Ponto de Montagem
+O fluxo de produção de sobremesas geladas possui restrições operacionais significativamente mais severas do que a culinária convencional aquecida:
+
+1. **Sensibilidade Térmica Extrema:** O açaí batido na textura cremosa padrão e os gelatos iniciam processo acelerado de desestabilização de estrutura e derretimento dentro de **4 minutos** quando submetidos à temperatura ambiente média regional (35°C a 40°C). Dessa forma, a esteira não pode permitir que o pedido permaneça finalizado na bancada aguardando indefinidamente a chegada do entregador. O status `ready` sinaliza que o pote foi selado com lacre inviolável e alocado temporariamente em freezer de espera ou mochila térmica do entregador já presente no balcão.
+2. **Regra de "Pausa na Cozinha":** Durante picos de demanda (finais de semana e noites de calor intenso), insumos específicos (como morango fresco, leite em pó Ninho ou marcas nobres de creme de avelã) esgotam-se subitamente. A regra de negócio proíbe terminantemente a exclusão do produto ou recriação do catálogo. A cozinha aciona o botão de alternância (*toggle switch*) "Pausar na Cozinha". Instantaneamente, o complemento torna-se indisponível para seleção no PWA de todos os clientes, sem afetar pedidos em preparação e sem alterar preços históricos.
+3. **Cálculo Dinâmico do Tempo de Espera:** Na abertura do turno ou no ato de aceite de cada pedido, o operador ajusta a previsão estimada (presets: 20-30 min, 35-50 min, 50-70 min). O PWA reflete essa estimativa instantaneamente no cabeçalho e na tela de rastreamento do cliente.
+
+---
+
+### 2.2. Modelo Logístico e Despacho de Corridas
+
+**Figura 2 – Fluxo Operacional de Despacho de Corridas e Notificação via WhatsApp**
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Cliente as Cliente (PWA)
     participant API as Backend PopClub
-    actor Balcao as Operador de Caixa
+    actor Operador as Operador de Caixa
     actor Motoboy as Entregador (WhatsApp)
 
-    Cliente->>API: Submete Pedido (Endereço + Itens + Pagamento)
-    API->>Balcao: Toca Sino de Balcão e Insere no Inbox de Triagem
-    Balcao->>API: Aceita Pedido e Define Tempo de Preparo
-    API-->>Cliente: Notifica Status: "Em Preparo"
-    Balcao->>API: Transfere para Pronto e Abre Modal de Despacho
-    Balcao->>Balcao: Digita "CONFIRMO" e Seleciona Motoboy
-    API->>API: Gera Token Seguro de Rastreamento GPS
-    Balcao->>Motoboy: Dispara Template via WhatsApp com Rota GPS + Dados
-    Balcao->>API: Confirma Saída (Status: "Em Rota")
-    API-->>Cliente: Exibe Mapa com Rastreamento em Tempo Real
-    Motoboy->>Cliente: Entrega Pedido e Confere Pagamento
-    Balcao->>API: Finaliza Pedido com Conferência de Código / PIN
+    Cliente->>API: Finaliza Pedido (Endereço, Itens, Forma de Pagamento)
+    API->>Operador: Notifica Novo Pedido (Disparo Contínuo do Sino de Cozinha)
+    Operador->>API: Aceita Pedido e Define Tempo Estimado de Preparo
+    API-->>Cliente: Atualiza Linha do Tempo: "Em Preparo na Cozinha"
+    Operador->>API: Altera para "Pronto" e Abre Modal de Despacho
+    Operador->>Operador: Digita "CONFIRMO" e Seleciona o Motoboy da Escala
+    API->>API: Gera Token Seguro de Telemetria e Link Público de GPS
+    Operador->>Motoboy: Dispara Template via WhatsApp com Rota GPS, Valores e Troco
+    Operador->>API: Efetiva o Despacho (Status: "Em Rota")
+    API-->>Cliente: Notifica Saída e Habilita Mapa de Rastreamento ao Vivo
+    Motoboy->>Cliente: Realiza Entrega no Portão e Recebe Pagamento
+    Operador->>API: Conclui Pedido com Conferência de Código / PIN de Entrega
 ```
+*Fonte: Elaborado pelos autores (2026).*
 
-#### A. Gestão de Frota Própria e Fixa de Motoboys
-O sistema mantém uma base cadastral de entregadores com os seguintes dados operacionais:
-- Nome completo e apelido de rádio.
-- Número de WhatsApp formatado para deep-link internacional (`5565...`).
-- Tipo de veículo (padrão: Moto) e placa identificadora para fins de segurança patrimonial.
-- Chave Pix do profissional (para facilitar o acerto de diárias e repasse de fretes ao final do expediente).
-- Status de disponibilidade no turno: `available` (na base), `in_transit` (em corrida) ou `off_duty` (fora da escala).
-
-#### B. Raio de Cobertura Geográfica e Políticas de Frete
-- **Ponto Focal da Loja:** Coordenadas de latitude e longitude da sede física da sorveteria (configuradas no banco de dados, ex: Várzea Grande, MT).
-- **Raio Máximo de Atendimento:** Parâmetro editável em quilômetros (`maxDeliveryRadiusKm`). Endereços cuja distância geodésica (calculada pela fórmula de Haversine) ultrapasse o limite são impedidos de finalizar o checkout, instruindo o cliente a entrar em contato com o suporte.
-- **Política de Frete:** Taxa fixa de entrega padrão (`deliveryFee`) com suporte a isenção (*Frete Grátis*) atrelada a um valor mínimo de subtotal de produtos (`freeDeliveryThreshold`).
-
-#### C. Mecanismo de Despacho Ágil via WhatsApp
-Para eliminar o custo de aplicativos dedicados a motoboys que consomem bateria excessiva e demandam treinamento complexo, o PopClub integra a expedição diretamente ao WhatsApp dos entregadores:
-- Ao despachar o pedido no painel administrativo, o operador aciona um disparador que gera uma mensagem formatada contendo:
-  1. Identificador curto do pedido (ex: `#A8F91B`).
-  2. Nome do cliente e endereço completo (com complemento e ponto de referência).
-  3. Link direto para o Google Maps com as coordenadas exatas da entrega.
-  4. Valor total a cobrar e forma de pagamento (especificando se o cliente solicitou troco e o valor exato a ser devolvido).
-  5. Link público de telemetria e rastreamento ao vivo (`/entrega/[trackingToken]`).
+1. **Cadastro da Frota Fixa:** Manutenção de cadastro com nome do profissional, telefone com código de área, placa do veículo, tipo de transporte e chave Pix para acerto consolidado das corridas no encerramento da jornada.
+2. **Raio de Atendimento Georreferenciado:** O sistema calcula a distância esférica entre as coordenadas da sede da loja (configurada no banco de dados) e as coordenadas geodésicas fornecidas pelo cliente no momento da compra (fórmula de Haversine). Caso a distância exceda `maxDeliveryRadiusKm` (padrão de 10 km), a submissão é bloqueada, orientando o cliente para contato com a loja.
+3. **Política de Isenção de Frete:** Taxa de frete padrão (`deliveryFee`) calculada com regra automática de frete grátis caso o subtotal atinja o piso estipulado em `freeDeliveryThreshold`.
+4. **Despacho Direto via WhatsApp:** Ao invés de exigir aplicativos complexos que consomem bateria excessiva dos entregadores, o sistema formata uma mensagem de alta densidade no WhatsApp do motoboy contendo: número do pedido, identificação do cliente, endereço completo com referências, link de rota direta para o Google Maps, valor total a cobrar, indicação de troco a devolver e link seguro de telemetria `/entrega/[token]`.
 
 ---
 
-### 2.3. Gestão Financeira por Expediente (Controle de Turnos / Shifts)
+### 2.3. Gestão Financeira por Expediente (Controle de Turnos Operacionais)
+No comércio gastronômico de sobremesas, os horários de operação ultrapassam a meia-noite civil, iniciando comumente à tarde e estendendo-se pela madrugada. A integridade contábil exige que os lançamentos pertençam a um **Turno de Trabalho (*Shift*)**, e não a um dia de calendário arbitrário.
 
-A operação financeira da gastronomia de varejo não coincide com dias civis de calendário (00:00 às 23:59), mas sim com **turnos de atendimento** (que podem iniciar às 13:00 e avançar pela madrugada). O PopClub adota o conceito de isolamento financeiro estrito por turno.
+#### A. Trava de Segurança e Bloqueio Terminante de Fechamento
+Para evitar furos de caixa ou pedidos esquecidos na bancada, o sistema aplica um **bloqueio terminante de fechamento**. O encerramento do expediente é categoricamente recusado com o código `PENDING_ORDERS_ACTIVE` caso exista qualquer pedido ativo na esteira (seja em triagem, em preparação na cozinha, pronto aguardando motoboy ou em trânsito com o entregador). O gestor deve obrigatoriamente concluir ou cancelar cada pendência antes de fechar o turno.
 
-#### A. Ciclo de Vida do Turno
-- **Abertura:** O gestor abre o turno gerando um identificador exclusivo com máscara cronológica (`TURNO-YYYY-MM-DD-RANDOM`). Nesse momento, define-se o tempo padrão de entrega e observações da escala.
-- **Operação Ativa:** Todos os pedidos submetidos durante a vigência do turno são carimbados com o `shiftId` correspondente.
-- **Bloqueio Terminante para Encerramento:** O sistema **rejeita categoricamente** o fechamento do turno se houver qualquer pedido com status ativo na esteira (`pending`, `accepted`, `preparing`, `ready` ou `delivering`). O backend emite o código `PENDING_ORDERS_ACTIVE` com a lista dos pedidos em aberto, exigindo que sejam finalizados ou cancelados antes da liquidação contábil.
-- **Fechamento Executivo:** Após a resolução de todos os pedidos ativos, o fechamento realiza:
-  1. Apuração consolidada de receita total (`totalRevenue`).
-  2. Totalização segregada por método de pagamento: `cashTotal` (dinheiro em espécie com conferência de troco), `pixTotal` (conferência bancária) e `cardTotal` (totalizadores da maquininha POS).
-  3. Contagem de pedidos concluídos (`completedOrders`) e cancelados (`cancelledOrders`).
-  4. Arquivamento em lote dos pedidos do turno (`isArchived: true`), limpando as esteiras operacionais para o próximo expediente sem apagar registros históricos.
+#### B. Conciliação Executiva Multimodal
+Ao validar o fechamento, o sistema calcula de forma segregada:
+- **Total em Dinheiro (`cashTotal`):** Montante em papel-moeda físico que deve estar presente na gaveta do caixa, considerando o valor cobrado e abatendo eventuais trocos devolvidos.
+- **Total em Pix (`pixTotal`):** Lançamentos transferidos diretamente para a conta bancária da empresa, conferidos mediante comprovante.
+- **Total em Cartão (`cardTotal`):** Totalizadores dos terminais POS de cartão débito/crédito levados pelos motoboys na entrega.
+- **Arquivamento em Lote:** O fechamento marca todos os pedidos do expediente como arquivados (`isArchived: true`), garantindo que o painel da cozinha e do balcão inicie o próximo turno limpo e sem poluição visual.
 
-#### B. Catálogo Padronizado de Ocorrências e Incidentes de Entrega
-Quando uma corrida falha na ponta final com o entregador, o sistema veda anotações desestruturadas e exige a seleção de um motivo dentro do catálogo auditável (`DELIVERY_ISSUES`):
+#### C. Catálogo Auditável de Incidentes de Transporte
 
-| Chave do Incidente | Título Operacional | Descrição do Cenário | Ações Permitidas |
+**Tabela 2 – Catálogo Padronizado de Incidentes e Ocorrências de Entrega**
+
+| Código do Incidente | Título do Evento | Descrição do Cenário Real | Ação Corretiva Permitida |
 | :--- | :--- | :--- | :--- |
-| `CLIENTE_AUSENTE` | Cliente Ausente | Cliente não atende interfone, chamadas nem mensagens após tempo limite no portão. | Retornar para Preparo ou Cancelar |
-| `ENDERECO_INCORRETO` | Endereço Incorreto | Logradouro não localizado, número não existe ou erro de geolocalização. | Retornar para Preparo ou Cancelar |
-| `PEDIDO_AVARIADO` | Pedido Avariado | Avaria térmica, derretimento excessivo ou queda do recipiente durante o transporte. | Retornar para Cozinha (Refazer) |
-| `RECUSA_CLIENTE` | Recusa do Cliente | Cliente recusa o pedido por tempo excessivo de espera ou desacordo do produto. | Cancelamento com Justificativa |
-| `PROBLEMA_VEICULO` | Falha Mecânica | Pneu furado, colisão leve ou pane mecânica na motocicleta do entregador. | Retornar para Despacho / Troca de Motoboy |
-| `SUSPEITA_GOLPE` | Suspeita de Fraude / Risco | Local de risco extremo, trote identificado ou ameaça à integridade do motoboy. | Cancelamento Imediato de Segurança |
+| `CLIENTE_AUSENTE` | Cliente Ausente | Entregador aguarda no endereço, mas o cliente não atende chamadas, campainha ou interfone. | Reenviar para Preparo ou Cancelar |
+| `ENDERECO_INCORRETO` | Endereço Incorreto | Logradouro inexistente, numeração divergente ou erro crasso de geolocalização do cliente. | Reenviar para Preparo ou Cancelar |
+| `PEDIDO_AVARIADO` | Pedido Avariado | Avaria térmica (derretimento excessivo) ou tombamento do recipiente durante o transporte. | Reenviar para Cozinha (Refazer Imediatamente) |
+| `RECUSA_CLIENTE` | Recusa do Cliente | Consumidor recusa o recebimento por atraso excessivo de rota ou divergência de itens. | Cancelamento com Justificativa Auditável |
+| `PROBLEMA_VEICULO` | Falha Mecânica | Pneu furado, colisão leve ou pane mecânica na motocicleta durante o trajeto de entrega. | Retornar para Despacho (Troca de Entregador) |
+| `SUSPEITA_GOLPE` | Suspeita de Risco / Trote | Local de alta periculosidade, suspeita de trote de segurança ou ameaça à integridade do motoboy. | Cancelamento Imediato por Segurança |
+
+*Fonte: Elaborado pelos autores (2026).*
 
 ---
 
-### 2.4. Gamificação e Regras de Fidelidade
+### 2.4. Gamificação e Regras de Retenção e Fidelidade
 
-A retenção no PopClub baseia-se na valorização do tempo de relacionamento contínuo do cliente com a marca, calculando a idade da conta em meses corridos:
+**Figura 3 – Jornada de Fidelização Progressiva por Idade de Conta**
 
 ```mermaid
 flowchart LR
-    Membro["🌟 Novo Membro\n(0 a 1 mês)"] -->|"1 mês completo"| Bronze["🥉 Cliente Bronze\n(>= 1 mês)"]
-    Bronze -->|"6 meses completos"| Prata["🥈 Cliente Prata\n(>= 6 meses)"]
-    Prata -->|"12 meses completos"| Ouro["👑 Cliente Ouro VIP\n(>= 1 ano)"]
+    Membro["🌟 Nível 1: Novo Membro\n(0 a 1 mês de conta)\nCardápio Regular e Cupons Iniciais"] -->|"1 mês completo"| Bronze["🥉 Nível 2: Cliente Bronze\n(>= 1 mês de conta)\nCupons Intermediários de Desconto"]
+    Bronze -->|"6 meses completos"| Prata["🥈 Nível 3: Cliente Prata\n(>= 6 meses de conta)\nDescontos Expressivos e Brindes"]
+    Prata -->|"12 meses completos"| Ouro["👑 Nível 4: Cliente Ouro VIP\n(>= 1 ano de conta)\nCupons Nobres e Atendimento VIP"]
 ```
+*Fonte: Elaborado pelos autores (2026).*
 
-- **Novo Membro (Nível 1):** Conta recém-criada (menos de 1 mês). Acesso aos preços regulares do cardápio e cupons universais de boas-vindas.
-- **Cliente Bronze (Nível 2):** Vínculo a partir de 1 mês completo. Acesso a cupons intermediários e promoções de frete reduzido.
-- **Cliente Prata (Nível 3):** Vínculo a partir de 6 meses ininterruptos. Acesso a cupons de desconto expressivos e campanhas com brindes.
-- **Cliente Ouro VIP (Nível 4):** Vínculo a partir de 12 meses (1 ano). Elegibilidade exclusiva para cupons de maior valor, atendimento prioritário e selo VIP destacado na conta.
-
-#### Regras Anti-Fraude e Travas de Cupons
-1. **Exigência de Cadastro Completo:** Cupons de desconto não podem ser aplicados por usuários de Acesso Rápido. O sistema barra a aplicação solicitando a conclusão do cadastro com CPF e senha (`COUPON_REQUIRES_REGISTRATION`).
-2. **Proibição de "Double-Dipping":** É vedada a aplicação de cupons percentuais globais sobre carrinhos que já contenham "Combos Promocionais" ou barcas com desconto estrutural nativo, preservando a margem mínima de lucro.
-3. **Uso Único por Cliente (`oncePerUser`):** Validação cruzada no banco de dados verificando tanto o `userId` quanto o número de telefone registrado no histórico de pedidos concluídos.
+1. **Cálculo Dinâmico por Idade de Conta:** A elegibilidade do cliente a categorias de fidelidade é mensurada pelo tempo contínuo de existência de sua conta (`calculateAccountAgeMonths`), categorizando-o em: Novo Membro, Cliente Bronze, Cliente Prata e Cliente Ouro VIP.
+2. **Travas Antifraude em Cupons de Desconto:**
+   - **Exigência de Cadastro Completo:** Cupons de desconto não podem ser aplicados por usuários de Acesso Rápido. O sistema exige a formalização do cadastro com CPF e senha (`COUPON_REQUIRES_REGISTRATION`).
+   - **Proibição de "Double-Dipping":** Bloqueio estrito da aplicação de cupons percentuais sobre pedidos que já contenham "Combos Promocionais" com preços promocionais de fábrica.
+   - **Validação de Uso Único (`oncePerUser`):** Checagem cruzada simultânea por `userId` e número de telefone celular registrado no histórico contábil.
+3. **Confirmação Manual Digitada para Parâmetros Críticos:** Alterações estruturais no painel de gestão de taxas de frete ou de selos de fidelidade exigem que o gestor digite manualmente a palavra de segurança **"SIM"** para efetivar a gravação, eliminando toques ou cliques involuntários.
 
 ---
 
-## 3. REQUISITOS DE HARDWARE, INFRAESTRUTURA E AMBIENTE OPERACIONAL
+## 3. REQUISITOS DE HARDWARE, AMBIENTE E INFRAESTRUTURA
 
-### 3.1. Equipamentos do Balcão e Cozinha
-- **Terminais de Exibição:** Desktops, All-in-One ou Tablets Industriais (mínimo de 10 polegadas) fixados em suportes com orientação paisagem (*landscape*, resolução mínima de 1280x720 e recomendada 1920x1080).
-- **Impressoras Térmicas de Cupom:**
-  - Equipamentos compatíveis com protocolo de linha não-fiscal de 80mm (padrão EPSON TM-T20 / Bematech) e 58mm (mini impressoras térmicas de bancada).
-  - Formatação tipográfica monoespaçada direta, gerando comprovantes com: data/hora, número do pedido, nome e telefone do cliente, discriminação de endereço/retirada, itens detalhados com adicionais inclusos e pagos, observações e forma de pagamento com detalhamento de troco.
-
----
-
-### 3.2. Dispositivos dos Clientes e Entregadores
-- **Smartphones e Tablets de Clientes:** Dispositivos móveis rodando Android (Google Chrome 90+) e iOS (Apple Safari 14+).
-- **Tecnologia PWA:** Suporte a manifesto W3C (`manifest.webmanifest`), ícones de inicialização em múltiplas densidades (192px, 512px), tela de abertura (*splash screen* fluida) e capacidade de operação em tela cheia (*display: standalone*).
-- **Dispositivos dos Entregadores:** Qualquer smartphone com suporte ao aplicativo WhatsApp e navegador para abertura do link de rota do Google Maps.
+### 3.1. Equipamentos do Ponto de Venda (PDV), Balcão e Cozinha
+- **Terminais de Exibição:** Desktops convencionais, All-in-One ou Tablets Industriais (telas mínimas de 10 polegadas) dispostos em orientação paisagem (*landscape*, 1280x720 a 1920x1080), permitindo a visualização panorâmica da esteira Kanban sem necessidade de rolagem horizontal constante.
+- **Impressoras Térmicas Não-Fiscais:**
+  - Compatibilidade garantida com bobinas térmicas de 80mm e 58mm.
+  - Diagramação tipográfica monoespaçada direta (`Courier New`), com cortes verticais contendo dados do cliente, endereço, itens agrupados, adicionais inclusos/pagos, observações para montagem e totais de conferência financeira.
 
 ---
 
-### 3.3. Infraestrutura de Servidores e DevOps
+### 3.2. Dispositivos dos Consumidores e Entregadores
+- **Smartphones e Tablets de Consumidores:** Dispositivos rodando Android (navegador Google Chrome 90+) e iOS (Apple Safari 14+).
+- **Recursos PWA Suportados:** Manifesto W3C (`manifest.webmanifest`), ícones de alta densidade (192px e 512px), cache local de assets via Service Worker e capacidade de instalação nativa na tela de início (*Add to Home Screen*) sem intermediários de lojas de aplicativos.
+- **Dispositivos dos Entregadores:** Qualquer aparelho com capacidade de conexão móvel 3G/4G/5G, aplicativo WhatsApp instalado e suporte a visualização de mapas no Google Maps.
+
+---
+
+### 3.3. Topologia de Infraestrutura, Nuvem e DevOps
+
+**Figura 4 – Topologia de Infraestrutura de Servidores e Redes**
 
 ```mermaid
 flowchart TD
-    subgraph Internet ["Tráfego Web"]
-        ClientWeb["Cliente Mobile / Desktop"]
+    subgraph TrafegoWeb ["Internet Pública"]
+        ClienteFinal["Cliente PWA (Android / iOS / Web)"]
     end
 
-    subgraph EdgeLayer ["Borda & Segurança (Cloudflare)"]
-        WAF["Cloudflare WAF\n(Bypass em /manifest e estáticos)"]
+    subgraph BordaCloudflare ["Borda e Segurança (Cloudflare Edge)"]
+        CF_WAF["Cloudflare WAF\n(Regra Cirúrgica de Bypass em /manifest e estáticos)"]
+        CF_SSL["Bypass SSL / Proxy"]
     end
 
-    subgraph ServerHost ["Servidor Produção (Grein Cloud 01 - Docker)"]
-        Traefik["Traefik v3 (Reverse Proxy & Ingress SSL)"]
-        Authelia["Authelia Gate (SSO / 2FA)"]
-        NextApp["PopClub App (Next.js 14+ Standalone / Node 20)"]
-        Postgres[("PostgreSQL 16 Alpine\nPorta 5432")]
+    subgraph ServidorProducao ["Host de Produção (Grein Cloud 01 - Docker)"]
+        subgraph RedeProxy ["Rede Docker Externa: proxy_network"]
+            Traefik["Traefik v3 (Reverse Proxy & Ingress SSL Let's Encrypt)"]
+            Authelia["Authelia Gate (SSO / 2FA para Rotas Internas)"]
+        end
+
+        subgraph RedeApp ["Rede Docker Bridge: popshake_internal"]
+            AppNext["PopClub Standalone App (Node.js 20 / Next.js 14+)"]
+            BancoPostgres[("PostgreSQL 16 Alpine\nPorta Interna 5432")]
+        end
     end
 
-    subgraph AdminDev ["Rede Mesh de Manutenção"]
-        Tailscale["VPN Tailscale\n(Acesso Direto ao Postgres 100.127.79.49)"]
+    subgraph ManutencaoSegura ["Rede Mesh Privada (Tailscale VPN)"]
+        DevOpsAdmin["Estação Local de Manutenção e Auditoria"]
     end
 
-    ClientWeb -->|"HTTPS:443"| WAF
-    WAF --> Traefik
-    Traefik --> NextApp
-    Traefik -.->|"Proteção de Rotas Privadas"| Authelia
-    NextApp -->|"Conexão Interna Docker Bridge"| Postgres
-    Tailscale -->|"Manutenção e Dev Seguro"| Postgres
+    ClienteFinal -->|"HTTPS :443"| CF_WAF
+    CF_WAF --> CF_SSL
+    CF_SSL --> Traefik
+    Traefik --> AppNext
+    Traefik -.->|"Proteção de Acesso Administrativo"| Authelia
+    AppNext -->|"Queries SQL e Conexão de Dados"| BancoPostgres
+    DevOpsAdmin -->|"Tailscale WireGuard IP: 100.127.79.49:5432"| BancoPostgres
 ```
+*Fonte: Elaborado pelos autores (2026).*
 
-- **Topologia de Hospedagem:** Servidor VPS Ubuntu Server dedicado gerenciado via conteinerização Docker e orquestração Docker Compose.
-- **Gerenciamento de Imagens e Portainer:** Pipeline de CI/CD automatizado via GitHub Actions que constrói a imagem Docker, publica no **GitHub Container Registry (GHCR)** e aciona o webhook do Portainer para deploy sem downtime (*rolling update*).
-- **Camada de Borda (Cloudflare WAF):** Configuração de regras cirúrgicas de bypass para garantir que requisições ao manifesto PWA e ícones estáticos nunca sejam bloqueadas por desafios de bot (*Managed Challenge*), permitindo que qualquer smartphone instale o aplicativo instantaneamente.
-- **Proxy Reverso (Traefik v3):** Emissão automática e renovação de certificados SSL/TLS via Let's Encrypt, roteamento por cabeçalhos de host e proteção das rotas de gestão.
-- **Persistência de Dados (PostgreSQL 16 Alpine):** Volume persistente Docker com esquema gerenciado pelo **Prisma ORM**, aplicando migrações automáticas de schema na inicialização do container (`entrypoint.sh`). Acesso direto de desenvolvimento restrito à VPN **Tailscale**, eliminando portas de banco de dados abertas para a internet pública.
-
----
-
-## 4. REQUISITOS LEGAIS, FISCAIS E DE SEGURANÇA (COMPLIANCE)
-
-### 4.1. Conformidade com a LGPD (Lei Geral de Proteção de Dados - Lei 13.709/2018)
-1. **Princípio da Minimização:** Coleta estrita dos dados necessários para a prestação do serviço de entrega (Nome, Telefone, Endereço e CPF para emissão de nota/conferência antifraude).
-2. **Armazenamento Seguro de Documentos (CPF):**
-   - Higienização e limpeza de pontuações de CPF antes da persistência no banco (`cleanCpf`).
-   - Validação algorítmica rigorosa dos dois dígitos verificadores antes de autorizar qualquer cadastro (`validateCpf`).
-   - Unicidade garantida por índice único no banco de dados (`@unique`).
-3. **Direito ao Esquecimento e Política de Exclusão Lógica (*Soft Delete*):**
-   - Conforme exigido pela legislação civil e tributária brasileira, dados fiscais e de faturamento de pedidos realizados devem ser custodiados por no mínimo 5 anos.
-   - Quando um usuário solicita cancelamento ou exclusão de conta, o sistema **não realiza a exclusão física (*hard delete*)** do registro. Em vez disso, aplica o *Soft Delete*: o campo `deletedAt` recebe o timestamp da solicitação, `isActive` passa a `false`, o `tokenVersion` é incrementado (derrubando sessões imediatamente) e dados sensíveis de credenciais são desativados.
-   - O histórico de pedidos permanece intacto para conciliações contábeis e auditorias de faturamento.
+- **Conteinerização Docker e Deploy Automatizado:** Aplicação compilada em modo **Next.js Standalone**, minimizando a imagem Docker e o consumo de memória RAM (inferior a 250MB em carga operacional). Atualização contínua através do **Portainer** acoplado ao **GitHub Container Registry (GHCR)**.
+- **Bypass Cirúrgico no Cloudflare WAF:** As rotas vitais do PWA (`/manifest.webmanifest`, `/favicon.ico`, `/icons/*`, `/_next/static/*`) possuem regras explícitas de bypass de desafios antibot, garantindo que o instalador do smartphone nunca sofra bloqueios ou atrasos.
+- **Segurança da Camada de Dados via Tailscale:** A porta `5432` do banco PostgreSQL não fica exposta para a internet aberta. Acesso para manutenção e suporte ocorre exclusivamente por túnel criptografado WireGuard da VPN **Tailscale** no IP privado `100.127.79.49`.
 
 ---
 
-### 4.2. Segurança e Controle de Acesso (RBAC)
+## 4. REQUISITOS LEGAIS, FISCAIS E SEGURANÇA (COMPLIANCE)
+
+### 4.1. Conformidade com a Lei Geral de Proteção de Dados (LGPD)
+A plataforma foi desenhada atendendo às determinações da Lei Federal nº 13.709/2018 (LGPD):
+
+1. **Tratamento Rigoroso de Documentos Pessoais (CPF):**
+   - Limpeza e extração dos caracteres de formatação (`cleanCpf`).
+   - Validação matemática de unicidade e consistência dos dois dígitos verificadores antes da gravação (`validateCpf`).
+   - Bloqueio de cadastros duplicados através de restrição única no banco relacional.
+2. **Exclusão Lógica e Retenção Fiscal (*Soft Delete*):**
+   - Em observância à legislação tributária e ao Código de Defesa do Consumidor (que exigem a custódia de transações comerciais por período mínimo de 5 anos), a inativação ou solicitação de cancelamento de conta pelo usuário aciona o *Soft Delete*:
+     * O campo `deletedAt` recebe o registro cronológico da requisição e `isActive` é definido como `false`.
+     * O `tokenVersion` é incrementado atomicamente, derrubando imediatamente todas as sessões ativas do usuário.
+     * Os registros de pedidos passados, itens consumidos e faturamento são preservados para fins de prestação de contas fiscais.
+
+---
+
+### 4.2. Controle de Acesso Baseado em Papéis (RBAC) e Blindagem Anti-Tampering
+
+**Figura 5 – Matriz de Controle de Acesso Baseado em Papéis (RBAC)**
 
 ```mermaid
 flowchart TD
-    subgraph PapeisUsuarios ["Controle Baseado em Papéis (RBAC)"]
-        AdminRole["ADMIN\n(Acesso Irrestrito e Imutável)"]
-        EditorRole["EDITOR\n(Permissões Granulares Customizadas)"]
-        ClientRole["CLIENT\n(Vitrine, Checkout e Meus Pedidos)"]
+    subgraph PapeisPrincipais ["Níveis Hierárquicos de Acesso (RBAC)"]
+        RoleAdmin["Papel ADMIN\n(Acesso Irrestrito e Imutável)"]
+        RoleEditor["Papel EDITOR\n(Permissões Modulares Concedidas Manualmente)"]
+        RoleClient["Papel CLIENT\n(Apenas Vitrine, Checkout e Perfil Pessoal)"]
     end
 
-    subgraph ModulosPermissoes ["Matriz Granular do Editor"]
-        Operacao["Operação: Pedidos Kanban, Estoque & Cozinha, Histórico"]
-        Cardapio["Cardápio: Combos, Promoções De/Por, Complementos"]
-        Estrategico["Estratégico: Cupons, Identidade Visual, Banners, Disparos"]
+    subgraph CategoriasModulos ["Módulos Granulares de Permissão"]
+        CatOperacao["Operação: Kanban de Pedidos, Estoque/Cozinha, Histórico de Turnos"]
+        CatCardapio["Cardápio: Combos, Promoções De/Por, Complementos"]
+        CatEstrategico["Estratégico: Cupons, Identidade Visual, Banners, Disparos em Massa"]
     end
 
-    AdminRole -->|Acesso Total| Operacao
-    AdminRole -->|Acesso Total| Cardapio
-    AdminRole -->|Acesso Total| Estrategico
+    RoleAdmin -->|Acesso Total Permanente| CatOperacao
+    RoleAdmin -->|Acesso Total Permanente| CatCardapio
+    RoleAdmin -->|Acesso Total Permanente| CatEstrategico
 
-    EditorRole -->|Configurado Individualmente| Operacao
-    EditorRole -->|Configurado Individualmente| Cardapio
-    EditorRole -.->|Bloqueado por Padrão| Estrategico
+    RoleEditor -->|Configurado Individualmente| CatOperacao
+    RoleEditor -->|Configurado Individualmente| CatCardapio
+    RoleEditor -.->|Bloqueado por Padrão de Segurança| CatEstrategico
 ```
+*Fonte: Elaborado pelos autores (2026).*
 
-- **Papéis Primários (Roles):**
-  - `ADMIN`: Acesso irrestrito a todos os módulos, fechamento de turnos, alteração de configurações de frete, criação de cupons e gestão de equipe. **Regra de Salvaguarda:** O sistema impede que o último administrador ativo seja excluído ou rebaixado.
-  - `EDITOR`: Colaborador operacional com permissões concedidas de forma granular pelo Administrador através de chaves no campo `permissions: String[]`.
-  - `CLIENT`: Usuário final restrito à navegação no cardápio, acompanhamento de seus próprios pedidos e atualização de seus dados cadastrais.
-- **Invalidação Instantânea de Sessões (`tokenVersion`):** Cada usuário possui um contador numérico inteiro `tokenVersion`. Ao realizar logout em todos os dispositivos, alterar a senha ou ter sua conta bloqueada pelo administrador, o `tokenVersion` é incrementado atomicamente no banco. Qualquer JWT emitido anteriormente torna-se imediatamente inválido em todas as rotas de API.
-- **Blindagem Anti-Tampering no Checkout:** Preços, taxas de frete, descontos de promoções e cotas de complementos gratuitos enviados pelo navegador do cliente são **completamente ignorados pelo backend**. O servidor consulta o banco de dados, recalcula todos os valores de forma independente e aborta a requisição caso detecte divergência de integridade.
-- **Sanitização de Entradas (Anti-XSS):** Todas as strings recebidas nos corpos das requisições passam por rotinas de sanitização (`sanitizeText`), escapando tags HTML e caracteres maliciosos antes de qualquer gravação no banco de dados.
+- **Papéis do Sistema:**
+  - `ADMIN`: Administrador geral do negócio. Acesso integral a todas as abas e relatórios. **Salvaguarda do Sistema:** O software veda expressamente a exclusão ou despromoção do último administrador ativo da base.
+  - `EDITOR`: Colaborador operacional com permissões moduladas em array `permissions: String[]`. Por padrão seguro (*secure by default*), as abas estratégicas (cupons, banners, disparos e canais de pagamento) vêm bloqueadas.
+  - `CLIENT`: Acesso estritamente restrito à navegação, carrinho e visualização de seus próprios pedidos.
+- **Invalidação Instantânea de Sessões (`tokenVersion`):** Cada usuário possui um versionador de credenciais no banco. Em casos de redefinição de senha, bloqueio administrativo ou logout global, o valor de `tokenVersion` é incrementado, rejeitando qualquer JWT antigo em frações de segundo.
+- **Blindagem Anti-Tampering (Integridade de Preços no Checkout):** O backend ignora integralmente preços unitários, subtotais ou taxas de frete calculadas no frontend do navegador. Toda a composição de valores é recalculada a partir do banco de dados na rota `/api/checkout`, impedindo ataques de injeção ou manipulação de parâmetros monetários.
 
 ---
 
-## 5. ESPECIFICAÇÃO DE REQUISITOS FUNCIONAIS (RF)
+## 5. ESPECIFICAÇÃO DOS REQUISITOS FUNCIONAIS (RF)
 
 ### 5.1. Módulo: Vitrine e Customização de Produtos (RF01 a RF06)
 
-| ID | Nome do Requisito | Descrição Detalhada | Prioridade | Atores Envolvidos |
+**Tabela 3 – Requisitos Funcionais: Vitrine e Customização de Produtos (RF01 a RF06)**
+
+| ID | Nome do Requisito | Descrição Detalhada da Funcionalidade | Prioridade | Atores Envolvidos |
 | :--- | :--- | :--- | :--- | :--- |
 | **RF01** | Catálogo Dinâmico e Categorias | O sistema deve exibir produtos organizados por categorias dinâmicas (ex: Açaí no Copo, Taças, Gelatos, Barcas), exibindo nome, foto, preço base, selos visuais destacados e indicador de disponibilidade em tempo real. | **Must Have** | Cliente, Operador |
 | **RF02** | Grupos de Complementos N:N | O sistema deve suportar a vinculação de múltiplos grupos de complementos a um produto (ex: Caldas, Frutas, Recheios), respeitando limites de seleção mínima (`minQuantity`), máxima (`maxQuantity`) e obrigatoriedade (`isRequired`). | **Must Have** | Cliente, Cozinha |
@@ -303,11 +360,15 @@ flowchart TD
 | **RF05** | Carrinho de Compras Persistente | O carrinho do cliente deve persistir os itens selecionados em armazenamento local (`localStorage`), garantindo que o fechamento acidental da aba ou perda momentânea de conexão não resulte na perda das escolhas do usuário. | **Must Have** | Cliente |
 | **RF06** | Gestão de Combos e Barcas Especiais | O sistema deve permitir a criação de "Combos Promocionais" agrupando múltiplos produtos em um pacote único com precificação especial diferenciada. | **Should Have** | Cliente, Administrador |
 
+*Fonte: Elaborado pelos autores (2026).*
+
 ---
 
 ### 5.2. Módulo: Autenticação, Perfis e Fidelidade (RF07 a RF12)
 
-| ID | Nome do Requisito | Descrição Detalhada | Prioridade | Atores Envolvidos |
+**Tabela 4 – Requisitos Funcionais: Autenticação, Perfis e Fidelidade (RF07 a RF12)**
+
+| ID | Nome do Requisito | Descrição Detalhada da Funcionalidade | Prioridade | Atores Envolvidos |
 | :--- | :--- | :--- | :--- | :--- |
 | **RF07** | Fluxo de Acesso Rápido *(Fast Access)* | O sistema deve permitir a finalização de compras por clientes não previamente cadastrados, solicitando apenas Nome, Telefone de contato e Endereço de entrega, atribuindo um avatar aleatório padrão. | **Must Have** | Cliente Final |
 | **RF08** | Cadastro Completo com Validação de CPF | O cliente pode registrar-se formalmente fornecendo Nome Completo, E-mail, Senha segura e CPF. O sistema deve validar matematicamente os dígitos verificadores do CPF e assegurar sua unicidade no banco. | **Must Have** | Cliente, Administrador |
@@ -316,11 +377,15 @@ flowchart TD
 | **RF11** | Recuperação de Senha por Código | O sistema deve permitir que clientes cadastrados redefinam senhas esquecidas através de um código de verificação temporário com expiração programada (`resetCodeExpires`). | **Should Have** | Cliente |
 | **RF12** | Catálogo de Avatares Temáticos Oficiais | O sistema deve disponibilizar um catálogo de avatares pré-definidos (ícones artesanais de açaí, taças, sorvetes e frutas) para que o cliente personalize seu perfil visual. | **Could Have** | Cliente, Administrador |
 
+*Fonte: Elaborado pelos autores (2026).*
+
 ---
 
 ### 5.3. Módulo: Checkout, Frete e Rastreamento (RF13 a RF18)
 
-| ID | Nome do Requisito | Descrição Detalhada | Prioridade | Atores Envolvidos |
+**Tabela 5 – Requisitos Funcionais: Checkout, Frete e Rastreamento (RF13 a RF18)**
+
+| ID | Nome do Requisito | Descrição Detalhada da Funcionalidade | Prioridade | Atores Envolvidos |
 | :--- | :--- | :--- | :--- | :--- |
 | **RF13** | Gestão de Endereços com Geocodificação | O sistema deve permitir a inserção e salvamento de múltiplos endereços por usuário cadastrado, preenchendo automaticamente CEP, rua, bairro e cidade através de geocodificação reversa e API de busca. | **Must Have** | Cliente |
 | **RF14** | Verificação de Raio Geográfico e Frete Grátis | O backend deve calcular a distância entre a sede da loja e o endereço do cliente. Se a distância estiver dentro de `maxDeliveryRadiusKm`, aplica a taxa de entrega ou zera o frete caso o subtotal atinja `freeDeliveryThreshold`. | **Must Have** | Cliente, Operador |
@@ -329,11 +394,15 @@ flowchart TD
 | **RF17** | Linha do Tempo e Stepper em Tempo Real | O cliente deve acompanhar a evolução do pedido em uma linha do tempo com 5 estágios: Pedido Enviado, Aceito, Em Preparo na Cozinha, Saiu para Entrega e Concluído. | **Must Have** | Cliente |
 | **RF18** | Rastreamento ao Vivo do Motoboy | Pedidos despachados com rastreamento GPS ativo devem disponibilizar uma página pública segura (`/entrega/[token]`) exibindo a localização do entregador em mapa interativo e o tempo estimado de chegada. | **Should Have** | Cliente, Motoboy |
 
+*Fonte: Elaborado pelos autores (2026).*
+
 ---
 
 ### 5.4. Módulo: Painel Operacional & Esteira Kanban (RF19 a RF25)
 
-| ID | Nome do Requisito | Descrição Detalhada | Prioridade | Atores Envolvidos |
+**Tabela 6 – Requisitos Funcionais: Painel Operacional & Esteira Kanban (RF19 a RF25)**
+
+| ID | Nome do Requisito | Descrição Detalhada da Funcionalidade | Prioridade | Atores Envolvidos |
 | :--- | :--- | :--- | :--- | :--- |
 | **RF19** | Inbox de Triagem com Alerta Sonoro | Pedidos com status `pending` devem aparecer na barra de triagem superior acompanhados pelo toque sonoro de sino de cozinha a cada 10 segundos até serem aceitos ou rejeitados pelo operador. | **Must Have** | Atendente, Caixa |
 | **RF20** | Aceitação de Pedido e Estimativa de Tempo | Ao aceitar um novo pedido, o operador pode manter o tempo padrão do turno ou ajustar a estimativa de entrega (ex: 20-30 min, 35-50 min, 50-70 min), notificando o cliente instantaneamente. | **Must Have** | Atendente, Cozinha |
@@ -343,11 +412,15 @@ flowchart TD
 | **RF24** | Inbox de Entrega e Conferência de PIN | Pedidos em rota devem permanecer visíveis na Inbox de Entrega com contador de tempo decorrido. A conclusão exige a confirmação do código do motoboy ou PIN de 4 dígitos do pedido. | **Must Have** | Caixa, Motoboy |
 | **RF25** | Registro de Incidentes de Transporte | Caso o motoboy reporte problemas no trajeto, o operador deve registrar o incidente pelo diálogo padronizado (`DELIVERY_ISSUES`) e decidir entre reenviar para a cozinha (`reprepare`) ou cancelar (`cancel`). | **Must Have** | Caixa, Cozinha |
 
+*Fonte: Elaborado pelos autores (2026).*
+
 ---
 
 ### 5.5. Módulo: Gestão Administrativa, Usuários & Turnos (RF26 a RF32)
 
-| ID | Nome do Requisito | Descrição Detalhada | Prioridade | Atores Envolvidos |
+**Tabela 7 – Requisitos Funcionais: Gestão Administrativa, Usuários & Turnos (RF26 a RF32)**
+
+| ID | Nome do Requisito | Descrição Detalhada da Funcionalidade | Prioridade | Atores Envolvidos |
 | :--- | :--- | :--- | :--- | :--- |
 | **RF26** | Abertura e Monitoramento de Turnos | O administrador ou editor autorizado deve abrir o turno diário, gerando o identificador do expediente e definindo o tempo de entrega e notas do dia. | **Must Have** | Administrador, Gestor |
 | **RF27** | Fechamento de Turno com Trava de Segurança | O sistema deve impedir terminantemente o fechamento do turno se houver pedidos ativos na esteira (`PENDING_ORDERS_ACTIVE`), listando as pendências a serem resolvidas. | **Must Have** | Administrador, Gestor |
@@ -357,11 +430,15 @@ flowchart TD
 | **RF31** | Cadastro e Escala da Frota de Motoboys | Módulo dedicado para cadastrar motoboys, gerenciar placas, chaves Pix para acerto de diárias e alternar o status entre disponível, em rota ou folga. | **Must Have** | Gestor, Logística |
 | **RF32** | Dossiê do Cliente e Histórico Gerencial | O gestor pode consultar a ficha completa de qualquer cliente, incluindo valor total acumulado (LTV), ticket médio, frequência de pedidos, histórico de ocorrências e endereços utilizados. | **Should Have** | Administrador |
 
+*Fonte: Elaborado pelos autores (2026).*
+
 ---
 
-## 6. ESPECIFICAÇÃO DE REQUISITOS NÃO-FUNCIONAIS (RNF)
+## 6. ESPECIFICAÇÃO DOS REQUISITOS NÃO-FUNCIONAIS (RNF)
 
 ### 6.1. Desempenho e Eficiência (RNF01 a RNF04)
+
+**Tabela 8 – Requisitos Não-Funcionais: Desempenho e Eficiência (RNF01 a RNF04)**
 
 | ID | Requisito Não-Funcional | Métrica / Critério de Aceitação | Mecanismo de Implementação |
 | :--- | :--- | :--- | :--- |
@@ -370,9 +447,13 @@ flowchart TD
 | **RNF03** | Consumo Enxuto de Memória do Servidor | O container Node.js da aplicação em produção não deve ultrapassar **250MB de uso de RAM** em carga normal de expediente. | Compilação em modo Next.js Standalone, descartando bibliotecas pesadas de desenvolvimento no container final. |
 | **RNF04** | Latência de Resposta de APIs Críticas | Tempo de processamento de checkout e triagem inferior a **200 milissegundos** no percentil 95 (P95). | Pool de conexões otimizado no Prisma ORM e consultas indexadas no PostgreSQL 16. |
 
+*Fonte: Elaborado pelos autores (2026).*
+
 ---
 
 ### 6.2. Usabilidade e Ergonomia Visual (RNF05 a RNF08)
+
+**Tabela 9 – Requisitos Não-Funcionais: Usabilidade e Ergonomia Visual (RNF05 a RNF08)**
 
 | ID | Requisito Não-Funcional | Métrica / Critério de Aceitação | Mecanismo de Implementação |
 | :--- | :--- | :--- | :--- |
@@ -381,9 +462,13 @@ flowchart TD
 | **RNF07** | Densidade de Informação em Telas de Cozinha | O painel operacional deve aproveitar telas amplas (tablets e monitores landscape) exibindo a esteira Kanban completa sem necessidade de rolagem horizontal. | Layout CSS Grid responsivo com colunas compactas, cards de pedidos com tipografia legível à distância de 1 metro na bancada. |
 | **RNF08** | Feedback Imediato Sonoro e Háptico | Ações críticas (novo pedido recebido, pedido despachado, item pausado) devem disparar feedback visual (toasts) e sonoro instantâneo. | Biblioteca de síntese Web Audio API nativa para o sino de balcão (`sound.ts`), dispensando downloads de arquivos MP3 pesados. |
 
+*Fonte: Elaborado pelos autores (2026).*
+
 ---
 
 ### 6.3. Confiabilidade, Integridade e Tolerância a Falhas (RNF09 a RNF12)
+
+**Tabela 10 – Requisitos Não-Funcionais: Confiabilidade, Integridade e Tolerância a Falhas (RNF09 a RNF12)**
 
 | ID | Requisito Não-Funcional | Métrica / Critério de Aceitação | Mecanismo de Implementação |
 | :--- | :--- | :--- | :--- |
@@ -392,9 +477,13 @@ flowchart TD
 | **RNF11** | Tolerância a Quedas Temporárias de Conexão | O cliente no PWA não deve perder os itens montados no carrinho caso o sinal de internet móvel sofra oscilação momentânea durante a montagem. | Persistência local reativa dos estados do carrinho com sincronização assíncrona automática ao restabelecer o sinal. |
 | **RNF12** | Autocura e Deploy Idempotente | O container da aplicação deve ser capaz de reiniciar e auto-recuperar o estado da esteira de pedidos sem inconsistências de schema. | Script de entrada `entrypoint.sh` com verificação ativa de prontidão do banco (`nc`/fallback Node) e execução automática de migrações (`prisma migrate deploy`). |
 
+*Fonte: Elaborado pelos autores (2026).*
+
 ---
 
 ### 6.4. Segurança e Hardening (RNF13 a RNF16)
+
+**Tabela 11 – Requisitos Não-Funcionais: Segurança e Hardening (RNF13 a RNF16)**
 
 | ID | Requisito Não-Funcional | Métrica / Critério de Aceitação | Mecanismo de Implementação |
 | :--- | :--- | :--- | :--- |
@@ -403,13 +492,15 @@ flowchart TD
 | **RNF15** | Revogação Dinâmica de Tokens JWT | Capacidade de invalidar instantaneamente todos os tokens ativos de um usuário em caso de suspeita de fraude ou troca de credenciais. | Validação do campo `tokenVersion` no payload do JWT contra o valor atual registrado no banco a cada requisição autenticada. |
 | **RNF16** | Prevenção contra Injeção de Código (XSS e SQLi) | Nenhuma entrada fornecida por usuários pode ser renderizada sem escape ou concatenada em consultas de banco. | Consultas tipadas e parametrizadas via Prisma ORM e rotinas de sanitização recursiva de payloads (`sanitizePayload`). |
 
+*Fonte: Elaborado pelos autores (2026).*
+
 ---
 
-## 7. MATRIZ DE RASTREABILIDADE
+## 7. MATRIZ DE RASTREABILIDADE BIDIRECIONAL
 
-A matriz abaixo estabelece a correlação bidirecional entre as necessidades operacionais de negócio, os requisitos funcionais e não-funcionais especificados, os componentes de software no código-fonte e as entidades correspondentes no esquema do banco de dados (`prisma/schema.prisma`):
+**Tabela 12 – Matriz de Rastreabilidade Bidirecional de Requisitos**
 
-| Necessidade de Negócio | Requisito Funcional (RF) | Requisito Não-Funcional (RNF) | Módulo / Componente no Código | Entidade no Banco de Dados (`schema.prisma`) |
+| Necessidade de Negócio / Operação | Requisito Funcional (RF) | Requisito Não-Funcional (RNF) | Módulo / Componente no Código-Fonte | Entidade no Banco de Dados (`schema.prisma`) |
 | :--- | :--- | :--- | :--- | :--- |
 | **Controle de Perecíveis e Insumos** | RF02, RF03, RF04, RF30 | RNF04, RNF07, RNF08 | `src/components/admin/AddonsManagement.tsx`<br>`src/components/admin/StockControlSection.tsx`<br>`src/components/storefront/ProductDetailModal.tsx` | `Product`, `AddonGroup`, `AddonItem`, `ProductAddonGroup` |
 | **Cardápio e Vendas Promocionais** | RF01, RF05, RF06 | RNF01, RNF02, RNF05 | `src/app/carrinho/page.tsx`<br>`src/components/storefront/ProductCard.tsx`<br>`src/components/admin/CombosManagementSection.tsx` | `Category`, `Product`, `ComboItem`, `Promotion`, `CardBadge` |
@@ -422,10 +513,15 @@ A matriz abaixo estabelece a correlação bidirecional entre as necessidades ope
 | **Segurança e Matriz de Permissões** | RF29 | RNF15, RNF16 | `src/lib/permissions.ts`<br>`src/components/admin/UsersManagementSection.tsx`<br>`src/app/api/admin/users/route.ts` | `User` (`role`, `permissions`, `isActive`, `deletedAt`) |
 | **Checkout Seguro Anti-Tampering** | RF15, RF16, RF17 | RNF04, RNF09, RNF14 | `src/app/api/checkout/route.ts`<br>`src/lib/rateLimit.ts`<br>`src/app/rastreamento/page.tsx` | `Order`, `OrderItem`, `Coupon` |
 
+*Fonte: Elaborado pelos autores (2026).*
+
 ---
 
-### HISTÓRICO DE APROVAÇÕES E REVISÕES
-- **Revisão Técnica:** Engenharia de Software e Arquitetura de Sistemas
-- **Homologação Operacional:** Gerência de Atendimento e Produção de Cozinha
-- **Conformidade e Segurança:** Auditoria de Dados e Governança LGPD
-- **Documentação de Referência:** Diretrizes de implantação em `docs/ARCHITECTURE.md` e especificações de identidade visual em `docs/VISUAL_IDENTITY_AUDIT.md`.
+## REFERÊNCIAS
+
+1. ASSOCIAÇÃO BRASILEIRA DE NORMAS TÉCNICAS. **NBR 6023**: Informação e documentação – Referências – Elaboração. Rio de Janeiro: ABNT, 2018.
+2. ASSOCIAÇÃO BRASILEIRA DE NORMAS TÉCNICAS. **NBR 14724**: Informação e documentação – Trabalhos acadêmicos – Apresentação. Rio de Janeiro: ABNT, 2011.
+3. BRASIL. **Lei nº 13.709, de 14 de agosto de 2018**. Lei Geral de Proteção de Dados Pessoais (LGPD). Brasília, DF: Presidência da República, 2018.
+4. CENTRO UNIVERSITÁRIO DE VÁRZEA GRANDE (UNIVAG). **Manual de Normas e Orientações para Projetos Integradores Extensionistas**. Várzea Grande: UNIVAG, 2024.
+5. SOMMERVILLE, Ian. **Engenharia de Software**. 10. ed. São Paulo: Pearson Education do Brasil, 2019.
+6. PRESSMAN, Roger S.; MAXIM, Bruce R. **Engenharia de Software: uma abordagem profissional**. 9. ed. Porto Alegre: AMGH, 2021.
