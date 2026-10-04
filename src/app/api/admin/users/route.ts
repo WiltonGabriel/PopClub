@@ -18,6 +18,12 @@ export async function GET(request: Request) {
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "15", 10)));
     const search = searchParams.get("search")?.trim() || "";
     const filter = searchParams.get("filter") || "all";
+    const sort = searchParams.get("sort") || "recent";
+    const status = searchParams.get("status") || "all";
+    const minOrdersStr = searchParams.get("minOrders");
+    const maxOrdersStr = searchParams.get("maxOrders");
+    const minMonthsStr = searchParams.get("minMonths");
+    const maxMonthsStr = searchParams.get("maxMonths");
 
     const where: Prisma.UserWhereInput = {};
 
@@ -52,6 +58,46 @@ export async function GET(request: Request) {
       where.deletedAt = null;
     }
 
+    if (status === "active") {
+      where.isBlocked = false;
+    } else if (status === "blocked") {
+      where.isBlocked = true;
+    }
+
+    if (minOrdersStr || maxOrdersStr) {
+      const minO = minOrdersStr ? parseInt(minOrdersStr, 10) : null;
+      const maxO = maxOrdersStr ? parseInt(maxOrdersStr, 10) : null;
+      // Note: we can't easily filter by relation count in standard Prisma where without specific config in older versions, but assuming Prisma 6 supports _count filtering:
+      /* If Prisma doesn't support _count in where we might have a type error, but Prisma >= 4.3 supports it */
+      const countFilter: any = {};
+      if (minO !== null && !isNaN(minO)) countFilter.gte = minO;
+      if (maxO !== null && !isNaN(maxO)) countFilter.lte = maxO;
+      if (Object.keys(countFilter).length > 0) {
+        where.orders = { ...(where.orders as object || {}), _count: countFilter } as any;
+      }
+    }
+
+    if (minMonthsStr || maxMonthsStr) {
+      const minM = minMonthsStr ? parseInt(minMonthsStr, 10) : null;
+      const maxM = maxMonthsStr ? parseInt(maxMonthsStr, 10) : null;
+      const now = new Date();
+      const createdAtFilter: Prisma.DateTimeFilter = (where.createdAt as Prisma.DateTimeFilter) || {};
+      
+      if (minM !== null && !isNaN(minM)) {
+         const date = new Date(now);
+         date.setMonth(date.getMonth() - minM);
+         createdAtFilter.lte = date;
+      }
+      if (maxM !== null && !isNaN(maxM)) {
+         const date = new Date(now);
+         date.setMonth(date.getMonth() - maxM);
+         createdAtFilter.gte = date;
+      }
+      if (Object.keys(createdAtFilter).length > 0) {
+         where.createdAt = createdAtFilter;
+      }
+    }
+
     // Busca Multifatorial (Nome, E-mail, Telefone)
     if (search) {
       const cleaned = search.replace(/\D/g, "");
@@ -72,16 +118,28 @@ export async function GET(request: Request) {
       ];
     }
 
+    let orderBy: Prisma.UserOrderByWithRelationInput[] = [];
+    if (sort === "oldest") {
+      orderBy = [{ createdAt: "asc" }];
+    } else if (sort === "orders") {
+      // Prisma supports order by relation count
+      orderBy = [{ orders: { _count: "desc" } as any }, { createdAt: "desc" }];
+    } else if (sort === "alphabetical") {
+      orderBy = [{ fullName: "asc" }, { username: "asc" }];
+    } else {
+      orderBy = [
+        { role: "asc" },
+        { createdAt: "desc" },
+      ];
+    }
+
     const total = await prisma.user.count({ where });
 
     const users = await prisma.user.findMany({
       where,
       skip: (page - 1) * limit,
       take: limit,
-      orderBy: [
-        { role: "asc" }, // ADMIN, EDITOR, CLIENT
-        { createdAt: "desc" },
-      ],
+      orderBy,
       select: {
         id: true,
         cpf: true,

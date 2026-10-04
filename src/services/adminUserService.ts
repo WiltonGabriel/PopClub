@@ -115,7 +115,13 @@ export interface GetUsersParams {
   page?: number;
   limit?: number;
   search?: string;
-  filter?: string;
+  filter?: string; // Role filter (e.g. "admin", "registered")
+  sort?: string; // "recent", "oldest", "orders", "alphabetical"
+  status?: string; // "all", "active", "blocked"
+  minOrders?: number;
+  maxOrders?: number;
+  minMonths?: number;
+  maxMonths?: number;
 }
 
 export interface GetUsersResponse {
@@ -135,6 +141,12 @@ export const adminUserService = {
     if (params.limit) searchParams.set("limit", String(params.limit));
     if (params.search) searchParams.set("search", params.search);
     if (params.filter) searchParams.set("filter", params.filter);
+    if (params.sort) searchParams.set("sort", params.sort);
+    if (params.status) searchParams.set("status", params.status);
+    if (params.minOrders !== undefined) searchParams.set("minOrders", String(params.minOrders));
+    if (params.maxOrders !== undefined) searchParams.set("maxOrders", String(params.maxOrders));
+    if (params.minMonths !== undefined) searchParams.set("minMonths", String(params.minMonths));
+    if (params.maxMonths !== undefined) searchParams.set("maxMonths", String(params.maxMonths));
 
     const res = await fetch(`/api/admin/users?${searchParams.toString()}`);
     const data = await res.json();

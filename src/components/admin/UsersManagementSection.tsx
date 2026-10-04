@@ -26,6 +26,7 @@ import {
   UserDossier,
   CustomRoleItem,
 } from "@/services/adminUserService";
+import { loyaltyBadgeService, LoyaltyBadgeConfig, DEFAULT_LOYALTY_BADGES } from "@/services/loyaltyBadgeService";
 import {
   PERMISSION_DEFINITIONS,
   DEFAULT_EDITOR_PERMISSIONS,
@@ -119,9 +120,13 @@ export function UsersManagementSection() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<string>("all");
+  const [sort, setSort] = useState("recent");
+  const [profileLoyalty, setProfileLoyalty] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [loyaltyBadges, setLoyaltyBadges] = useState<LoyaltyBadgeConfig[]>(DEFAULT_LOYALTY_BADGES);
 
   // Estados de modais e gavetas
   const [userModalOpen, setUserModalOpen] = useState(false);
@@ -183,11 +188,45 @@ export function UsersManagementSection() {
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
+
+      let minOrders: number | undefined;
+      let maxOrders: number | undefined;
+      let minMonths: number | undefined;
+      let maxMonths: number | undefined;
+
+      if (profileLoyalty === "recurrent") {
+        minOrders = 3;
+      } else if (profileLoyalty === "recent") {
+        minOrders = 1;
+        maxOrders = 2;
+      } else if (profileLoyalty === "inactive") {
+        maxOrders = 0;
+      } else if (profileLoyalty.startsWith("badge_")) {
+        const badgeLevel = parseInt(profileLoyalty.replace("badge_", ""), 10);
+        const badge = loyaltyBadges.find(b => b.level === badgeLevel);
+        if (badge) {
+           minMonths = badge.minMonths;
+           // Find next badge to set maxMonths (so we strictly filter this tier)
+           const nextBadge = [...loyaltyBadges]
+              .sort((a, b) => a.minMonths - b.minMonths)
+              .find(b => b.minMonths > badge.minMonths);
+           if (nextBadge) {
+              maxMonths = nextBadge.minMonths; // upper bound is exclusive conceptually, but lte on API
+           }
+        }
+      }
+
       const res = await adminUserService.getUsers({
         page,
         limit: 15,
         search,
         filter,
+        sort,
+        status: statusFilter,
+        minOrders,
+        maxOrders,
+        minMonths,
+        maxMonths
       });
       setUsers(res.users);
       setTotalPages(res.pagination.totalPages || 1);
@@ -197,12 +236,16 @@ export function UsersManagementSection() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, filter]);
+  }, [page, search, filter, sort, statusFilter, profileLoyalty, loyaltyBadges]);
 
   useEffect(() => {
     fetchUsers();
     fetchCustomRoles();
   }, [fetchUsers, fetchCustomRoles]);
+
+  useEffect(() => {
+    loyaltyBadgeService.getBadges().then(setLoyaltyBadges).catch(() => null);
+  }, []);
 
   // Contagem de administradores ativos atualmente
   const activeAdminsCount = useMemo(() => {
@@ -648,11 +691,12 @@ interface FilterTabItem {
         </div>
       </div>
 
-      {/* Barra de Filtros e Busca */}
+      {/* Barra de Filtros e Busca (2 Linhas) */}
       <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
+        {/* LINHA 1: BARRA DE BUSCA EXPANDIDA + SELETORES DE FILTROS & ORDENAÇÃO */}
         <div className="flex flex-col md:flex-row gap-3">
-          {/* Campo de Busca Global (SEM menção a CPF) */}
-          <div className="relative flex-1">
+          {/* Campo de Busca Global */}
+          <div className="relative flex-1 min-w-[280px] max-w-xl">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
@@ -661,8 +705,8 @@ interface FilterTabItem {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              placeholder="Buscar por Nome, E-mail ou Telefone..."
-              className="w-full pl-10 pr-9 py-2.5 bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/40 transition-all"
+              placeholder="Buscar por nome, e-mail ou telefone..."
+              className="w-full h-11 pl-10 pr-9 bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/40 transition-all"
             />
             {search && (
               <button
@@ -677,8 +721,80 @@ interface FilterTabItem {
             )}
           </div>
 
-          {/* Filtros em Pílulas Dinâmicas (Incluindo Cargos Customizados) */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          {/* Controles de Filtro & Ordenação (Direita) */}
+          <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
+            <select
+              value={sort}
+              onChange={(e) => {
+                setSort(e.target.value);
+                setPage(1);
+              }}
+              className="h-11 px-3 bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl text-xs sm:text-sm text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/40 cursor-pointer"
+            >
+              <option value="recent">Mais recentes</option>
+              <option value="oldest">Mais antigos</option>
+              <option value="orders">Mais compras</option>
+              <option value="alphabetical">Alfabética (A-Z)</option>
+            </select>
+
+            <select
+              value={profileLoyalty}
+              onChange={(e) => {
+                setProfileLoyalty(e.target.value);
+                setPage(1);
+              }}
+              className="h-11 px-3 bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl text-xs sm:text-sm text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/40 cursor-pointer max-w-[200px] text-ellipsis"
+            >
+              <option value="all">Perfil & Fidelidade</option>
+              <optgroup label="Selos de Fidelidade (Clientes)">
+                {loyaltyBadges.map(b => (
+                  <option key={`badge_${b.level}`} value={`badge_${b.level}`}>
+                    {b.icon} {b.name} ({b.minMonths}m{b.minMonths === 0 ? '' : '+'})
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Frequência de Compras">
+                <option value="recurrent">🔁 Clientes Recorrentes (3+ compras)</option>
+                <option value="recent">🛍️ Compradores Recentes (1 a 2 compras)</option>
+                <option value="inactive">💤 Sem compras (0 pedidos)</option>
+              </optgroup>
+            </select>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+              className="h-11 px-3 bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl text-xs sm:text-sm text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/40 cursor-pointer"
+            >
+              <option value="all">Todos os status</option>
+              <option value="active">Apenas Ativos</option>
+              <option value="blocked">Apenas Bloqueados</option>
+            </select>
+
+            {(search || sort !== "recent" || profileLoyalty !== "all" || statusFilter !== "all" || filter !== "all") && (
+              <button
+                onClick={() => {
+                  setSearch("");
+                  setSort("recent");
+                  setProfileLoyalty("all");
+                  setStatusFilter("all");
+                  setFilter("all");
+                  setPage(1);
+                }}
+                className="h-11 px-3 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-all font-semibold flex items-center gap-1 cursor-pointer whitespace-nowrap"
+              >
+                <X className="w-3.5 h-3.5" />
+                Limpar Filtros
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* LINHA 2: ESTEIRA HORIZONTAL DE CARGOS E TIPOS (TABS INDEPENDENTES) */}
+        <div>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
             {filterTabs.map((p) => {
               const active = filter === p.id;
               const colorStyle = p.color && ROLE_COLOR_STYLES[p.color] ? ROLE_COLOR_STYLES[p.color] : null;
@@ -708,6 +824,9 @@ interface FilterTabItem {
                 </button>
               );
             })}
+          </div>
+          <div className="mt-2 text-xs text-muted-foreground">
+            Exibindo {users.length} de {totalCount} usuários encontrados
           </div>
         </div>
       </div>
