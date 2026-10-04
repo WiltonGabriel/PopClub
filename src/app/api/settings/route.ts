@@ -33,6 +33,15 @@ const DEFAULT_SETTINGS = {
     { day: "saturday", label: "Sábado", isOpen: true, openTime: "13:00", closeTime: "23:30" },
     { day: "sunday", label: "Domingo", isOpen: true, openTime: "13:00", closeTime: "23:00" },
   ],
+  openingHoursText: "Terça a Domingo das 14h às 22h",
+  orderNotificationTemplates: {
+    pending: "Olá, {cliente}! Recebemos seu pedido #{codigo_pedido} no Pop Shake. Estamos preparando tudo com muito carinho! Total: {total} ({forma_pagamento}).",
+    preparing: "Seu pedido #{codigo_pedido} já está na cozinha sendo preparado! Tempo estimado: {tempo_estimado}.",
+    ready: "Oba, {cliente}! Seu pedido #{codigo_pedido} está prontinho na bancada aguardando saída.",
+    delivering: "Seu pedido #{codigo_pedido} saiu para entrega! Acompanhe o motoboy em tempo real: {link_rastreamento}",
+    completed: "Pedido #{codigo_pedido} entregue com sucesso! Obrigado pela preferência, {cliente}! 🍧 Avalie nosso atendimento e ganhe mimos!",
+    support: "Olá, {cliente}! Precisa de ajuda com o pedido #{codigo_pedido}? Estamos à disposição pelo WhatsApp ou telefone da loja.",
+  },
   instagramUrl: "https://instagram.com/popshake",
   facebookUrl: "",
   supportPhone: "5565999999999",
@@ -71,6 +80,8 @@ const settingsUpdateSchema = z.object({
   storeAddress: z.string().nullable().optional(),
   maxDeliveryRadiusKm: z.preprocess(coerceNullableNumber, z.number().min(0).nullable()).optional(),
   businessHours: z.any().optional(),
+  openingHoursText: z.string().nullable().optional(),
+  orderNotificationTemplates: z.any().optional(),
   instagramUrl: z.string().nullable().optional(),
   facebookUrl: z.string().nullable().optional(),
   supportPhone: z.string().nullable().optional(),
@@ -116,6 +127,8 @@ export async function GET() {
       storeAddress: settings.storeAddress || DEFAULT_SETTINGS.storeAddress,
       maxDeliveryRadiusKm: settings.maxDeliveryRadiusKm ?? DEFAULT_SETTINGS.maxDeliveryRadiusKm,
       businessHours: settings.businessHours || DEFAULT_SETTINGS.businessHours,
+      openingHoursText: settings.openingHoursText || DEFAULT_SETTINGS.openingHoursText,
+      orderNotificationTemplates: settings.orderNotificationTemplates || DEFAULT_SETTINGS.orderNotificationTemplates,
       instagramUrl: settings.instagramUrl || DEFAULT_SETTINGS.instagramUrl,
       facebookUrl: settings.facebookUrl || DEFAULT_SETTINGS.facebookUrl,
       supportPhone: settings.supportPhone || DEFAULT_SETTINGS.supportPhone,
@@ -143,6 +156,8 @@ export async function GET() {
       storeAddress: DEFAULT_SETTINGS.storeAddress,
       maxDeliveryRadiusKm: DEFAULT_SETTINGS.maxDeliveryRadiusKm,
       businessHours: DEFAULT_SETTINGS.businessHours,
+      openingHoursText: DEFAULT_SETTINGS.openingHoursText,
+      orderNotificationTemplates: DEFAULT_SETTINGS.orderNotificationTemplates,
       instagramUrl: DEFAULT_SETTINGS.instagramUrl,
       facebookUrl: DEFAULT_SETTINGS.facebookUrl,
       supportPhone: DEFAULT_SETTINGS.supportPhone,
@@ -191,6 +206,8 @@ export async function PUT(request: Request) {
       storeAddress,
       maxDeliveryRadiusKm,
       businessHours,
+      openingHoursText,
+      orderNotificationTemplates,
       instagramUrl,
       facebookUrl,
       supportPhone,
@@ -218,6 +235,8 @@ export async function PUT(request: Request) {
     if (storeAddress !== undefined) dataToUpdate.storeAddress = storeAddress;
     if (maxDeliveryRadiusKm !== undefined) dataToUpdate.maxDeliveryRadiusKm = maxDeliveryRadiusKm;
     if (businessHours !== undefined) dataToUpdate.businessHours = businessHours;
+    if (openingHoursText !== undefined) dataToUpdate.openingHoursText = openingHoursText;
+    if (orderNotificationTemplates !== undefined) dataToUpdate.orderNotificationTemplates = orderNotificationTemplates;
     if (instagramUrl !== undefined) dataToUpdate.instagramUrl = instagramUrl;
     if (facebookUrl !== undefined) dataToUpdate.facebookUrl = facebookUrl;
     if (supportPhone !== undefined) dataToUpdate.supportPhone = supportPhone;
@@ -245,6 +264,8 @@ export async function PUT(request: Request) {
         storeAddress: storeAddress || DEFAULT_SETTINGS.storeAddress,
         maxDeliveryRadiusKm: maxDeliveryRadiusKm ?? DEFAULT_SETTINGS.maxDeliveryRadiusKm,
         businessHours: businessHours ?? DEFAULT_SETTINGS.businessHours,
+        openingHoursText: openingHoursText || DEFAULT_SETTINGS.openingHoursText,
+        orderNotificationTemplates: orderNotificationTemplates || DEFAULT_SETTINGS.orderNotificationTemplates,
         instagramUrl: instagramUrl || DEFAULT_SETTINGS.instagramUrl,
         facebookUrl: facebookUrl || DEFAULT_SETTINGS.facebookUrl,
         supportPhone: supportPhone || DEFAULT_SETTINGS.supportPhone,
@@ -273,6 +294,8 @@ export async function PUT(request: Request) {
         storeAddress: settings.storeAddress || DEFAULT_SETTINGS.storeAddress,
         maxDeliveryRadiusKm: settings.maxDeliveryRadiusKm ?? DEFAULT_SETTINGS.maxDeliveryRadiusKm,
         businessHours: settings.businessHours || DEFAULT_SETTINGS.businessHours,
+        openingHoursText: settings.openingHoursText || DEFAULT_SETTINGS.openingHoursText,
+        orderNotificationTemplates: settings.orderNotificationTemplates || DEFAULT_SETTINGS.orderNotificationTemplates,
         instagramUrl: settings.instagramUrl || DEFAULT_SETTINGS.instagramUrl,
         facebookUrl: settings.facebookUrl || DEFAULT_SETTINGS.facebookUrl,
         supportPhone: settings.supportPhone || DEFAULT_SETTINGS.supportPhone,

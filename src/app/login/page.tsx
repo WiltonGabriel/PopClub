@@ -19,9 +19,12 @@ import {
   Mail,
   ArrowRight,
   Sparkles,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { authService } from "../../services/authService";
 import { useAuth } from "../../hooks/useAuth";
+import { useTheme } from "../../contexts/ThemeContext";
 import { formatPhoneInput } from "@/components/auth/FastAccessModal";
 import { PasswordRecoveryRescueModal } from "@/components/auth/PasswordRecoveryRescueModal";
 
@@ -127,6 +130,7 @@ function AuthPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading: authLoading, fastAccess, verifyDevice } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const redirectTarget = searchParams?.get("redirect") || "/";
   const rawTab = searchParams?.get("tab");
@@ -404,33 +408,52 @@ function AuthPageInner() {
         <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-accent/5 dark:bg-accent/10 blur-3xl" />
       </div>
 
-      {/* Top Navigation: Voltar Inteligente e Início */}
-      <div className="absolute top-6 left-6 right-6 flex items-center justify-between z-20 pointer-events-auto">
+      {/* Top Navigation: Barra Superior com Voltar, Início e Alternador de Tema */}
+      <header className="fixed top-0 left-0 right-0 z-30 w-full flex items-center justify-between p-4 sm:p-6 pointer-events-auto">
+        {/* Canto Superior Esquerdo: Voltar e Home lado a lado */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== "undefined" && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push(redirectTarget || "/");
+              }
+            }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-zinc-700 dark:text-zinc-200 hover:text-foreground dark:hover:text-white bg-white/80 dark:bg-zinc-900/80 border border-gray-200/90 dark:border-zinc-800 backdrop-blur-md shadow-xs hover:bg-white dark:hover:bg-zinc-800 transition-all text-xs sm:text-sm font-semibold group cursor-pointer"
+            aria-label="Voltar à tela anterior"
+          >
+            <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+            <span>Voltar</span>
+          </button>
+
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-zinc-700 dark:text-zinc-200 hover:text-foreground dark:hover:text-white bg-white/80 dark:bg-zinc-900/80 border border-gray-200/90 dark:border-zinc-800 backdrop-blur-md shadow-xs hover:bg-white dark:hover:bg-zinc-800 transition-all text-xs sm:text-sm font-semibold cursor-pointer"
+            title="Ir para a Página Inicial"
+            aria-label="Página Inicial"
+          >
+            <Home className="w-4 h-4" />
+            <span className="hidden sm:inline">Início</span>
+          </Link>
+        </div>
+
+        {/* Canto Superior Direito: Alternador de Fundo / Tema (Dark / Light Mode) */}
         <button
           type="button"
-          onClick={() => {
-            if (typeof window !== "undefined" && window.history.length > 1) {
-              router.back();
-            } else {
-              router.push(redirectTarget || "/");
-            }
-          }}
-          className="flex items-center gap-1.5 text-[#7A587D] dark:text-muted-foreground hover:text-foreground dark:hover:text-foreground transition-colors text-sm font-medium group cursor-pointer p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5"
-          aria-label="Voltar à tela anterior"
+          onClick={toggleTheme}
+          className="flex items-center justify-center p-2.5 rounded-xl text-zinc-700 dark:text-zinc-200 hover:text-foreground dark:hover:text-white bg-white/80 dark:bg-zinc-900/80 border border-gray-200/90 dark:border-zinc-800 backdrop-blur-md shadow-xs hover:bg-white dark:hover:bg-zinc-800 transition-all cursor-pointer"
+          title={theme === "dark" ? "Mudar para modo claro" : "Mudar para modo escuro"}
+          aria-label={theme === "dark" ? "Ativar Modo Claro" : "Ativar Modo Escuro"}
         >
-          <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-          <span>Voltar</span>
+          {theme === "dark" ? (
+            <Sun className="w-4 h-4 text-amber-400 animate-in spin-in-90 duration-300" />
+          ) : (
+            <Moon className="w-4 h-4 text-violet-600 animate-in spin-in-90 duration-300" />
+          )}
         </button>
-
-        <Link
-          href="/"
-          className="flex items-center justify-center p-2 rounded-xl border border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 text-[#7A587D] dark:text-muted-foreground hover:text-foreground dark:hover:text-foreground transition-colors"
-          title="Ir para a Página Inicial"
-          aria-label="Página Inicial"
-        >
-          <Home className="w-4 h-4" />
-        </Link>
-      </div>
+      </header>
 
       {/* ── Auth Card ── */}
       <div className="relative z-10 w-full max-w-md pt-8 sm:pt-0">

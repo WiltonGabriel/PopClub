@@ -413,6 +413,8 @@ model StoreSettings {
   supportPhone          String?   @map("support_phone")
   postSaleMessage       String?   @default("Obrigado pelo seu pedido no Pop Shake! Como foi sua experiência hoje? Avalie nosso atendimento e ganhe um cupom de desconto para o próximo pedido! 🍧") @map("post_sale_message")
   supportMessage        String?   @default("Olá! Preciso de ajuda com meu pedido no Pop Shake.") @map("support_message")
+  openingHoursText      String?   @default("Terça a Domingo das 14h às 22h") @map("opening_hours_text")
+  orderNotificationTemplates Json? @map("order_notification_templates")
   faviconUrl            String?   @default("/favicon.ico") @map("favicon_url")
   openedAt               DateTime? @map("opened_at")
   closedAt               DateTime? @map("closed_at")

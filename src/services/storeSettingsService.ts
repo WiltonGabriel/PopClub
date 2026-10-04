@@ -6,6 +6,15 @@ export interface BusinessHourDay {
   closeTime: string;
 }
 
+export interface OrderNotificationTemplates {
+  pending?: string;
+  preparing?: string;
+  ready?: string;
+  delivering?: string;
+  completed?: string;
+  support?: string;
+}
+
 export interface StoreSettings {
   id: string;
   deliveryFee: number;
@@ -22,6 +31,8 @@ export interface StoreSettings {
   storeAddress?: string | null;
   maxDeliveryRadiusKm?: number | null;
   businessHours?: BusinessHourDay[];
+  openingHoursText?: string | null;
+  orderNotificationTemplates?: OrderNotificationTemplates | null;
   instagramUrl?: string | null;
   facebookUrl?: string | null;
   supportPhone?: string | null;
@@ -74,6 +85,15 @@ export const storeSettingsService = {
           { day: "saturday", label: "Sábado", isOpen: true, openTime: "13:00", closeTime: "23:30" },
           { day: "sunday", label: "Domingo", isOpen: true, openTime: "13:00", closeTime: "23:00" },
         ],
+        openingHoursText: "Terça a Domingo das 14h às 22h",
+        orderNotificationTemplates: {
+          pending: "Olá, {cliente}! Recebemos seu pedido #{codigo_pedido} no Pop Shake. Estamos preparando tudo com muito carinho! Total: {total} ({forma_pagamento}).",
+          preparing: "Seu pedido #{codigo_pedido} já está na cozinha sendo preparado! Tempo estimado: {tempo_estimado}.",
+          ready: "Oba, {cliente}! Seu pedido #{codigo_pedido} está prontinho na bancada aguardando saída.",
+          delivering: "Seu pedido #{codigo_pedido} saiu para entrega! Acompanhe o motoboy em tempo real: {link_rastreamento}",
+          completed: "Pedido #{codigo_pedido} entregue com sucesso! Obrigado pela preferência, {cliente}! 🍧 Avalie nosso atendimento e ganhe mimos!",
+          support: "Olá, {cliente}! Precisa de ajuda com o pedido #{codigo_pedido}? Estamos à disposição pelo WhatsApp ou telefone da loja.",
+        },
         instagramUrl: "https://instagram.com/popshake",
         facebookUrl: "",
         supportPhone: "5565999999999",
@@ -98,6 +118,8 @@ export const storeSettingsService = {
     storeAddress?: string | null;
     maxDeliveryRadiusKm?: number | null;
     businessHours?: BusinessHourDay[];
+    openingHoursText?: string | null;
+    orderNotificationTemplates?: OrderNotificationTemplates | null;
     instagramUrl?: string | null;
     facebookUrl?: string | null;
     supportPhone?: string | null;
