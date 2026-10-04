@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser, hashPassword } from "@/lib/auth";
 import { cleanCpf, validateCpf } from "@/lib/cpf";
 import { Role } from "@prisma/client";
-import { isUserAdmin } from "@/lib/permissions";
+import { isUserAdmin, isUserEditor, hasPermission } from "@/lib/permissions";
 
 export async function PATCH(
   request: Request,
@@ -11,13 +11,24 @@ export async function PATCH(
 ) {
   try {
     const authUser = await getAuthUser(request);
-    if (!authUser || !isUserAdmin(authUser)) {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+    if (!authUser) {
+      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     }
 
     const { id } = await params;
     if (!id) {
       return NextResponse.json({ error: "ID de usuário inválido." }, { status: 400 });
+    }
+
+    const isSelf = authUser.id === id;
+    const isAdmin = isUserAdmin(authUser);
+    const hasUsersManage = isUserEditor(authUser) && hasPermission(authUser, "users_manage");
+
+    if (!isSelf && !isAdmin && !hasUsersManage) {
+      return NextResponse.json(
+        { error: "Acesso negado. Permissão users_manage necessária para editar outros usuários." },
+        { status: 403 }
+      );
     }
 
     const targetUser = await prisma.user.findUnique({
@@ -52,6 +63,9 @@ export async function PATCH(
 
     // 1. Verificação de Alteração de Cargo (Role)
     if (role !== undefined) {
+      if (!isAdmin) {
+        return NextResponse.json({ error: "Apenas administradores podem alterar cargos." }, { status: 403 });
+      }
       const normalizedRole = String(role).toUpperCase();
       if (!["ADMIN", "EDITOR", "CLIENT"].includes(normalizedRole)) {
         return NextResponse.json({ error: "Cargo informado inválido." }, { status: 400 });
@@ -89,6 +103,9 @@ export async function PATCH(
 
     // 2. Verificação de Permissões
     if (permissions !== undefined) {
+      if (!isAdmin) {
+        return NextResponse.json({ error: "Apenas administradores podem alterar permissões." }, { status: 403 });
+      }
       if (!Array.isArray(permissions)) {
         return NextResponse.json({ error: "Permissões devem ser uma lista." }, { status: 400 });
       }
@@ -236,8 +253,9 @@ export async function DELETE(
 ) {
   try {
     const authUser = await getAuthUser(request);
-    if (!authUser || !isUserAdmin(authUser)) {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+    const hasUsersManage = isUserAdmin(authUser) || (isUserEditor(authUser) && hasPermission(authUser, "users_manage"));
+    if (!authUser || !hasUsersManage) {
+      return NextResponse.json({ error: "Acesso negado. Permissão users_manage necessária." }, { status: 403 });
     }
 
     const { id } = await params;

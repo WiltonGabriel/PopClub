@@ -24,6 +24,9 @@ export interface UserProfile {
   phone: string | null;
   notificationsEnabled?: boolean;
   notifications_enabled?: boolean;
+  lastNameChangedAt?: string | null;
+  lastEmailChangedAt?: string | null;
+  lastPasswordChangedAt?: string | null;
   created_at: string;
 }
 
@@ -68,14 +71,17 @@ export const userService = {
     return await res.json();
   },
 
-  async updateProfile(_userId: string, updates: Partial<UserProfile>): Promise<UserProfile> {
+  async updateProfile(
+    _userId: string, 
+    updates: Partial<UserProfile> & { current_password?: string; new_password?: string }
+  ): Promise<UserProfile> {
     const res = await fetch("/api/users/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates),
     });
     if (!res.ok) {
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       throw new Error(data.error || "Erro ao atualizar perfil.");
     }
     return await res.json();

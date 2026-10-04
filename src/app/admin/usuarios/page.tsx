@@ -20,22 +20,24 @@ import { UsersManagementSection } from "@/components/admin/UsersManagementSectio
 import { MobileOrientationBanner } from "@/components/admin/MobileOrientationBanner";
 
 export default function AdminUsuariosPage() {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, canAccess } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const router = useRouter();
+
+  const canAccessUsers = isAdmin || canAccess("users_manage") || canAccess("USERS_MANAGE");
 
   useEffect(() => {
     if (!loading) {
       if (!user) {
         router.push("/login?redirect=/admin/usuarios");
-      } else if (!isAdmin) {
-        // Redireciona editores ou clientes que tentem acessar diretamente
+      } else if (!canAccessUsers) {
+        // Redireciona editores ou clientes que tentem acessar sem a permissão users_manage
         router.push("/admin/pedidos?unauthorized=true");
       }
     }
-  }, [user, loading, isAdmin, router]);
+  }, [user, loading, canAccessUsers, router]);
 
-  if (loading || (!isAdmin && user)) {
+  if (loading || (!canAccessUsers && user)) {
     return (
       <div className="flex-1 flex items-center justify-center min-h-screen bg-transparent">
         <div className="text-center space-y-3">

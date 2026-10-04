@@ -61,6 +61,9 @@ export async function POST(request: Request) {
         passwordHash,
         resetCode: null,
         resetCodeExpires: null,
+        recoveryRequestCount: 0,
+        recoveryBlockedUntil: null,
+        lastPasswordChangedAt: new Date(),
       },
     });
 

@@ -16,12 +16,15 @@ import {
   ShieldAlert,
   MapPin,
   X,
-  ArrowRight,
   Mail,
+  ArrowRight,
+  Sparkles,
+  KeyRound,
 } from "lucide-react";
 import { authService } from "../../services/authService";
 import { useAuth } from "../../hooks/useAuth";
 import { formatPhoneInput } from "@/components/auth/FastAccessModal";
+import { PasswordRecoveryRescueModal } from "@/components/auth/PasswordRecoveryRescueModal";
 
 interface MaskedAddressInfo {
   addressId?: string;
@@ -161,14 +164,72 @@ function AuthPageInner() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  /* ── Aba 3: Criar Conta / Cadastro State ── */
-  const [registerFullName, setRegisterFullName] = useState("");
-  const [registerEmail, setRegisterEmail] = useState("");
-  const [registerPhone, setRegisterPhone] = useState("");
-  const [registerPassword, setRegisterPassword] = useState("");
-  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
-  const [registerLoading, setRegisterLoading] = useState(false);
-  const [registerError, setRegisterError] = useState<string | null>(null);
+  // Regra de 2 Tentativas de Senha & Modal de Resgate via WhatsApp / Email
+  const [failedPasswordAttempts, setFailedPasswordAttempts] = useState(0);
+  const [isRescueModalOpen, setIsRescueModalOpen] = useState(false);
+
+  // Reconhecimento de cliente cadastrado na aba de Acesso Rápido
+  const [fastRegisteredDetected, setFastRegisteredDetected] = useState(false);
+  const [fastPassword, setFastPassword] = useState("");
+  const [showFastPassword, setShowFastPassword] = useState(false);
+  const [fastPasswordLoading, setFastPasswordLoading] = useState(false);
+  const [isFastBypass, setIsFastBypass] = useState(false);
+
+  useEffect(() => {
+    const raw = fastPhone.replace(/\D/g, "");
+    if (isFastBypass) return;
+    if (raw.length === 11) {
+      const timer = setTimeout(async () => {
+        try {
+          const res = await fetch(`/api/auth/check-phone?phone=${raw}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.exists && data.isRegistered && data.hasPassword) {
+              setFastRegisteredDetected(true);
+              if (data.fullName && !fastName.trim()) {
+                setFastName(data.fullName);
+              }
+            } else {
+              setFastRegisteredDetected(false);
+            }
+          }
+        } catch (err) {
+          console.error("Erro na verificação de telefone no login:", err);
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    } else {
+      setFastRegisteredDetected(false);
+    }
+  }, [fastPhone, isFastBypass, fastName]);
+
+  const handleFastPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFastError(null);
+    const cleanPhone = fastPhone.replace(/\D/g, "");
+
+    if (!fastPassword) {
+      setFastError("Informe sua senha de acesso.");
+      return;
+    }
+
+    setFastPasswordLoading(true);
+    try {
+      await authService.signIn(cleanPhone, fastPassword);
+      setFailedPasswordAttempts(0);
+      window.location.replace(redirectTarget);
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : (err as { message?: string })?.message;
+      const nextFailures = failedPasswordAttempts + 1;
+      setFailedPasswordAttempts(nextFailures);
+      if (nextFailures >= 2) {
+        setIsRescueModalOpen(true);
+      }
+      setFastError(errorMsg || "Senha incorreta. Tente novamente.");
+    } finally {
+      setFastPasswordLoading(false);
+    }
+  };
 
   /* ── Handlers de Acesso Rápido ── */
   const handleFastAccessSubmit = async (e: React.FormEvent) => {
@@ -245,6 +306,15 @@ function AuthPageInner() {
     }
   };
 
+  /* ── Aba 3: Criar Conta / Cadastro State ── */
+  const [registerFullName, setRegisterFullName] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPhone, setRegisterPhone] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [registerLoading, setRegisterLoading] = useState(false);
+  const [registerError, setRegisterError] = useState<string | null>(null);
+
   /* ── Handlers de Login com Senha ── */
   const handlePasswordLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -252,9 +322,15 @@ function AuthPageInner() {
     setLoginLoading(true);
     try {
       await authService.signIn(loginId.trim(), loginPassword);
+      setFailedPasswordAttempts(0);
       window.location.replace(redirectTarget);
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : (err as { message?: string })?.message;
+      const nextFailures = failedPasswordAttempts + 1;
+      setFailedPasswordAttempts(nextFailures);
+      if (nextFailures >= 2) {
+        setIsRescueModalOpen(true);
+      }
       setLoginError(errorMsg || "Credenciais inválidas.");
     } finally {
       setLoginLoading(false);
@@ -769,7 +845,7 @@ function AuthPageInner() {
                       setRegisterFullName(e.target.value);
                       if (registerError) setRegisterError(null);
                     }}
-                    placeholder="Ex: Gabriel Aluno QA"
+                    placeholder="Ex: Maria Silva"
                     required
                     autoComplete="name"
                     leftIcon={<User className="w-4 h-4" />}
@@ -809,7 +885,7 @@ function AuthPageInner() {
                       setRegisterEmail(e.target.value);
                       if (registerError) setRegisterError(null);
                     }}
-                    placeholder="gabriel.qa@popclub.test"
+                    placeholder="seuemail@exemplo.com"
                     required
                     autoComplete="email"
                     leftIcon={<Mail className="w-4 h-4" />}

@@ -55,6 +55,11 @@ model User {
   resetCode             String?            @map("reset_code")
   resetCodeExpires      DateTime?          @map("reset_code_expires")
   notificationsEnabled  Boolean            @default(true) @map("notifications_enabled")
+  lastNameChangedAt     DateTime?          @map("last_name_changed_at")
+  lastEmailChangedAt    DateTime?          @map("last_email_changed_at")
+  lastPasswordChangedAt DateTime?          @map("last_password_changed_at")
+  recoveryRequestCount  Int                @default(0) @map("recovery_request_count")
+  recoveryBlockedUntil  DateTime?          @map("recovery_blocked_until")
   createdAt             DateTime           @default(now()) @map("created_at")
   updatedAt             DateTime           @updatedAt @map("updated_at")
   locations             UserLocation[]

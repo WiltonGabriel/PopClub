@@ -23,6 +23,10 @@ export const PERMISSION_KEYS = {
   TAB_CHANNELS: "TAB_CHANNELS",
   TAB_BROADCAST: "TAB_BROADCAST",
   TAB_AVATARS: "TAB_AVATARS",
+
+  // Gestão de Usuários e Equipe
+  USERS_MANAGE: "users_manage",
+  users_manage: "users_manage",
 } as const;
 
 export type PermissionKey = keyof typeof PERMISSION_KEYS;
@@ -139,6 +143,13 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     category: "estrategico",
     iconName: "Sparkles",
   },
+  {
+    id: "users_manage",
+    label: "👥 Gestão de Usuários & Equipe",
+    description: "Editar perfis de outros colaboradores ou clientes.",
+    category: "estrategico",
+    iconName: "Users",
+  },
 ];
 
 /**
@@ -194,7 +205,8 @@ export function hasPermission(
 
   if (normalizedRole === "EDITOR") {
     if (!Array.isArray(user.permissions)) return false;
-    return user.permissions.includes(permission);
+    const target = permission.toLowerCase();
+    return user.permissions.some((p) => typeof p === "string" && p.toLowerCase() === target);
   }
 
   return false;

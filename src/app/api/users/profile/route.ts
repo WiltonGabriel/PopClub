@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthUser } from "@/lib/auth";
+import { getAuthUser, verifyPassword, hashPassword } from "@/lib/auth";
 
 const DEFAULT_AVATAR = "/avatars/avatar-sorvete.svg";
 const GUEST_DEFAULT_AVATAR = "/avatars/avatar-guest-user.svg";
@@ -33,6 +33,9 @@ export async function GET(request: Request) {
         phone: true,
         isRegistered: true,
         notificationsEnabled: true,
+        lastNameChangedAt: true,
+        lastEmailChangedAt: true,
+        lastPasswordChangedAt: true,
         createdAt: true,
       },
     });
@@ -72,6 +75,9 @@ export async function GET(request: Request) {
       isRegistered: Boolean(profile.isRegistered),
       notificationsEnabled: Boolean(profile.notificationsEnabled ?? true),
       notifications_enabled: Boolean(profile.notificationsEnabled ?? true),
+      lastNameChangedAt: profile.lastNameChangedAt?.toISOString() || null,
+      lastEmailChangedAt: profile.lastEmailChangedAt?.toISOString() || null,
+      lastPasswordChangedAt: profile.lastPasswordChangedAt?.toISOString() || null,
       created_at: profile.createdAt.toISOString(),
     });
   } catch (error: any) {
@@ -105,19 +111,156 @@ async function handleUpdateProfile(request: Request) {
       );
     }
 
+    // Buscar configurações e usuário já existentes para fusão segura sem perda de dados
+    const current = await prisma.user.findUnique({
+      where: { id: authUser.id },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        passwordHash: true,
+        isRegistered: true,
+        accessibilitySettings: true,
+        lastNameChangedAt: true,
+        lastEmailChangedAt: true,
+        lastPasswordChangedAt: true,
+      },
+    });
+
+    const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
     const dataToUpdate: any = {};
-    if (body?.full_name !== undefined) dataToUpdate.fullName = body.full_name;
+
+    // 1. Alteração de Nome Completo
+    const requestedName = body?.full_name ?? body?.fullName;
+    if (requestedName !== undefined && requestedName.trim() !== (current?.fullName || "")) {
+      if (current?.lastNameChangedAt) {
+        const diff = Date.now() - new Date(current.lastNameChangedAt).getTime();
+        if (diff < FOURTEEN_DAYS_MS) {
+          const daysLeft = Math.ceil((FOURTEEN_DAYS_MS - diff) / (24 * 60 * 60 * 1000));
+          return NextResponse.json(
+            {
+              error: `Dado alterado recentemente. Próxima alteração permitida em ${daysLeft} ${daysLeft === 1 ? "dia" : "dias"}.`,
+              code: "COOLDOWN_ACTIVE",
+            },
+            { status: 400 }
+          );
+        }
+      }
+
+      if (current?.isRegistered && current?.passwordHash) {
+        const currentPassword = body?.current_password || body?.currentPassword;
+        if (!currentPassword) {
+          return NextResponse.json(
+            { error: "Informe sua senha atual para alterar o nome.", code: "PASSWORD_REQUIRED" },
+            { status: 400 }
+          );
+        }
+        const isValid = await verifyPassword(currentPassword, current.passwordHash);
+        if (!isValid) {
+          return NextResponse.json({ error: "Senha atual incorreta.", code: "INVALID_PASSWORD" }, { status: 401 });
+        }
+      }
+
+      dataToUpdate.fullName = requestedName.trim();
+      dataToUpdate.lastNameChangedAt = new Date();
+    }
+
+    // 2. Alteração de E-mail
+    if (body?.email !== undefined) {
+      const nextEmail = body.email.trim().toLowerCase();
+      if (nextEmail !== (current?.email || "").toLowerCase()) {
+        if (current?.lastEmailChangedAt) {
+          const diff = Date.now() - new Date(current.lastEmailChangedAt).getTime();
+          if (diff < FOURTEEN_DAYS_MS) {
+            const daysLeft = Math.ceil((FOURTEEN_DAYS_MS - diff) / (24 * 60 * 60 * 1000));
+            return NextResponse.json(
+              {
+                error: `Dado alterado recentemente. Próxima alteração permitida em ${daysLeft} ${daysLeft === 1 ? "dia" : "dias"}.`,
+                code: "COOLDOWN_ACTIVE",
+              },
+              { status: 400 }
+            );
+          }
+        }
+
+        if (current?.isRegistered && current?.passwordHash) {
+          const currentPassword = body?.current_password || body?.currentPassword;
+          if (!currentPassword) {
+            return NextResponse.json(
+              { error: "Informe sua senha atual para alterar o e-mail.", code: "PASSWORD_REQUIRED" },
+              { status: 400 }
+            );
+          }
+          const isValid = await verifyPassword(currentPassword, current.passwordHash);
+          if (!isValid) {
+            return NextResponse.json({ error: "Senha atual incorreta.", code: "INVALID_PASSWORD" }, { status: 401 });
+          }
+        }
+
+        const existing = await prisma.user.findFirst({
+          where: { email: nextEmail, id: { not: authUser.id } },
+        });
+        if (existing) {
+          return NextResponse.json(
+            { error: "Este e-mail já está sendo utilizado por outra conta.", code: "EMAIL_IN_USE" },
+            { status: 400 }
+          );
+        }
+
+        dataToUpdate.email = nextEmail;
+        dataToUpdate.lastEmailChangedAt = new Date();
+      }
+    }
+
+    // 3. Redefinição de Senha
+    const requestedNewPassword = body?.new_password || body?.newPassword;
+    if (requestedNewPassword !== undefined && String(requestedNewPassword).trim().length > 0) {
+      if (current?.lastPasswordChangedAt) {
+        const diff = Date.now() - new Date(current.lastPasswordChangedAt).getTime();
+        if (diff < FOURTEEN_DAYS_MS) {
+          const daysLeft = Math.ceil((FOURTEEN_DAYS_MS - diff) / (24 * 60 * 60 * 1000));
+          return NextResponse.json(
+            {
+              error: `Dado alterado recentemente. Próxima alteração permitida em ${daysLeft} ${daysLeft === 1 ? "dia" : "dias"}.`,
+              code: "COOLDOWN_ACTIVE",
+            },
+            { status: 400 }
+          );
+        }
+      }
+
+      if (current?.isRegistered && current?.passwordHash) {
+        const currentPassword = body?.current_password || body?.currentPassword;
+        if (!currentPassword) {
+          return NextResponse.json(
+            { error: "Informe sua senha atual para definir a nova senha.", code: "PASSWORD_REQUIRED" },
+            { status: 400 }
+          );
+        }
+        const isValid = await verifyPassword(currentPassword, current.passwordHash);
+        if (!isValid) {
+          return NextResponse.json({ error: "Senha atual incorreta.", code: "INVALID_PASSWORD" }, { status: 401 });
+        }
+      }
+
+      const newPass = String(requestedNewPassword).trim();
+      if (newPass.length < 6) {
+        return NextResponse.json(
+          { error: "A nova senha deve ter no mínimo 6 caracteres.", code: "PASSWORD_TOO_SHORT" },
+          { status: 400 }
+        );
+      }
+
+      dataToUpdate.passwordHash = await hashPassword(newPass);
+      dataToUpdate.lastPasswordChangedAt = new Date();
+    }
+
     if (body?.avatar_url !== undefined) dataToUpdate.avatarUrl = body.avatar_url;
     if (body?.avatar !== undefined) dataToUpdate.avatarUrl = body.avatar;
     if (body?.phone !== undefined) dataToUpdate.phone = body.phone;
     if (body?.notificationsEnabled !== undefined) dataToUpdate.notificationsEnabled = Boolean(body.notificationsEnabled);
     if (body?.notifications_enabled !== undefined) dataToUpdate.notificationsEnabled = Boolean(body.notifications_enabled);
 
-    // Buscar configurações já existentes para fusão segura sem perda de dados
-    const current = await prisma.user.findUnique({
-      where: { id: authUser.id },
-      select: { accessibilitySettings: true },
-    });
     const currentSettings = (current?.accessibilitySettings as Record<string, any>) || {};
     let newSettings: Record<string, any> = { ...currentSettings };
 
@@ -179,6 +322,9 @@ async function handleUpdateProfile(request: Request) {
       isRegistered: Boolean(updated.isRegistered),
       notificationsEnabled: Boolean(updated.notificationsEnabled ?? true),
       notifications_enabled: Boolean(updated.notificationsEnabled ?? true),
+      lastNameChangedAt: updated.lastNameChangedAt?.toISOString() || null,
+      lastEmailChangedAt: updated.lastEmailChangedAt?.toISOString() || null,
+      lastPasswordChangedAt: updated.lastPasswordChangedAt?.toISOString() || null,
       created_at: updated.createdAt.toISOString(),
     });
   } catch (error: any) {

@@ -2,14 +2,15 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser, hashPassword } from "@/lib/auth";
 import { cleanCpf, validateCpf } from "@/lib/cpf";
-import { DEFAULT_EDITOR_PERMISSIONS, isUserAdmin } from "@/lib/permissions";
+import { DEFAULT_EDITOR_PERMISSIONS, isUserAdmin, isUserEditor, hasPermission } from "@/lib/permissions";
 import { Role, Prisma } from "@prisma/client";
 
 export async function GET(request: Request) {
   try {
     const authUser = await getAuthUser(request);
-    if (!authUser || !isUserAdmin(authUser)) {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+    const hasUsersManage = isUserAdmin(authUser) || (isUserEditor(authUser) && hasPermission(authUser, "users_manage"));
+    if (!authUser || !hasUsersManage) {
+      return NextResponse.json({ error: "Acesso negado. Permissão users_manage necessária." }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -119,8 +120,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const authUser = await getAuthUser(request);
-    if (!authUser || !isUserAdmin(authUser)) {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+    const hasUsersManage = isUserAdmin(authUser) || (isUserEditor(authUser) && hasPermission(authUser, "users_manage"));
+    if (!authUser || !hasUsersManage) {
+      return NextResponse.json({ error: "Acesso negado. Permissão users_manage necessária." }, { status: 403 });
     }
 
     let body: Record<string, unknown>;

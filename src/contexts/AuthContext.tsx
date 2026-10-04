@@ -24,6 +24,9 @@ export interface AppUser {
   default_change_for?: number | null;
   createdAt?: string | Date | null;
   created_at?: string | Date | null;
+  lastNameChangedAt?: string | null;
+  lastEmailChangedAt?: string | null;
+  lastPasswordChangedAt?: string | null;
   user_metadata?: {
     username?: string;
     full_name?: string;

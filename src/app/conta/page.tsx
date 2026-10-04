@@ -42,6 +42,10 @@ import {
   Pencil,
   Users,
   Lock,
+  AlertCircle,
+  AtSign,
+  KeyRound,
+  EyeOff,
 } from "lucide-react";
 import { notificationService, AppNotification } from "../../services/notificationService";
 import { useAuth } from "../../hooks/useAuth";
@@ -53,8 +57,8 @@ import {
 } from "../../contexts/AccessibilityContext";
 import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 import { CompleteRegistrationModal } from "@/components/auth/CompleteRegistrationModal";
+import { PasswordRecoveryRescueModal } from "@/components/auth/PasswordRecoveryRescueModal";
 import { formatPhoneInput } from "@/components/auth/FastAccessModal";
-import { formatCpf } from "@/lib/cpf";
 import { BottomNav } from "../../components/storefront/BottomNav";
 import { useToast } from "../../components/ui/ToastNotification";
 import { userService, UserProfile } from "../../services/userService";
@@ -127,6 +131,16 @@ function formatRelativeTime(dateString: string): string {
   } catch {
     return "";
   }
+}
+
+function getDaysRemaining(changedAt?: string | null): number {
+  if (!changedAt) return 0;
+  const changedTime = new Date(changedAt).getTime();
+  if (isNaN(changedTime)) return 0;
+  const diffMs = Date.now() - changedTime;
+  const fourteenDaysMs = 14 * 24 * 60 * 60 * 1000;
+  if (diffMs >= fourteenDaysMs) return 0;
+  return Math.max(1, Math.ceil((fourteenDaysMs - diffMs) / (24 * 60 * 60 * 1000)));
 }
 
 interface ProfileBadgeInfo {
@@ -285,6 +299,32 @@ export default function AccountPage() {
   const [fullName, setFullName] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState("/avatars/avatar-sorvete.svg");
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+
+  // Estados de Segurança e Edição de Perfil
+  const [isNameModalOpen, setIsNameModalOpen] = useState(false);
+  const [newNameInput, setNewNameInput] = useState("");
+  const [namePasswordInput, setNamePasswordInput] = useState("");
+  const [isSubmittingName, setIsSubmittingName] = useState(false);
+
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [newEmailInput, setNewEmailInput] = useState("");
+  const [emailPasswordInput, setEmailPasswordInput] = useState("");
+  const [isSubmittingEmail, setIsSubmittingEmail] = useState(false);
+
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [currentPasswordInput, setCurrentPasswordInput] = useState("");
+  const [newPasswordInput, setNewPasswordInput] = useState("");
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState("");
+  const [showPasswordCurrent, setShowPasswordCurrent] = useState(false);
+  const [showPasswordNew, setShowPasswordNew] = useState(false);
+  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+
+  const [isRescueModalOpen, setIsRescueModalOpen] = useState(false);
+
+  // Carência de 14 Dias (2 Semanas)
+  const nameDaysRemaining = getDaysRemaining(profile?.lastNameChangedAt || user?.lastNameChangedAt);
+  const emailDaysRemaining = getDaysRemaining(profile?.lastEmailChangedAt || user?.lastEmailChangedAt);
+  const passwordDaysRemaining = getDaysRemaining(profile?.lastPasswordChangedAt || user?.lastPasswordChangedAt);
 
   // Preferências de Pagamento na Entrega
   const [preferredPaymentMethod, setPreferredPaymentMethod] = useState<"pix_entrega" | "cartao_maquininha" | "dinheiro">("pix_entrega");
@@ -497,6 +537,130 @@ export default function AccountPage() {
       });
     } finally {
       setIsUpdatingProfile(false);
+    }
+  };
+
+  // Ação: Alterar Nome Completo com Confirmação de Senha e Carência
+  const handleChangeName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    if (!newNameInput.trim()) {
+      showToast({ type: "error", title: "Nome Obrigatório", message: "Informe seu novo nome completo." });
+      return;
+    }
+    if (user.isRegistered && !namePasswordInput) {
+      showToast({ type: "error", title: "Senha Necessária", message: "Informe sua senha atual para confirmar a alteração." });
+      return;
+    }
+    setIsSubmittingName(true);
+    try {
+      const updated = await userService.updateProfile(user.id, {
+        full_name: newNameInput.trim(),
+        current_password: namePasswordInput || undefined,
+      });
+      setProfile(updated);
+      setFullName(updated.full_name || "");
+      await refreshUser();
+      setIsNameModalOpen(false);
+      setNamePasswordInput("");
+      showToast({
+        type: "success",
+        title: "Nome Atualizado!",
+        message: "Seu nome foi alterado com sucesso.",
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Não foi possível alterar o nome.";
+      showToast({
+        type: "error",
+        title: "Erro ao alterar nome",
+        message,
+      });
+    } finally {
+      setIsSubmittingName(false);
+    }
+  };
+
+  // Ação: Alterar E-mail com Confirmação de Senha e Carência
+  const handleChangeEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    if (!newEmailInput.trim() || !newEmailInput.includes("@")) {
+      showToast({ type: "error", title: "E-mail Inválido", message: "Informe um e-mail válido." });
+      return;
+    }
+    if (user.isRegistered && !emailPasswordInput) {
+      showToast({ type: "error", title: "Senha Necessária", message: "Informe sua senha atual para confirmar a alteração." });
+      return;
+    }
+    setIsSubmittingEmail(true);
+    try {
+      const updated = await userService.updateProfile(user.id, {
+        email: newEmailInput.trim().toLowerCase(),
+        current_password: emailPasswordInput || undefined,
+      });
+      setProfile(updated);
+      await refreshUser();
+      setIsEmailModalOpen(false);
+      setEmailPasswordInput("");
+      showToast({
+        type: "success",
+        title: "E-mail Atualizado!",
+        message: "Seu e-mail de acesso foi alterado com sucesso.",
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Não foi possível alterar o e-mail.";
+      showToast({
+        type: "error",
+        title: "Erro ao alterar e-mail",
+        message,
+      });
+    } finally {
+      setIsSubmittingEmail(false);
+    }
+  };
+
+  // Ação: Redefinir Senha com Senha Atual e Nova Senha
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    if (!currentPasswordInput) {
+      showToast({ type: "error", title: "Senha Atual", message: "Informe sua senha atual." });
+      return;
+    }
+    if (newPasswordInput.length < 8) {
+      showToast({ type: "error", title: "Senha Curta", message: "A nova senha deve ter no mínimo 8 caracteres." });
+      return;
+    }
+    if (newPasswordInput !== confirmPasswordInput) {
+      showToast({ type: "error", title: "Senhas Divergentes", message: "A confirmação da nova senha não confere." });
+      return;
+    }
+    setIsSubmittingPassword(true);
+    try {
+      const updated = await userService.updateProfile(user.id, {
+        new_password: newPasswordInput,
+        current_password: currentPasswordInput,
+      });
+      setProfile(updated);
+      await refreshUser();
+      setIsPasswordModalOpen(false);
+      setCurrentPasswordInput("");
+      setNewPasswordInput("");
+      setConfirmPasswordInput("");
+      showToast({
+        type: "success",
+        title: "Senha Redefinida!",
+        message: "Sua senha de acesso foi redefinida com sucesso.",
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Não foi possível redefinir a senha.";
+      showToast({
+        type: "error",
+        title: "Erro ao redefinir senha",
+        message,
+      });
+    } finally {
+      setIsSubmittingPassword(false);
     }
   };
 
@@ -832,10 +996,10 @@ export default function AccountPage() {
                 {/* 4. Gestão de Usuários & Equipe */}
                 <Link
                   href="/admin/usuarios"
-                  className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all active:scale-[0.99]"
+                  className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 hover:border-amber-500/50 dark:hover:border-amber-500/50 hover:shadow-md transition-all active:scale-[0.99]"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-primary dark:text-violet-400 group-hover:scale-105 transition-transform shrink-0">
+                    <div className="p-2 rounded-lg bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30 group-hover:scale-105 transition-transform shrink-0">
                       <Users className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
@@ -847,7 +1011,7 @@ export default function AccountPage() {
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all shrink-0" />
                 </Link>
               </div>
             </div>
@@ -930,6 +1094,29 @@ export default function AccountPage() {
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+                  </Link>
+                )}
+
+                {/* 4. Gestão de Usuários & Equipe (se permitido via RBAC) */}
+                {canAccess("USERS_MANAGE") && (
+                  <Link
+                    href="/admin/usuarios"
+                    className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 hover:border-amber-500/50 dark:hover:border-amber-500/50 hover:shadow-md transition-all active:scale-[0.99]"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="p-2 rounded-lg bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30 group-hover:scale-105 transition-transform shrink-0">
+                        <Users className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-heading font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
+                          Usuários & Equipe
+                        </p>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          Controle de acessos e colaboradores
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all shrink-0" />
                   </Link>
                 )}
               </div>
@@ -1163,67 +1350,182 @@ export default function AccountPage() {
                 </div>
               </div>
               
-              <form onSubmit={handleUpdateProfile} className="space-y-5">
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                    Nome Completo
-                  </Label>
-                  <Input 
-                    value={fullName}
-                    onChange={e => setFullName(e.target.value)}
-                    placeholder="Seu nome completo"
-                    className="h-12 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-[#1F0B22] dark:border-[#512B54]/50 dark:text-white focus-visible:ring-2 focus-visible:ring-[#9306CF]/20 focus-visible:border-[#9306CF]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                    Email
-                  </Label>
-                  <Input 
-                    value={user?.email || ""}
+              <div className="space-y-4">
+                {/* 1. Nome Completo */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 shadow-xs transition-all">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-2.5">
+                    <div>
+                      <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-primary" /> Nome Completo
+                      </Label>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Identificação em pedidos, notas e programa de vantagens.
+                      </p>
+                    </div>
+
+                    {nameDaysRemaining > 0 ? (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-semibold w-fit">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>Próxima alteração em {nameDaysRemaining} {nameDaysRemaining === 1 ? "dia" : "dias"}</span>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setNewNameInput(profile?.full_name || user?.fullName || fullName || "");
+                          setNamePasswordInput("");
+                          setIsNameModalOpen(true);
+                        }}
+                        className="h-8 px-3 rounded-xl border-gray-200 dark:border-zinc-700 hover:border-primary text-xs font-bold text-zinc-700 dark:text-zinc-200 hover:text-primary transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+                      >
+                        <Pencil className="w-3 h-3" /> Alterar Nome
+                      </Button>
+                    )}
+                  </div>
+
+                  <Input
+                    value={profile?.full_name || user?.fullName || fullName || "Não informado"}
+                    readOnly
                     disabled
-                    className="h-12 rounded-xl bg-gray-50 border-gray-200 text-gray-500 dark:bg-[#190B1A]/80 dark:border-[#512B54]/30 dark:text-gray-400 cursor-not-allowed"
+                    className="h-11 rounded-xl bg-gray-50/80 dark:bg-[#151A28] border-gray-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium cursor-default"
                   />
-                  <p className="text-[11px] text-muted-foreground">O e-mail é o identificador de login da sua conta.</p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                      WhatsApp / Celular
-                    </Label>
-                    <Input 
-                      value={user?.phone ? formatPhoneInput(user.phone) : "Não informado"}
-                      disabled
-                      className="h-12 rounded-xl bg-gray-50 border-gray-200 text-gray-700 dark:bg-[#190B1A]/80 dark:border-[#512B54]/30 dark:text-gray-300 cursor-not-allowed font-mono"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                      CPF
-                    </Label>
-                    <Input 
-                      value={user?.cpf ? formatCpf(user.cpf) : "Não informado"}
-                      disabled
-                      className="h-12 rounded-xl bg-gray-50 border-gray-200 text-gray-700 dark:bg-[#190B1A]/80 dark:border-[#512B54]/30 dark:text-gray-300 cursor-not-allowed font-mono"
-                    />
-                  </div>
-                </div>
-
-                <Button 
-                  type="submit" 
-                  disabled={isUpdatingProfile}
-                  className="h-12 px-6 rounded-xl font-heading font-bold uppercase tracking-widest text-sm bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-90 text-white shadow-lg shadow-[#9306CF]/20 transition-opacity cursor-pointer flex items-center gap-2"
-                >
-                  {isUpdatingProfile ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> Salvando...
-                    </>
-                  ) : (
-                    <>Salvar Alterações</>
+                  {nameDaysRemaining > 0 && (
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      Dado alterado recentemente. Próxima alteração permitida em {nameDaysRemaining} {nameDaysRemaining === 1 ? "dia" : "dias"}.
+                    </p>
                   )}
-                </Button>
-              </form>
+                </div>
+
+                {/* 2. E-mail */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 shadow-xs transition-all">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-2.5">
+                    <div>
+                      <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+                        <AtSign className="w-3.5 h-3.5 text-primary" /> E-mail
+                      </Label>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Utilizado para acesso ao PopClub e avisos transacionais.
+                      </p>
+                    </div>
+
+                    {emailDaysRemaining > 0 ? (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-semibold w-fit">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>Próxima alteração em {emailDaysRemaining} {emailDaysRemaining === 1 ? "dia" : "dias"}</span>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setNewEmailInput(user?.email || profile?.email || "");
+                          setEmailPasswordInput("");
+                          setIsEmailModalOpen(true);
+                        }}
+                        className="h-8 px-3 rounded-xl border-gray-200 dark:border-zinc-700 hover:border-primary text-xs font-bold text-zinc-700 dark:text-zinc-200 hover:text-primary transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+                      >
+                        <Pencil className="w-3 h-3" /> Alterar E-mail
+                      </Button>
+                    )}
+                  </div>
+
+                  <Input
+                    value={user?.email || profile?.email || "Não informado"}
+                    readOnly
+                    disabled
+                    className="h-11 rounded-xl bg-gray-50/80 dark:bg-[#151A28] border-gray-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium cursor-default"
+                  />
+                  {emailDaysRemaining > 0 && (
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      Dado alterado recentemente. Próxima alteração permitida em {emailDaysRemaining} {emailDaysRemaining === 1 ? "dia" : "dias"}.
+                    </p>
+                  )}
+                </div>
+
+                {/* 3. WhatsApp / Celular (Largura Total - Permanente sem CPF) */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 shadow-xs transition-all">
+                  <div className="mb-2.5">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+                      <Bike className="w-3.5 h-3.5 text-emerald-500" /> WhatsApp / Celular
+                    </Label>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Número para confirmação de entrega e comunicação rápida.
+                    </p>
+                  </div>
+
+                  <Input
+                    value={user?.phone ? formatPhoneInput(user.phone) : (profile?.phone ? formatPhoneInput(profile.phone) : "Não informado")}
+                    readOnly
+                    disabled
+                    className="h-11 rounded-xl bg-gray-50/80 dark:bg-[#151A28] border-gray-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 font-mono font-medium cursor-default"
+                  />
+                </div>
+
+                {/* 4. Senha e Redefinição */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 shadow-xs transition-all">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-2.5">
+                    <div>
+                      <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-primary" /> Senha
+                      </Label>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Protege sua conta e valida operações sensíveis.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {passwordDaysRemaining > 0 ? (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-semibold">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>Próxima alteração em {passwordDaysRemaining} {passwordDaysRemaining === 1 ? "dia" : "dias"}</span>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setCurrentPasswordInput("");
+                            setNewPasswordInput("");
+                            setConfirmPasswordInput("");
+                            setIsPasswordModalOpen(true);
+                          }}
+                          className="h-8 px-3 rounded-xl border-gray-200 dark:border-zinc-700 hover:border-primary text-xs font-bold text-zinc-700 dark:text-zinc-200 hover:text-primary transition-all cursor-pointer flex items-center gap-1.5"
+                        >
+                          <KeyRound className="w-3 h-3" /> Redefinir Senha
+                        </Button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setIsRescueModalOpen(true)}
+                        className="text-xs font-bold text-primary hover:text-primary/80 transition-colors underline-offset-4 hover:underline cursor-pointer px-2 py-1"
+                      >
+                        Esqueci minha senha
+                      </button>
+                    </div>
+                  </div>
+
+                  <Input
+                    type="password"
+                    value="••••••••••••"
+                    readOnly
+                    disabled
+                    className="h-11 rounded-xl bg-gray-50/80 dark:bg-[#151A28] border-gray-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 tracking-widest font-mono cursor-default"
+                  />
+                  {passwordDaysRemaining > 0 && (
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      Dado alterado recentemente. Próxima alteração permitida em {passwordDaysRemaining} {passwordDaysRemaining === 1 ? "dia" : "dias"}.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
@@ -2227,6 +2529,309 @@ export default function AccountPage() {
         isOpen={isCompleteRegModalOpen}
         onClose={() => setIsCompleteRegModalOpen(false)}
         onSuccess={() => refreshUser()}
+      />
+
+      {/* ================= MODAL: ALTERAR NOME ================= */}
+      {isNameModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-50 duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-zinc-800">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-primary">
+                  <User className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-bold text-base text-zinc-900 dark:text-zinc-100">
+                    Alterar Nome Completo
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Carência de segurança de 14 dias após salvar.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsNameModalOpen(false)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleChangeName} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                  Novo Nome Completo
+                </Label>
+                <Input
+                  type="text"
+                  required
+                  value={newNameInput}
+                  onChange={(e) => setNewNameInput(e.target.value)}
+                  placeholder="Ex: Maria Silva"
+                  className="h-11 rounded-xl bg-gray-50 dark:bg-[#151A28] border-gray-200 dark:border-zinc-800 text-sm"
+                />
+              </div>
+
+              {user?.isRegistered && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                    Sua Senha Atual
+                  </Label>
+                  <Input
+                    type="password"
+                    required
+                    value={namePasswordInput}
+                    onChange={(e) => setNamePasswordInput(e.target.value)}
+                    placeholder="Digite sua senha para confirmar"
+                    className="h-11 rounded-xl bg-gray-50 dark:bg-[#151A28] border-gray-200 dark:border-zinc-800 text-sm"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Exigido para proteger sua conta contra alterações indevidas.
+                  </p>
+                </div>
+              )}
+
+              <div className="pt-3 flex items-center justify-end gap-2.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsNameModalOpen(false)}
+                  className="h-10 px-4 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmittingName || !newNameInput.trim()}
+                  className="h-10 px-5 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs flex items-center gap-2 shadow-xs cursor-pointer"
+                >
+                  {isSubmittingName ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Salvando...
+                    </>
+                  ) : (
+                    <>Salvar Nome</>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: ALTERAR E-MAIL ================= */}
+      {isEmailModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-50 duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-zinc-800">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-primary">
+                  <AtSign className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-bold text-base text-zinc-900 dark:text-zinc-100">
+                    Alterar E-mail de Acesso
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Carência de segurança de 14 dias após salvar.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEmailModalOpen(false)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleChangeEmail} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                  Novo E-mail
+                </Label>
+                <Input
+                  type="email"
+                  required
+                  value={newEmailInput}
+                  onChange={(e) => setNewEmailInput(e.target.value)}
+                  placeholder="seuemail@exemplo.com"
+                  className="h-11 rounded-xl bg-gray-50 dark:bg-[#151A28] border-gray-200 dark:border-zinc-800 text-sm"
+                />
+              </div>
+
+              {user?.isRegistered && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                    Sua Senha Atual
+                  </Label>
+                  <Input
+                    type="password"
+                    required
+                    value={emailPasswordInput}
+                    onChange={(e) => setEmailPasswordInput(e.target.value)}
+                    placeholder="Digite sua senha para confirmar"
+                    className="h-11 rounded-xl bg-gray-50 dark:bg-[#151A28] border-gray-200 dark:border-zinc-800 text-sm"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Exigido para garantir a titularidade da conta.
+                  </p>
+                </div>
+              )}
+
+              <div className="pt-3 flex items-center justify-end gap-2.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEmailModalOpen(false)}
+                  className="h-10 px-4 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmittingEmail || !newEmailInput.trim()}
+                  className="h-10 px-5 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs flex items-center gap-2 shadow-xs cursor-pointer"
+                >
+                  {isSubmittingEmail ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Salvando...
+                    </>
+                  ) : (
+                    <>Salvar E-mail</>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: REDEFINIR SENHA ================= */}
+      {isPasswordModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-50 duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-zinc-800">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-primary">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-bold text-base text-zinc-900 dark:text-zinc-100">
+                    Redefinir Senha
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Exige sua senha atual e nova senha de 8+ caracteres.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPasswordModalOpen(false)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                  Senha Atual
+                </Label>
+                <div className="relative">
+                  <Input
+                    type={showPasswordCurrent ? "text" : "password"}
+                    required
+                    value={currentPasswordInput}
+                    onChange={(e) => setCurrentPasswordInput(e.target.value)}
+                    placeholder="Sua senha atual"
+                    className="h-11 rounded-xl bg-gray-50 dark:bg-[#151A28] border-gray-200 dark:border-zinc-800 text-sm pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordCurrent(!showPasswordCurrent)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
+                  >
+                    {showPasswordCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                  Nova Senha
+                </Label>
+                <div className="relative">
+                  <Input
+                    type={showPasswordNew ? "text" : "password"}
+                    required
+                    value={newPasswordInput}
+                    onChange={(e) => setNewPasswordInput(e.target.value)}
+                    placeholder="Mínimo de 8 caracteres"
+                    className="h-11 rounded-xl bg-gray-50 dark:bg-[#151A28] border-gray-200 dark:border-zinc-800 text-sm pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordNew(!showPasswordNew)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
+                  >
+                    {showPasswordNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                  Confirmar Nova Senha
+                </Label>
+                <Input
+                  type={showPasswordNew ? "text" : "password"}
+                  required
+                  value={confirmPasswordInput}
+                  onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                  placeholder="Repita a nova senha"
+                  className="h-11 rounded-xl bg-gray-50 dark:bg-[#151A28] border-gray-200 dark:border-zinc-800 text-sm"
+                />
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-2.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsPasswordModalOpen(false)}
+                  className="h-10 px-4 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmittingPassword || !currentPasswordInput || newPasswordInput.length < 8}
+                  className="h-10 px-5 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs flex items-center gap-2 shadow-xs cursor-pointer"
+                >
+                  {isSubmittingPassword ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Atualizando...
+                    </>
+                  ) : (
+                    <>Confirmar Nova Senha</>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL DE RESGATE: ESQUECI MINHA SENHA ================= */}
+      <PasswordRecoveryRescueModal
+        isOpen={isRescueModalOpen}
+        onClose={() => setIsRescueModalOpen(false)}
+        clientPhone={user?.phone || profile?.phone || ""}
+        clientName={profile?.full_name || user?.fullName || fullName || ""}
+        clientEmail={user?.email || profile?.email || ""}
       />
 
       {/* ─────────────────────────────────────────

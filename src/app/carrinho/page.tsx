@@ -24,6 +24,9 @@ import {
   RefreshCw,
   Navigation,
   User,
+  Lock,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useCart } from "../../hooks/useCart";
 import { useAuth } from "../../hooks/useAuth";
@@ -43,6 +46,7 @@ import { ResilientErrorAlert } from "../../components/ui/ResilientErrorAlert";
 import { AppApiError } from "@/lib/fetchClient";
 import { FastAccessModal, formatPhoneInput } from "@/components/auth/FastAccessModal";
 import { CompleteRegistrationModal } from "@/components/auth/CompleteRegistrationModal";
+import { PasswordRecoveryRescueModal } from "@/components/auth/PasswordRecoveryRescueModal";
 
 export default function CarrinhoPage() {
   const router = useRouter();
@@ -84,6 +88,80 @@ export default function CarrinhoPage() {
   const [inlinePhone, setInlinePhone] = useState("");
   const [inlineLoading, setInlineLoading] = useState(false);
   const [inlineError, setInlineError] = useState<string | null>(null);
+
+  // Reconhecimento de cliente cadastrado inline
+  const [inlineRegisteredDetected, setInlineRegisteredDetected] = useState(false);
+  const [inlinePassword, setInlinePassword] = useState("");
+  const [inlineShowPassword, setInlineShowPassword] = useState(false);
+  const [inlinePasswordLoading, setInlinePasswordLoading] = useState(false);
+  const [inlineFailedAttempts, setInlineFailedAttempts] = useState(0);
+  const [isInlineRescueOpen, setIsInlineRescueOpen] = useState(false);
+  const [isInlineBypass, setIsInlineBypass] = useState(false);
+
+  useEffect(() => {
+    const raw = inlinePhone.replace(/\D/g, "");
+    if (isInlineBypass) return;
+    if (raw.length === 11) {
+      const timer = setTimeout(async () => {
+        try {
+          const res = await fetch(`/api/auth/check-phone?phone=${raw}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.exists && data.isRegistered && data.hasPassword) {
+              setInlineRegisteredDetected(true);
+              if (data.fullName && !inlineName.trim()) {
+                setInlineName(data.fullName);
+              }
+            } else {
+              setInlineRegisteredDetected(false);
+            }
+          }
+        } catch (err) {
+          console.error("Erro na verificação de telefone no carrinho:", err);
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    } else {
+      setInlineRegisteredDetected(false);
+    }
+  }, [inlinePhone, isInlineBypass, inlineName]);
+
+  const handleInlinePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setInlineError(null);
+    const cleanPhone = inlinePhone.replace(/\D/g, "");
+
+    if (!inlinePassword) {
+      setInlineError("Informe sua senha de acesso.");
+      return;
+    }
+
+    setInlinePasswordLoading(true);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier: cleanPhone, password: inlinePassword }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        const nextFailures = inlineFailedAttempts + 1;
+        setInlineFailedAttempts(nextFailures);
+        if (nextFailures >= 2) {
+          setIsInlineRescueOpen(true);
+        }
+        throw new Error(data.error || "Senha incorreta. Tente novamente.");
+      }
+
+      setInlineFailedAttempts(0);
+      await refreshUser();
+    } catch (err: any) {
+      setInlineError(err.message || "Senha incorreta. Tente novamente.");
+    } finally {
+      setInlinePasswordLoading(false);
+    }
+  };
 
   // Configuração de entrega da loja
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
@@ -804,7 +882,7 @@ export default function CarrinhoPage() {
                           setInlineName(e.target.value);
                           if (inlineError) setInlineError(null);
                         }}
-                        placeholder="Ex: João da Silva"
+                        placeholder="Ex: Maria Silva"
                         className="rounded-xl border border-input text-base md:text-sm h-11 px-3"
                         required
                       />
@@ -830,6 +908,78 @@ export default function CarrinhoPage() {
                     </div>
                   </div>
 
+                  {/* BLOCO DE RECONHECIMENTO DE CADASTRO PRÉVIO INLINE */}
+                  {inlineRegisteredDetected && (
+                    <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3 animate-in fade-in zoom-in-95 duration-200">
+                      <div className="p-1.5 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
+                        <Sparkles className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-amber-700 dark:text-amber-300">
+                          Identificamos que você já possui cadastro no PopClub!
+                        </p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Olá, <strong>{inlineName || "Cliente"}</strong>! Digite sua senha para entrar preservando os itens do seu carrinho:
+                        </p>
+                        <form onSubmit={handleInlinePasswordSubmit} className="mt-2.5 flex flex-col sm:flex-row gap-2">
+                          <div className="relative flex-1">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                              type={inlineShowPassword ? "text" : "password"}
+                              placeholder="Digite sua senha"
+                              value={inlinePassword}
+                              onChange={(e) => {
+                                setInlinePassword(e.target.value);
+                                if (inlineError) setInlineError(null);
+                              }}
+                              className="pl-9 pr-9 text-xs h-10 rounded-xl bg-background"
+                              disabled={inlinePasswordLoading}
+                              autoFocus
+                              required
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setInlineShowPassword(!inlineShowPassword)}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                            >
+                              {inlineShowPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                          <Button
+                            type="submit"
+                            disabled={inlinePasswordLoading}
+                            className="h-10 px-4 rounded-xl text-xs font-bold shrink-0 cursor-pointer shadow-sm"
+                          >
+                            {inlinePasswordLoading ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              "Entrar com Senha"
+                            )}
+                          </Button>
+                        </form>
+                        <div className="flex items-center justify-between text-[11px] pt-1.5 px-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setIsInlineRescueOpen(true)}
+                            className="text-primary hover:underline font-semibold cursor-pointer"
+                          >
+                            Esqueci minha senha
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsInlineBypass(true);
+                              setInlineRegisteredDetected(false);
+                            }}
+                            className="text-muted-foreground hover:text-foreground cursor-pointer"
+                          >
+                            Concluir pedido sem senha desta vez
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-gray-100 dark:border-border/30">
                     <Link
                       href="/login?tab=password&redirect=/carrinho"
@@ -838,7 +988,7 @@ export default function CarrinhoPage() {
                       Já tem cadastro completo? <span className="font-bold underline">Entrar com senha</span>
                     </Link>
 
-                    {inlineName.trim().length >= 3 && inlinePhone.replace(/\D/g, "").length >= 10 && (
+                    {!inlineRegisteredDetected && inlineName.trim().length >= 3 && inlinePhone.replace(/\D/g, "").length >= 10 && (
                       <Button
                         type="button"
                         size="sm"
@@ -1825,6 +1975,18 @@ export default function CarrinhoPage() {
         isOpen={isCompleteRegModalOpen}
         onClose={() => setIsCompleteRegModalOpen(false)}
         onSuccess={handleCompleteRegistrationSuccess}
+      />
+
+      <PasswordRecoveryRescueModal
+        isOpen={isInlineRescueOpen}
+        onClose={() => setIsInlineRescueOpen(false)}
+        clientName={inlineName}
+        clientPhone={inlinePhone}
+        onContinueWithoutPassword={() => {
+          setIsInlineBypass(true);
+          setInlineRegisteredDetected(false);
+          setIsInlineRescueOpen(false);
+        }}
       />
     </div>
   );

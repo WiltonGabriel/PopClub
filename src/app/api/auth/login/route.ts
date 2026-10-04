@@ -36,15 +36,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // Busca usuário por e-mail ou username de forma insensível a maiúsculas
+    // Busca usuário por e-mail, username ou telefone de forma segura
     let user: any = null;
     try {
+      const cleanDigits = identifier.replace(/\D/g, "");
+      const orConditions: any[] = [
+        { email: identifier.toLowerCase().trim() },
+        { username: identifier.trim() },
+      ];
+      if (cleanDigits.length >= 10) {
+        orConditions.push({ phone: cleanDigits });
+      }
+
       user = await prisma.user.findFirst({
         where: {
-          OR: [
-            { email: identifier.toLowerCase().trim() },
-            { username: identifier.trim() },
-          ],
+          OR: orConditions,
         },
       });
     } catch (dbErr: any) {

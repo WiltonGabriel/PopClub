@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
-import { isUserAdmin } from "@/lib/permissions";
+import { isUserAdmin, isUserEditor, hasPermission } from "@/lib/permissions";
 
 export async function GET(
   request: Request,
@@ -9,8 +9,9 @@ export async function GET(
 ) {
   try {
     const authUser = await getAuthUser(request);
-    if (!isUserAdmin(authUser)) {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+    const hasUsersManage = isUserAdmin(authUser) || (isUserEditor(authUser) && hasPermission(authUser, "users_manage"));
+    if (!authUser || !hasUsersManage) {
+      return NextResponse.json({ error: "Acesso negado. Permissão users_manage necessária." }, { status: 403 });
     }
 
     const { id } = await params;
