@@ -44,6 +44,7 @@ export interface StoreSettings {
   showPaymentMethods?: boolean;
   acceptedPayments?: string[];
   googleMapsUrl?: string | null;
+  storeCnpj?: string | null;
   openedAt?: string | null;
   closedAt?: string | null;
   updatedAt?: string;
@@ -143,6 +144,7 @@ export const storeSettingsService = {
     showPaymentMethods?: boolean;
     acceptedPayments?: string[];
     googleMapsUrl?: string | null;
+    storeCnpj?: string | null;
     openedAt?: string | null;
     closedAt?: string | null;
   }): Promise<StoreSettings> {

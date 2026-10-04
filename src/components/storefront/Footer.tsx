@@ -13,6 +13,7 @@ import {
   QrCode,
   ChevronDown,
   PhoneCall,
+  ShieldCheck,
 } from "lucide-react";
 import { storeSettingsService, StoreSettings } from "../../services/storeSettingsService";
 
@@ -107,6 +108,7 @@ export function Footer() {
     settings?.googleMapsUrl ||
     `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(storeAddress)}`;
   const openingHours = settings?.openingHoursText || DEFAULT_HOURS;
+  const storeCnpj = settings?.storeCnpj || null;
   const isOpen = settings?.isOpen ?? true;
 
   // Formas de Pagamento
@@ -360,13 +362,37 @@ export function Footer() {
 
                 {/* Dinheiro */}
                 {acceptedPayments.includes("dinheiro") && (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-semibold shadow-2xs">
-                    <Banknote className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                    <span>Dinheiro (Levamos Troco)</span>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs shadow-2xs">
+                    <Banknote className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span className="flex flex-col items-start leading-tight">
+                      <span className="font-semibold">Dinheiro</span>
+                      <span className="text-[9px] opacity-80 uppercase tracking-wide">Em Espécie</span>
+                    </span>
+                  </div>
+                )}
+
+                {/* VR / VA */}
+                {acceptedPayments.includes("vr_va") && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-800 text-orange-800 dark:text-orange-300 text-xs shadow-2xs">
+                    <CreditCard className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400 shrink-0" />
+                    <span className="flex flex-col items-start leading-tight">
+                      <span className="font-semibold">VR / VA</span>
+                      <span className="text-[9px] opacity-80 uppercase tracking-wide">Benefícios</span>
+                    </span>
                   </div>
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* CNPJ Info */}
+        {storeCnpj && (
+          <div className="mt-8 pt-4 border-t border-zinc-200/60 dark:border-zinc-800/40 flex justify-center">
+            <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono flex items-center gap-1.5">
+              <ShieldCheck className="w-3 h-3 text-zinc-400" />
+              CNPJ: {storeCnpj}
+            </span>
           </div>
         )}
 

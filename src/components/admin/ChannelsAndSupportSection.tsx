@@ -147,10 +147,17 @@ const PAYMENT_OPTIONS = [
   },
   {
     id: "dinheiro",
-    label: "Dinheiro (com troco)",
+    label: "Dinheiro",
     description: "Pagamento em espécie na entrega com troco informado",
     icon: Banknote,
     badgeColor: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
+  },
+  {
+    id: "vr_va",
+    label: "Vale-Refeição / Alimentação",
+    description: "Cartões de benefícios (Sodexo, Alelo, Ticket, etc.)",
+    icon: CreditCard,
+    badgeColor: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30",
   },
 ];
 
@@ -165,6 +172,7 @@ export function ChannelsAndSupportSection() {
   const [footerBadgeText, setFooterBadgeText] = useState(DEFAULT_BADGE);
   const [storeAddress, setStoreAddress] = useState(DEFAULT_ADDRESS);
   const [googleMapsUrl, setGoogleMapsUrl] = useState(DEFAULT_MAPS);
+  const [storeCnpj, setStoreCnpj] = useState("");
   const [openingHoursText, setOpeningHoursText] = useState(DEFAULT_HOURS);
 
   // 2. Contatos Oficiais & Redes Sociais
@@ -205,6 +213,7 @@ export function ChannelsAndSupportSection() {
         if (settings.openingHoursText) setOpeningHoursText(settings.openingHoursText);
         if (settings.instagramUrl) setInstagramUrl(settings.instagramUrl);
         if (settings.facebookUrl) setFacebookUrl(settings.facebookUrl);
+        if (settings.storeCnpj) setStoreCnpj(settings.storeCnpj);
 
         if (settings.footerSlogan !== undefined && settings.footerSlogan !== null) {
           setFooterSlogan(settings.footerSlogan || DEFAULT_SLOGAN);
@@ -299,6 +308,7 @@ export function ChannelsAndSupportSection() {
         footerSlogan,
         footerBadgeText,
         googleMapsUrl,
+        storeCnpj,
         showPaymentMethods,
         acceptedPayments,
         postSaleMessage: notificationTemplates.completed,
@@ -477,6 +487,24 @@ export function ChannelsAndSupportSection() {
               />
               <span className="text-[10px] text-muted-foreground block">
                 Exibido ao lado do badge dinâmico &quot;Aberto Agora&quot; / &quot;Fechado&quot;.
+              </span>
+            </div>
+
+            {/* CNPJ da Empresa */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
+                CNPJ (Opcional)
+              </Label>
+              <Input
+                type="text"
+                value={storeCnpj}
+                onChange={(e) => setStoreCnpj(e.target.value)}
+                placeholder="00.000.000/0001-00"
+                className="text-xs sm:text-sm h-11 bg-white dark:bg-[#181D2D] rounded-xl font-mono"
+              />
+              <span className="text-[10px] text-muted-foreground block">
+                Exibido no rodapé da vitrine para transparência fiscal.
               </span>
             </div>
 
