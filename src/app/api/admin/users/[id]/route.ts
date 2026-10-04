@@ -33,6 +33,9 @@ export async function PATCH(
 
     const targetUser = await prisma.user.findUnique({
       where: { id },
+      include: {
+        customRole: true,
+      },
     });
 
     if (!targetUser) {
@@ -48,6 +51,7 @@ export async function PATCH(
 
     const {
       role,
+      customRoleId,
       permissions,
       password,
       isBlocked,
@@ -61,47 +65,130 @@ export async function PATCH(
     const dataToUpdate: Record<string, unknown> = {};
     let shouldInvalidateSession = false;
 
-    // 1. Verificação de Alteração de Cargo (Role)
-    if (role !== undefined) {
-      if (!isAdmin) {
-        return NextResponse.json({ error: "Apenas administradores podem alterar cargos." }, { status: 403 });
-      }
-      const normalizedRole = String(role).toUpperCase();
-      if (!["ADMIN", "EDITOR", "CLIENT"].includes(normalizedRole)) {
-        return NextResponse.json({ error: "Cargo informado inválido." }, { status: 400 });
-      }
-
-      // Trava: Administrador não pode se auto-rebaixar
-      if (authUser.id === targetUser.id && normalizedRole !== "ADMIN") {
+    // =========================================================================
+    // REGRA DE SEGURANÇA 1: IMUTABILIDADE DE CONTAS DE CLIENTES
+    // Contas de clientes NUNCA podem ter seu cargo alterado para a equipe nem receber permissões.
+    // =========================================================================
+    if (targetUser.role === Role.CLIENT) {
+      if (role !== undefined && role !== "CLIENT" && role !== Role.CLIENT) {
         return NextResponse.json(
-          { error: "Você não pode alterar seu próprio cargo de Administrador." },
+          { error: "Contas de clientes são exclusivas para consumo e não podem ser convertidas em cargos operacionais." },
           { status: 400 }
         );
       }
+      if (customRoleId !== undefined && customRoleId !== null) {
+        return NextResponse.json(
+          { error: "Contas de clientes são exclusivas para consumo e não podem ser convertidas em cargos operacionais." },
+          { status: 400 }
+        );
+      }
+      if (permissions !== undefined && Array.isArray(permissions) && permissions.length > 0) {
+        return NextResponse.json(
+          { error: "Contas de clientes são exclusivas para consumo e não podem receber permissões operacionais." },
+          { status: 400 }
+        );
+      }
+    }
 
-      // Trava: O sistema nunca pode ter zero administradores ativos
-      if (targetUser.role === Role.ADMIN && normalizedRole !== "ADMIN") {
-        const activeAdminsCount = await prisma.user.count({
-          where: {
-            role: Role.ADMIN,
-            isActive: true,
-            isBlocked: false,
-            id: { not: targetUser.id },
-          },
-        });
-        if (activeAdminsCount < 1) {
-          return NextResponse.json(
-            { error: "Operação não permitida. O sistema deve possuir pelo menos um Administrador ativo." },
-            { status: 400 }
-          );
+    // =========================================================================
+    // REGRA DE SEGURANÇA 2: IMUTABILIDADE DO CARGO DE ADMINISTRADOR
+    // O cargo de Administrador nunca pode ser rebaixado ou alterado.
+    // =========================================================================
+    if (targetUser.role === Role.ADMIN) {
+      if (role !== undefined && role !== "ADMIN" && role !== Role.ADMIN) {
+        return NextResponse.json(
+          { error: "O cargo de Administrador é soberano e imutável." },
+          { status: 400 }
+        );
+      }
+      if (customRoleId !== undefined && customRoleId !== null) {
+        return NextResponse.json(
+          { error: "O cargo de Administrador é soberano e não pode ser vinculado a cargos secundários." },
+          { status: 400 }
+        );
+      }
+    }
+
+    // =========================================================================
+    // 1. ALTERAÇÃO DE CARGO / VINCULAÇÃO A CARGO CUSTOMIZADO
+    // Apenas Administradores podem alterar cargos.
+    // =========================================================================
+    if (role !== undefined || customRoleId !== undefined) {
+      if (!isAdmin) {
+        return NextResponse.json({ error: "Apenas administradores podem alterar cargos." }, { status: 403 });
+      }
+
+      // Se estiver promovendo alguém para ADMIN
+      if (role !== undefined) {
+        const normalizedRole = String(role).toUpperCase();
+        if (normalizedRole === "ADMIN" && targetUser.role !== Role.ADMIN) {
+          const activeAdminsCount = await prisma.user.count({
+            where: {
+              role: Role.ADMIN,
+              isActive: true,
+              deletedAt: null,
+              id: { not: targetUser.id },
+            },
+          });
+          if (activeAdminsCount >= 2) {
+            return NextResponse.json(
+              { error: "Limite atingido: O sistema permite no máximo 2 Administradores ativos." },
+              { status: 400 }
+            );
+          }
+          dataToUpdate.role = Role.ADMIN;
+          dataToUpdate.customRoleId = null;
+          shouldInvalidateSession = true;
+        } else if (normalizedRole === "EDITOR") {
+          dataToUpdate.role = Role.EDITOR;
+          shouldInvalidateSession = true;
         }
       }
 
-      dataToUpdate.role = normalizedRole as Role;
-      shouldInvalidateSession = true;
+      // Se estiver alterando o cargo customizado
+      if (customRoleId !== undefined) {
+        if (customRoleId === null || customRoleId === "") {
+          // Desvincula de cargo customizado e mantém como Editor padrão
+          dataToUpdate.customRoleId = null;
+          shouldInvalidateSession = true;
+        } else {
+          // Vinculando a um cargo customizado
+          const customRole = await prisma.customRole.findUnique({
+            where: { id: String(customRoleId) },
+          });
+
+          if (!customRole) {
+            return NextResponse.json({ error: "Cargo personalizado selecionado não existe." }, { status: 404 });
+          }
+
+          // Verificar limite de lotação por cargo (máximo de 4 membros)
+          const membersInRole = await prisma.user.count({
+            where: {
+              customRoleId: customRole.id,
+              isActive: true,
+              deletedAt: null,
+              id: { not: targetUser.id },
+            },
+          });
+
+          if (membersInRole >= 4) {
+            return NextResponse.json(
+              { error: `Limite de lotação atingido: O cargo "${customRole.name}" já possui o limite máximo de 4 membros vinculados.` },
+              { status: 400 }
+            );
+          }
+
+          dataToUpdate.role = Role.EDITOR;
+          dataToUpdate.customRoleId = customRole.id;
+          dataToUpdate.permissions = customRole.permissions;
+          shouldInvalidateSession = true;
+        }
+      }
     }
 
-    // 2. Verificação de Permissões
+    // =========================================================================
+    // 2. VERIFICAÇÃO DE PERMISSÕES INDIVIDUAIS
+    // =========================================================================
     if (permissions !== undefined) {
       if (!isAdmin) {
         return NextResponse.json({ error: "Apenas administradores podem alterar permissões." }, { status: 403 });
@@ -113,7 +200,9 @@ export async function PATCH(
       shouldInvalidateSession = true;
     }
 
-    // 3. Reset de Senha
+    // =========================================================================
+    // 3. RESET DE SENHA
+    // =========================================================================
     if (password !== undefined) {
       if (typeof password !== "string" || password.length < 6) {
         return NextResponse.json(
@@ -125,7 +214,9 @@ export async function PATCH(
       shouldInvalidateSession = true;
     }
 
-    // 4. Bloqueio / Desbloqueio
+    // =========================================================================
+    // 4. BLOQUEIO / DESBLOQUEIO
+    // =========================================================================
     if (isBlocked !== undefined) {
       const blockedBool = Boolean(isBlocked);
 
@@ -144,6 +235,7 @@ export async function PATCH(
             role: Role.ADMIN,
             isActive: true,
             isBlocked: false,
+            deletedAt: null,
             id: { not: targetUser.id },
           },
         });
@@ -162,7 +254,9 @@ export async function PATCH(
       shouldInvalidateSession = true;
     }
 
-    // 5. Atualização de Dados Cadastrais
+    // =========================================================================
+    // 5. ATUALIZAÇÃO DE DADOS CADASTRAIS
+    // =========================================================================
     if (fullName !== undefined) {
       if (typeof fullName !== "string" || !fullName.trim()) {
         return NextResponse.json({ error: "Nome completo não pode ser vazio." }, { status: 400 });
@@ -237,6 +331,24 @@ export async function PATCH(
         tokenVersion: true,
         createdAt: true,
         updatedAt: true,
+        customRoleId: true,
+        customRole: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            permissions: true,
+          },
+        },
+        createdById: true,
+        createdBy: {
+          select: {
+            id: true,
+            fullName: true,
+            username: true,
+            role: true,
+          },
+        },
       },
     });
 
@@ -286,6 +398,7 @@ export async function DELETE(
           role: Role.ADMIN,
           isActive: true,
           isBlocked: false,
+          deletedAt: null,
           id: { not: targetUser.id },
         },
       });

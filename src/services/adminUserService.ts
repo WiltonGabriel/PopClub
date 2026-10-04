@@ -1,3 +1,15 @@
+export interface CustomRoleItem {
+  id: string;
+  name: string;
+  color: string;
+  permissions: string[];
+  createdAt: string;
+  updatedAt?: string;
+  _count?: {
+    users: number;
+  };
+}
+
 export interface AdminUserListItem {
   id: string;
   cpf?: string | null;
@@ -15,6 +27,20 @@ export interface AdminUserListItem {
   tokenVersion: number;
   createdAt: string;
   updatedAt: string;
+  customRoleId?: string | null;
+  customRole?: {
+    id: string;
+    name: string;
+    color: string;
+    permissions: string[];
+  } | null;
+  createdById?: string | null;
+  createdBy?: {
+    id: string;
+    fullName?: string | null;
+    username?: string | null;
+    role: string;
+  } | null;
   _count?: {
     orders: number;
   };
@@ -60,6 +86,18 @@ export interface UserDossier {
     blockReason?: string | null;
     createdAt: string;
     updatedAt: string;
+    customRoleId?: string | null;
+    customRole?: {
+      id: string;
+      name: string;
+      color: string;
+    } | null;
+    createdById?: string | null;
+    createdBy?: {
+      id: string;
+      fullName?: string | null;
+      role: string;
+    } | null;
   };
   metrics: {
     totalOrders: number;
@@ -77,7 +115,7 @@ export interface GetUsersParams {
   page?: number;
   limit?: number;
   search?: string;
-  filter?: "all" | "team" | "registered" | "fast_access" | "blocked";
+  filter?: string;
 }
 
 export interface GetUsersResponse {
@@ -113,6 +151,7 @@ export const adminUserService = {
     phone?: string;
     password: string;
     role: "ADMIN" | "EDITOR";
+    customRoleId?: string | null;
     permissions?: string[];
   }): Promise<AdminUserListItem> {
     const res = await fetch("/api/admin/users", {
@@ -131,6 +170,7 @@ export const adminUserService = {
     id: string,
     payload: {
       role?: string;
+      customRoleId?: string | null;
       permissions?: string[];
       password?: string;
       isBlocked?: boolean;
@@ -170,5 +210,64 @@ export const adminUserService = {
       throw new Error(data.error || "Erro ao carregar histórico do usuário.");
     }
     return data;
+  },
+
+  // =========================================================================
+  // CARGOS PERSONALIZADOS (CUSTOM ROLES API)
+  // =========================================================================
+  async getCustomRoles(): Promise<CustomRoleItem[]> {
+    const res = await fetch("/api/admin/roles");
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Erro ao carregar cargos personalizados.");
+    }
+    return data.roles || [];
+  },
+
+  async createCustomRole(payload: {
+    name: string;
+    color: string;
+    permissions: string[];
+  }): Promise<CustomRoleItem> {
+    const res = await fetch("/api/admin/roles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Erro ao criar cargo personalizado.");
+    }
+    return data;
+  },
+
+  async updateCustomRole(
+    id: string,
+    payload: {
+      name?: string;
+      color?: string;
+      permissions?: string[];
+    }
+  ): Promise<CustomRoleItem> {
+    const res = await fetch(`/api/admin/roles/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Erro ao atualizar cargo personalizado.");
+    }
+    return data;
+  },
+
+  async deleteCustomRole(id: string): Promise<void> {
+    const res = await fetch(`/api/admin/roles/${id}`, {
+      method: "DELETE",
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Erro ao excluir cargo personalizado.");
+    }
   },
 };

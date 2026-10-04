@@ -16,18 +16,16 @@ import {
   X,
   AlertTriangle,
   RefreshCw,
-  ShoppingBag,
-  DollarSign,
-  TrendingUp,
-  Sliders,
   CheckCircle2,
+  Edit2,
+  Info,
 } from "lucide-react";
 import {
   adminUserService,
   AdminUserListItem,
   UserDossier,
+  CustomRoleItem,
 } from "@/services/adminUserService";
-import { formatCpf, cleanCpf, validateCpf } from "@/lib/cpf";
 import {
   PERMISSION_DEFINITIONS,
   DEFAULT_EDITOR_PERMISSIONS,
@@ -36,14 +34,91 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 
+// Configurações de cores de badges para cargos customizados
+export const ROLE_COLOR_STYLES: Record<
+  string,
+  { bg: string; text: string; border: string; dot: string; label: string }
+> = {
+  blue: {
+    bg: "bg-blue-500/10 dark:bg-blue-500/20",
+    text: "text-blue-600 dark:text-blue-400",
+    border: "border-blue-500/30",
+    dot: "bg-blue-500",
+    label: "Azul",
+  },
+  purple: {
+    bg: "bg-purple-500/10 dark:bg-purple-500/20",
+    text: "text-purple-600 dark:text-purple-400",
+    border: "border-purple-500/30",
+    dot: "bg-purple-500",
+    label: "Roxo",
+  },
+  emerald: {
+    bg: "bg-emerald-500/10 dark:bg-emerald-500/20",
+    text: "text-emerald-600 dark:text-emerald-400",
+    border: "border-emerald-500/30",
+    dot: "bg-emerald-500",
+    label: "Verde Esmeralda",
+  },
+  amber: {
+    bg: "bg-amber-500/10 dark:bg-amber-500/20",
+    text: "text-amber-600 dark:text-amber-400",
+    border: "border-amber-500/30",
+    dot: "bg-amber-500",
+    label: "Âmbar / Dourado",
+  },
+  rose: {
+    bg: "bg-rose-500/10 dark:bg-rose-500/20",
+    text: "text-rose-600 dark:text-rose-400",
+    border: "border-rose-500/30",
+    dot: "bg-rose-500",
+    label: "Rosa / Carmim",
+  },
+  cyan: {
+    bg: "bg-cyan-500/10 dark:bg-cyan-500/20",
+    text: "text-cyan-600 dark:text-cyan-400",
+    border: "border-cyan-500/30",
+    dot: "bg-cyan-500",
+    label: "Ciano / Turquesa",
+  },
+  indigo: {
+    bg: "bg-indigo-500/10 dark:bg-indigo-500/20",
+    text: "text-indigo-600 dark:text-indigo-400",
+    border: "border-indigo-500/30",
+    dot: "bg-indigo-500",
+    label: "Índigo",
+  },
+  orange: {
+    bg: "bg-orange-500/10 dark:bg-orange-500/20",
+    text: "text-orange-600 dark:text-orange-400",
+    border: "border-orange-500/30",
+    dot: "bg-orange-500",
+    label: "Laranja",
+  },
+};
+
+function formatDate(dateStr: string) {
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
 export function UsersManagementSection() {
   const { user: currentAuthUser } = useAuth();
 
   // Estados principais de listagem
   const [users, setUsers] = useState<AdminUserListItem[]>([]);
+  const [customRoles, setCustomRoles] = useState<CustomRoleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "team" | "registered" | "fast_access" | "blocked">("all");
+  const [filter, setFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -52,6 +127,14 @@ export function UsersManagementSection() {
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [userModalMode, setUserModalMode] = useState<"create" | "edit_permissions" | "edit_role">("create");
   const [selectedUser, setSelectedUser] = useState<AdminUserListItem | null>(null);
+
+  // Modal de Gestão de Cargos Personalizados (RBAC)
+  const [rolesModalOpen, setRolesModalOpen] = useState(false);
+  const [roleModalTab, setRoleModalTab] = useState<"list" | "form">("list");
+  const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
+  const [roleFormName, setRoleFormName] = useState("");
+  const [roleFormColor, setRoleFormColor] = useState("blue");
+  const [roleFormPermissions, setRoleFormPermissions] = useState<string[]>([...DEFAULT_EDITOR_PERMISSIONS]);
 
   // Drawer de histórico
   const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false);
@@ -68,12 +151,15 @@ export function UsersManagementSection() {
 
   // Formulário de Criação / Edição de Membro
   const [formFullName, setFormFullName] = useState("");
-  const [formCpf, setFormCpf] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formPhone, setFormPhone] = useState("");
   const [formPassword, setFormPassword] = useState("");
-  const [formRole, setFormRole] = useState<"ADMIN" | "EDITOR" | "CLIENT">("EDITOR");
+  const [formRole, setFormRole] = useState<"ADMIN" | "EDITOR">("EDITOR");
+  const [formCustomRoleId, setFormCustomRoleId] = useState<string | null>(null);
   const [formPermissions, setFormPermissions] = useState<string[]>([...DEFAULT_EDITOR_PERMISSIONS]);
+
+  // Modal de Troca de Cargo
+  const [changeRoleTarget, setChangeRoleTarget] = useState<"EDITOR_DEFAULT" | string>("EDITOR_DEFAULT");
 
   // Exibe feedback temporário com auto-dismiss
   const showFeedback = (type: "success" | "error", text: string) => {
@@ -82,6 +168,16 @@ export function UsersManagementSection() {
       setFeedbackMessage(null);
     }, 4500);
   };
+
+  // Carregamento de Cargos Personalizados
+  const fetchCustomRoles = useCallback(async () => {
+    try {
+      const roles = await adminUserService.getCustomRoles();
+      setCustomRoles(roles);
+    } catch (err: unknown) {
+      console.error("Erro ao carregar cargos personalizados:", err);
+    }
+  }, []);
 
   // Carregamento de Usuários
   const fetchUsers = useCallback(async () => {
@@ -105,18 +201,24 @@ export function UsersManagementSection() {
 
   useEffect(() => {
     fetchUsers();
-  }, [fetchUsers]);
+    fetchCustomRoles();
+  }, [fetchUsers, fetchCustomRoles]);
+
+  // Contagem de administradores ativos atualmente
+  const activeAdminsCount = useMemo(() => {
+    return users.filter((u) => u.role.toUpperCase() === "ADMIN" && u.isActive && !u.isBlocked).length;
+  }, [users]);
 
   // Abertura do modal de criação de novo membro
   const handleOpenCreateModal = () => {
     setUserModalMode("create");
     setSelectedUser(null);
     setFormFullName("");
-    setFormCpf("");
     setFormEmail("");
     setFormPhone("");
     setFormPassword("");
     setFormRole("EDITOR");
+    setFormCustomRoleId(null);
     setFormPermissions([...DEFAULT_EDITOR_PERMISSIONS]);
     setUserModalOpen(true);
   };
@@ -126,23 +228,122 @@ export function UsersManagementSection() {
     setUserModalMode("edit_permissions");
     setSelectedUser(user);
     setFormFullName(user.fullName || user.username || "");
-    setFormCpf(user.cpf ? formatCpf(user.cpf) : "");
     setFormEmail(user.email || "");
     setFormPhone(user.phone || "");
     setFormPassword("");
-    setFormRole((user.role.toUpperCase() as "ADMIN" | "EDITOR" | "CLIENT") || "EDITOR");
+    setFormRole("EDITOR");
+    setFormCustomRoleId(user.customRoleId || null);
     setFormPermissions(Array.isArray(user.permissions) ? [...user.permissions] : [...DEFAULT_EDITOR_PERMISSIONS]);
     setUserModalOpen(true);
   };
 
   // Abertura do modal de troca de cargo
   const handleOpenRoleModal = (user: AdminUserListItem) => {
+    const normalizedRole = user.role.toUpperCase();
+    if (normalizedRole === "ADMIN" || normalizedRole === "CLIENT") {
+      return; // Bloqueado pelas regras de imutabilidade
+    }
+
     setUserModalMode("edit_role");
     setSelectedUser(user);
     setFormFullName(user.fullName || user.username || "");
-    setFormRole((user.role.toUpperCase() as "ADMIN" | "EDITOR" | "CLIENT") || "CLIENT");
-    setFormPermissions(Array.isArray(user.permissions) ? [...user.permissions] : [...DEFAULT_EDITOR_PERMISSIONS]);
+    setChangeRoleTarget(user.customRoleId ? user.customRoleId : "EDITOR_DEFAULT");
     setUserModalOpen(true);
+  };
+
+  // Abertura do modal de Gestão de Cargos Personalizados
+  const handleOpenCustomRolesModal = () => {
+    setRoleModalTab("list");
+    setEditingRoleId(null);
+    setRoleFormName("");
+    setRoleFormColor("blue");
+    setRoleFormPermissions([...DEFAULT_EDITOR_PERMISSIONS]);
+    setRolesModalOpen(true);
+  };
+
+  const handleStartCreateCustomRole = () => {
+    if (customRoles.length >= 4) {
+      showFeedback("error", "Limite máximo de 4 cargos personalizados adicionais atingido.");
+      return;
+    }
+    setEditingRoleId(null);
+    setRoleFormName("");
+    setRoleFormColor("blue");
+    setRoleFormPermissions([...DEFAULT_EDITOR_PERMISSIONS]);
+    setRoleModalTab("form");
+  };
+
+  const handleStartEditCustomRole = (role: CustomRoleItem) => {
+    setEditingRoleId(role.id);
+    setRoleFormName(role.name);
+    setRoleFormColor(role.color || "blue");
+    setRoleFormPermissions(Array.isArray(role.permissions) ? [...role.permissions] : []);
+    setRoleModalTab("form");
+  };
+
+  // Salvar Cargo Personalizado (Criar ou Editar)
+  const handleSaveCustomRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!roleFormName.trim()) {
+      showFeedback("error", "O nome do cargo é obrigatório.");
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      if (editingRoleId) {
+        await adminUserService.updateCustomRole(editingRoleId, {
+          name: roleFormName.trim(),
+          color: roleFormColor,
+          permissions: roleFormPermissions,
+        });
+        showFeedback("success", `Cargo "${roleFormName.trim()}" atualizado com sucesso!`);
+      } else {
+        await adminUserService.createCustomRole({
+          name: roleFormName.trim(),
+          color: roleFormColor,
+          permissions: roleFormPermissions,
+        });
+        showFeedback("success", `Cargo "${roleFormName.trim()}" criado com sucesso!`);
+      }
+
+      await fetchCustomRoles();
+      await fetchUsers();
+      setRoleModalTab("list");
+      setEditingRoleId(null);
+    } catch (err: unknown) {
+      showFeedback("error", err instanceof Error ? err.message : "Erro ao salvar cargo personalizado.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Excluir Cargo Personalizado com Proteção contra Exclusão Órfã
+  const handleDeleteCustomRole = async (role: CustomRoleItem) => {
+    const membersCount = role._count?.users ?? 0;
+    if (membersCount > 0) {
+      showFeedback(
+        "error",
+        `Não é possível excluir o cargo "${role.name}" porque há ${membersCount} membro(s) vinculado(s) a ele. Reatribua os membros antes de excluí-lo.`
+      );
+      return;
+    }
+
+    if (!window.confirm(`Tem certeza que deseja excluir o cargo "${role.name}"?`)) {
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      await adminUserService.deleteCustomRole(role.id);
+      showFeedback("success", `Cargo "${role.name}" excluído com sucesso.`);
+      await fetchCustomRoles();
+      await fetchUsers();
+    } catch (err: unknown) {
+      showFeedback("error", err instanceof Error ? err.message : "Erro ao excluir cargo.");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   // Abertura da gaveta de histórico
@@ -175,24 +376,24 @@ export function UsersManagementSection() {
           throw new Error("A senha deve ter no mínimo 6 caracteres.");
         }
 
-        const cleanedCpfNum = formCpf ? cleanCpf(formCpf) : undefined;
-        if (cleanedCpfNum && !validateCpf(cleanedCpfNum)) {
-          throw new Error("O CPF informado é inválido.");
+        if (formRole === "ADMIN" && activeAdminsCount >= 2) {
+          throw new Error("Limite máximo de 2 Administradores ativos já atingido no sistema.");
         }
 
         await adminUserService.createTeamMember({
           fullName: formFullName.trim(),
-          cpf: cleanedCpfNum,
           email: formEmail.trim() || undefined,
           phone: formPhone.trim() || undefined,
           password: formPassword,
           role: formRole === "ADMIN" ? "ADMIN" : "EDITOR",
-          permissions: formRole === "EDITOR" ? formPermissions : [],
+          customRoleId: formRole === "EDITOR" ? formCustomRoleId : null,
+          permissions: formRole === "EDITOR" && !formCustomRoleId ? formPermissions : undefined,
         });
 
         showFeedback("success", "Novo membro da equipe criado com sucesso!");
         setUserModalOpen(false);
         fetchUsers();
+        fetchCustomRoles();
       } else if (userModalMode === "edit_permissions" && selectedUser) {
         await adminUserService.updateUser(selectedUser.id, {
           permissions: formPermissions,
@@ -202,14 +403,20 @@ export function UsersManagementSection() {
         setUserModalOpen(false);
         fetchUsers();
       } else if (userModalMode === "edit_role" && selectedUser) {
+        const isCustom = changeRoleTarget !== "EDITOR_DEFAULT";
         await adminUserService.updateUser(selectedUser.id, {
-          role: formRole,
-          permissions: formRole === "EDITOR" ? formPermissions : [],
+          role: "EDITOR",
+          customRoleId: isCustom ? changeRoleTarget : null,
         });
 
-        showFeedback("success", `Cargo de ${selectedUser.fullName || selectedUser.username} atualizado para ${formRole}!`);
+        const targetRoleName = isCustom
+          ? customRoles.find((r) => r.id === changeRoleTarget)?.name || "Cargo Customizado"
+          : "Editor Padrão";
+
+        showFeedback("success", `Cargo de ${selectedUser.fullName || selectedUser.username} atualizado para "${targetRoleName}"!`);
         setUserModalOpen(false);
         fetchUsers();
+        fetchCustomRoles();
       }
     } catch (err: unknown) {
       showFeedback("error", err instanceof Error ? err.message : "Erro ao salvar alterações.");
@@ -225,17 +432,32 @@ export function UsersManagementSection() {
     );
   };
 
+  const toggleRolePermission = (permId: string) => {
+    setRoleFormPermissions((prev) =>
+      prev.includes(permId) ? prev.filter((p) => p !== permId) : [...prev, permId]
+    );
+  };
+
   // Presets rápidos de permissão
   const handleSelectDefaultPermissions = () => {
     setFormPermissions([...DEFAULT_EDITOR_PERMISSIONS]);
   };
-
   const handleSelectAllPermissions = () => {
     setFormPermissions([...ALL_PERMISSIONS]);
   };
-
   const handleClearAllPermissions = () => {
     setFormPermissions([]);
+  };
+
+  // Presets para cargos customizados
+  const handleRoleSelectDefaultPermissions = () => {
+    setRoleFormPermissions([...DEFAULT_EDITOR_PERMISSIONS]);
+  };
+  const handleRoleSelectAllPermissions = () => {
+    setRoleFormPermissions([...ALL_PERMISSIONS]);
+  };
+  const handleRoleClearAllPermissions = () => {
+    setRoleFormPermissions([]);
   };
 
   // Reset de Senha
@@ -302,17 +524,9 @@ export function UsersManagementSection() {
       await adminUserService.deleteUser(user.id);
       showFeedback("success", `Conta de ${user.fullName || user.username} desativada com sucesso.`);
       fetchUsers();
+      fetchCustomRoles();
     } catch (err: unknown) {
       showFeedback("error", err instanceof Error ? err.message : "Erro ao desativar conta.");
-    }
-  };
-
-  // Formatação com máscara de CPF no input
-  const handleCpfInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    const cleaned = cleanCpf(raw);
-    if (cleaned.length <= 11) {
-      setFormCpf(formatCpf(cleaned));
     }
   };
 
@@ -324,6 +538,32 @@ export function UsersManagementSection() {
       estrategico: PERMISSION_DEFINITIONS.filter((p) => p.category === "estrategico"),
     };
   }, []);
+
+interface FilterTabItem {
+  id: string;
+  label: string;
+  count?: number;
+  subLabel?: string;
+  color?: string;
+}
+
+  // Lista dinâmica de tabs de filtragem
+  const filterTabs: FilterTabItem[] = useMemo(() => {
+    return [
+      { id: "all", label: "Todos", count: totalCount },
+      { id: "admin", label: "Admins" },
+      { id: "editor", label: "Editores" },
+      ...customRoles.map((cr) => ({
+        id: `custom_${cr.id}`,
+        label: `${cr.name}`,
+        subLabel: `(${cr._count?.users ?? 0}/4)`,
+        color: cr.color,
+      })),
+      { id: "registered", label: "Clientes Cadastrados" },
+      { id: "fast_access", label: "Acesso Rápido" },
+      { id: "blocked", label: "Bloqueados" },
+    ];
+  }, [totalCount, customRoles]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -363,15 +603,18 @@ export function UsersManagementSection() {
                 Gestão de Usuários & Equipe
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Controle de acessos, RBAC granular para editores e histórico analítico de clientes.
+                Controle de acessos, RBAC com cargos personalizados e histórico analítico de clientes.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <Button
-            onClick={fetchUsers}
+            onClick={() => {
+              fetchUsers();
+              fetchCustomRoles();
+            }}
             variant="outline"
             className="rounded-xl border-gray-200 dark:border-border/40 h-11 px-3.5 text-xs font-bold gap-1.5 cursor-pointer"
             title="Atualizar lista"
@@ -380,6 +623,21 @@ export function UsersManagementSection() {
             <span className="hidden sm:inline">Atualizar</span>
           </Button>
 
+          {/* Botão Secundário: "+ Novo Cargo" */}
+          <Button
+            onClick={handleOpenCustomRolesModal}
+            variant="outline"
+            className="border-gray-200 dark:border-border/40 hover:border-primary/50 text-foreground font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-4 cursor-pointer"
+            title="Gerenciar e Criar Cargos Personalizados"
+          >
+            <Shield className="w-4 h-4 text-primary" />
+            <span>+ Novo Cargo</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-mono font-bold">
+              {customRoles.length}/4
+            </span>
+          </Button>
+
+          {/* Botão Primário: "+ Novo Usuário / Membro" */}
           <Button
             onClick={handleOpenCreateModal}
             className="bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-5 shadow-md shadow-primary/20 cursor-pointer"
@@ -393,7 +651,7 @@ export function UsersManagementSection() {
       {/* Barra de Filtros e Busca */}
       <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
         <div className="flex flex-col md:flex-row gap-3">
-          {/* Campo de Busca Global */}
+          {/* Campo de Busca Global (SEM menção a CPF) */}
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -403,7 +661,7 @@ export function UsersManagementSection() {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              placeholder="Buscar por Nome, CPF, E-mail ou Telefone..."
+              placeholder="Buscar por Nome, E-mail ou Telefone..."
               className="w-full pl-10 pr-9 py-2.5 bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/40 transition-all"
             />
             {search && (
@@ -412,37 +670,41 @@ export function UsersManagementSection() {
                   setSearch("");
                   setPage(1);
                 }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             )}
           </div>
 
-          {/* Filtros em Pílulas */}
+          {/* Filtros em Pílulas Dinâmicas (Incluindo Cargos Customizados) */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-            {[
-              { id: "all", label: "Todos", count: totalCount },
-              { id: "team", label: "Equipe (Admins/Editores)" },
-              { id: "registered", label: "Clientes Cadastrados" },
-              { id: "fast_access", label: "Acesso Rápido" },
-              { id: "blocked", label: "Bloqueados" },
-            ].map((p) => {
+            {filterTabs.map((p) => {
               const active = filter === p.id;
+              const colorStyle = p.color && ROLE_COLOR_STYLES[p.color] ? ROLE_COLOR_STYLES[p.color] : null;
+
               return (
                 <button
                   key={p.id}
                   onClick={() => {
-                    setFilter(p.id as "all" | "team" | "registered" | "fast_access" | "blocked");
+                    setFilter(p.id);
                     setPage(1);
                   }}
-                  className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
                     active
                       ? "bg-primary text-white shadow-xs font-bold"
                       : "bg-gray-100 dark:bg-background text-muted-foreground hover:text-foreground hover:bg-gray-200 dark:hover:bg-white/5 border border-transparent dark:border-border/30"
                   }`}
                 >
-                  {p.label}
+                  {colorStyle && (
+                    <span className={`w-2 h-2 rounded-full ${colorStyle.dot}`} />
+                  )}
+                  <span>{p.label}</span>
+                  {p.subLabel && (
+                    <span className={`text-[10px] opacity-75 font-mono ${active ? "text-white" : "text-muted-foreground"}`}>
+                      {p.subLabel}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -475,7 +737,8 @@ export function UsersManagementSection() {
               <thead>
                 <tr className="border-b border-gray-100 dark:border-border/30 bg-gray-50/70 dark:bg-background/40 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                   <th className="py-3.5 px-4 sm:px-6">Usuário</th>
-                  <th className="py-3.5 px-4">Documento (CPF)</th>
+                  {/* Coluna substituta: "CRIADO EM / POR" */}
+                  <th className="py-3.5 px-4">Criado em / Por</th>
                   <th className="py-3.5 px-4">Tipo de Conta</th>
                   <th className="py-3.5 px-4">Status</th>
                   <th className="py-3.5 px-4 text-center">Compras</th>
@@ -490,6 +753,10 @@ export function UsersManagementSection() {
                   const isClient = normalizedRole === "CLIENT";
                   const isFastAccess = isClient && !u.isRegistered;
                   const isSelf = currentAuthUser?.id === u.id;
+                  const hasCustomRole = Boolean(u.customRole);
+                  const customRoleColor = u.customRole?.color && ROLE_COLOR_STYLES[u.customRole.color]
+                    ? ROLE_COLOR_STYLES[u.customRole.color]
+                    : ROLE_COLOR_STYLES.blue;
 
                   return (
                     <tr
@@ -519,7 +786,7 @@ export function UsersManagementSection() {
                             {isEditor && (
                               <span
                                 className="absolute -bottom-1 -right-1 text-xs"
-                                title="Editor"
+                                title={u.customRole?.name || "Editor"}
                               >
                                 🛡️
                               </span>
@@ -546,14 +813,32 @@ export function UsersManagementSection() {
                         </div>
                       </td>
 
-                      {/* Coluna 2: Documento (CPF) */}
-                      <td className="py-3.5 px-4 font-mono text-xs">
-                        {u.cpf ? (
-                          <span className="font-semibold text-foreground">
-                            {formatCpf(u.cpf)}
-                          </span>
+                      {/* Coluna 2: CRIADO EM / POR */}
+                      <td className="py-3.5 px-4">
+                        {isClient ? (
+                          <div className="flex flex-col items-start gap-1">
+                            <span className="font-semibold text-foreground text-xs font-mono">
+                              {formatDate(u.createdAt)}
+                            </span>
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-100 dark:bg-white/5 text-muted-foreground border border-gray-200 dark:border-border/30">
+                              Auto-cadastro
+                            </span>
+                          </div>
                         ) : (
-                          <span className="text-muted-foreground/50">-</span>
+                          <div className="flex flex-col items-start gap-0.5">
+                            <span className="font-semibold text-foreground text-xs font-mono">
+                              {formatDate(u.createdAt)}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                              Criado por:{" "}
+                              <strong className="text-foreground/90 font-medium">
+                                {u.createdBy?.fullName || u.createdBy?.username || (u.createdById ? "Admin" : "Sistema")}
+                              </strong>{" "}
+                              <span className="text-[10px] opacity-75">
+                                ({u.createdBy?.role ? (u.createdBy.role.toUpperCase() === "ADMIN" ? "Admin" : "Editor") : "Admin"})
+                              </span>
+                            </span>
+                          </div>
                         )}
                       </td>
 
@@ -565,11 +850,24 @@ export function UsersManagementSection() {
                             <span>Administrador</span>
                           </span>
                         )}
-                        {isEditor && (
+                        {isEditor && hasCustomRole && u.customRole && (
+                          <div className="inline-flex flex-col items-start gap-1">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold border ${customRoleColor.bg} ${customRoleColor.text} ${customRoleColor.border}`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${customRoleColor.dot}`} />
+                              <span>{u.customRole.name}</span>
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              ({u.permissions?.length || 0} de {ALL_PERMISSIONS.length} acessos)
+                            </span>
+                          </div>
+                        )}
+                        {isEditor && !hasCustomRole && (
                           <div className="inline-flex flex-col items-start gap-1">
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
                               <span>🛡️</span>
-                              <span>Editor</span>
+                              <span>Editor Padrão</span>
                             </span>
                             <span className="text-[10px] text-muted-foreground font-mono">
                               ({u.permissions?.length || 0} de {ALL_PERMISSIONS.length} acessos)
@@ -632,32 +930,51 @@ export function UsersManagementSection() {
                             <History className="w-4 h-4" />
                           </button>
 
-                          {/* Se for Editor: Botão rápido para Matriz de Permissões */}
-                          {isEditor && (
+                          {/* Se for Editor Padrão: Botão rápido para Matriz de Permissões */}
+                          {isEditor && !hasCustomRole && (
                             <button
                               type="button"
                               onClick={() => handleOpenPermissionsModal(u)}
                               className="p-1.5 rounded-lg text-indigo-500 hover:text-indigo-600 hover:bg-indigo-500/10 transition-colors cursor-pointer"
-                              title="Configurar Permissões de Acesso"
+                              title="Configurar Permissões Granulares"
                             >
                               <ShieldCheck className="w-4 h-4" />
                             </button>
                           )}
 
-                          {/* Alterar Cargo */}
-                          <button
-                            type="button"
-                            disabled={isSelf}
-                            onClick={() => handleOpenRoleModal(u)}
-                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                              isSelf
-                                ? "text-gray-300 dark:text-gray-700 cursor-not-allowed"
-                                : "text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-white/5"
-                            }`}
-                            title={isSelf ? "Você não pode alterar seu próprio cargo" : "Alterar Cargo"}
-                          >
-                            <Shield className="w-4 h-4" />
-                          </button>
+                          {/* Alterar Cargo:
+                              - Para Clientes: Desabilitado com tooltip explicativo estrito
+                              - Para Admin: Desabilitado (cargo soberano e imutável)
+                              - Para Editor / Custom Role: Habilitado
+                          */}
+                          {isClient ? (
+                            <button
+                              type="button"
+                              disabled
+                              className="p-1.5 rounded-lg text-gray-300 dark:text-gray-700 cursor-not-allowed opacity-40"
+                              title="Contas de clientes são exclusivas para consumo e não podem ser convertidas em cargos operacionais."
+                            >
+                              <Shield className="w-4 h-4" />
+                            </button>
+                          ) : isAdmin ? (
+                            <button
+                              type="button"
+                              disabled
+                              className="p-1.5 rounded-lg text-gray-300 dark:text-gray-700 cursor-not-allowed opacity-40"
+                              title="O cargo de Administrador é soberano e imutável."
+                            >
+                              <Shield className="w-4 h-4" />
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenRoleModal(u)}
+                              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                              title="Alterar Cargo do Colaborador"
+                            >
+                              <Shield className="w-4 h-4" />
+                            </button>
+                          )}
 
                           {/* Resetar Senha */}
                           <button
@@ -684,7 +1001,7 @@ export function UsersManagementSection() {
                             }}
                             className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                               isSelf
-                                ? "text-gray-300 dark:text-gray-700 cursor-not-allowed"
+                                ? "text-gray-300 dark:text-gray-700 cursor-not-allowed opacity-40"
                                 : u.isBlocked
                                 ? "text-red-500 hover:text-emerald-500 hover:bg-emerald-500/10"
                                 : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
@@ -711,7 +1028,7 @@ export function UsersManagementSection() {
                             onClick={() => handleDeleteUser(u)}
                             className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                               isSelf
-                                ? "text-gray-300 dark:text-gray-700 cursor-not-allowed"
+                                ? "text-gray-300 dark:text-gray-700 cursor-not-allowed opacity-40"
                                 : "text-muted-foreground hover:text-red-600 hover:bg-red-500/10"
                             }`}
                             title={isSelf ? "Você não pode desativar sua própria conta" : "Desativar Conta"}
@@ -780,10 +1097,10 @@ export function UsersManagementSection() {
                   </h3>
                   <p className="text-xs text-muted-foreground">
                     {userModalMode === "create"
-                      ? "Cadastre um administrador ou editor com permissões sob medida."
+                      ? "Cadastre um novo colaborador vinculando a Administrador, Editor ou Cargo Personalizado."
                       : userModalMode === "edit_permissions"
                       ? "Selecione individualmente quais módulos e abas o editor pode acessar."
-                      : "Defina o nível de acesso deste usuário no sistema."}
+                      : "Defina o nível de acesso ou vincule este colaborador a um cargo personalizado."}
                   </p>
                 </div>
               </div>
@@ -799,37 +1116,21 @@ export function UsersManagementSection() {
 
             {/* Form Body com Rolagem */}
             <form onSubmit={handleSaveUserForm} className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin">
-              {/* Se for Criação de Usuário: Exibe campos de cadastro */}
+              {/* Se for Criação de Usuário: Exibe campos de cadastro (SEM CPF) */}
               {userModalMode === "create" && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                        Nome Completo *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={formFullName}
-                        onChange={(e) => setFormFullName(e.target.value)}
-                        placeholder="Ex: Carlos Silva"
-                        className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl text-xs sm:text-sm text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/40"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center justify-between">
-                        <span>CPF</span>
-                        <span className="text-[10px] text-muted-foreground font-normal">Somente números</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formCpf}
-                        onChange={handleCpfInputChange}
-                        placeholder="000.000.000-00"
-                        className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl text-xs sm:text-sm text-foreground font-mono focus:outline-hidden focus:ring-2 focus:ring-primary/40"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                      Nome Completo *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formFullName}
+                      onChange={(e) => setFormFullName(e.target.value)}
+                      placeholder="Ex: Carlos Silva"
+                      className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl text-xs sm:text-sm text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/40"
+                    />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -876,140 +1177,303 @@ export function UsersManagementSection() {
                       className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl text-xs sm:text-sm text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/40"
                     />
                   </div>
+
+                  {/* Seleção de Cargo na Criação */}
+                  <div className="space-y-3 pt-3 border-t border-gray-100 dark:border-border/30">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Selecione o Cargo ou Função:
+                    </label>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Administrador (limitado a 2 ativos) */}
+                      <label
+                        className={`flex items-start gap-3 p-3.5 rounded-xl border-2 transition-all ${
+                          activeAdminsCount >= 2
+                            ? "opacity-45 bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-border/30 cursor-not-allowed"
+                            : formRole === "ADMIN"
+                            ? "border-amber-500 bg-amber-50/20 dark:bg-amber-950/20 cursor-pointer"
+                            : "border-gray-200 dark:border-border/40 hover:border-gray-300 cursor-pointer"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="formRole"
+                          value="ADMIN"
+                          disabled={activeAdminsCount >= 2}
+                          checked={formRole === "ADMIN"}
+                          onChange={() => {
+                            setFormRole("ADMIN");
+                            setFormCustomRoleId(null);
+                          }}
+                          className="mt-0.5 text-amber-500 focus:ring-amber-500"
+                        />
+                        <div>
+                          <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-foreground">
+                            <span>👑</span>
+                            <span>Administrador</span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            Acesso total e irrestrito (máximo de 2 ativos).
+                          </p>
+                          {activeAdminsCount >= 2 && (
+                            <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold block mt-1">
+                              ⚠️ Limite de 2 Admins atingido
+                            </span>
+                          )}
+                        </div>
+                      </label>
+
+                      {/* Editor Padrão */}
+                      <label
+                        className={`flex items-start gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                          formRole === "EDITOR" && !formCustomRoleId
+                            ? "border-indigo-500 bg-indigo-50/20 dark:bg-indigo-950/20"
+                            : "border-gray-200 dark:border-border/40 hover:border-gray-300"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="formRole"
+                          value="EDITOR"
+                          checked={formRole === "EDITOR" && !formCustomRoleId}
+                          onChange={() => {
+                            setFormRole("EDITOR");
+                            setFormCustomRoleId(null);
+                          }}
+                          className="mt-0.5 text-indigo-500 focus:ring-indigo-500"
+                        />
+                        <div>
+                          <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-foreground">
+                            <span>🛡️</span>
+                            <span>Editor Padrão</span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            Permissões modulares configuradas abaixo.
+                          </p>
+                        </div>
+                      </label>
+
+                      {/* Cargos Customizados Existentes */}
+                      {customRoles.map((cr) => {
+                        const isFull = (cr._count?.users ?? 0) >= 4;
+                        const isSelected = formRole === "EDITOR" && formCustomRoleId === cr.id;
+                        const colorStyle = ROLE_COLOR_STYLES[cr.color] || ROLE_COLOR_STYLES.blue;
+
+                        return (
+                          <label
+                            key={cr.id}
+                            className={`flex items-start gap-3 p-3.5 rounded-xl border-2 transition-all ${
+                              isFull
+                                ? "opacity-50 bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-border/30 cursor-not-allowed"
+                                : isSelected
+                                ? `border-primary bg-primary/5 cursor-pointer`
+                                : "border-gray-200 dark:border-border/40 hover:border-gray-300 cursor-pointer"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="formRole"
+                              value={cr.id}
+                              disabled={isFull}
+                              checked={isSelected}
+                              onChange={() => {
+                                setFormRole("EDITOR");
+                                setFormCustomRoleId(cr.id);
+                              }}
+                              className="mt-0.5 text-primary focus:ring-primary"
+                            />
+                            <div>
+                              <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-foreground">
+                                <span className={`w-2 h-2 rounded-full ${colorStyle.dot}`} />
+                                <span>{cr.name}</span>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">
+                                {cr.permissions.length} permissões ativas •{" "}
+                                <span className="font-mono font-semibold">
+                                  {cr._count?.users ?? 0}/4 membros
+                                </span>
+                              </p>
+                              {isFull && (
+                                <span className="text-[10px] text-red-500 font-bold block mt-1">
+                                  Lotação máxima (4/4 membros)
+                                </span>
+                              )}
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* Seção de Seleção de Cargo */}
-              {(userModalMode === "create" || userModalMode === "edit_role") && (
-                <div className="space-y-3 pt-2 border-t border-gray-100 dark:border-border/30">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Selecione o Cargo do Membro:
-                  </label>
+              {/* Se for Modo de Troca de Cargo */}
+              {userModalMode === "edit_role" && (
+                <div className="space-y-4">
+                  <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-700 dark:text-blue-300 flex items-start gap-2.5">
+                    <Info className="w-4 h-4 shrink-0 mt-0.5 text-blue-500" />
+                    <div>
+                      Altere a função de{" "}
+                      <strong>{selectedUser?.fullName || selectedUser?.username}</strong>. Ao selecionar um cargo
+                      personalizado, as permissões são herdadas automaticamente.
+                    </div>
+                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-3">
+                    {/* Opção: Editor Padrão */}
                     <label
                       className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                        formRole === "ADMIN"
-                          ? "border-amber-500 bg-amber-50/20 dark:bg-amber-950/20"
-                          : "border-gray-200 dark:border-border/40 hover:border-gray-300"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="formRole"
-                        value="ADMIN"
-                        checked={formRole === "ADMIN"}
-                        onChange={() => setFormRole("ADMIN")}
-                        className="mt-0.5 text-amber-500 focus:ring-amber-500"
-                      />
-                      <div>
-                        <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-foreground">
-                          <span>👑</span>
-                          <span>Administrador</span>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground mt-1">
-                          Acesso <strong>total e irrestrito</strong> a 100% dos módulos, relatórios, configurações e gestão de usuários.
-                        </p>
-                      </div>
-                    </label>
-
-                    <label
-                      className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                        formRole === "EDITOR"
+                        changeRoleTarget === "EDITOR_DEFAULT"
                           ? "border-indigo-500 bg-indigo-50/20 dark:bg-indigo-950/20"
                           : "border-gray-200 dark:border-border/40 hover:border-gray-300"
                       }`}
                     >
                       <input
                         type="radio"
-                        name="formRole"
-                        value="EDITOR"
-                        checked={formRole === "EDITOR"}
-                        onChange={() => setFormRole("EDITOR")}
+                        name="changeRoleTarget"
+                        value="EDITOR_DEFAULT"
+                        checked={changeRoleTarget === "EDITOR_DEFAULT"}
+                        onChange={() => setChangeRoleTarget("EDITOR_DEFAULT")}
                         className="mt-0.5 text-indigo-500 focus:ring-indigo-500"
                       />
                       <div>
                         <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-foreground">
                           <span>🛡️</span>
-                          <span>Editor</span>
+                          <span>Editor Padrão (Modular)</span>
                         </div>
-                        <p className="text-[11px] text-muted-foreground mt-1">
-                          Acesso <strong>personalizável</strong> definido na matriz de permissões abaixo. Nunca tem acesso a gerenciar outros usuários.
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Função padrão com permissões configuráveis individualmente pelo Administrador.
                         </p>
                       </div>
                     </label>
+
+                    {/* Cargos Customizados */}
+                    {customRoles.map((cr) => {
+                      const isCurrentMemberOfThisRole = selectedUser?.customRoleId === cr.id;
+                      const isFull = !isCurrentMemberOfThisRole && (cr._count?.users ?? 0) >= 4;
+                      const isSelected = changeRoleTarget === cr.id;
+                      const colorStyle = ROLE_COLOR_STYLES[cr.color] || ROLE_COLOR_STYLES.blue;
+
+                      return (
+                        <label
+                          key={cr.id}
+                          className={`flex items-start gap-3 p-4 rounded-xl border-2 transition-all ${
+                            isFull
+                              ? "opacity-50 bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-border/30 cursor-not-allowed"
+                              : isSelected
+                              ? "border-primary bg-primary/5 cursor-pointer"
+                              : "border-gray-200 dark:border-border/40 hover:border-gray-300 cursor-pointer"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="changeRoleTarget"
+                            value={cr.id}
+                            disabled={isFull}
+                            checked={isSelected}
+                            onChange={() => setChangeRoleTarget(cr.id)}
+                            className="mt-0.5 text-primary focus:ring-primary"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 font-bold text-xs sm:text-sm text-foreground">
+                                <span className={`w-2 h-2 rounded-full ${colorStyle.dot}`} />
+                                <span>{cr.name}</span>
+                              </div>
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-gray-100 dark:bg-white/10 text-muted-foreground">
+                                {cr._count?.users ?? 0}/4 membros
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground mt-1">
+                              {cr.permissions.length} permissões ativas configuradas.
+                            </p>
+                            {isFull && (
+                              <span className="text-[10px] text-red-500 font-bold block mt-1">
+                                Lotação máxima atingida (4/4 membros vinculados).
+                              </span>
+                            )}
+                          </div>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
-              {/* Bloco Colapsável: Matriz de Permissões do Editor */}
-              {(formRole === "EDITOR" || userModalMode === "edit_permissions") && (
+              {/* Bloco: Matriz de Permissões (para Editor Padrão na criação ou na edição de permissões) */}
+              {((userModalMode === "create" && formRole === "EDITOR" && !formCustomRoleId) ||
+                userModalMode === "edit_permissions") && (
                 <div className="space-y-4 pt-3 border-t border-gray-100 dark:border-border/30">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <div>
                       <h4 className="font-heading font-bold text-sm text-foreground flex items-center gap-2">
-                        <Sliders className="w-4 h-4 text-primary" />
-                        <span>Permissões de Acesso do Editor</span>
+                        <Shield className="w-4 h-4 text-primary" />
+                        <span>Matriz Granular de Acessos</span>
                       </h4>
-                      <p className="text-xs text-muted-foreground">
-                        {formPermissions.length} de {ALL_PERMISSIONS.length} recursos liberados.
+                      <p className="text-[11px] text-muted-foreground">
+                        Habilite ou desabilite os módulos operacionais individualmente.
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
+                    <div className="flex items-center gap-1.5">
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={handleSelectDefaultPermissions}
-                        className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-                        title="Ativa Esteira, Estoque, Métricas, Combos, Promoções, Adicionais e Logística"
+                        className="text-[11px] h-7 px-2 cursor-pointer"
                       >
-                        ⚡ Padrão Operacional
-                      </button>
-                      <button
+                        Padrão Seguro
+                      </Button>
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={handleSelectAllPermissions}
-                        className="text-[11px] font-bold px-2 py-1 rounded-lg bg-gray-100 dark:bg-white/10 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                        className="text-[11px] h-7 px-2 cursor-pointer"
                       >
-                        Marcar Todos
-                      </button>
-                      <button
+                        Marcar Todas
+                      </Button>
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={handleClearAllPermissions}
-                        className="text-[11px] font-bold px-2 py-1 rounded-lg bg-gray-100 dark:bg-white/10 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                        className="text-[11px] h-7 px-2 text-red-500 hover:text-red-600 cursor-pointer"
                       >
                         Limpar
-                      </button>
+                      </Button>
                     </div>
                   </div>
 
-                  {/* Grupo 1: Módulos Operacionais da Cozinha */}
+                  {/* Operação */}
                   <div className="space-y-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Módulos Operacionais da Cozinha
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Operação da Cozinha & Esteira
                     </span>
                     <div className="grid grid-cols-1 gap-2">
                       {groupedPermissions.operacao.map((perm) => {
-                        const isChecked = formPermissions.includes(perm.id);
+                        const checked = formPermissions.includes(perm.id);
                         return (
                           <label
                             key={perm.id}
                             className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
-                              isChecked
-                                ? "bg-primary/5 border-primary/30"
-                                : "bg-gray-50/50 dark:bg-background/40 border-gray-200 dark:border-border/30 opacity-70"
+                              checked
+                                ? "bg-primary/5 border-primary/40 text-foreground"
+                                : "bg-gray-50/60 dark:bg-background/40 border-gray-200 dark:border-border/30 text-muted-foreground hover:border-gray-300"
                             }`}
                           >
                             <input
                               type="checkbox"
-                              checked={isChecked}
+                              checked={checked}
                               onChange={() => togglePermission(perm.id)}
-                              className="mt-1 rounded-md text-primary focus:ring-primary w-4 h-4"
+                              className="mt-0.5 rounded text-primary focus:ring-primary"
                             />
-                            <div className="flex-1 min-w-0">
-                              <span className="font-bold text-xs sm:text-sm text-foreground block">
+                            <div className="min-w-0">
+                              <span className="font-bold text-xs text-foreground block">
                                 {perm.label}
                               </span>
-                              <span className="text-[11px] text-muted-foreground block leading-relaxed">
+                              <span className="text-[11px] text-muted-foreground block">
                                 {perm.description}
                               </span>
                             </div>
@@ -1019,34 +1483,34 @@ export function UsersManagementSection() {
                     </div>
                   </div>
 
-                  {/* Grupo 2: Cardápio & Vendas */}
+                  {/* Cardápio */}
                   <div className="space-y-2 pt-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Cardápio & Vendas
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Gestão de Produtos & Cardápio
                     </span>
                     <div className="grid grid-cols-1 gap-2">
                       {groupedPermissions.cardapio.map((perm) => {
-                        const isChecked = formPermissions.includes(perm.id);
+                        const checked = formPermissions.includes(perm.id);
                         return (
                           <label
                             key={perm.id}
                             className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
-                              isChecked
-                                ? "bg-primary/5 border-primary/30"
-                                : "bg-gray-50/50 dark:bg-background/40 border-gray-200 dark:border-border/30 opacity-70"
+                              checked
+                                ? "bg-primary/5 border-primary/40 text-foreground"
+                                : "bg-gray-50/60 dark:bg-background/40 border-gray-200 dark:border-border/30 text-muted-foreground hover:border-gray-300"
                             }`}
                           >
                             <input
                               type="checkbox"
-                              checked={isChecked}
+                              checked={checked}
                               onChange={() => togglePermission(perm.id)}
-                              className="mt-1 rounded-md text-primary focus:ring-primary w-4 h-4"
+                              className="mt-0.5 rounded text-primary focus:ring-primary"
                             />
-                            <div className="flex-1 min-w-0">
-                              <span className="font-bold text-xs sm:text-sm text-foreground block">
+                            <div className="min-w-0">
+                              <span className="font-bold text-xs text-foreground block">
                                 {perm.label}
                               </span>
-                              <span className="text-[11px] text-muted-foreground block leading-relaxed">
+                              <span className="text-[11px] text-muted-foreground block">
                                 {perm.description}
                               </span>
                             </div>
@@ -1056,39 +1520,34 @@ export function UsersManagementSection() {
                     </div>
                   </div>
 
-                  {/* Grupo 3: Estratégico & Decisões do Dono */}
+                  {/* Estratégico */}
                   <div className="space-y-2 pt-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Estratégico / Decisões do Dono
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                        Bloqueados por Padrão
-                      </span>
-                    </div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Estratégico & Marketing
+                    </span>
                     <div className="grid grid-cols-1 gap-2">
                       {groupedPermissions.estrategico.map((perm) => {
-                        const isChecked = formPermissions.includes(perm.id);
+                        const checked = formPermissions.includes(perm.id);
                         return (
                           <label
                             key={perm.id}
                             className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
-                              isChecked
-                                ? "bg-primary/5 border-primary/30"
-                                : "bg-gray-50/50 dark:bg-background/40 border-gray-200 dark:border-border/30 opacity-70"
+                              checked
+                                ? "bg-primary/5 border-primary/40 text-foreground"
+                                : "bg-gray-50/60 dark:bg-background/40 border-gray-200 dark:border-border/30 text-muted-foreground hover:border-gray-300"
                             }`}
                           >
                             <input
                               type="checkbox"
-                              checked={isChecked}
+                              checked={checked}
                               onChange={() => togglePermission(perm.id)}
-                              className="mt-1 rounded-md text-primary focus:ring-primary w-4 h-4"
+                              className="mt-0.5 rounded text-primary focus:ring-primary"
                             />
-                            <div className="flex-1 min-w-0">
-                              <span className="font-bold text-xs sm:text-sm text-foreground block">
+                            <div className="min-w-0">
+                              <span className="font-bold text-xs text-foreground block">
                                 {perm.label}
                               </span>
-                              <span className="text-[11px] text-muted-foreground block leading-relaxed">
+                              <span className="text-[11px] text-muted-foreground block">
                                 {perm.description}
                               </span>
                             </div>
@@ -1100,22 +1559,22 @@ export function UsersManagementSection() {
                 </div>
               )}
 
-              {/* Botões do Rodapé do Formulário */}
-              <div className="pt-4 border-t border-border/50 flex justify-end items-center gap-3">
+              {/* Botões do Rodapé do Modal */}
+              <div className="pt-4 border-t border-gray-100 dark:border-border/30 flex justify-end gap-2.5">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setUserModalOpen(false)}
-                  className="rounded-xl h-11 px-5 text-xs font-bold cursor-pointer"
+                  className="rounded-xl cursor-pointer"
                 >
                   Cancelar
                 </Button>
                 <Button
                   type="submit"
                   disabled={actionLoading}
-                  className="bg-primary hover:bg-primary/90 text-white rounded-xl h-11 px-6 text-xs font-bold cursor-pointer shadow-md shadow-primary/20"
+                  className="bg-primary text-white rounded-xl font-bold cursor-pointer"
                 >
-                  {actionLoading ? "Salvando..." : "Salvar Alterações"}
+                  {actionLoading ? "Salvando..." : "Confirmar e Salvar"}
                 </Button>
               </div>
             </form>
@@ -1124,248 +1583,419 @@ export function UsersManagementSection() {
       )}
 
       {/* ========================================================= */}
-      {/* DRAWER LATERAL: DOSSIÊ E HISTÓRICO DO CLIENTE */}
+      {/* MODAL 2: GESTÃO DE CARGOS PERSONALIZADOS (CUSTOM ROLES)   */}
       {/* ========================================================= */}
-      {historyDrawerOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-end animate-in fade-in duration-200">
-          <div className="w-full max-w-xl bg-card border-l border-border h-full shadow-2xl flex flex-col justify-between overflow-hidden animate-in slide-in-from-right duration-200">
-            {/* Header do Drawer */}
-            <div className="p-5 border-b border-border/50 bg-gray-50/70 dark:bg-background/40 flex items-center justify-between">
-              <div className="flex items-center gap-3 min-w-0">
-                <Image
-                  src={selectedUser?.avatarUrl || "/avatars/avatar-sorvete.svg"}
-                  alt={selectedUser?.fullName || "Avatar"}
-                  width={44}
-                  height={44}
-                  unoptimized
-                  className="w-11 h-11 rounded-full object-cover border border-gray-200 dark:border-border/40"
-                />
-                <div className="min-w-0">
-                  <h3 className="font-heading font-bold text-base text-foreground truncate">
-                    {selectedUser?.fullName || selectedUser?.username || "Dossiê do Cliente"}
+      {rolesModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-border/50 flex justify-between items-center bg-gray-50/60 dark:bg-background/40">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+                  <Shield className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-bold text-base text-foreground">
+                    {roleModalTab === "list"
+                      ? "Cargos Personalizados (RBAC)"
+                      : editingRoleId
+                      ? "Editar Cargo Personalizado"
+                      : "Criar Novo Cargo Personalizado"}
                   </h3>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
-                    {selectedUser?.cpf && <span>CPF: {formatCpf(selectedUser.cpf)}</span>}
-                    {selectedUser?.phone && <span>• {selectedUser.phone}</span>}
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {roleModalTab === "list"
+                      ? `Você pode criar até 4 cargos personalizados. Lotação máxima de 4 membros por cargo.`
+                      : "Defina o nome, a cor de destaque e as permissões de acesso do cargo."}
+                  </p>
                 </div>
               </div>
 
               <button
                 type="button"
-                onClick={() => setHistoryDrawerOpen(false)}
-                className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
+                onClick={() => setRolesModalOpen(false)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Conteúdo do Drawer */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-thin">
-              {historyLoading ? (
-                <div className="py-20 text-center text-muted-foreground space-y-3">
-                  <RefreshCw className="w-7 h-7 animate-spin mx-auto text-primary" />
-                  <p className="text-xs">Carregando métricas e histórico de compras...</p>
+            {/* Conteúdo: Lista ou Formulário */}
+            {roleModalTab === "list" ? (
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground font-semibold">
+                    Cargos Criados: <strong>{customRoles.length} de 4 permitidos</strong>
+                  </span>
+                  <Button
+                    type="button"
+                    disabled={customRoles.length >= 4}
+                    onClick={handleStartCreateCustomRole}
+                    className="bg-primary text-white text-xs font-bold rounded-xl h-9 px-3.5 gap-1.5 cursor-pointer"
+                  >
+                    <span>+ Novo Cargo</span>
+                  </Button>
                 </div>
-              ) : userDossier ? (
-                <>
-                  {/* Grid de Métricas Analíticas */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 space-y-1">
-                      <div className="flex items-center justify-between text-muted-foreground">
-                        <span className="text-[10px] font-bold uppercase tracking-wider">Total Gasto</span>
-                        <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
-                      </div>
-                      <p className="font-mono font-black text-lg text-emerald-600 dark:text-emerald-400">
-                        R$ {userDossier.metrics.totalSpent.toFixed(2).replace(".", ",")}
-                      </p>
-                    </div>
 
-                    <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 space-y-1">
-                      <div className="flex items-center justify-between text-muted-foreground">
-                        <span className="text-[10px] font-bold uppercase tracking-wider">Ticket Médio</span>
-                        <TrendingUp className="w-3.5 h-3.5 text-primary" />
-                      </div>
-                      <p className="font-mono font-black text-lg text-primary">
-                        R$ {userDossier.metrics.averageTicket.toFixed(2).replace(".", ",")}
-                      </p>
+                {customRoles.length === 0 ? (
+                  <div className="py-12 text-center space-y-3 px-4 border border-dashed rounded-xl">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mx-auto text-lg">
+                      🛡️
                     </div>
-
-                    <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 space-y-1">
-                      <div className="flex items-center justify-between text-muted-foreground">
-                        <span className="text-[10px] font-bold uppercase tracking-wider">Total Pedidos</span>
-                        <ShoppingBag className="w-3.5 h-3.5 text-indigo-500" />
-                      </div>
-                      <p className="font-mono font-black text-lg text-foreground">
-                        {userDossier.metrics.totalOrders}
-                      </p>
-                    </div>
-
-                    <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 space-y-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        Concluídos
-                      </span>
-                      <p className="font-mono font-bold text-sm text-emerald-600">
-                        {userDossier.metrics.completedOrders} pedidos
-                      </p>
-                    </div>
-
-                    <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 space-y-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        Cancelados
-                      </span>
-                      <p className="font-mono font-bold text-sm text-red-500">
-                        {userDossier.metrics.cancelledOrders} pedidos
-                      </p>
-                    </div>
-
-                    <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 space-y-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        Primeiro Pedido
-                      </span>
-                      <p className="font-mono text-xs text-foreground truncate">
-                        {userDossier.metrics.firstOrderAt
-                          ? new Date(userDossier.metrics.firstOrderAt).toLocaleDateString("pt-BR")
-                          : "Nunca"}
-                      </p>
-                    </div>
+                    <h5 className="font-heading font-bold text-sm text-foreground">
+                      Nenhum cargo personalizado criado
+                    </h5>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                      Crie cargos como Atendente, Cozinha ou Supervisor com permissões pré-definidas.
+                    </p>
                   </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-3">
+                    {customRoles.map((role) => {
+                      const colorStyle = ROLE_COLOR_STYLES[role.color] || ROLE_COLOR_STYLES.blue;
+                      const membersCount = role._count?.users ?? 0;
+                      const isFull = membersCount >= 4;
 
-                  {/* Lista Cronológica de Pedidos */}
-                  <div className="space-y-3">
-                    <h4 className="font-heading font-bold text-sm uppercase tracking-wide text-foreground flex items-center justify-between">
-                      <span>Histórico de Compras ({userDossier.orders.length})</span>
-                    </h4>
-
-                    {userDossier.orders.length === 0 ? (
-                      <div className="py-8 text-center text-xs text-muted-foreground bg-gray-50 dark:bg-background rounded-xl border border-dashed border-gray-200 dark:border-border/40">
-                        Este cliente ainda não realizou nenhum pedido.
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {userDossier.orders.map((ord) => {
-                          let badgeColor = "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300";
-                          let badgeLabel = "Pendente";
-                          if (ord.status === "completed") {
-                            badgeColor = "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300";
-                            badgeLabel = "Concluído";
-                          } else if (ord.status === "cancelled") {
-                            badgeColor = "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-300";
-                            badgeLabel = "Cancelado";
-                          } else if (ord.status === "delivering") {
-                            badgeColor = "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300";
-                            badgeLabel = "A Caminho";
-                          }
-
-                          return (
-                            <div
-                              key={ord.id}
-                              className="p-4 rounded-xl border border-gray-200 dark:border-border/40 bg-gray-50/60 dark:bg-background/60 space-y-2.5"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-mono font-bold text-xs text-primary">
-                                    #{ord.id.substring(0, 6)}
-                                  </span>
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeColor}`}>
-                                    {badgeLabel}
-                                  </span>
-                                </div>
-                                <span className="font-mono font-black text-sm text-foreground">
-                                  R$ {ord.totalAmount.toFixed(2).replace(".", ",")}
-                                </span>
-                              </div>
-
-                              <div className="text-[11px] text-muted-foreground flex items-center justify-between">
-                                <span>{new Date(ord.createdAt).toLocaleString("pt-BR")}</span>
-                                <span className="uppercase font-bold">{ord.paymentMethodType}</span>
-                              </div>
-
-                              {/* Itens do Pedido */}
-                              <div className="pt-2 border-t border-gray-100 dark:border-border/20 space-y-1">
-                                {ord.items.map((it) => (
-                                  <div
-                                    key={it.id}
-                                    className="flex items-center justify-between text-xs"
-                                  >
-                                    <span className="text-foreground">
-                                      {it.quantity}x {it.productName}
-                                    </span>
-                                    <span className="font-mono text-muted-foreground">
-                                      R$ {(it.quantity * it.priceAtTime).toFixed(2).replace(".", ",")}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
+                      return (
+                        <div
+                          key={role.id}
+                          className="p-4 rounded-xl border border-gray-200 dark:border-border/40 bg-gray-50/60 dark:bg-background/40 flex items-center justify-between gap-4"
+                        >
+                          <div className="space-y-1.5 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border ${colorStyle.bg} ${colorStyle.text} ${colorStyle.border}`}
+                              >
+                                <span className={`w-2 h-2 rounded-full ${colorStyle.dot}`} />
+                                <span>{role.name}</span>
+                              </span>
+                              <span
+                                className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${
+                                  isFull
+                                    ? "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"
+                                    : "bg-gray-200 dark:bg-white/10 text-foreground"
+                                }`}
+                              >
+                                {membersCount}/4 membros
+                              </span>
                             </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : null}
-            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {role.permissions.length} módulos habilitados na matriz de acessos.
+                            </p>
+                          </div>
 
-            {/* Rodapé da Gaveta */}
-            <div className="p-4 border-t border-border/50 bg-gray-50/70 dark:bg-background/40 flex justify-end">
-              <Button
-                variant="outline"
-                onClick={() => setHistoryDrawerOpen(false)}
-                className="rounded-xl h-10 px-5 text-xs font-bold cursor-pointer"
-              >
-                Fechar
-              </Button>
-            </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleStartEditCustomRole(role)}
+                              className="rounded-lg h-8 text-xs font-bold gap-1 cursor-pointer"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                              <span>Editar</span>
+                            </Button>
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={membersCount > 0}
+                              onClick={() => handleDeleteCustomRole(role)}
+                              className={`rounded-lg h-8 text-xs font-bold gap-1 cursor-pointer ${
+                                membersCount > 0
+                                  ? "opacity-40 cursor-not-allowed"
+                                  : "text-red-500 hover:text-red-600 hover:bg-red-500/10 border-red-200 dark:border-red-900/40"
+                              }`}
+                              title={
+                                membersCount > 0
+                                  ? `Não é possível excluir: existem ${membersCount} membro(s) vinculados a este cargo.`
+                                  : "Excluir Cargo"
+                              }
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Excluir</span>
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <form onSubmit={handleSaveCustomRole} className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin">
+                {/* Nome do Cargo */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                    Nome do Cargo *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={roleFormName}
+                    onChange={(e) => setRoleFormName(e.target.value)}
+                    placeholder="Ex: Atendente de Balcão"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl text-xs sm:text-sm text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/40"
+                  />
+                </div>
+
+                {/* Seleção de Cor do Badge */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                    Cor do Badge de Identificação:
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {Object.entries(ROLE_COLOR_STYLES).map(([key, style]) => {
+                      const isSelected = roleFormColor === key;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setRoleFormColor(key)}
+                          className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                            isSelected
+                              ? `ring-2 ring-primary border-primary ${style.bg} ${style.text}`
+                              : "border-gray-200 dark:border-border/40 hover:border-gray-300"
+                          }`}
+                        >
+                          <span className={`w-3 h-3 rounded-full ${style.dot}`} />
+                          <span>{style.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Matriz de Permissões para o Cargo */}
+                <div className="space-y-4 pt-3 border-t border-gray-100 dark:border-border/30">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <h4 className="font-heading font-bold text-sm text-foreground flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-primary" />
+                        <span>Permissões Habilitadas para este Cargo</span>
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground">
+                        Todos os membros vinculados a este cargo herdarão estas permissões.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRoleSelectDefaultPermissions}
+                        className="text-[11px] h-7 px-2 cursor-pointer"
+                      >
+                        Padrão Seguro
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRoleSelectAllPermissions}
+                        className="text-[11px] h-7 px-2 cursor-pointer"
+                      >
+                        Marcar Todas
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRoleClearAllPermissions}
+                        className="text-[11px] h-7 px-2 text-red-500 hover:text-red-600 cursor-pointer"
+                      >
+                        Limpar
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Operação */}
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Operação da Cozinha & Esteira
+                    </span>
+                    <div className="grid grid-cols-1 gap-2">
+                      {groupedPermissions.operacao.map((perm) => {
+                        const checked = roleFormPermissions.includes(perm.id);
+                        return (
+                          <label
+                            key={perm.id}
+                            className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                              checked
+                                ? "bg-primary/5 border-primary/40 text-foreground"
+                                : "bg-gray-50/60 dark:bg-background/40 border-gray-200 dark:border-border/30 text-muted-foreground hover:border-gray-300"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleRolePermission(perm.id)}
+                              className="mt-0.5 rounded text-primary focus:ring-primary"
+                            />
+                            <div className="min-w-0">
+                              <span className="font-bold text-xs text-foreground block">
+                                {perm.label}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground block">
+                                {perm.description}
+                              </span>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Cardápio */}
+                  <div className="space-y-2 pt-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Gestão de Produtos & Cardápio
+                    </span>
+                    <div className="grid grid-cols-1 gap-2">
+                      {groupedPermissions.cardapio.map((perm) => {
+                        const checked = roleFormPermissions.includes(perm.id);
+                        return (
+                          <label
+                            key={perm.id}
+                            className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                              checked
+                                ? "bg-primary/5 border-primary/40 text-foreground"
+                                : "bg-gray-50/60 dark:bg-background/40 border-gray-200 dark:border-border/30 text-muted-foreground hover:border-gray-300"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleRolePermission(perm.id)}
+                              className="mt-0.5 rounded text-primary focus:ring-primary"
+                            />
+                            <div className="min-w-0">
+                              <span className="font-bold text-xs text-foreground block">
+                                {perm.label}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground block">
+                                {perm.description}
+                              </span>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Estratégico */}
+                  <div className="space-y-2 pt-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Estratégico & Marketing
+                    </span>
+                    <div className="grid grid-cols-1 gap-2">
+                      {groupedPermissions.estrategico.map((perm) => {
+                        const checked = roleFormPermissions.includes(perm.id);
+                        return (
+                          <label
+                            key={perm.id}
+                            className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                              checked
+                                ? "bg-primary/5 border-primary/40 text-foreground"
+                                : "bg-gray-50/60 dark:bg-background/40 border-gray-200 dark:border-border/30 text-muted-foreground hover:border-gray-300"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleRolePermission(perm.id)}
+                              className="mt-0.5 rounded text-primary focus:ring-primary"
+                            />
+                            <div className="min-w-0">
+                              <span className="font-bold text-xs text-foreground block">
+                                {perm.label}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground block">
+                                {perm.description}
+                              </span>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rodapé do Formulário de Cargo */}
+                <div className="pt-4 border-t border-gray-100 dark:border-border/30 flex justify-end gap-2.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setRoleModalTab("list");
+                      setEditingRoleId(null);
+                    }}
+                    className="rounded-xl cursor-pointer"
+                  >
+                    Voltar à Lista
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={actionLoading}
+                    className="bg-primary text-white rounded-xl font-bold cursor-pointer"
+                  >
+                    {actionLoading ? "Salvando..." : "Salvar Cargo"}
+                  </Button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
 
       {/* ========================================================= */}
-      {/* MODAL 2: RESET DE SENHA */}
+      {/* MODAL 3: RESET DE SENHA ADMINISTRATIVO                     */}
       {/* ========================================================= */}
       {passwordModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl animate-in zoom-in-95">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden p-6 space-y-4 animate-in zoom-in-95 duration-200">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center font-bold">
                 <Key className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="font-heading font-bold text-base text-foreground">
-                  Resetar Senha de Acesso
+                  Resetar Senha
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Usuário: <strong>{selectedUser?.fullName || selectedUser?.username}</strong>
+                  Defina uma nova senha para {selectedUser?.fullName || selectedUser?.username}.
                 </p>
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                Nova Senha (Mínimo 6 caracteres)
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Nova Senha (mínimo 6 caracteres)
               </label>
               <input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Digite a nova senha..."
+                placeholder="••••••••"
                 className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl text-xs sm:text-sm text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/40"
               />
             </div>
 
-            <div className="flex items-center justify-end gap-2.5 pt-2">
+            <div className="flex justify-end gap-2.5 pt-2">
               <Button
+                type="button"
                 variant="outline"
                 onClick={() => setPasswordModalOpen(false)}
-                className="rounded-xl h-10 px-4 text-xs font-bold cursor-pointer"
+                className="rounded-xl cursor-pointer"
               >
                 Cancelar
               </Button>
               <Button
+                type="button"
+                disabled={actionLoading}
                 onClick={handleResetPassword}
-                disabled={actionLoading || newPassword.length < 6}
-                className="bg-primary hover:bg-primary/90 text-white rounded-xl h-10 px-5 text-xs font-bold cursor-pointer"
+                className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold cursor-pointer"
               >
                 {actionLoading ? "Salvando..." : "Confirmar Nova Senha"}
               </Button>
@@ -1375,14 +2005,14 @@ export function UsersManagementSection() {
       )}
 
       {/* ========================================================= */}
-      {/* MODAL 3: BLOQUEIO / DESBLOQUEIO DE USUÁRIO */}
+      {/* MODAL 4: BLOQUEIO / DESBLOQUEIO DE USUÁRIO                 */}
       {/* ========================================================= */}
       {blockModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl animate-in zoom-in-95">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden p-6 space-y-4 animate-in zoom-in-95 duration-200">
             <div className="flex items-center gap-2.5">
               <div
-                className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
                   selectedUser?.isBlocked
                     ? "bg-emerald-500/10 text-emerald-500"
                     : "bg-red-500/10 text-red-500"
@@ -1392,44 +2022,48 @@ export function UsersManagementSection() {
               </div>
               <div>
                 <h3 className="font-heading font-bold text-base text-foreground">
-                  {selectedUser?.isBlocked ? "Desbloquear Conta" : "Bloquear Conta de Usuário"}
+                  {selectedUser?.isBlocked ? "Desbloquear Usuário" : "Bloquear Usuário"}
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Usuário: <strong>{selectedUser?.fullName || selectedUser?.username}</strong>
+                  {selectedUser?.isBlocked
+                    ? `Restaurar o acesso de ${selectedUser?.fullName || selectedUser?.username}.`
+                    : `Impedir o acesso de ${selectedUser?.fullName || selectedUser?.username}.`}
                 </p>
               </div>
             </div>
 
             {!selectedUser?.isBlocked && (
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                  Motivo do Bloqueio (Registrado no Sistema)
+              <div className="space-y-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Motivo do Bloqueio
                 </label>
                 <textarea
-                  rows={3}
                   value={blockReason}
                   onChange={(e) => setBlockReason(e.target.value)}
-                  placeholder="Ex: Fraude recorrente em pagamentos, desrespeito a entregadores..."
-                  className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl text-xs sm:text-sm text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/40"
+                  placeholder="Ex: Tentativa suspeita ou solicitação judicial"
+                  rows={3}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl text-xs sm:text-sm text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/40 resize-none"
                 />
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-2.5 pt-2">
+            <div className="flex justify-end gap-2.5 pt-2">
               <Button
+                type="button"
                 variant="outline"
                 onClick={() => setBlockModalOpen(false)}
-                className="rounded-xl h-10 px-4 text-xs font-bold cursor-pointer"
+                className="rounded-xl cursor-pointer"
               >
                 Cancelar
               </Button>
               <Button
-                onClick={handleToggleBlock}
+                type="button"
                 disabled={actionLoading}
-                className={`rounded-xl h-10 px-5 text-xs font-bold text-white cursor-pointer ${
+                onClick={handleToggleBlock}
+                className={`text-white rounded-xl font-bold cursor-pointer ${
                   selectedUser?.isBlocked
-                    ? "bg-emerald-600 hover:bg-emerald-700"
-                    : "bg-red-600 hover:bg-red-700"
+                    ? "bg-emerald-500 hover:bg-emerald-600"
+                    : "bg-red-500 hover:bg-red-600"
                 }`}
               >
                 {actionLoading
@@ -1438,6 +2072,136 @@ export function UsersManagementSection() {
                   ? "Confirmar Desbloqueio"
                   : "Confirmar Bloqueio"}
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* DRAWER: HISTÓRICO ANALÍTICO DO CLIENTE                     */}
+      {/* ========================================================= */}
+      {historyDrawerOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-end animate-in fade-in duration-200">
+          <div className="bg-card border-l border-border w-full max-w-xl h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-border/50 flex justify-between items-center bg-gray-50/60 dark:bg-background/40">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+                  <History className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-bold text-base text-foreground">
+                    Dossiê do Usuário
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedUser?.fullName || selectedUser?.username}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHistoryDrawerOpen(false)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Conteúdo com scroll */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin">
+              {historyLoading ? (
+                <div className="py-20 text-center text-muted-foreground space-y-3">
+                  <RefreshCw className="w-7 h-7 animate-spin mx-auto text-primary" />
+                  <p className="text-xs">Carregando histórico analítico...</p>
+                </div>
+              ) : userDossier ? (
+                <>
+                  {/* Cards de Métricas */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="p-3.5 rounded-xl border border-gray-100 dark:border-border/30 bg-gray-50/60 dark:bg-background/40">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                        Total de Pedidos
+                      </span>
+                      <span className="font-heading font-bold text-lg text-foreground mt-0.5 block">
+                        {userDossier.metrics.totalOrders}
+                      </span>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl border border-gray-100 dark:border-border/30 bg-gray-50/60 dark:bg-background/40">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                        Gasto Total
+                      </span>
+                      <span className="font-heading font-bold text-lg text-emerald-600 dark:text-emerald-400 mt-0.5 block">
+                        R$ {userDossier.metrics.totalSpent.toFixed(2)}
+                      </span>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl border border-gray-100 dark:border-border/30 bg-gray-50/60 dark:bg-background/40 col-span-2 sm:col-span-1">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                        Ticket Médio
+                      </span>
+                      <span className="font-heading font-bold text-lg text-primary mt-0.5 block">
+                        R$ {userDossier.metrics.averageTicket.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Lista de Pedidos Anteriores */}
+                  <div className="space-y-3">
+                    <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-muted-foreground">
+                      Histórico de Pedidos ({userDossier.orders.length})
+                    </h4>
+
+                    {userDossier.orders.length === 0 ? (
+                      <div className="py-8 text-center text-xs text-muted-foreground">
+                        Nenhum pedido registrado para este usuário.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {userDossier.orders.map((ord) => (
+                          <div
+                            key={ord.id}
+                            className="p-3.5 rounded-xl border border-gray-200 dark:border-border/40 bg-gray-50/40 dark:bg-background/20 space-y-2"
+                          >
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="font-mono font-bold text-foreground">
+                                Pedido #{ord.id.slice(0, 8)}
+                              </span>
+                              <span className="text-muted-foreground font-mono text-[11px]">
+                                {formatDate(ord.createdAt)}
+                              </span>
+                            </div>
+
+                            <div className="text-xs text-muted-foreground">
+                              {ord.items.map((item, idx) => (
+                                <div key={idx} className="flex justify-between py-0.5">
+                                  <span>
+                                    {item.quantity}x {item.productName}
+                                  </span>
+                                  <span className="font-mono">
+                                    R$ {(item.priceAtTime * item.quantity).toFixed(2)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div className="pt-2 border-t border-gray-100 dark:border-border/30 flex justify-between items-center text-xs font-bold text-foreground">
+                              <span>Total Pago:</span>
+                              <span className="text-emerald-600 dark:text-emerald-400 font-mono">
+                                R$ {ord.totalAmount.toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="py-12 text-center text-xs text-muted-foreground">
+                  Informações indisponíveis.
+                </div>
+              )}
             </div>
           </div>
         </div>

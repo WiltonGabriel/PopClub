@@ -21,33 +21,38 @@ export async function GET(request: Request) {
 
     const where: Prisma.UserWhereInput = {};
 
-    // Filtros de Categoria
-    switch (filter) {
-      case "team":
-        where.role = { in: [Role.ADMIN, Role.EDITOR] };
-        where.deletedAt = null;
-        break;
-      case "registered":
-        where.role = Role.CLIENT;
-        where.isRegistered = true;
-        where.deletedAt = null;
-        break;
-      case "fast_access":
-        where.role = Role.CLIENT;
-        where.isRegistered = false;
-        where.deletedAt = null;
-        break;
-      case "blocked":
-        where.isBlocked = true;
-        break;
-      case "all":
-      default:
-        // Por padrão, exibe todos os usuários não-excluídos
-        where.deletedAt = null;
-        break;
+    // Filtros Dinâmicos de Categoria / Tabs
+    if (filter === "admin") {
+      where.role = Role.ADMIN;
+      where.deletedAt = null;
+    } else if (filter === "editor") {
+      where.role = Role.EDITOR;
+      where.customRoleId = null;
+      where.deletedAt = null;
+    } else if (filter.startsWith("custom_")) {
+      const targetRoleId = filter.replace("custom_", "");
+      where.role = Role.EDITOR;
+      where.customRoleId = targetRoleId;
+      where.deletedAt = null;
+    } else if (filter === "team") {
+      where.role = { in: [Role.ADMIN, Role.EDITOR] };
+      where.deletedAt = null;
+    } else if (filter === "registered") {
+      where.role = Role.CLIENT;
+      where.isRegistered = true;
+      where.deletedAt = null;
+    } else if (filter === "fast_access") {
+      where.role = Role.CLIENT;
+      where.isRegistered = false;
+      where.deletedAt = null;
+    } else if (filter === "blocked") {
+      where.isBlocked = true;
+    } else {
+      // "all" ou padrão
+      where.deletedAt = null;
     }
 
-    // Busca Multifatorial (Nome, E-mail, Telefone ou CPF)
+    // Busca Multifatorial (Nome, E-mail, Telefone)
     if (search) {
       const cleaned = search.replace(/\D/g, "");
       const searchConditions: Prisma.UserWhereInput[] = [
@@ -59,7 +64,6 @@ export async function GET(request: Request) {
 
       if (cleaned.length >= 3) {
         searchConditions.push({ phone: { contains: cleaned } });
-        searchConditions.push({ cpf: { contains: cleaned } });
       }
 
       where.AND = [
@@ -96,6 +100,24 @@ export async function GET(request: Request) {
         deletedAt: true,
         createdAt: true,
         updatedAt: true,
+        customRoleId: true,
+        customRole: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            permissions: true,
+          },
+        },
+        createdById: true,
+        createdBy: {
+          select: {
+            id: true,
+            fullName: true,
+            username: true,
+            role: true,
+          },
+        },
         _count: {
           select: { orders: true },
         },
@@ -139,6 +161,7 @@ export async function POST(request: Request) {
       phone,
       password,
       role = "EDITOR",
+      customRoleId,
       permissions,
     } = body;
 
@@ -150,9 +173,26 @@ export async function POST(request: Request) {
     const normalizedRole = String(role).toUpperCase();
     if (normalizedRole !== "ADMIN" && normalizedRole !== "EDITOR") {
       return NextResponse.json(
-        { error: "O cargo deve ser Administrador ou Editor." },
+        { error: "O cargo deve ser Administrador ou Editor/Customizado." },
         { status: 400 }
       );
+    }
+
+    // Regra rígida: Administrador - limite máximo de 2 ativos em todo o sistema
+    if (normalizedRole === "ADMIN") {
+      const activeAdminsCount = await prisma.user.count({
+        where: {
+          role: Role.ADMIN,
+          isActive: true,
+          deletedAt: null,
+        },
+      });
+      if (activeAdminsCount >= 2) {
+        return NextResponse.json(
+          { error: "Limite atingido: O sistema permite no máximo 2 Administradores ativos." },
+          { status: 400 }
+        );
+      }
     }
 
     // Validação de Senha
@@ -163,7 +203,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validação e Limpeza do CPF
+    // Validação e Limpeza do CPF (se fornecido opcionalmente)
     let cleanedCpf: string | null = null;
     if (cpf && typeof cpf === "string" && cpf.trim()) {
       cleanedCpf = cleanCpf(cpf);
@@ -206,13 +246,44 @@ export async function POST(request: Request) {
     // Hash da Senha
     const passwordHash = await hashPassword(password);
 
-    // Permissões
+    // Validação de Cargo Customizado e Lotação Máxima (máx 4 por cargo)
+    let targetCustomRoleId: string | null = null;
     let finalPermissions: string[] = [];
+
     if (normalizedRole === "EDITOR") {
-      if (Array.isArray(permissions) && permissions.length > 0) {
-        finalPermissions = permissions.filter((p: unknown) => typeof p === "string");
+      if (customRoleId && typeof customRoleId === "string" && customRoleId.trim()) {
+        const customRole = await prisma.customRole.findUnique({
+          where: { id: customRoleId.trim() },
+        });
+
+        if (!customRole) {
+          return NextResponse.json({ error: "Cargo personalizado selecionado não existe." }, { status: 404 });
+        }
+
+        const membersInRole = await prisma.user.count({
+          where: {
+            customRoleId: customRole.id,
+            isActive: true,
+            deletedAt: null,
+          },
+        });
+
+        if (membersInRole >= 4) {
+          return NextResponse.json(
+            { error: `Limite de lotação atingido: O cargo "${customRole.name}" já possui o limite máximo de 4 membros vinculados.` },
+            { status: 400 }
+          );
+        }
+
+        targetCustomRoleId = customRole.id;
+        finalPermissions = customRole.permissions;
       } else {
-        finalPermissions = [...DEFAULT_EDITOR_PERMISSIONS];
+        // Editor padrão modular
+        if (Array.isArray(permissions) && permissions.length > 0) {
+          finalPermissions = permissions.filter((p): p is string => typeof p === "string");
+        } else {
+          finalPermissions = [...DEFAULT_EDITOR_PERMISSIONS];
+        }
       }
     }
 
@@ -224,11 +295,13 @@ export async function POST(request: Request) {
         phone: cleanedPhone,
         passwordHash,
         role: normalizedRole === "ADMIN" ? Role.ADMIN : Role.EDITOR,
+        customRoleId: targetCustomRoleId,
         permissions: finalPermissions,
         isRegistered: true,
         isActive: true,
         isBlocked: false,
         tokenVersion: 1,
+        createdById: authUser.id,
       },
       select: {
         id: true,
@@ -245,6 +318,24 @@ export async function POST(request: Request) {
         isBlocked: true,
         tokenVersion: true,
         createdAt: true,
+        customRoleId: true,
+        customRole: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            permissions: true,
+          },
+        },
+        createdById: true,
+        createdBy: {
+          select: {
+            id: true,
+            fullName: true,
+            username: true,
+            role: true,
+          },
+        },
       },
     });
 

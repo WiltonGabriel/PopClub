@@ -193,7 +193,11 @@ export const TAB_PERMISSION_MAP: Record<string, PermissionKey> = {
  * Cliente ('CLIENT'): Não possui permissões administrativas.
  */
 export function hasPermission(
-  user: { role?: string | null; permissions?: string[] | null } | null | undefined,
+  user: {
+    role?: string | null;
+    permissions?: string[] | null;
+    customRole?: { permissions?: string[] } | null;
+  } | null | undefined,
   permission: string
 ): boolean {
   if (!user || !user.role) return false;
@@ -204,9 +208,11 @@ export function hasPermission(
   }
 
   if (normalizedRole === "EDITOR") {
-    if (!Array.isArray(user.permissions)) return false;
+    const userPerms = Array.isArray(user.permissions) ? user.permissions : [];
+    const rolePerms = Array.isArray(user.customRole?.permissions) ? user.customRole.permissions : [];
+    const combined = [...userPerms, ...rolePerms];
     const target = permission.toLowerCase();
-    return user.permissions.some((p) => typeof p === "string" && p.toLowerCase() === target);
+    return combined.some((p) => typeof p === "string" && p.toLowerCase() === target);
   }
 
   return false;

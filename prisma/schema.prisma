@@ -34,6 +34,18 @@ enum PaymentMethodType {
   pix_entrega
 }
 
+model CustomRole {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  color       String   @default("blue")
+  permissions String[] @default([])
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  users       User[]
+
+  @@map("custom_roles")
+}
+
 model User {
   id                    String             @id @default(uuid())
   cpf                   String?            @unique
@@ -60,6 +72,11 @@ model User {
   lastPasswordChangedAt DateTime?          @map("last_password_changed_at")
   recoveryRequestCount  Int                @default(0) @map("recovery_request_count")
   recoveryBlockedUntil  DateTime?          @map("recovery_blocked_until")
+  customRoleId          String?            @map("custom_role_id")
+  customRole            CustomRole?        @relation(fields: [customRoleId], references: [id], onDelete: SetNull)
+  createdById           String?            @map("created_by_id")
+  createdBy             User?              @relation("UserCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdUsers          User[]             @relation("UserCreatedBy")
   createdAt             DateTime           @default(now()) @map("created_at")
   updatedAt             DateTime           @updatedAt @map("updated_at")
   locations             UserLocation[]
@@ -68,6 +85,7 @@ model User {
 
   @@index([phone])
   @@index([cpf])
+  @@index([customRoleId])
   @@map("users")
 }
 
