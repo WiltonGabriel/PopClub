@@ -79,8 +79,12 @@ export function OrderDispatchDialog({
     if (isOpen && order) {
       setEnableGps(true);
       setConfirmSafetyText("");
+      const isAlreadyDispatched =
+        (order.status === "delivering" || order.status === "completed") &&
+        Boolean(order.courier_name || order.dispatched_at);
+
       setDispatchedData(
-        order.tracking_token
+        isAlreadyDispatched && order.tracking_token
           ? {
               trackingToken: order.tracking_token,
               trackingUrl: `${typeof window !== "undefined" ? window.location.origin : ""}/entrega/${order.tracking_token}`,
