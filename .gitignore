@@ -64,6 +64,7 @@ public/workbox-*.js.map
 /docs/screenshots-audit/
 !/docs/screenshots-audit/temas/
 !/docs/screenshots-audit/tema-adaptativo/
+!/docs/screenshots-audit/tema-tempo-real/
 screenshots-audit/
 screenshots/
 /screenshots/

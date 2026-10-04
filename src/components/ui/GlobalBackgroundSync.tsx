@@ -46,6 +46,9 @@ export function GlobalBackgroundSync() {
   );
 
   const [mounted, setMounted] = useState(false);
+  const [htmlHasDark, setHtmlHasDark] = useState<boolean>(() =>
+    typeof document !== "undefined" ? document.documentElement.classList.contains("dark") : false
+  );
 
   useEffect(() => {
     let active = true;
@@ -62,17 +65,61 @@ export function GlobalBackgroundSync() {
     };
 
     window.addEventListener(LOADING_UPDATED_EVENT, handleUpdated);
+
+    // Escuta mudanças de classe (.dark) no <html> em tempo real
+    let observer: MutationObserver | null = null;
+    if (typeof document !== "undefined") {
+      setHtmlHasDark(document.documentElement.classList.contains("dark"));
+      observer = new MutationObserver(() => {
+        setHtmlHasDark(document.documentElement.classList.contains("dark"));
+      });
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["class"],
+      });
+    }
+
+    // Escuta mudanças de preferência do SO em tempo real
+    let mediaQuery: MediaQueryList | null = null;
+    const handleMedia = (e: MediaQueryListEvent | MediaQueryList) => {
+      const stored = localStorage.getItem("popshake-theme");
+      if (!stored || stored === "system") {
+        setHtmlHasDark(e.matches);
+      }
+    };
+
+    if (typeof window !== "undefined" && window.matchMedia) {
+      mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      if (mediaQuery.addEventListener) {
+        mediaQuery.addEventListener("change", handleMedia);
+      } else if ((mediaQuery as any).addListener) {
+        (mediaQuery as any).addListener(handleMedia);
+      }
+    }
+
     return () => {
       active = false;
       window.removeEventListener(LOADING_UPDATED_EVENT, handleUpdated);
+      if (observer) observer.disconnect();
+      if (mediaQuery) {
+        if (mediaQuery.removeEventListener) {
+          mediaQuery.removeEventListener("change", handleMedia);
+        } else if ((mediaQuery as any).removeListener) {
+          (mediaQuery as any).removeListener(handleMedia);
+        }
+      }
     };
   }, []);
+
+  const isDark =
+    htmlHasDark ||
+    contextIsDark ||
+    (resolvedTheme || theme) === "dark";
 
   // Injeta variáveis CSS no :root e background no <body>
   useEffect(() => {
     if (!mounted || typeof document === "undefined") return;
 
-    const isDark = contextIsDark ?? ((resolvedTheme || theme) === "dark");
     const modeConfig = isDark
       ? settings.advancedConfig?.storefront?.dark
       : settings.advancedConfig?.storefront?.light;
@@ -161,7 +208,7 @@ export function GlobalBackgroundSync() {
 
     document.body.style.background = baseCss;
     document.body.style.backgroundAttachment = "fixed";
-  }, [settings, theme, mounted]);
+  }, [settings, theme, resolvedTheme, isDark, mounted, htmlHasDark]);
 
   // Sincroniza o favicon dinâmico no <head> do navegador com fallback seguro
   useEffect(() => {
@@ -201,7 +248,6 @@ export function GlobalBackgroundSync() {
 
   if (!mounted) return null;
 
-  const isDark = theme === "dark";
   const bgType = isDark ? (settings.bgTypeDark || "gradient") : (settings.bgTypeLight || "gradient");
   const bgValue = isDark ? (settings.bgValueDark || "preset_dark_violet") : (settings.bgValueLight || "preset_cream");
   const themeId = settings.advancedConfig?.themeId || "";

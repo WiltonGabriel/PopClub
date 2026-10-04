@@ -2176,7 +2176,7 @@ export default function AccountPage() {
                         Automático / Sistema
                       </span>
                       <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                        Sincroniza com as configurações de tema do seu celular ou computador.
+                        Acompanha o tema do seu aparelho em tempo real (muda sozinho do dia para a noite).
                       </p>
                     </div>
 
@@ -2213,10 +2213,10 @@ export default function AccountPage() {
                         )}
                       </div>
                       <span className="font-heading font-bold text-sm text-gray-900 dark:text-white block">
-                        Claro
+                        Sempre Claro
                       </span>
                       <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                        Fundo branco, tons neutros e visual solar para ambientes iluminados.
+                        Mantém fundo claro independente do horário ou sistema.
                       </p>
                     </div>
 
@@ -2251,10 +2251,10 @@ export default function AccountPage() {
                         )}
                       </div>
                       <span className="font-heading font-bold text-sm text-gray-900 dark:text-white block">
-                        Escuro
+                        Sempre Escuro
                       </span>
                       <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                        Fundo escuro profundo ideal para menor cansaço visual e conforto à noite.
+                        Mantém fundo escuro contínuo.
                       </p>
                     </div>
 

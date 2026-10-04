@@ -43,28 +43,73 @@ function ThemeBridge({ children }: { children: React.ReactNode }) {
   } = useNextThemes();
 
   const [mounted, setMounted] = useState(false);
+  const [systemMatchesDark, setSystemMatchesDark] = useState<boolean>(() => {
+    if (typeof window !== "undefined" && window.matchMedia) {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    }
+    return false;
+  });
+
+  const theme: Theme = (nextTheme as Theme) || "system";
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    if (typeof window === "undefined" || !window.matchMedia) return;
 
-  const theme: Theme = (nextTheme as Theme) || "system";
-  const systemTheme: ResolvedTheme = (nextSystem as ResolvedTheme) || "light";
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const onMediaChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      const matches = e.matches;
+      setSystemMatchesDark(matches);
+
+      const activeChoice = (nextTheme as Theme) || localStorage.getItem("popshake-theme") || "system";
+      if (activeChoice === "system") {
+        document.documentElement.classList.toggle("dark", matches);
+      }
+    };
+
+    onMediaChange(mediaQuery);
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", onMediaChange);
+    } else if ((mediaQuery as any).addListener) {
+      (mediaQuery as any).addListener(onMediaChange);
+    }
+
+    return () => {
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener("change", onMediaChange);
+      } else if ((mediaQuery as any).removeListener) {
+        (mediaQuery as any).removeListener(onMediaChange);
+      }
+    };
+  }, [nextTheme]);
+
+  const systemTheme: ResolvedTheme = systemMatchesDark ? "dark" : "light";
   const resolvedTheme: ResolvedTheme =
-    (nextResolved as ResolvedTheme) ||
-    (typeof document !== "undefined" && document.documentElement.classList.contains("dark")
-      ? "dark"
-      : systemTheme);
+    theme === "system"
+      ? systemTheme
+      : (nextResolved as ResolvedTheme) ||
+        (typeof document !== "undefined" && document.documentElement.classList.contains("dark")
+          ? "dark"
+          : (theme === "dark" ? "dark" : "light"));
   const isDark = resolvedTheme === "dark";
 
   const toggleTheme = () => {
-    // Alterna entre light e dark respeitando a resolução atual
     const next = isDark ? "light" : "dark";
-    setNextTheme(next);
+    setTheme(next);
   };
 
   const setTheme = (newTheme: Theme) => {
     setNextTheme(newTheme);
+    if (typeof document !== "undefined") {
+      if (newTheme === "system") {
+        const matches = typeof window !== "undefined" && window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)").matches : false;
+        document.documentElement.classList.toggle("dark", matches);
+      } else {
+        document.documentElement.classList.toggle("dark", newTheme === "dark");
+      }
+    }
   };
 
   const value = useMemo(
