@@ -1071,7 +1071,7 @@ export default function Storefront() {
           {/*
             Carrossel com rolagem suave, inércia nativa touch e scroll snap
           */}
-          <div className="flex overflow-x-auto gap-2 no-scrollbar items-center py-2.5 px-0.5 snap-x snap-mandatory scroll-smooth touch-pan-x [-webkit-overflow-scrolling:touch]">
+          <div className="flex overflow-x-auto gap-2 no-scrollbar items-center py-2.5 px-0.5 snap-x snap-mandatory scroll-smooth touch-pan-x overscroll-contain-x w-full min-w-0 [-webkit-overflow-scrolling:touch]">
             {loading && categories.length === 0 ? (
               <>
                 <div className="shrink-0 snap-start w-20 h-10 rounded-full skeleton-light" />
@@ -1474,8 +1474,8 @@ export default function Storefront() {
                             )}
                           </div>
 
-                          {/* ── Catálogo: Linhas Horizontais Compactas no Mobile / Grid Bento no Desktop ── */}
-                          <div className="flex flex-col md:grid md:grid-cols-3 lg:grid-cols-4 md:gap-4 bg-card/60 md:bg-transparent rounded-2xl md:rounded-none border border-border/30 md:border-none px-2 sm:px-3 md:px-0">
+                          {/* ── Catálogo: Linhas Horizontais Compactas no Mobile / Grid Adaptativo 1, 2, 3 ou 4 Colunas ── */}
+                          <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4 bg-card/60 sm:bg-transparent rounded-2xl sm:rounded-none border border-border/30 sm:border-none p-2 sm:p-0">
                             {displayProducts.map((product, prodIndex) => (
                               <ProductCard
                                 key={product.id}
@@ -1494,18 +1494,18 @@ export default function Storefront() {
                               <button
                                 onClick={() => { setEditingProduct(null); setProdDialogOpen(true); }}
                                 className="
-                                  flex items-center md:flex-col justify-center gap-2
+                                  flex items-center sm:flex-col justify-center gap-2
                                   border-2 border-dashed border-brand-pop-shake/25
                                   bg-brand-pop-shake/3 hover:bg-brand-pop-shake/8
                                   hover:border-brand-pop-shake/50
                                   rounded-2xl
-                                  p-3 md:min-h-[200px]
+                                  p-3 sm:min-h-[220px]
                                   text-brand-pop-shake/70 hover:text-brand-pop-shake
-                                  transition-all duration-200 my-2 md:my-0
+                                  transition-all duration-200 my-2 sm:my-0 cursor-pointer
                                 "
                               >
-                                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-brand-pop-shake/10 flex items-center justify-center">
-                                  <Plus className="w-4 h-4 md:w-5 md:h-5" />
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-brand-pop-shake/10 flex items-center justify-center">
+                                  <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </div>
                                 <span className="text-xs font-semibold uppercase tracking-wide">
                                   Novo Produto

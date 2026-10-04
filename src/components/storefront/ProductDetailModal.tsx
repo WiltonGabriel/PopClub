@@ -237,7 +237,7 @@ export function ProductDetailModal({
         aria-modal="true"
         aria-labelledby="modal-product-title"
         className="
-          relative w-full md:max-w-4xl lg:max-w-5xl h-[92vh] md:h-auto md:max-h-[85vh]
+          relative w-full md:max-w-4xl lg:max-w-5xl h-[90dvh] max-h-[90dvh] md:h-auto md:max-h-[88dvh]
           bg-white dark:bg-[#181D2D] text-foreground
           border-t md:border border-gray-200 dark:border-zinc-800
           rounded-t-[28px] md:rounded-3xl shadow-2xl

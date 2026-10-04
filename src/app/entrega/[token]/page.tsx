@@ -351,7 +351,7 @@ export default function CourierDeliveryPage({
   const headingTextClass = isLightMode ? "text-slate-900" : "text-white";
 
   return (
-    <div className={`min-h-screen ${pageBgClass} flex flex-col selection:bg-primary/30 pb-safe transition-colors duration-200`}>
+    <div className={`min-h-screen min-h-[100dvh] ${pageBgClass} flex flex-col selection:bg-primary/30 pb-safe transition-colors duration-200`}>
       {/* Top Header */}
       <header className={`w-full ${headerBgClass} border-b px-4 py-3 sticky top-0 z-30 flex items-center justify-between shadow-lg`}>
         <div className="flex items-center gap-2.5">

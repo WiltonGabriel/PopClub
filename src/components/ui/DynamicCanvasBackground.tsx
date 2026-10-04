@@ -497,8 +497,8 @@ export function DynamicCanvasBackground({
   return (
     <canvas
       ref={canvasRef}
-      className={`pointer-events-none transition-opacity duration-500 ${className}`}
-      style={{ display: "block" }}
+      className={`pointer-events-none transition-opacity duration-500 max-w-full ${className}`}
+      style={{ display: "block", maxWidth: "100%" }}
       aria-hidden="true"
     />
   );

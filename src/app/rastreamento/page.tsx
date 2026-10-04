@@ -620,8 +620,8 @@ function TrackingContent() {
         {/* ── MOBILE: BOTTOM SHEET FLUTUANTE DESLIZANTE (< md) ── */}
         <aside
           className={`md:hidden fixed bottom-0 left-0 right-0 z-20 bg-white/95 dark:bg-background/95 backdrop-blur-xl border-t border-border/70 rounded-t-3xl shadow-2xl transition-all duration-300 ${
-            bottomSheetExpanded ? "max-h-[82vh]" : "max-h-[310px]"
-          } overflow-y-auto p-4 space-y-3`}
+            bottomSheetExpanded ? "max-h-[82dvh]" : "max-h-[310px]"
+          } overflow-y-auto p-4 pb-safe space-y-3`}
         >
           {/* Pílula de Arraste / Clique para Expandir */}
           <div

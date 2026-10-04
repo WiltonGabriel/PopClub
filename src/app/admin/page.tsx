@@ -320,7 +320,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col font-sans pb-16 bg-transparent text-foreground transition-colors duration-200">
+    <div className="min-h-screen min-h-[100dvh] flex flex-col font-sans pb-16 bg-transparent text-foreground transition-colors duration-200 w-full max-w-full min-w-0 overflow-x-clip">
       {/* Alerta Não-Bloqueante de Orientação Mobile */}
       <MobileOrientationBanner />
 
@@ -390,7 +390,7 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <main className="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full space-y-8">
+      <main className="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full max-w-full min-w-0 space-y-8">
         {/* Mini Esteira Live (Monitor Compacto no Topo) */}
         {(() => {
           const activeOrders = orders.filter((o) => !["completed", "cancelled"].includes(o.status));

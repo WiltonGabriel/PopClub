@@ -430,7 +430,7 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
           </button>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-[#512B54]/40">
+        <div className="overflow-x-auto w-full min-w-0 overscroll-contain-x rounded-2xl border border-gray-200 dark:border-[#512B54]/40">
           <table className="w-full text-left text-sm border-collapse">
             <thead>
               <tr className="bg-gray-50 dark:bg-[#18071B] border-b border-gray-200 dark:border-[#512B54]/40 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">

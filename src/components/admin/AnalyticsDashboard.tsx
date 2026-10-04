@@ -667,7 +667,7 @@ export function AnalyticsDashboard({ orders, loading = false, currentShiftId = n
     return (
       <div className="space-y-6 animate-pulse">
         <div className="h-14 bg-gray-200 dark:bg-white/10 rounded-2xl w-full" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="h-28 bg-gray-200 dark:bg-white/10 rounded-2xl" />
           ))}
@@ -779,7 +779,7 @@ export function AnalyticsDashboard({ orders, loading = false, currentShiftId = n
       </div>
 
       {/* ── 1. CARDS DE KPIS CONSOLIDADOS ── */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <section className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
         {/* Card 1: Faturamento Bruto Total */}
         <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm space-y-3">
           <div className="flex items-center justify-between">
@@ -865,7 +865,7 @@ export function AnalyticsDashboard({ orders, loading = false, currentShiftId = n
       </section>
 
       {/* ── 2. SEÇÃO DE GRÁFICOS PRINCIPAIS ── */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Gráfico 1: Picos de Venda e Evolução */}
         <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-border/30">
@@ -1338,7 +1338,7 @@ export function AnalyticsDashboard({ orders, loading = false, currentShiftId = n
             </div>
 
             {/* Tabela de Produtos */}
-            <div className="flex-1 overflow-y-auto my-2">
+            <div className="flex-1 overflow-auto w-full min-w-0 overscroll-contain-x my-2">
               <table className="w-full text-left text-xs">
                 <thead className="sticky top-0 bg-muted/80 backdrop-blur-md text-muted-foreground border-b border-border/50 uppercase text-[10px] tracking-wider">
                   <tr>

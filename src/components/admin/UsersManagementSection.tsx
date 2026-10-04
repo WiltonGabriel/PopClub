@@ -732,7 +732,7 @@ interface FilterTabItem {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto w-full min-w-0 overscroll-contain-x">
             <table className="w-full text-left border-collapse text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-border/30 bg-gray-50/70 dark:bg-background/40 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">

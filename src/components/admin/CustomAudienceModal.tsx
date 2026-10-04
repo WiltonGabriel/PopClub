@@ -247,7 +247,7 @@ export function CustomAudienceModal({
               </div>
             </div>
 
-            <div className="flex-1 overflow-auto p-0">
+            <div className="flex-1 overflow-auto w-full min-w-0 overscroll-contain-x p-0">
               {loading ? (
                 <div className="flex items-center justify-center h-32">
                   <Loader2 className="w-6 h-6 animate-spin text-gray-300" />

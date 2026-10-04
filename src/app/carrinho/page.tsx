@@ -722,8 +722,40 @@ export default function CarrinhoPage() {
     );
   }
 
+  const handleInitiateOrderConfirmation = () => {
+    setCheckoutError("");
+    setCheckoutErrorObj(null);
+    if (storeSettings && !storeSettings.isOpen) {
+      const msg = "A loja está fechada no momento.";
+      setCheckoutError(msg);
+      setCheckoutErrorObj(new AppApiError(msg, "STORE_CLOSED", 400));
+      return;
+    }
+    if (!street.trim() || !number.trim() || !neighborhood.trim()) {
+      const msg = "Preencha todos os campos obrigatórios de endereço (Rua, Número e Bairro).";
+      setCheckoutError(msg);
+      setCheckoutErrorObj(
+        new AppApiError(msg, "VALIDATION_ERROR", 400, [
+          { field: "Endereço", message: "Rua, Número e Bairro são obrigatórios" },
+        ])
+      );
+      handleReviewAddress();
+      return;
+    }
+    if (paymentType === "dinheiro" && changeFor) {
+      const changeNum = parseFloat(changeFor);
+      if (isNaN(changeNum) || changeNum < finalTotal) {
+        const msg = `O valor para troco deve ser maior ou igual ao total (R$ ${finalTotal.toFixed(2).replace(".", ",")}).`;
+        setCheckoutError(msg);
+        setCheckoutErrorObj(new AppApiError(msg, "VALIDATION_ERROR", 400));
+        return;
+      }
+    }
+    setShowReviewModal(true);
+  };
+
   return (
-    <div className="min-h-screen bg-transparent text-foreground flex flex-col font-sans pb-32">
+    <div className="min-h-screen min-h-[100dvh] bg-transparent text-foreground flex flex-col font-sans pb-32 lg:pb-12">
       <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-background/80 border-b border-border/40 px-4 py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-2 sm:gap-3">
           <button
@@ -771,7 +803,7 @@ export default function CarrinhoPage() {
         )}
       </header>
 
-      <main className="flex-1 w-full max-w-4xl mx-auto px-4 py-6 space-y-8">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-6 space-y-6">
         {(checkoutErrorObj || checkoutError) && (
           <div ref={errorAlertRef} className="animate-in fade-in duration-300">
             <ResilientErrorAlert
@@ -790,7 +822,7 @@ export default function CarrinhoPage() {
         )}
 
         {items.length === 0 ? (
-          <div className="bg-white/80 dark:bg-[#230E26]/80 backdrop-blur-md border border-gray-200/80 dark:border-border/50 rounded-3xl p-8 sm:p-14 text-center space-y-6 shadow-xl shadow-primary/5 animate-in fade-in duration-300">
+          <div className="bg-white/80 dark:bg-[#230E26]/80 backdrop-blur-md border border-gray-200/80 dark:border-border/50 rounded-3xl p-8 sm:p-14 text-center space-y-6 shadow-xl shadow-primary/5 animate-in fade-in duration-300 max-w-2xl mx-auto">
             <div className="relative mx-auto w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
               <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-primary/20 via-accent/15 to-transparent blur-xl animate-pulse" />
               <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-primary/5 dark:bg-primary/95/60 border border-primary/20 dark:border-primary/80/60 flex items-center justify-center text-4xl sm:text-5xl shadow-inner">
@@ -843,7 +875,9 @@ export default function CarrinhoPage() {
             </div>
           </div>
         ) : (
-          <>
+          <div className="flex flex-col lg:flex-row lg:items-start gap-6 lg:gap-8">
+            {/* ── COLUNA ESQUERDA: Formulários e Itens ── */}
+            <div className="flex-1 min-w-0 space-y-6">
             {/* 1. Identificação (Acesso Rápido) */}
             <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-border/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
               {!user ? (
@@ -1689,7 +1723,10 @@ export default function CarrinhoPage() {
                 </div>
               )}
             </section>
+          </div>
 
+          {/* ── COLUNA DIREITA: Resumo e Ação Desktop ── */}
+          <div className="w-full lg:w-[380px] xl:w-[420px] shrink-0 lg:sticky lg:top-24 space-y-6">
             {/* 5. Resumo de Valores e Envio */}
             <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-border/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
               <h3 className="font-heading text-base sm:text-lg font-bold uppercase tracking-wide flex items-center gap-2.5 text-foreground">
@@ -1751,13 +1788,51 @@ export default function CarrinhoPage() {
                 </span>
               </div>
             </section>
-          </>
+
+            {/* Card de Ação Desktop */}
+            <div className="hidden lg:block bg-card/90 backdrop-blur-md border border-border/40 rounded-3xl p-5 shadow-lg space-y-3">
+              {storeSettings && !storeSettings.isOpen && (
+                <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/40 rounded-2xl p-3 text-xs text-red-700 dark:text-red-300 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
+                  <span>Nossa esteira de pedidos está fechada neste momento.</span>
+                </div>
+              )}
+              <Button
+                type="button"
+                onClick={handleInitiateOrderConfirmation}
+                disabled={submitting || (storeSettings ? !storeSettings.isOpen : false)}
+                className={`w-full h-14 rounded-2xl font-heading text-sm uppercase tracking-wider font-black shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all ${
+                  storeSettings && !storeSettings.isOpen
+                    ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed text-white dark:bg-gray-700"
+                    : "bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] hover:bg-right text-white shadow-primary/25 border border-white/20"
+                }`}
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Processando Pedido...
+                  </>
+                ) : storeSettings && !storeSettings.isOpen ? (
+                  <>Loja Fechada no Momento</>
+                ) : (
+                  <>
+                    Revisar e Confirmar Pedido
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </Button>
+              <p className="text-[11px] text-center text-muted-foreground">
+                Ambiente seguro &bull; Pagamento no ato da entrega
+              </p>
+            </div>
+          </div>
+        </div>
         )}
       </main>
 
-      {/* Barra de Ação Fixa Inferior */}
+      {/* Barra de Ação Fixa Inferior (Mobile e Telas Pequenas) */}
       {items.length > 0 && (
-        <div className="fixed bottom-0 left-0 w-full bg-white/95 dark:bg-background/95 backdrop-blur-md border-t border-border/40 p-4 z-40 shadow-2xl pb-safe">
+        <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white/95 dark:bg-background/95 backdrop-blur-md border-t border-border/40 p-4 z-40 shadow-2xl pb-safe">
           <div className="max-w-4xl mx-auto space-y-2">
             {storeSettings && !storeSettings.isOpen && (
               <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/40 rounded-2xl p-3 text-xs text-red-700 dark:text-red-300 flex items-center gap-2">
@@ -1776,38 +1851,8 @@ export default function CarrinhoPage() {
               </div>
 
               <Button
-                onClick={() => {
-                  // Validações rápidas antes de abrir o modal
-                  setCheckoutError("");
-                  setCheckoutErrorObj(null);
-                  if (storeSettings && !storeSettings.isOpen) {
-                    const msg = "A loja está fechada no momento.";
-                    setCheckoutError(msg);
-                    setCheckoutErrorObj(new AppApiError(msg, "STORE_CLOSED", 400));
-                    return;
-                  }
-                  if (!street.trim() || !number.trim() || !neighborhood.trim()) {
-                    const msg = "Preencha todos os campos obrigatórios de endereço (Rua, Número e Bairro).";
-                    setCheckoutError(msg);
-                    setCheckoutErrorObj(
-                      new AppApiError(msg, "VALIDATION_ERROR", 400, [
-                        { field: "Endereço", message: "Rua, Número e Bairro são obrigatórios" },
-                      ])
-                    );
-                    handleReviewAddress();
-                    return;
-                  }
-                  if (paymentType === "dinheiro" && changeFor) {
-                    const changeNum = parseFloat(changeFor);
-                    if (isNaN(changeNum) || changeNum < finalTotal) {
-                      const msg = `O valor para troco deve ser maior ou igual ao total (R$ ${finalTotal.toFixed(2).replace(".", ",")}).`;
-                      setCheckoutError(msg);
-                      setCheckoutErrorObj(new AppApiError(msg, "VALIDATION_ERROR", 400));
-                      return;
-                    }
-                  }
-                  setShowReviewModal(true);
-                }}
+                type="button"
+                onClick={handleInitiateOrderConfirmation}
                 disabled={submitting || (storeSettings ? !storeSettings.isOpen : false)}
                 className={`h-12 px-6 sm:px-8 rounded-2xl font-heading text-sm uppercase tracking-wider font-black shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 transition-all ${
                   storeSettings && !storeSettings.isOpen

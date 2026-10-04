@@ -1108,7 +1108,7 @@ export default function AdminPedidosPage() {
 
     return (
       <div
-        className={`rounded-2xl border p-3.5 shadow-sm flex flex-col min-w-[270px] xl:min-w-[250px] transition-colors ${
+        className={`rounded-2xl border p-3.5 shadow-sm flex flex-col w-[300px] sm:w-[320px] shrink-0 xl:w-auto xl:shrink xl:min-w-0 snap-start transition-colors ${
           isCancelColumn
             ? "bg-red-50/40 dark:bg-[#1E0911]/60 border-red-200/80 dark:border-red-900/40"
             : "bg-white/85 dark:bg-[#230E26]/80 border-gray-200 dark:border-border/40"
@@ -1657,7 +1657,7 @@ export default function AdminPedidosPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans pb-16 bg-transparent text-foreground transition-colors duration-200">
+    <div className="min-h-screen min-h-[100dvh] flex flex-col font-sans pb-16 bg-transparent text-foreground transition-colors duration-200 w-full max-w-full min-w-0 overflow-x-clip">
       {/* Alerta Não-Bloqueante de Orientação Mobile */}
       <MobileOrientationBanner />
 
@@ -1775,7 +1775,7 @@ export default function AdminPedidosPage() {
         </div>
       </header>
 
-      <main className="flex-1 p-4 sm:p-6 max-w-[1600px] mx-auto w-full space-y-6">
+      <main className="flex-1 p-4 sm:p-6 max-w-[1600px] mx-auto w-full max-w-full min-w-0 space-y-6">
         {/* Barra de Ações do Board */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
@@ -2138,7 +2138,7 @@ export default function AdminPedidosPage() {
         </div>
 
         {/* Grid Principal do Kanban em 5 Colunas (md+) */}
-        <section className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4 overflow-x-auto pb-4 items-start">
+        <section className="hidden md:flex xl:grid xl:grid-cols-5 gap-4 overflow-x-auto pb-4 items-start snap-x snap-mandatory overscroll-contain-x w-full min-w-0">
           {renderKanbanColumn("Fila", ["accepted"], "hsl(var(--primary))", "fila")}
           {renderKanbanColumn("Em Preparo", ["preparing"], "#EAB308", "preparo")}
           {renderKanbanColumn("A Caminho / Pronto", ["ready", "delivering"], "hsl(var(--accent))", "entrega")}

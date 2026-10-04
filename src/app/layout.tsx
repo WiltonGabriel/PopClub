@@ -21,8 +21,8 @@ const jetBrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jet
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  viewportFit: "cover",
 };
 
 export const metadata: Metadata = {
@@ -66,7 +66,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={cn("font-sans bg-background text-foreground antialiased overflow-x-hidden min-h-screen", inter.className)}
+        className={cn("font-sans bg-background text-foreground antialiased min-h-screen min-h-[100dvh] w-full", inter.className)}
         suppressHydrationWarning
       >
 

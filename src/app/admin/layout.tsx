@@ -28,9 +28,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex font-sans">
+    <div className="min-h-screen min-h-[100dvh] bg-background text-foreground flex flex-col w-full max-w-full min-w-0 font-sans overflow-x-clip">
       {/* Sidebar ou topbar poderiam vir aqui se houver um admin complexo multi-páginas */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col w-full max-w-full min-w-0">
         {children}
       </div>
     </div>
