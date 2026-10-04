@@ -6,6 +6,7 @@ import {
   LoadingSettingsData,
   AdvancedConfig,
   PresetSlotConfig,
+  LOADING_UPDATED_EVENT,
 } from "@/services/loadingSettingsService";
 import { useToast } from "@/components/ui/ToastNotification";
 import {
@@ -65,9 +66,10 @@ const DEFAULT_ADVANCED: AdvancedConfig = {
 };
 
 export function VisualIdentitySection() {
-  const [settings, setSettings] = useState<LoadingSettingsData>(
-    loadingSettingsService.getCachedLoadingSettings()
-  );
+  const initialCached = loadingSettingsService.getCachedLoadingSettings();
+  const [settings, setSettings] = useState<LoadingSettingsData>(initialCached);
+  const [savedSettings, setSavedSettings] = useState<LoadingSettingsData>(initialCached);
+  const savedSettingsRef = React.useRef<LoadingSettingsData>(initialCached);
   const [advancedConfig, setAdvancedConfig] = useState<AdvancedConfig>(DEFAULT_ADVANCED);
   const [mode, setMode] = useState<"light" | "dark">("light");
 
@@ -79,6 +81,8 @@ export function VisualIdentitySection() {
 
   useEffect(() => {
     loadingSettingsService.getLoadingSettings().then((remote) => {
+      savedSettingsRef.current = remote;
+      setSavedSettings(remote);
       setSettings(remote);
       if (remote.advancedConfig && Object.keys(remote.advancedConfig).length > 0) {
         setAdvancedConfig({
@@ -184,13 +188,13 @@ export function VisualIdentitySection() {
   };
 
   const handleDiscard = () => {
-    const cached = loadingSettingsService.getCachedLoadingSettings();
-    setSettings(cached);
-    setAdvancedConfig(cached.advancedConfig || DEFAULT_ADVANCED);
+    const target = savedSettingsRef.current || loadingSettingsService.getCachedLoadingSettings();
+    setSettings(target);
+    setAdvancedConfig(target.advancedConfig || DEFAULT_ADVANCED);
     setIsDirty(false);
     toast.showToast({
       title: "Alterações Descartadas",
-      message: "Valores restaurados para o estado ativo no servidor.",
+      message: "Pré-visualização restaurada para o tema ativo salvo no banco de dados.",
       type: "info",
     });
   };
@@ -202,17 +206,28 @@ export function VisualIdentitySection() {
 
   const saveToApi = async (silent = false, customAdvanced?: AdvancedConfig) => {
     const targetAdvanced = customAdvanced || advancedConfig;
+    const payload: LoadingSettingsData = {
+      ...settings,
+      advancedConfig: targetAdvanced,
+    };
     try {
       if (!silent) setIsSaving(true);
-      await loadingSettingsService.updateLoadingSettings({
-        ...settings,
-        advancedConfig: targetAdvanced,
-      });
+      await loadingSettingsService.updateLoadingSettings(payload);
+
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("popshake_loading_settings", JSON.stringify(payload));
+          window.dispatchEvent(new CustomEvent(LOADING_UPDATED_EVENT, { detail: payload }));
+        } catch {}
+      }
+
+      setSavedSettings(payload);
+      savedSettingsRef.current = payload;
 
       if (!silent) {
         toast.showToast({
-          title: "Publicado com Sucesso!",
-          message: "A nova identidade visual e tela de splash foram aplicadas para todos os clientes.",
+          title: "Identidade Visual Publicada com Sucesso!",
+          message: "A nova identidade visual foi gravada no banco e aplicada em toda a loja.",
           type: "success",
         });
         setShowConfirm(false);
@@ -230,12 +245,21 @@ export function VisualIdentitySection() {
     }
   };
 
-  const isSimConfirmed = confirmText.trim().toLowerCase() === "sim";
+  const normalizedConfirm = confirmText.trim().toUpperCase();
+  const isSecurityConfirmed = normalizedConfirm === "CONFIRMO" || normalizedConfirm === "SIM";
 
-  // Identificação do tema para o resumo no modal
-  const activePreset = HARMONIZED_PRESETS.find(
-    (p) => p.id === advancedConfig.themeId || (advancedConfig.themeId === "noctalia_mesh" && p.id === "aurora_mesh")
-  );
+  // Identificação do tema para o comparativo e resumo no modal
+  const savedThemeId = savedSettings.advancedConfig?.themeId || "acai_traditional";
+  const savedPreset =
+    HARMONIZED_PRESETS.find(
+      (p) => p.id === savedThemeId || (savedThemeId === "noctalia_mesh" && p.id === "aurora_mesh")
+    ) || HARMONIZED_PRESETS[0];
+
+  const activePreset =
+    HARMONIZED_PRESETS.find(
+      (p) => p.id === advancedConfig.themeId || (advancedConfig.themeId === "noctalia_mesh" && p.id === "aurora_mesh")
+    ) || HARMONIZED_PRESETS[0];
+
   const themeCategoryLabel =
     advancedConfig.themeType === "custom" || advancedConfig.isCoupled === false
       ? "Personalizado (Desacoplado)"
@@ -272,6 +296,8 @@ export function VisualIdentitySection() {
         advancedConfig={advancedConfig}
         setAdvancedConfig={setAdvancedConfig}
         previewMode={mode}
+        savedThemeId={savedThemeId}
+        isDirty={isDirty}
         onDirty={() => setIsDirty(true)}
         onScrollToSlots={() => {
           const el = document.getElementById("preset-slots-toolbar");
@@ -364,22 +390,24 @@ export function VisualIdentitySection() {
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-md border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.12)] z-40 animate-in slide-in-from-bottom duration-200">
           <div className="w-full max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3 px-4">
             <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-muted-foreground text-center sm:text-left">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
               <span>
-                Tema em edição: <strong className="text-foreground">{themeCategoryLabel}</strong>.
-                As alterações no preview não alteram o site até você clicar em Publicar.
+                Pré-visualização ativa: <strong className="text-foreground">{activePreset.name}</strong>.
+                As alterações no preview não afetam a loja até você publicar.
               </span>
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
+                id="btn-discard-theme-changes"
                 type="button"
                 onClick={handleDiscard}
                 className="w-1/2 sm:w-auto px-4 py-2.5 rounded-xl font-bold text-xs bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-700 transition-all cursor-pointer"
               >
-                Descartar
+                Descartar Alterações
               </button>
               <button
+                id="btn-open-publish-modal"
                 type="button"
                 onClick={requestSave}
                 className="w-1/2 sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm tracking-wide shadow-md px-6 py-2.5 rounded-xl transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer"
@@ -392,22 +420,22 @@ export function VisualIdentitySection() {
         </div>
       )}
 
-      {/* 5. Modal Crítico de Confirmação com Trava de Digitação ("Sim") */}
+      {/* 5. Modal Crítico de Confirmação com Trava de Segurança Obrigatória */}
       {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md animate-in fade-in p-4">
           <div className="bg-card w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-border animate-in zoom-in-95 space-y-5">
             {/* Header do Modal */}
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
-                  <ShieldAlert className="w-5 h-5" />
+                <div className="w-11 h-11 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center shrink-0">
+                  <ShieldAlert className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black font-heading text-destructive leading-tight">
-                    Atenção! Publicação em Produção
+                  <h3 className="text-lg font-black font-heading text-foreground leading-tight">
+                    Confirmar Publicação de Identidade Visual
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Esta ação atualizará o visual ao vivo para todos os clientes.
+                    Esta ação alterará imediatamente a identidade visual e o tema para todos os clientes acessando o PopClub.
                   </p>
                 </div>
               </div>
@@ -420,33 +448,67 @@ export function VisualIdentitySection() {
               </button>
             </div>
 
-            {/* Resumo Técnico das Alterações (Modo, Paleta, Fundo, Splash Screen) */}
-            <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3 text-xs">
-              <div className="flex items-center justify-between pb-2 border-b border-border font-bold">
-                <span className="text-muted-foreground">Tema & Modo:</span>
-                <span className="text-primary font-black">
-                  {themeCategoryLabel} • {mode === "light" ? "Modo Claro" : "Modo Escuro"}
-                </span>
-              </div>
+            {/* Comparativo Visual Obrigatório: Tema Atual ➔ Novo Tema Selecionado */}
+            <div className="bg-muted/40 border border-border rounded-2xl p-4 space-y-3">
+              <span className="text-[11px] font-bold text-muted-foreground block uppercase tracking-wider">
+                Comparativo de Publicação:
+              </span>
 
-              <div className="grid grid-cols-2 gap-2.5 text-foreground/80">
-                <div>
-                  <span className="text-muted-foreground block text-[11px]">Cor Base & Fundo:</span>
-                  <span className="font-mono font-bold flex items-center gap-1.5 mt-0.5">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full border border-black/10 shrink-0"
-                      style={{ backgroundColor: currentModeConfig?.baseColor || "#FDFBF7" }}
-                    />
-                    {currentModeConfig?.gradient
-                      ? "Gradiente Personalizado"
-                      : advancedConfig.themeType === "dynamic"
-                      ? "Dinâmico (Canvas)"
-                      : currentModeConfig?.baseColor || "#FDFBF7"}
-                  </span>
+              <div className="flex items-center justify-between p-3.5 rounded-xl bg-background border border-border/80 gap-3">
+                {/* Tema Atual Salvo */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                    <span>Tema Atual</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl shrink-0">{savedPreset.icon}</span>
+                    <div className="min-w-0">
+                      <p className="font-heading font-black text-xs sm:text-sm text-foreground truncate">
+                        {savedPreset.name}
+                      </p>
+                      <span className="text-[10px] text-muted-foreground block truncate">
+                        {savedPreset.categoryLabel}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <span className="text-muted-foreground block text-[11px]">Cor Primária (Marca):</span>
+                {/* Seta Indicativa */}
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary shrink-0">
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+
+                {/* Novo Tema Selecionado */}
+                <div className="flex-1 min-w-0 text-right">
+                  <div className="flex items-center justify-end gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-1">
+                    <span>Novo Tema</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                  </div>
+                  <div className="flex items-center justify-end gap-2">
+                    <div className="min-w-0">
+                      <p className="font-heading font-black text-xs sm:text-sm text-primary truncate">
+                        {activePreset.name}
+                      </p>
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold block truncate">
+                        {activePreset.categoryLabel}
+                      </span>
+                    </div>
+                    <span className="text-xl shrink-0">{activePreset.icon}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Detalhes de Modo e Paleta do Novo Tema */}
+              <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                <div className="bg-muted/30 p-2.5 rounded-xl border border-border/50">
+                  <span className="text-muted-foreground block text-[10px]">Visualização Ativa:</span>
+                  <span className="font-bold text-foreground mt-0.5 block">
+                    {mode === "light" ? "☀️ Modo Claro" : "🌙 Modo Escuro"}
+                  </span>
+                </div>
+                <div className="bg-muted/30 p-2.5 rounded-xl border border-border/50">
+                  <span className="text-muted-foreground block text-[10px]">Cor Primária de Destaque:</span>
                   <span className="font-mono font-bold flex items-center gap-1.5 mt-0.5">
                     <span
                       className="w-2.5 h-2.5 rounded-full border border-black/10 shrink-0"
@@ -455,58 +517,30 @@ export function VisualIdentitySection() {
                     {currentPrimary}
                   </span>
                 </div>
-
-                <div>
-                  <span className="text-muted-foreground block text-[11px]">Cabeçalho & Rodapé:</span>
-                  <span className="font-mono text-[11px] font-semibold flex items-center gap-2 mt-0.5">
-                    <span className="flex items-center gap-1">
-                      <span
-                        className="w-2 h-2 rounded-full border border-black/10"
-                        style={{ backgroundColor: currentModeConfig?.headerBg || (mode === "dark" ? "#181818" : "#FFFFFF") }}
-                      />
-                      Top
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span
-                        className="w-2 h-2 rounded-full border border-black/10"
-                        style={{ backgroundColor: currentModeConfig?.footerBg || (mode === "dark" ? "#121212" : "#FDFBF7") }}
-                      />
-                      Base
-                    </span>
-                  </span>
-                </div>
-
-                <div>
-                  <span className="text-muted-foreground block text-[11px]">Splash Screen:</span>
-                  <span className="font-bold flex items-center gap-1 mt-0.5">
-                    <span>{settings.centerIcon || "🥣"}</span>
-                    <span>{settings.theme || "liquid_cream"}</span>
-                    <span className="text-muted-foreground font-normal">({settings.phrases?.length || 0} frases)</span>
-                  </span>
-                </div>
               </div>
             </div>
 
-            {/* Trava de Segurança Obrigatória ("Sim") */}
+            {/* Trava de Segurança Obrigatória ("CONFIRMO" ou "SIM") */}
             <div className="bg-destructive/5 border border-destructive/20 p-4 rounded-2xl space-y-2.5">
               <label className="block text-xs font-bold text-destructive leading-snug">
-                Esta alteração entrará em vigor imediatamente para todos os clientes ativos na loja. Para confirmar a publicação, digite <span className="underline font-black">Sim</span> abaixo:
+                Para liberar a publicação para todos os clientes, digite manualmente a palavra <span className="underline font-black">CONFIRMO</span> ou <span className="underline font-black">SIM</span> abaixo:
               </label>
               <input
+                id="theme-publish-confirm-input"
                 type="text"
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
-                placeholder="Digite Sim"
+                placeholder='Digite "CONFIRMO" ou "SIM"'
                 className="w-full h-11 bg-background border border-destructive/30 rounded-xl px-3 font-bold text-sm text-foreground focus:ring-2 focus:ring-destructive/50"
                 autoFocus
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && isSimConfirmed && !isSaving) {
+                  if (e.key === "Enter" && isSecurityConfirmed && !isSaving) {
                     saveToApi();
                   }
                 }}
               />
               <p className="text-[11px] text-muted-foreground">
-                O botão de publicação permanecerá desabilitado até você digitar <strong>Sim</strong> (sem aspas).
+                O botão de publicação permanecerá <strong>estritamente desabilitado</strong> até que a palavra seja digitada corretamente.
               </p>
             </div>
 
@@ -521,12 +555,13 @@ export function VisualIdentitySection() {
                 Cancelar
               </button>
               <button
+                id="theme-publish-confirm-btn"
                 type="button"
                 onClick={() => saveToApi()}
-                disabled={!isSimConfirmed || isSaving}
+                disabled={!isSecurityConfirmed || isSaving}
                 className="px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-emerald-700 transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-emerald-600/20"
               >
-                {isSaving ? "Publicando..." : "Confirmar e Publicar na Loja"}
+                {isSaving ? "Publicando..." : "Publicar Agora"}
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>

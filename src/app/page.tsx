@@ -1216,7 +1216,7 @@ export default function Storefront() {
       {/* ─────────────────────────────────────────
           MAIN CONTENT
       ───────────────────────────────────────── */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-6 space-y-8">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-6 space-y-8 relative z-10">
         {/* ── VISUALIZAÇÃO DEDICADA DE CATEGORIA NO MOBILE ── */}
         {mobileCategoryView ? (
           <div className="space-y-5 animate-in fade-in duration-200">

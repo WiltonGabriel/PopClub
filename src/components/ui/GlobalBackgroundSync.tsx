@@ -128,8 +128,30 @@ export function GlobalBackgroundSync() {
     document.documentElement.style.setProperty("--theme-type", themeType);
 
     // Aplica o background na página
+    const currentThemeId = settings.advancedConfig?.themeId || "";
+    const isDynamic =
+      bgType === "dynamic" ||
+      settings.advancedConfig?.themeType === "dynamic" ||
+      currentThemeId === "aurora_mesh" ||
+      currentThemeId === "fluid_orbs" ||
+      currentThemeId === "noctalia_mesh";
+
+    const isFluid =
+      currentThemeId === "fluid_orbs" ||
+      settings.advancedConfig?.splashScreen?.dynamicStyle === "fluid_orbs" ||
+      bgValue === "fluid_orbs" ||
+      bgValue === "aurora_orbs";
+
     let baseCss = resolveBackgroundCss(settings, isDark);
-    if (modeConfig?.gradient && modeConfig.gradient.trim() !== "") {
+    if (isDynamic) {
+      baseCss = isDark
+        ? isFluid
+          ? "radial-gradient(circle at 50% 30%, #2F0E2D 0%, #18041F 100%)"
+          : "radial-gradient(circle at 50% 30%, #111827 0%, #0B0F19 100%)"
+        : isFluid
+        ? "radial-gradient(circle at 50% 30%, #FFF9F2 0%, #FAF5FF 100%)"
+        : "radial-gradient(circle at 50% 30%, #F8F9FE 0%, #EEF2FF 100%)";
+    } else if (modeConfig?.gradient && modeConfig.gradient.trim() !== "") {
       baseCss = modeConfig.gradient;
     } else if (modeConfig?.baseColor) {
       baseCss = modeConfig.baseColor;
@@ -180,20 +202,30 @@ export function GlobalBackgroundSync() {
   const isDark = theme === "dark";
   const bgType = isDark ? (settings.bgTypeDark || "gradient") : (settings.bgTypeLight || "gradient");
   const bgValue = isDark ? (settings.bgValueDark || "preset_dark_violet") : (settings.bgValueLight || "preset_cream");
+  const themeId = settings.advancedConfig?.themeId || "";
 
-  if (bgType === "dynamic") {
-    const canvasStyle =
-      settings.advancedConfig?.splashScreen?.dynamicStyle ||
-      (bgValue === "aurora_orbs"
-        ? "aurora_orbs"
-        : bgValue === "fluid_orbs"
-        ? "fluid_orbs"
-        : bgValue === "aurora_mesh" || bgValue === "noctalia_mesh"
-        ? "aurora_mesh"
-        : "constellation");
+  const isDynamicTheme =
+    bgType === "dynamic" ||
+    settings.advancedConfig?.themeType === "dynamic" ||
+    themeId === "aurora_mesh" ||
+    themeId === "fluid_orbs" ||
+    themeId === "noctalia_mesh";
+
+  if (isDynamicTheme) {
+    const isFluid =
+      themeId === "fluid_orbs" ||
+      settings.advancedConfig?.splashScreen?.dynamicStyle === "fluid_orbs" ||
+      bgValue === "fluid_orbs" ||
+      bgValue === "aurora_orbs";
+
+    const canvasStyle: "aurora_mesh" | "fluid_orbs" = isFluid ? "fluid_orbs" : "aurora_mesh";
 
     return (
-      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden" aria-hidden="true">
+      <div
+        id="popclub-dynamic-canvas-container"
+        className="fixed inset-0 pointer-events-none z-0 overflow-hidden"
+        aria-hidden="true"
+      >
         <DynamicCanvasBackground
           style={canvasStyle}
           isDark={isDark}

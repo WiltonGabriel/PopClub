@@ -10,6 +10,7 @@ import {
   Sliders,
   Bookmark,
   Zap,
+  Eye,
 } from "lucide-react";
 import {
   HARMONIZED_PRESETS,
@@ -26,6 +27,8 @@ interface Props {
   previewMode: "light" | "dark";
   onScrollToSlots?: () => void;
   onDirty?: () => void;
+  savedThemeId?: string;
+  isDirty?: boolean;
 }
 
 export function ThemePresetsCatalog({
@@ -36,6 +39,8 @@ export function ThemePresetsCatalog({
   previewMode,
   onScrollToSlots,
   onDirty,
+  savedThemeId,
+  isDirty,
 }: Props) {
   // Apenas 2 abas principais: "classic" e "dynamic"
   const [activeTab, setActiveTab] = useState<"classic" | "dynamic">("classic");
@@ -95,14 +100,9 @@ export function ThemePresetsCatalog({
     };
 
     setSettings(nextSettings);
-
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem("popshake_loading_settings", JSON.stringify(nextSettings));
-        window.dispatchEvent(new CustomEvent(LOADING_UPDATED_EVENT, { detail: nextSettings }));
-        loadingSettingsService.updateLoadingSettings(nextSettings).catch(() => {});
-      } catch {}
-    }
+    // Modo de pré-visualização estritamente local:
+    // NÃO persiste no banco de dados, NÃO salva em localStorage e NÃO dispara eventos globais
+    // até que o gestor clique em "Publicar Alterações na Loja" e confirme com a trava de segurança.
   };
 
   const toggleCardMode = (presetId: string, e: React.MouseEvent) => {
@@ -145,13 +145,17 @@ export function ThemePresetsCatalog({
         {/* Indicador de Estado Ativo */}
         <div className="flex items-center gap-2 bg-muted/40 border border-border rounded-xl px-3 py-2 text-xs shrink-0">
           <span className="text-muted-foreground font-medium">Estado:</span>
-          {isCustomMode ? (
+          {isDirty ? (
+            <span className="font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+              <Eye className="w-3.5 h-3.5" /> Pré-visualização Local: {activePreset?.name || "Personalizado"} (Rascunho)
+            </span>
+          ) : isCustomMode ? (
             <span className="font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
               <Sliders className="w-3.5 h-3.5" /> Modo Personalizado (Editado)
             </span>
           ) : (
-            <span className="font-bold text-primary flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Sincronizado:{" "}
+            <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Sincronizado com a Loja:{" "}
               {activePreset?.name || "PopClub Original"}
             </span>
           )}
@@ -332,11 +336,21 @@ export function ThemePresetsCatalog({
                   <h3 className="font-heading font-black text-sm text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
                     {preset.name}
                   </h3>
-                  {isSelected && (
-                    <span className="text-primary flex items-center gap-1 text-[11px] font-black uppercase">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500 fill-emerald-500/20" /> Tema Ativo
+                  {isSelected ? (
+                    isDirty ? (
+                      <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1 text-[11px] font-black uppercase bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                        <Eye className="w-3.5 h-3.5" /> Preview
+                      </span>
+                    ) : (
+                      <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 text-[11px] font-black uppercase bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Ativo na Loja
+                      </span>
+                    )
+                  ) : preset.id === savedThemeId ? (
+                    <span className="text-muted-foreground flex items-center gap-1 text-[10px] font-bold bg-muted/60 px-2 py-0.5 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Ativo no Banco
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <p className="text-[11px] font-semibold text-primary/80 mt-0.5">
                   {preset.subtitle}
@@ -362,9 +376,13 @@ export function ThemePresetsCatalog({
 
                 <span
                   data-apply-theme={preset.id}
-                  className="text-primary font-bold group-hover:translate-x-0.5 transition-transform"
+                  className={`font-bold transition-transform ${
+                    isSelected
+                      ? "text-amber-600 dark:text-amber-400"
+                      : "text-primary group-hover:translate-x-0.5"
+                  }`}
                 >
-                  Aplicar →
+                  {isSelected ? "Em Preview ✓" : "Testar no Preview →"}
                 </span>
               </div>
             </div>

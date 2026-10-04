@@ -74,20 +74,21 @@ export function LivePreview({
   const splashProgressBarColor =
     splashConfig.progressBarColor || primaryColor;
 
+  const previewThemeId = advancedConfig.themeId || "";
   const isDynamic =
     advancedConfig.themeType === "dynamic" ||
+    previewThemeId === "aurora_mesh" ||
+    previewThemeId === "fluid_orbs" ||
+    previewThemeId === "noctalia_mesh" ||
     (isDark ? settings.bgTypeDark === "dynamic" : settings.bgTypeLight === "dynamic");
 
-  const dynamicStyle =
-    splashConfig.dynamicStyle ||
-    ((isDark ? settings.bgValueDark : settings.bgValueLight) === "aurora_orbs"
-      ? "aurora_orbs"
-      : (isDark ? settings.bgValueDark : settings.bgValueLight) === "fluid_orbs"
-      ? "fluid_orbs"
-      : (isDark ? settings.bgValueDark : settings.bgValueLight) === "aurora_mesh" ||
-        (isDark ? settings.bgValueDark : settings.bgValueLight) === "noctalia_mesh"
-      ? "aurora_mesh"
-      : "constellation");
+  const isFluid =
+    previewThemeId === "fluid_orbs" ||
+    splashConfig.dynamicStyle === "fluid_orbs" ||
+    (isDark ? settings.bgValueDark : settings.bgValueLight) === "fluid_orbs" ||
+    (isDark ? settings.bgValueDark : settings.bgValueLight) === "aurora_orbs";
+
+  const dynamicStyle: "aurora_mesh" | "fluid_orbs" = isFluid ? "fluid_orbs" : "aurora_mesh";
 
   // Cores inteligentes de contraste (WCAG AA)
   const primaryContrastText = getContrastTextColor(primaryColor);
@@ -101,6 +102,17 @@ export function LivePreview({
 
   // Determina o CSS de Fundo do celular
   const getContainerBg = () => {
+    if (isDynamic) {
+      if (isFluid) {
+        return isDark
+          ? "radial-gradient(circle at center, #2F0E2D 0%, #18041F 100%)"
+          : "radial-gradient(circle at center, #FFF9F2 0%, #FAF5FF 100%)";
+      }
+      return isDark
+        ? "radial-gradient(circle at center, #111827 0%, #0B0F19 100%)"
+        : "radial-gradient(circle at center, #F8F9FE 0%, #EEF2FF 100%)";
+    }
+
     if (activeTab === "splash" || (isPlayingSequence && sequencePhase === "splash")) {
       if (splashConfig.backgroundType === "gradient" && splashConfig.backgroundValue?.includes("gradient")) {
         return splashConfig.backgroundValue;
