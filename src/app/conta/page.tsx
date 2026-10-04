@@ -53,6 +53,8 @@ import {
 } from "../../contexts/AccessibilityContext";
 import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 import { CompleteRegistrationModal } from "@/components/auth/CompleteRegistrationModal";
+import { formatPhoneInput } from "@/components/auth/FastAccessModal";
+import { formatCpf } from "@/lib/cpf";
 import { BottomNav } from "../../components/storefront/BottomNav";
 import { useToast } from "../../components/ui/ToastNotification";
 import { authService } from "../../services/authService";
@@ -1184,6 +1186,29 @@ export default function AccountPage() {
                     className="h-12 rounded-xl bg-gray-50 border-gray-200 text-gray-500 dark:bg-[#190B1A]/80 dark:border-[#512B54]/30 dark:text-gray-400 cursor-not-allowed"
                   />
                   <p className="text-[11px] text-muted-foreground">O e-mail é o identificador de login da sua conta.</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                      WhatsApp / Celular
+                    </Label>
+                    <Input 
+                      value={user?.phone ? formatPhoneInput(user.phone) : "Não informado"}
+                      disabled
+                      className="h-12 rounded-xl bg-gray-50 border-gray-200 text-gray-700 dark:bg-[#190B1A]/80 dark:border-[#512B54]/30 dark:text-gray-300 cursor-not-allowed font-mono"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                      CPF
+                    </Label>
+                    <Input 
+                      value={user?.cpf ? formatCpf(user.cpf) : "Não informado"}
+                      disabled
+                      className="h-12 rounded-xl bg-gray-50 border-gray-200 text-gray-700 dark:bg-[#190B1A]/80 dark:border-[#512B54]/30 dark:text-gray-300 cursor-not-allowed font-mono"
+                    />
+                  </div>
                 </div>
 
                 <Button 

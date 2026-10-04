@@ -17,10 +17,14 @@ import {
   MapPin,
   X,
   ArrowRight,
+  Mail,
+  CreditCard,
+  Sparkles,
 } from "lucide-react";
 import { authService } from "../../services/authService";
 import { useAuth } from "../../hooks/useAuth";
 import { formatPhoneInput } from "@/components/auth/FastAccessModal";
+import { formatCpf, cleanCpf, validateCpf } from "@/lib/cpf";
 import { Button } from "@/components/ui/button";
 
 /* ─── Reusable styled input wrapper ─── */
@@ -118,8 +122,9 @@ function AuthPageInner() {
   const { user, loading: authLoading, fastAccess, verifyDevice } = useAuth();
 
   const redirectTarget = searchParams?.get("redirect") || "/";
-  const initialTab = searchParams?.get("tab") === "password" ? "password" : "fast";
-  const [activeTab, setActiveTab] = useState<"fast" | "password">(initialTab);
+  const rawTab = searchParams?.get("tab");
+  const initialTab = rawTab === "password" ? "password" : rawTab === "register" ? "register" : "fast";
+  const [activeTab, setActiveTab] = useState<"fast" | "password" | "register">(initialTab);
 
   // Redireciona usuários autenticados para a home ou página alvo
   useEffect(() => {
@@ -150,6 +155,16 @@ function AuthPageInner() {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+
+  /* ── Aba 3: Criar Conta / Cadastro State ── */
+  const [registerFullName, setRegisterFullName] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPhone, setRegisterPhone] = useState("");
+  const [registerCpf, setRegisterCpf] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [registerLoading, setRegisterLoading] = useState(false);
+  const [registerError, setRegisterError] = useState<string | null>(null);
 
   /* ── Handlers de Acesso Rápido ── */
   const handleFastAccessSubmit = async (e: React.FormEvent) => {
@@ -236,6 +251,52 @@ function AuthPageInner() {
       setLoginError(err.message || "Credenciais inválidas.");
     } finally {
       setLoginLoading(false);
+    }
+  };
+
+  /* ── Handlers de Cadastro / Criar Conta ── */
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegisterError(null);
+
+    if (!registerFullName.trim() || registerFullName.trim().length < 3) {
+      setRegisterError("Por favor, informe seu nome completo (mínimo 3 caracteres).");
+      return;
+    }
+    const cleanMail = registerEmail.trim().toLowerCase();
+    if (!cleanMail || !cleanMail.includes("@") || !cleanMail.includes(".")) {
+      setRegisterError("Por favor, informe um e-mail válido.");
+      return;
+    }
+    const cleanPhone = registerPhone.replace(/\D/g, "");
+    if (cleanPhone.length < 10) {
+      setRegisterError("Por favor, informe o WhatsApp com DDD (mínimo 10 dígitos).");
+      return;
+    }
+    const cleanedCpf = cleanCpf(registerCpf);
+    if (!validateCpf(cleanedCpf)) {
+      setRegisterError("Por favor, informe um CPF válido com dígitos verificadores matematicamente corretos.");
+      return;
+    }
+    if (registerPassword.length < 6) {
+      setRegisterError("A senha deve conter no mínimo 6 caracteres.");
+      return;
+    }
+
+    setRegisterLoading(true);
+    try {
+      await authService.signUp({
+        fullName: registerFullName.trim(),
+        email: cleanMail,
+        phone: cleanPhone,
+        cpf: cleanedCpf,
+        password: registerPassword,
+      });
+      window.location.replace(redirectTarget);
+    } catch (err: any) {
+      setRegisterError(err.message || "Erro ao realizar cadastro.");
+    } finally {
+      setRegisterLoading(false);
     }
   };
 
@@ -350,7 +411,23 @@ function AuthPageInner() {
                 }
               `}
             >
-              Entrar com Senha
+              Entrar
+            </button>
+
+            <button
+              role="tab"
+              aria-selected={activeTab === "register"}
+              onClick={() => setActiveTab("register")}
+              className={`
+                flex-1 h-10 rounded-xl text-xs sm:text-sm font-bold
+                transition-all duration-200 cursor-pointer
+                ${activeTab === "register"
+                  ? "bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/30"
+                  : "text-[#7A587D] dark:text-[#957498] hover:text-foreground dark:hover:text-muted-foreground"
+                }
+              `}
+            >
+              Criar Conta
             </button>
           </div>
 
@@ -647,11 +724,185 @@ function AuthPageInner() {
                 Continuar com Google
               </button>
 
-              <div className="pt-2 text-center">
+              <div className="pt-2 text-center space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("register")}
+                  className="text-xs text-[#7A587D] dark:text-muted-foreground hover:underline cursor-pointer block w-full"
+                >
+                  Não tem uma conta? <strong>Criar Conta / Cadastro</strong>
+                </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab("fast")}
-                  className="text-xs text-[#7A587D] dark:text-muted-foreground hover:underline cursor-pointer"
+                  className="text-xs text-[#7A587D] dark:text-muted-foreground hover:underline cursor-pointer block w-full"
+                >
+                  Prefere entrar sem senha? <strong>Usar Acesso Rápido</strong>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── ABA 3: CRIAR CONTA / CADASTRO ── */}
+          {activeTab === "register" && (
+            <div className="space-y-4" role="tabpanel" aria-label="Criar Conta">
+              <p className="text-xs text-[#7A587D] dark:text-muted-foreground text-center leading-relaxed">
+                Cadastre-se para liberar cupons exclusivos, carteira de endereços e rastreamento em tempo real.
+              </p>
+
+              {registerError && <ErrorBanner message={registerError} />}
+
+              <form onSubmit={handleRegisterSubmit} className="space-y-3.5 pt-1">
+                {/* Nome Completo */}
+                <div className="space-y-1.5">
+                  <label htmlFor="registerFullName" className="block text-xs font-semibold text-[#7A587D] dark:text-[#E2D2E4]">
+                    Nome Completo *
+                  </label>
+                  <AuthInput
+                    id="registerFullName"
+                    type="text"
+                    value={registerFullName}
+                    onChange={(e) => {
+                      setRegisterFullName(e.target.value);
+                      if (registerError) setRegisterError(null);
+                    }}
+                    placeholder="Ex: Gabriel Aluno QA"
+                    required
+                    autoComplete="name"
+                    leftIcon={<User className="w-4 h-4" />}
+                  />
+                </div>
+
+                {/* E-mail */}
+                <div className="space-y-1.5">
+                  <label htmlFor="registerEmail" className="block text-xs font-semibold text-[#7A587D] dark:text-[#E2D2E4]">
+                    E-mail *
+                  </label>
+                  <AuthInput
+                    id="registerEmail"
+                    type="email"
+                    value={registerEmail}
+                    onChange={(e) => {
+                      setRegisterEmail(e.target.value);
+                      if (registerError) setRegisterError(null);
+                    }}
+                    placeholder="gabriel.qa@popclub.test"
+                    required
+                    autoComplete="email"
+                    leftIcon={<Mail className="w-4 h-4" />}
+                  />
+                </div>
+
+                {/* WhatsApp */}
+                <div className="space-y-1.5">
+                  <label htmlFor="registerPhone" className="block text-xs font-semibold text-[#7A587D] dark:text-[#E2D2E4]">
+                    WhatsApp com DDD *
+                  </label>
+                  <AuthInput
+                    id="registerPhone"
+                    type="tel"
+                    value={registerPhone}
+                    onChange={(e) => {
+                      setRegisterPhone(formatPhoneInput(e.target.value));
+                      if (registerError) setRegisterError(null);
+                    }}
+                    placeholder="(65) 99888-1122"
+                    required
+                    autoComplete="tel"
+                    leftIcon={<Phone className="w-4 h-4" />}
+                  />
+                </div>
+
+                {/* CPF */}
+                <div className="space-y-1.5">
+                  <label htmlFor="registerCpf" className="block text-xs font-semibold text-[#7A587D] dark:text-[#E2D2E4]">
+                    CPF *
+                  </label>
+                  <AuthInput
+                    id="registerCpf"
+                    type="text"
+                    value={registerCpf}
+                    onChange={(e) => {
+                      setRegisterCpf(formatCpf(e.target.value));
+                      if (registerError) setRegisterError(null);
+                    }}
+                    placeholder="000.000.000-00"
+                    required
+                    leftIcon={<CreditCard className="w-4 h-4" />}
+                  />
+                </div>
+
+                {/* Senha */}
+                <div className="space-y-1.5">
+                  <label htmlFor="registerPassword" className="block text-xs font-semibold text-[#7A587D] dark:text-[#E2D2E4]">
+                    Senha de Acesso *
+                  </label>
+                  <AuthInput
+                    id="registerPassword"
+                    type={showRegisterPassword ? "text" : "password"}
+                    value={registerPassword}
+                    onChange={(e) => {
+                      setRegisterPassword(e.target.value);
+                      if (registerError) setRegisterError(null);
+                    }}
+                    placeholder="••••••••"
+                    required
+                    autoComplete="new-password"
+                    leftIcon={<Lock className="w-4 h-4" />}
+                    rightSlot={
+                      <EyeToggle
+                        show={showRegisterPassword}
+                        onToggle={() => setShowRegisterPassword((v) => !v)}
+                      />
+                    }
+                  />
+                  <span className="text-[10px] text-[#7A587D] dark:text-[#957498] block">
+                    Mínimo 6 caracteres com letras e números.
+                  </span>
+                </div>
+
+                {/* Botão de Envio */}
+                <button
+                  type="submit"
+                  disabled={registerLoading}
+                  className="
+                    w-full h-12 rounded-xl mt-2
+                    font-semibold text-sm text-white
+                    bg-gradient-to-r from-primary to-accent
+                    hover:from-[#a30de8] hover:to-[#b0007c]
+                    active:scale-[0.98]
+                    transition-all duration-200
+                    shadow-lg shadow-primary/30
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    flex items-center justify-center gap-2 cursor-pointer
+                  "
+                >
+                  {registerLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Cadastrando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Criar Conta e Entrar</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+
+              <div className="pt-2 text-center space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("password")}
+                  className="text-xs text-[#7A587D] dark:text-muted-foreground hover:underline cursor-pointer block w-full"
+                >
+                  Já possui uma conta? <strong>Entrar com Senha</strong>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("fast")}
+                  className="text-xs text-[#7A587D] dark:text-muted-foreground hover:underline cursor-pointer block w-full"
                 >
                   Prefere entrar sem senha? <strong>Usar Acesso Rápido</strong>
                 </button>

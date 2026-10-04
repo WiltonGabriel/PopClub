@@ -68,11 +68,32 @@ export const authService = {
     return data;
   },
 
-  async signUp(username: string, email: string, password: string) {
+  async signUp(
+    usernameOrData: string | { username?: string; email: string; password: string; fullName?: string; phone?: string; cpf?: string },
+    email?: string,
+    password?: string,
+    fullName?: string,
+    phone?: string,
+    cpf?: string
+  ) {
+    let payload: Record<string, any>;
+    if (typeof usernameOrData === "object") {
+      payload = usernameOrData;
+    } else {
+      payload = {
+        username: usernameOrData,
+        email,
+        password,
+        fullName,
+        phone,
+        cpf,
+      };
+    }
+
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, email, password }),
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
     if (!res.ok) {

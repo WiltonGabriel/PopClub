@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
-import { hashPassword, signToken } from "@/lib/auth";
+import { hashPassword, signToken, setSessionCookies } from "@/lib/auth";
+import { cleanCpf, validateCpf } from "@/lib/cpf";
 import { cookies } from "next/headers";
 import { authLimiter, getIpFromRequest } from "@/lib/rateLimit";
 
@@ -22,83 +23,177 @@ export async function POST(request: Request) {
     } catch {
       return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
     }
-    const { username, email, password, fullName } = (body as Record<string, string>) || {};
 
-    if (!username || !email || !password) {
-      return NextResponse.json({ error: "Todos os campos são obrigatórios." }, { status: 400 });
+    const { username, email, password, fullName, phone, cpf } = (body as Record<string, string>) || {};
+
+    if (!email || !password) {
+      return NextResponse.json({ error: "E-mail e senha são obrigatórios." }, { status: 400 });
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    const cleanUsername = username.trim();
+    if (!cleanEmail.includes("@") || !cleanEmail.includes(".")) {
+      return NextResponse.json({ error: "E-mail inválido." }, { status: 400 });
+    }
+
+    const cleanName = (fullName || "").trim();
+    if (!cleanName || cleanName.length < 3) {
+      return NextResponse.json({ error: "Nome completo é obrigatório (mínimo 3 caracteres)." }, { status: 400 });
+    }
 
     // Validação de senha
     const hasLetter = /[A-Za-z]/.test(password);
     const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
     const hasNumber = /[0-9]/.test(password);
 
-    if (password.length < 8) {
-      return NextResponse.json({ error: "A senha deve ter pelo menos 8 caracteres." }, { status: 400 });
+    if (password.length < 6) {
+      return NextResponse.json({ error: "A senha deve ter pelo menos 6 caracteres." }, { status: 400 });
     }
-    if (!hasNumber) {
-      return NextResponse.json({ error: "A senha deve conter pelo menos um número." }, { status: 400 });
-    }
-    if (!hasLetter && !hasSpecial) {
-      return NextResponse.json({ error: "A senha deve conter pelo menos uma letra ou caractere especial." }, { status: 400 });
+    if (!hasNumber && !hasSpecial) {
+      return NextResponse.json({ error: "A senha deve conter pelo menos um número ou caractere especial." }, { status: 400 });
     }
 
-    // Unicidade de e-mail e username no cadastro
-    const existing = await prisma.user.findFirst({
-      where: {
-        OR: [{ email: cleanEmail }, { username: cleanUsername }],
-      },
-    });
-
-    if (existing) {
-      if (existing.email === cleanEmail) {
-        return NextResponse.json({ error: "Este e-mail já está em uso." }, { status: 400 });
+    // Validação de Telefone / WhatsApp (se informado)
+    let cleanPhone: string | null = null;
+    if (phone && typeof phone === "string" && phone.trim()) {
+      cleanPhone = phone.replace(/\D/g, "");
+      if (cleanPhone.length < 10) {
+        return NextResponse.json({ error: "WhatsApp inválido. Inclua o DDD com 2 dígitos." }, { status: 400 });
       }
-      return NextResponse.json({ error: "Este nome de usuário já está em uso." }, { status: 400 });
+    }
+
+    // Validação e Limpeza de CPF (se informado)
+    let cleanedCpf: string | null = null;
+    if (cpf && typeof cpf === "string" && cpf.trim()) {
+      cleanedCpf = cleanCpf(cpf);
+      if (!validateCpf(cleanedCpf)) {
+        return NextResponse.json({ error: "CPF informado é inválido." }, { status: 400 });
+      }
+    }
+
+    // Username sanitizado
+    const rawUsername = username ? username.trim() : cleanEmail.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "");
+    let cleanUsername = rawUsername;
+
+    // Unicidade de e-mail e CPF
+    if (cleanedCpf) {
+      const existingCpf = await prisma.user.findFirst({
+        where: { cpf: cleanedCpf },
+      });
+      if (existingCpf) {
+        return NextResponse.json({ error: "Este CPF já está em uso por outro usuário." }, { status: 409 });
+      }
+    }
+
+    const existingEmail = await prisma.user.findFirst({
+      where: { email: cleanEmail },
+    });
+    if (existingEmail) {
+      return NextResponse.json({ error: "Este e-mail já está em uso." }, { status: 400 });
+    }
+
+    // Se já houver um usuário com este username, adiciona sufixo aleatório
+    const existingUsername = await prisma.user.findFirst({
+      where: { username: cleanUsername },
+    });
+    if (existingUsername) {
+      cleanUsername = `${cleanUsername}_${Math.floor(1000 + Math.random() * 9000)}`;
     }
 
     const passwordHash = await hashPassword(password);
 
-    const user = await prisma.user.create({
-      data: {
-        username: cleanUsername,
-        email: cleanEmail,
-        passwordHash,
-        fullName: fullName || cleanUsername,
-        role: Role.CLIENT,
-        isRegistered: true,
-      },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        fullName: true,
-        role: true,
-        isRegistered: true,
-      },
-    });
+    // Se houver um usuário guest/acesso rápido pelo telefone, promove a conta
+    let user: any = null;
+    if (cleanPhone) {
+      const existingPhoneUser = await prisma.user.findFirst({
+        where: { phone: cleanPhone },
+      });
+
+      if (existingPhoneUser) {
+        if (existingPhoneUser.isRegistered && existingPhoneUser.email && existingPhoneUser.email !== cleanEmail) {
+          return NextResponse.json(
+            { error: "Este número de WhatsApp já possui uma conta cadastrada. Faça login." },
+            { status: 409 }
+          );
+        }
+
+        // Promove o usuário do Acesso Rápido para Cliente Cadastrado
+        user = await prisma.user.update({
+          where: { id: existingPhoneUser.id },
+          data: {
+            username: existingPhoneUser.username || cleanUsername,
+            email: cleanEmail,
+            passwordHash,
+            fullName: cleanName || existingPhoneUser.fullName,
+            cpf: cleanedCpf || existingPhoneUser.cpf,
+            role: Role.CLIENT,
+            isRegistered: true,
+          },
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            fullName: true,
+            phone: true,
+            cpf: true,
+            role: true,
+            isRegistered: true,
+          },
+        });
+      }
+    }
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          username: cleanUsername,
+          email: cleanEmail,
+          phone: cleanPhone,
+          cpf: cleanedCpf,
+          passwordHash,
+          fullName: cleanName,
+          role: Role.CLIENT,
+          isRegistered: true,
+        },
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          fullName: true,
+          phone: true,
+          cpf: true,
+          role: true,
+          isRegistered: true,
+        },
+      });
+    }
 
     const token = signToken({
       userId: user.id,
       email: user.email,
       username: user.username,
+      phone: user.phone,
+      name: user.fullName,
       role: user.role,
       isRegistered: true,
     });
 
-    const cookieStore = await cookies();
-    cookieStore.set("auth_token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
-    });
+    let isHttps = false;
+    try {
+      const proto = request.headers.get("x-forwarded-proto");
+      isHttps = proto === "https" || (typeof request.url === "string" && request.url.startsWith("https://"));
+    } catch {
+      isHttps = false;
+    }
 
-    return NextResponse.json({ success: true, user, token });
+    const response = NextResponse.json({ success: true, user, token });
+
+    setSessionCookies(response, token, isHttps);
+    try {
+      const cookieStore = await cookies();
+      setSessionCookies({ cookies: cookieStore } as any, token, isHttps);
+    } catch {}
+
+    return response;
   } catch (error: unknown) {
     console.error("Erro no cadastro:", error);
     return NextResponse.json({ error: "Erro interno no servidor ao realizar cadastro." }, { status: 500 });
