@@ -128,6 +128,8 @@ export function GlobalBackgroundSync() {
     document.documentElement.style.setProperty("--theme-type", themeType);
 
     // Aplica o background na página
+    const bgType = isDark ? (settings.bgTypeDark || "gradient") : (settings.bgTypeLight || "gradient");
+    const bgValue = isDark ? (settings.bgValueDark || "preset_dark_violet") : (settings.bgValueLight || "preset_cream");
     const currentThemeId = settings.advancedConfig?.themeId || "";
     const isDynamic =
       bgType === "dynamic" ||

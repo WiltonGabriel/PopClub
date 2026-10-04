@@ -19,7 +19,6 @@ import {
   Mail,
   ArrowRight,
   Sparkles,
-  KeyRound,
 } from "lucide-react";
 import { authService } from "../../services/authService";
 import { useAuth } from "../../hooks/useAuth";
@@ -521,76 +520,170 @@ function AuthPageInner() {
 
                   {fastError && <ErrorBanner message={fastError} />}
 
-                  <form onSubmit={handleFastAccessSubmit} className="space-y-4 pt-1">
-                    <div className="space-y-1.5">
-                      <label htmlFor="fastName" className="block text-xs font-semibold text-[#7A587D] dark:text-[#E2D2E4]">
-                        Seu Nome Completo *
-                      </label>
-                      <AuthInput
-                        id="fastName"
-                        type="text"
-                        value={fastName}
-                        onChange={(e) => {
-                          setFastName(e.target.value);
-                          if (fastError) setFastError(null);
-                        }}
-                        placeholder="Ex: Lucas Ferreira"
-                        required
-                        autoComplete="name"
-                        leftIcon={<User className="w-4 h-4" />}
-                      />
-                    </div>
+                  {fastRegisteredDetected && !isFastBypass ? (
+                    <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                      <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
+                        <div className="p-2 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
+                          <Sparkles className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-amber-700 dark:text-amber-300">
+                            Identificamos que você já possui cadastro no PopClub!
+                          </p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            Olá, <strong>{fastName || "Cliente"}</strong>! Digite sua senha para entrar com todos os seus benefícios.
+                          </p>
+                        </div>
+                      </div>
 
-                    <div className="space-y-1.5">
-                      <label htmlFor="fastPhone" className="block text-xs font-semibold text-[#7A587D] dark:text-[#E2D2E4]">
-                        WhatsApp com DDD *
-                      </label>
-                      <AuthInput
-                        id="fastPhone"
-                        type="tel"
-                        value={fastPhone}
-                        onChange={(e) => {
-                          setFastPhone(formatPhoneInput(e.target.value));
-                          if (fastError) setFastError(null);
-                        }}
-                        placeholder="(65) 99999-9999"
-                        required
-                        autoComplete="tel"
-                        leftIcon={<Phone className="w-4 h-4" />}
-                      />
-                      <span className="text-[10px] text-[#7A587D] dark:text-[#957498] block">
-                        Informe o DDD com 2 dígitos antes do número (ex: 65, 11).
-                      </span>
-                    </div>
+                      <form onSubmit={handleFastPasswordSubmit} className="space-y-3.5">
+                        <div className="space-y-1.5">
+                          <label htmlFor="fastPasswordInput" className="block text-xs font-semibold text-[#7A587D] dark:text-[#E2D2E4]">
+                            Sua Senha de Acesso
+                          </label>
+                          <AuthInput
+                            id="fastPasswordInput"
+                            type={showFastPassword ? "text" : "password"}
+                            value={fastPassword}
+                            onChange={(e) => {
+                              setFastPassword(e.target.value);
+                              if (fastError) setFastError(null);
+                            }}
+                            placeholder="Digite sua senha"
+                            required
+                            autoFocus
+                            disabled={fastPasswordLoading}
+                            leftIcon={<Lock className="w-4 h-4" />}
+                            rightSlot={
+                              <EyeToggle
+                                show={showFastPassword}
+                                onToggle={() => setShowFastPassword(!showFastPassword)}
+                              />
+                            }
+                          />
+                        </div>
 
-                    <button
-                      type="submit"
-                      disabled={fastLoading}
-                      className="
-                        w-full h-12 rounded-xl mt-2
-                        font-semibold text-sm text-white
-                        bg-gradient-to-r from-primary to-accent
-                        hover:from-[#a30de8] hover:to-[#b0007c]
-                        active:scale-[0.98]
-                        transition-all duration-200
-                        shadow-lg shadow-primary/30
-                        disabled:opacity-50 disabled:cursor-not-allowed
-                        flex items-center justify-center gap-2 cursor-pointer
-                      "
-                    >
-                      {fastLoading ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Conectando...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>Continuar com Acesso Rápido</span>
-                          <ArrowRight className="w-4 h-4" />
-                        </>
-                      )}
-                    </button>
-                  </form>
+                        <button
+                          type="submit"
+                          disabled={fastPasswordLoading}
+                          className="
+                            w-full h-12 rounded-xl mt-2
+                            font-semibold text-sm text-white
+                            bg-gradient-to-r from-primary to-accent
+                            hover:from-[#a30de8] hover:to-[#b0007c]
+                            active:scale-[0.98]
+                            transition-all duration-200
+                            shadow-lg shadow-primary/30
+                            disabled:opacity-50 disabled:cursor-not-allowed
+                            flex items-center justify-center gap-2 cursor-pointer
+                          "
+                        >
+                          {fastPasswordLoading ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>Entrando...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>Entrar com Minha Senha</span>
+                              <ArrowRight className="w-4 h-4" />
+                            </>
+                          )}
+                        </button>
+
+                        <div className="flex items-center justify-between text-xs pt-1 px-1">
+                          <button
+                            type="button"
+                            onClick={() => setIsRescueModalOpen(true)}
+                            className="text-primary hover:underline font-medium cursor-pointer"
+                          >
+                            Esqueci minha senha
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsFastBypass(true);
+                              setFastRegisteredDetected(false);
+                            }}
+                            className="text-[#7A587D] dark:text-muted-foreground hover:text-foreground cursor-pointer text-[11px]"
+                          >
+                            Entrar sem senha desta vez
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleFastAccessSubmit} className="space-y-4 pt-1">
+                      <div className="space-y-1.5">
+                        <label htmlFor="fastName" className="block text-xs font-semibold text-[#7A587D] dark:text-[#E2D2E4]">
+                          Seu Nome Completo *
+                        </label>
+                        <AuthInput
+                          id="fastName"
+                          type="text"
+                          value={fastName}
+                          onChange={(e) => {
+                            setFastName(e.target.value);
+                            if (fastError) setFastError(null);
+                          }}
+                          placeholder="Ex: Lucas Ferreira"
+                          required
+                          autoComplete="name"
+                          leftIcon={<User className="w-4 h-4" />}
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label htmlFor="fastPhone" className="block text-xs font-semibold text-[#7A587D] dark:text-[#E2D2E4]">
+                          WhatsApp com DDD *
+                        </label>
+                        <AuthInput
+                          id="fastPhone"
+                          type="tel"
+                          value={fastPhone}
+                          onChange={(e) => {
+                            setFastPhone(formatPhoneInput(e.target.value));
+                            if (fastError) setFastError(null);
+                          }}
+                          placeholder="(65) 99999-9999"
+                          required
+                          autoComplete="tel"
+                          leftIcon={<Phone className="w-4 h-4" />}
+                        />
+                        <span className="text-[10px] text-[#7A587D] dark:text-[#957498] block">
+                          Informe o DDD com 2 dígitos antes do número (ex: 65, 11).
+                        </span>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={fastLoading}
+                        className="
+                          w-full h-12 rounded-xl mt-2
+                          font-semibold text-sm text-white
+                          bg-gradient-to-r from-primary to-accent
+                          hover:from-[#a30de8] hover:to-[#b0007c]
+                          active:scale-[0.98]
+                          transition-all duration-200
+                          shadow-lg shadow-primary/30
+                          disabled:opacity-50 disabled:cursor-not-allowed
+                          flex items-center justify-center gap-2 cursor-pointer
+                        "
+                      >
+                        {fastLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Conectando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Continuar com Acesso Rápido</span>
+                            <ArrowRight className="w-4 h-4" />
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  )}
                 </>
               ) : (
                 /* Sub-etapa: Verificação de Novo Aparelho */
@@ -971,6 +1064,19 @@ function AuthPageInner() {
           )}
         </div>
       </div>
+
+      <PasswordRecoveryRescueModal
+        isOpen={isRescueModalOpen}
+        onClose={() => setIsRescueModalOpen(false)}
+        clientName={fastName}
+        clientPhone={fastPhone || loginId}
+        clientEmail={loginId.includes("@") ? loginId : ""}
+        onContinueWithoutPassword={() => {
+          setIsFastBypass(true);
+          setFastRegisteredDetected(false);
+          setIsRescueModalOpen(false);
+        }}
+      />
     </div>
   );
 }

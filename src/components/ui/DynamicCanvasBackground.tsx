@@ -65,7 +65,7 @@ export function DynamicCanvasBackground({
     let width = 0;
     let height = 0;
     let particles: Particle[] = [];
-    let startTime = Date.now();
+    const startTime = Date.now();
 
     // Paletas temáticas balanceadas e vibrantes
     const getPalette = () => {
