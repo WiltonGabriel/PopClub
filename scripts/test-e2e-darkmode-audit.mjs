@@ -216,7 +216,7 @@ async function runDarkModeAudit() {
     try {
       localStorage.setItem("popshake-theme", "dark");
       document.documentElement.classList.add("dark");
-    } catch (e) {}
+    } catch {}
   });
 
   const page = await context.newPage();
