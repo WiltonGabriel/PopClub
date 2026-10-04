@@ -12,20 +12,12 @@ export const PERMISSION_KEYS = {
   ORDERS_HISTORY: "ORDERS_HISTORY",
 
   // 11 Abas do Painel Operacional (/admin)
-  TAB_METRICS: "TAB_METRICS",
-  TAB_COMBOS: "TAB_COMBOS",
-  TAB_PROMOTIONS: "TAB_PROMOTIONS",
-  TAB_ADDONS: "TAB_ADDONS",
-  TAB_BANNERS: "TAB_BANNERS",
-  TAB_VISUAL_IDENTITY: "TAB_VISUAL_IDENTITY",
-  TAB_COUPONS: "TAB_COUPONS",
-  TAB_LOGISTICS: "TAB_LOGISTICS",
-  TAB_CHANNELS: "TAB_CHANNELS",
-  TAB_BROADCAST: "TAB_BROADCAST",
-  TAB_AVATARS: "TAB_AVATARS",
-
-  // Gestão de Usuários e Equipe
-  USERS_MANAGE: "users_manage",
+  metrics_view: "metrics_view",
+  menu_manage: "menu_manage",
+  promotions_manage: "promotions_manage",
+  coupons_manage: "coupons_manage",
+  theme_manage: "theme_manage",
+  settings_manage: "settings_manage",
   users_manage: "users_manage",
 } as const;
 
@@ -63,85 +55,48 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     iconName: "History",
   },
 
-  // Abas do Painel Operacional - Operação e Cardápio
+  // Abas do Painel Operacional
   {
-    id: "TAB_METRICS",
+    id: "metrics_view",
     label: "📊 Métricas & Desempenho",
     description: "Aba com gráficos de faturamento, ticket médio e pedidos por hora.",
     category: "operacao",
     iconName: "BarChart3",
   },
   {
-    id: "TAB_COMBOS",
-    label: "⚡ Combos Promocionais",
-    description: "Criar, editar e pausar combos e barcas especiais.",
+    id: "menu_manage",
+    label: "🍨 Cardápio (Combos e Complementos)",
+    description: "Criar, editar e pausar itens do cardápio.",
     category: "cardapio",
-    iconName: "Zap",
+    iconName: "IceCream",
   },
   {
-    id: "TAB_PROMOTIONS",
-    label: "🏷️ Promoções De/Por",
+    id: "promotions_manage",
+    label: "🏷️ Promoções",
     description: "Criar e gerenciar descontos diretos em produtos.",
     category: "cardapio",
     iconName: "Tag",
   },
   {
-    id: "TAB_ADDONS",
-    label: "🍨 Complementos & Adicionais",
-    description: "Gerenciar grupos de caldas, recheios e preços de adicionais.",
-    category: "cardapio",
-    iconName: "IceCream",
-  },
-  {
-    id: "TAB_LOGISTICS",
-    label: "🛵 Logística & Entregadores",
-    description: "Cadastrar entregadores, gerenciar raios de entrega e taxas de frete.",
-    category: "operacao",
-    iconName: "Truck",
-  },
-
-  // Abas Estratégicas / Decisões do Dono (Bloqueadas por padrão no Editor)
-  {
-    id: "TAB_COUPONS",
+    id: "coupons_manage",
     label: "🎟️ Cupons de Desconto",
-    description: "Criar cupons de porcentagem ou valor fixo (impacto na margem da loja).",
+    description: "Criar cupons de porcentagem ou valor fixo.",
     category: "estrategico",
     iconName: "Ticket",
   },
   {
-    id: "TAB_VISUAL_IDENTITY",
+    id: "theme_manage",
     label: "🎨 Identidade Visual & Tema",
     description: "Alterar paleta de cores, tipografia, logotipo e layout da loja.",
     category: "estrategico",
     iconName: "Palette",
   },
   {
-    id: "TAB_BANNERS",
-    label: "🖼️ Banners & Selos",
-    description: "Subir banners de destaque e gerenciar selos dos cards.",
+    id: "settings_manage",
+    label: "⚙️ Configurações Gerais",
+    description: "Configurar loja, atendimento, horários e zonas de entrega.",
     category: "estrategico",
-    iconName: "Image",
-  },
-  {
-    id: "TAB_CHANNELS",
-    label: "💬 Canais & Atendimento",
-    description: "Configurar números de WhatsApp, chave Pix e links de contato.",
-    category: "estrategico",
-    iconName: "MessageCircle",
-  },
-  {
-    id: "TAB_BROADCAST",
-    label: "📢 Disparos & Notificações",
-    description: "Enviar notificações em massa para a base de clientes cadastrados.",
-    category: "estrategico",
-    iconName: "Send",
-  },
-  {
-    id: "TAB_AVATARS",
-    label: "✨ Avatares Oficiais",
-    description: "Cadastrar e gerenciar opções de avatares pré-definidos.",
-    category: "estrategico",
-    iconName: "Sparkles",
+    iconName: "Store",
   },
   {
     id: "users_manage",
@@ -159,11 +114,9 @@ export const DEFAULT_EDITOR_PERMISSIONS: string[] = [
   "ORDERS_KANBAN",
   "STOCK_CONTROL",
   "ORDERS_HISTORY",
-  "TAB_METRICS",
-  "TAB_COMBOS",
-  "TAB_PROMOTIONS",
-  "TAB_ADDONS",
-  "TAB_LOGISTICS",
+  "metrics_view",
+  "menu_manage",
+  "promotions_manage",
 ];
 
 export const ALL_PERMISSIONS: string[] = PERMISSION_DEFINITIONS.map((p) => p.id);
@@ -172,18 +125,17 @@ export const ALL_PERMISSIONS: string[] = PERMISSION_DEFINITIONS.map((p) => p.id)
  * Mapeamento entre o identificador da aba em /admin e a respectiva permissão necessária.
  */
 export const TAB_PERMISSION_MAP: Record<string, PermissionKey> = {
-  metrics: "TAB_METRICS",
-  combos: "TAB_COMBOS",
-  promotions: "TAB_PROMOTIONS",
-  addons: "TAB_ADDONS",
-  banners: "TAB_BANNERS",
-  appearance: "TAB_VISUAL_IDENTITY",
-  coupons: "TAB_COUPONS",
-  logistics: "TAB_LOGISTICS",
-  delivery: "TAB_LOGISTICS",
-  channels: "TAB_CHANNELS",
-  messages: "TAB_BROADCAST",
-  avatars: "TAB_AVATARS",
+  metricas: "metrics_view",
+  complementos: "menu_manage",
+  combos: "menu_manage",
+  promocoes: "promotions_manage",
+  cupons: "coupons_manage",
+  identidade_visual: "theme_manage",
+  canais_atendimento: "settings_manage",
+  configuracoes: "settings_manage",
+  horarios: "settings_manage",
+  zonas_entrega: "settings_manage",
+  usuarios: "users_manage",
 };
 
 /**

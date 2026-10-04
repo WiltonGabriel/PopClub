@@ -57,19 +57,21 @@ import { LogisticsAndCouriersSection } from "../../components/admin/LogisticsAnd
 import { ChannelsAndSupportSection } from "../../components/admin/ChannelsAndSupportSection";
 import { TAB_PERMISSION_MAP, PermissionKey } from "../../lib/permissions";
 
-export type AdminTab =
-  | "metrics"
-  | "combos"
-  | "promotions"
-  | "addons"
-  | "banners"
-  | "appearance"
-  | "coupons"
-  | "messages"
-  | "logistics"
-  | "channels"
-  | "delivery"
-  | "avatars";
+const TAB_DEFINITIONS = [
+  { id: "metricas", label: "📊 Métricas & Desempenho", perm: "metrics_view", icon: BarChart3 },
+  { id: "complementos", label: "🍨 Complementos", perm: "menu_manage", icon: IceCream },
+  { id: "combos", label: "⚡ Combos", perm: "menu_manage", icon: Zap },
+  { id: "promocoes", label: "🏷️ Promoções", perm: "promotions_manage", icon: Tag },
+  { id: "cupons", label: "🎟️ Cupons", perm: "coupons_manage", icon: Ticket },
+  { id: "identidade_visual", label: "🎨 Identidade Visual", perm: "theme_manage", icon: Palette },
+  { id: "canais_atendimento", label: "📞 Canais & Atendimento", perm: "settings_manage", icon: MessageCircle },
+  { id: "configuracoes", label: "⚙️ Configurações", perm: "settings_manage", icon: Store },
+  { id: "horarios", label: "⏰ Horários de Funcionamento", perm: "settings_manage", icon: Clock },
+  { id: "zonas_entrega", label: "🚚 Zonas de Entrega", perm: "settings_manage", icon: Truck },
+  { id: "usuarios", label: "👥 Usuários", perm: "users_manage", icon: User },
+] as const;
+
+export type AdminTab = typeof TAB_DEFINITIONS[number]["id"] | "banners" | "messages" | "avatars";
 
 export default function AdminDashboard() {
   const { theme, toggleTheme, resolvedTheme } = useTheme();
@@ -87,7 +89,10 @@ export default function AdminDashboard() {
     badge: "Refrescância Artesanal",
   });
   const [fetching, setFetching] = useState(true);
-  const [activeTab, setActiveTab] = useState<AdminTab>("metrics");
+  const visibleTabs = TAB_DEFINITIONS.filter(tab => isAdmin || canAccess(tab.perm as PermissionKey));
+  const [activeTab, setActiveTab] = useState<AdminTab>(() => {
+    return (visibleTabs[0]?.id as AdminTab) || "complementos";
+  });
   const [promoDialogOpen, setPromoDialogOpen] = useState(false);
   const [promoToEdit, setPromoToEdit] = useState<Promotion | null>(null);
   const [comboDialogOpen, setComboDialogOpen] = useState(false);
@@ -266,25 +271,10 @@ export default function AdminDashboard() {
         setActiveTab(tabParam);
       }
     } else if (isEditor && !isAdmin) {
-      // Se não houver parâmetro e for Editor, verifica se tem acesso à aba padrão (metrics)
-      if (!canAccess("TAB_METRICS")) {
-        const tabList: { id: AdminTab; perm: PermissionKey }[] = [
-          { id: "combos", perm: "TAB_COMBOS" },
-          { id: "promotions", perm: "TAB_PROMOTIONS" },
-          { id: "addons", perm: "TAB_ADDONS" },
-          { id: "banners", perm: "TAB_BANNERS" },
-          { id: "appearance", perm: "TAB_VISUAL_IDENTITY" },
-          { id: "coupons", perm: "TAB_COUPONS" },
-          { id: "logistics", perm: "TAB_LOGISTICS" },
-          { id: "channels", perm: "TAB_CHANNELS" },
-          { id: "messages", perm: "TAB_BROADCAST" },
-          { id: "avatars", perm: "TAB_AVATARS" },
-        ];
-        const firstAllowed = tabList.find((t) => canAccess(t.perm));
-        if (firstAllowed) {
-          setActiveTab(firstAllowed.id);
+      if (!visibleTabs.find(t => t.id === activeTab)) {
+        if (visibleTabs.length > 0) {
+          setActiveTab(visibleTabs[0].id);
         } else {
-          // Se não possui acesso a nenhuma das 11 abas, redireciona para a esteira
           router.push("/admin/pedidos?unauthorized=true");
         }
       }
@@ -564,202 +554,45 @@ export default function AdminDashboard() {
           return (
             <div className="space-y-6">
               {/* Barra de Abas */}
-              <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl shadow-xs">
-                {(isAdmin || canAccess("TAB_METRICS")) && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("metrics")}
-                    className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
-                      activeTab === "metrics"
-                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
-                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    }`}
-                  >
-                    <BarChart3 className="w-4 h-4" />
-                    <span>📊 Métricas & Desempenho</span>
-                  </button>
-                )}
+              <div className="flex overflow-x-auto items-center gap-2 p-1.5 bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl shadow-xs scrollbar-hide">
+                {visibleTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  let badge = null;
+                  
+                  if (tab.id === "combos") badge = combos.length;
+                  if (tab.id === "promocoes") badge = directPromos.length;
 
-                {(isAdmin || canAccess("TAB_COMBOS")) && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("combos")}
-                    className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
-                      activeTab === "combos"
-                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
-                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    }`}
-                  >
-                    <Zap className="w-4 h-4" />
-                    <span>⚡ Combos</span>
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
-                        activeTab === "combos"
-                          ? "bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900"
-                          : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`whitespace-nowrap flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
+                        activeTab === tab.id
+                          ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
+                          : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
                       }`}
                     >
-                      {combos.length}
-                    </span>
-                  </button>
-                )}
-
-                {(isAdmin || canAccess("TAB_PROMOTIONS")) && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("promotions")}
-                    className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
-                      activeTab === "promotions"
-                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
-                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    }`}
-                  >
-                    <Tag className="w-4 h-4" />
-                    <span>🏷️ Promoções</span>
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
-                        activeTab === "promotions"
-                          ? "bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900"
-                          : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
-                      }`}
-                    >
-                      {directPromos.length}
-                    </span>
-                  </button>
-                )}
-
-                {(isAdmin || canAccess("TAB_ADDONS")) && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("addons")}
-                    className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
-                      activeTab === "addons"
-                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
-                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    }`}
-                  >
-                    <IceCream className="w-4 h-4" />
-                    <span>🍨 Complementos</span>
-                  </button>
-                )}
-
-                {(isAdmin || canAccess("TAB_BANNERS")) && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("banners")}
-                    className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
-                      activeTab === "banners"
-                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
-                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    }`}
-                  >
-                    <ImageIcon className="w-4 h-4" />
-                    <span>🖼️ Banners & Selos</span>
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
-                        activeTab === "banners"
-                          ? "bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900"
-                          : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
-                      }`}
-                    >
-                      {bannerPromos.length + 1}
-                    </span>
-                  </button>
-                )}
-
-                {(isAdmin || canAccess("TAB_VISUAL_IDENTITY")) && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("appearance")}
-                    className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
-                      activeTab === "appearance"
-                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
-                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    }`}
-                  >
-                    <Palette className="w-4 h-4" />
-                    <span>🎨 Identidade Visual</span>
-                  </button>
-                )}
-
-                {(isAdmin || canAccess("TAB_COUPONS")) && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("coupons")}
-                    className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
-                      activeTab === "coupons"
-                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
-                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    }`}
-                  >
-                    <Ticket className="w-4 h-4" />
-                    <span>🎟️ Cupons</span>
-                  </button>
-                )}
-
-                {(isAdmin || canAccess("TAB_LOGISTICS")) && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("logistics")}
-                    className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
-                      activeTab === "logistics" || activeTab === "delivery"
-                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
-                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    }`}
-                  >
-                    <Truck className="w-4 h-4" />
-                    <span>🛵 Logística & Entregadores</span>
-                  </button>
-                )}
-
-                {(isAdmin || canAccess("TAB_CHANNELS")) && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("channels")}
-                    className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
-                      activeTab === "channels"
-                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
-                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    }`}
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    <span>💬 Canais & Atendimento</span>
-                  </button>
-                )}
-
-                {(isAdmin || canAccess("TAB_BROADCAST")) && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("messages")}
-                    className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
-                      activeTab === "messages"
-                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
-                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    }`}
-                  >
-                    <Send className="w-4 h-4" />
-                    <span>📢 Disparos & Notificações</span>
-                  </button>
-                )}
-
-                {(isAdmin || canAccess("TAB_AVATARS")) && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("avatars")}
-                    className={`flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
-                      activeTab === "avatars"
-                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
-                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    }`}
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    <span>✨ Avatares Oficiais</span>
-                  </button>
-                )}
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span>{tab.label}</span>
+                      {badge !== null && (
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                            activeTab === tab.id
+                              ? "bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900"
+                              : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+                          }`}
+                        >
+                          {badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* CONTEÚDO DA ABA 1: MÉTRICAS & DESEMPENHO */}
-              {activeTab === "metrics" && (
+              {activeTab === "metricas" && (
                 <div className="animate-in fade-in duration-150">
                   <AnalyticsDashboard
                     orders={orders}
@@ -915,7 +748,7 @@ export default function AdminDashboard() {
               )}
 
               {/* CONTEÚDO DA ABA 3: PROMOÇÕES (Descontos diretos e ofertas relâmpago) */}
-              {activeTab === "promotions" && (
+              {activeTab === "promocoes" && (
                 <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 sm:p-7 shadow-sm space-y-6 animate-in fade-in duration-150">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-border/30">
                     <div>
@@ -1043,10 +876,10 @@ export default function AdminDashboard() {
               )}
 
               {/* CONTEÚDO DA ABA 4: COMPLEMENTOS (Grupos de Adicionais Globais) */}
-              {activeTab === "addons" && <AddonsManagement />}
+              {activeTab === "complementos" && <AddonsManagement />}
 
               {/* CONTEÚDO DA ABA 4: BANNERS (Faixas e Carrossel da Vitrine) */}
-              {activeTab === "banners" && (
+              {(activeTab as string) === "banners" && (
                 <section className="bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 sm:p-7 shadow-sm space-y-8 animate-in fade-in duration-150">
                   {/* SEÇÃO 1: Faixa de Destaque da Vitrine (Home Banner) */}
                   <div className="space-y-4">
@@ -1214,21 +1047,21 @@ export default function AdminDashboard() {
               )}
 
               {/* CONTEÚDO DA ABA: APARÊNCIA & IDENTIDADE VISUAL */}
-              {activeTab === "appearance" && (
+              {activeTab === "identidade_visual" && (
                 <div className="animate-in fade-in duration-150">
                   <VisualIdentitySection />
                 </div>
               )}
 
               {/* CONTEÚDO DA ABA 5: CUPONS */}
-              {activeTab === "coupons" && (
+              {activeTab === "cupons" && (
                 <div className="animate-in fade-in duration-150">
                   <CouponManagement />
                 </div>
               )}
 
               {/* CONTEÚDO: LOGÍSTICA & ENTREGADORES */}
-              {(activeTab === "logistics" || activeTab === "delivery") && (
+              {(activeTab === "zonas_entrega") && (
                 <div className="space-y-6 animate-in fade-in duration-150">
                   <LogisticsAndCouriersSection />
                   <OrderFlowSettings />
@@ -1236,21 +1069,21 @@ export default function AdminDashboard() {
               )}
 
               {/* CONTEÚDO: CANAIS & ATENDIMENTO */}
-              {activeTab === "channels" && (
+              {activeTab === "canais_atendimento" && (
                 <div className="animate-in fade-in duration-150">
                   <ChannelsAndSupportSection />
                 </div>
               )}
 
               {/* CONTEÚDO: DISPAROS & NOTIFICAÇÕES */}
-              {activeTab === "messages" && (
+              {(activeTab as string) === "messages" && (
                 <div className="animate-in fade-in duration-150">
                   <CommunicationSection />
                 </div>
               )}
 
               {/* CONTEÚDO DA ABA 7: GESTÃO DO CATÁLOGO DE AVATARES */}
-              {activeTab === "avatars" && (
+              {(activeTab as string) === "avatars" && (
                 <div className="animate-in fade-in duration-150">
                   <AvatarPresetManager />
                 </div>

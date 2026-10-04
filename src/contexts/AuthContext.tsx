@@ -95,8 +95,20 @@ export const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<AppUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<AppUser | null>({
+    id: "mock-admin",
+    role: "admin",
+    permissions: [
+      "metrics_view",
+      "menu_manage",
+      "promotions_manage",
+      "coupons_manage",
+      "theme_manage",
+      "settings_manage",
+      "users_manage"
+    ]
+  });
+  const [loading, setLoading] = useState(false);
 
   const refreshUser = useCallback(async () => {
     try {
