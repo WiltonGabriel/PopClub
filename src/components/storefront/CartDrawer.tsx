@@ -108,7 +108,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
               </div>
               <button
                 onClick={onClose}
-                className="text-sm font-semibold text-brand-pop-shake hover:underline"
+                className="text-sm font-semibold text-brand-pop-shake dark:text-violet-400 hover:underline cursor-pointer"
               >
                 Ver cardápio →
               </button>
@@ -176,7 +176,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                       </p>
                     )}
 
-                    <p className="font-heading font-black text-sm text-brand-pop-shake mt-1">
+                    <p className="font-heading font-black text-sm text-brand-pop-shake dark:text-violet-400 mt-1">
                       {lineTotal}
                     </p>
 
@@ -227,7 +227,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
             )}
             <div className="flex justify-between items-center">
               <span className="text-sm font-semibold text-foreground">Total</span>
-              <span className="font-heading font-black text-xl text-brand-pop-shake">
+              <span className="font-heading font-black text-xl text-brand-pop-shake dark:text-violet-400">
                 {formattedTotal}
               </span>
             </div>

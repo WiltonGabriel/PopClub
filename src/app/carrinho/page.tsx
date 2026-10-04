@@ -1727,7 +1727,7 @@ export default function CarrinhoPage() {
             {/* Endereço */}
             <div className="border border-border rounded-xl p-4 space-y-0.5">
               <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1">Endereço de Entrega</p>
-              <p className="text-sm font-semibold">{street}, {number}{complement ? `, ${complement}` : ""}</p>
+              <p className="text-sm font-semibold text-foreground">{street}, {number}{complement ? `, ${complement}` : ""}</p>
               <p className="text-xs text-muted-foreground">{neighborhood} &bull; {city}{reference ? ` — Ref: ${reference}` : ""}</p>
             </div>
 
@@ -1735,7 +1735,7 @@ export default function CarrinhoPage() {
             <div className="border border-border rounded-xl p-4 flex items-center justify-between">
               <div>
                 <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-0.5">Forma de Pagamento</p>
-                <p className="text-sm font-bold">
+                <p className="text-sm font-bold text-foreground">
                   {paymentType === "dinheiro" ? "Dinheiro" : paymentType === "cartao_maquininha" ? "Cartão (Maquininha)" : "Pix na Entrega"}
                   {paymentType === "dinheiro" && changeFor ? ` — Troco para R$ ${parseFloat(changeFor).toFixed(2).replace(".", ",")}` : ""}
                 </p>
@@ -1780,8 +1780,8 @@ export default function CarrinhoPage() {
 
             {/* Total Final */}
             <div className="flex justify-between items-baseline border-t border-border pt-3">
-              <span className="font-mono text-sm uppercase tracking-wider font-bold">Total a Pagar:</span>
-              <span className="font-heading text-3xl font-black text-primary">
+              <span className="font-mono text-sm uppercase tracking-wider font-bold text-foreground">Total a Pagar:</span>
+              <span className="font-heading text-3xl font-black text-primary dark:text-violet-400">
                 R$ {finalTotal.toFixed(2).replace(".", ",")}
               </span>
             </div>
@@ -1791,7 +1791,7 @@ export default function CarrinhoPage() {
               <button
                 type="button"
                 onClick={() => setShowReviewModal(false)}
-                className="flex-1 h-12 border-2 border-border font-mono text-xs uppercase tracking-widest font-bold hover:bg-muted transition-colors cursor-pointer rounded-none"
+                className="flex-1 h-12 border-2 border-border font-mono text-xs uppercase tracking-widest font-bold hover:bg-muted text-foreground transition-colors cursor-pointer rounded-xl"
               >
                 Editar Pedido
               </button>
@@ -1801,7 +1801,7 @@ export default function CarrinhoPage() {
                   await handleFinishOrder();
                 }}
                 disabled={submitting}
-                className="flex-1 h-12 rounded-none font-heading text-sm uppercase tracking-widest font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg flex items-center justify-center gap-2"
+                className="flex-1 h-12 rounded-xl font-heading text-sm uppercase tracking-widest font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg flex items-center justify-center gap-2"
               >
                 {submitting ? (
                   <><Loader2 className="w-5 h-5 animate-spin" /> Processando...</>

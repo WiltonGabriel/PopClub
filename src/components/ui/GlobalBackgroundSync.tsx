@@ -102,12 +102,22 @@ export function GlobalBackgroundSync() {
     const textureOpacity = String(modeConfig?.textureOpacity ?? 0.1);
     const radius = "0.75rem";
 
-    // Converte hex primário para canais HSL (compatível com Tailwind hsl(var(--primary)))
+    // Converte hex para canais HSL compatíveis com Tailwind hsl(var(--...))
     const primaryHslChannels = hexToHslChannels(primaryColor);
+    const backgroundHslChannels = hexToHslChannels(baseColor);
+    const foregroundHslChannels = hexToHslChannels(foreground);
 
     // Injeta variáveis semânticas no :root do CSS (WCAG AA & Design System)
-    document.documentElement.style.setProperty("--background", baseColor);
-    document.documentElement.style.setProperty("--foreground", foreground);
+    document.documentElement.style.setProperty(
+      "--background",
+      backgroundHslChannels || (isDark ? "222 47% 11%" : "210 17% 98%")
+    );
+    document.documentElement.style.setProperty(
+      "--foreground",
+      foregroundHslChannels || (isDark ? "210 40% 98%" : "296 33% 23%")
+    );
+    document.documentElement.style.setProperty("--background-hex", baseColor);
+    document.documentElement.style.setProperty("--foreground-hex", foreground);
     document.documentElement.style.setProperty("--primary", primaryHslChannels || primaryColor);
     document.documentElement.style.setProperty("--primary-hex", primaryColor);
     document.documentElement.style.setProperty("--header-bg", headerBg);
