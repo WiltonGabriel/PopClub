@@ -17,7 +17,7 @@ export interface AppUser {
   isRegistered?: boolean;
   isActive?: boolean;
   isBlocked?: boolean;
-  accessibilitySettings?: any;
+  accessibilitySettings?: Record<string, unknown> | null;
   defaultPaymentMethod?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
   defaultChangeFor?: number | null;
   default_payment_method?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
@@ -33,6 +33,32 @@ export interface AppUser {
   };
 }
 
+export interface FastAccessResult {
+  status?: "authenticated" | "new_device_detected" | string;
+  user?: AppUser;
+  maskedAddress?: {
+    addressId?: string;
+    maskedStreet?: string;
+    street?: string;
+    neighborhood?: string;
+    city?: string;
+  } | null;
+  [key: string]: unknown;
+}
+
+export interface VerifyDeviceResult {
+  status?: "authenticated" | string;
+  verifiedAddress?: unknown;
+  user?: AppUser;
+  [key: string]: unknown;
+}
+
+export interface CompleteProfileResult {
+  success?: boolean;
+  user?: AppUser;
+  [key: string]: unknown;
+}
+
 interface AuthContextType {
   user: AppUser | null;
   session: { user: AppUser } | null;
@@ -42,16 +68,16 @@ interface AuthContextType {
   canAccess: (permission: string) => boolean;
   refreshUser: () => Promise<void>;
   signOut: () => Promise<void>;
-  fastAccess: (name: string, phone: string) => Promise<any>;
+  fastAccess: (name: string, phone: string) => Promise<FastAccessResult>;
   verifyDevice: (payload: {
     phone: string;
     houseNumber?: string;
     addressId?: string;
     isNoNumber?: boolean;
     updatedName?: string;
-    newAddress?: any;
-  }) => Promise<any>;
-  completeProfile: (email: string, password: string) => Promise<any>;
+    newAddress?: unknown;
+  }) => Promise<VerifyDeviceResult>;
+  completeProfile: (email: string, password: string) => Promise<CompleteProfileResult>;
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -129,7 +155,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     addressId?: string;
     isNoNumber?: boolean;
     updatedName?: string;
-    newAddress?: any;
+    newAddress?: unknown;
   }) => {
     const result = await authService.verifyDevice(payload);
     if (result.status === "authenticated") {
