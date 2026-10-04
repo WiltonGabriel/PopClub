@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
+import Image from "next/image";
 import {
   Sun,
   Moon,
@@ -495,11 +496,12 @@ export function LivePreview({
                 {/* Card Real de Produto */}
                 <div className="w-full rounded-2xl bg-card border border-border/80 dark:border-zinc-800 p-2.5 shadow-sm space-y-2">
                   <div className="relative w-full h-24 rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800/80 flex items-center justify-center group">
-                    <img
+                    <Image
                       src="https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=600&q=80"
                       alt="Açaí Especial Supremo"
-                      className="w-full h-full object-cover transition-transform duration-300"
-                      loading="lazy"
+                      fill
+                      sizes="280px"
+                      className="object-cover transition-transform duration-300"
                     />
                     <span className="absolute top-1.5 left-1.5 text-[8px] font-black uppercase tracking-wider bg-black/60 text-white backdrop-blur-xs px-1.5 py-0.5 rounded-md">
                       Mais Vendido
