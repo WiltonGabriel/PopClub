@@ -29,7 +29,7 @@ interface Props {
 }
 
 export function ThemePresetsCatalog({
-  settings: _settings,
+  settings,
   setSettings,
   advancedConfig,
   setAdvancedConfig,
@@ -78,33 +78,31 @@ export function ThemePresetsCatalog({
 
     setAdvancedConfig(nextAdvanced);
 
-    setSettings((prev) => {
-      const nextSettings: LoadingSettingsData = {
-        ...prev,
-        theme: preset.splashScreen.theme,
-        centerIcon: preset.splashScreen.centerIcon,
-        phrases: [...preset.splashScreen.phrases],
-        rotationInterval: preset.splashScreen.rotationInterval,
-        minDuration: preset.splashScreen.minDuration,
-        bgTypeLight: preset.splashScreen.backgroundType,
-        bgValueLight: preset.splashScreen.backgroundValueLight,
-        bgCustomLight: preset.storefront.light.baseColor,
-        bgTypeDark: preset.splashScreen.backgroundType,
-        bgValueDark: preset.splashScreen.backgroundValueDark,
-        bgCustomDark: preset.storefront.dark.baseColor,
-        advancedConfig: nextAdvanced,
-      };
+    const nextSettings: LoadingSettingsData = {
+      ...settings,
+      theme: preset.splashScreen.theme,
+      centerIcon: preset.splashScreen.centerIcon,
+      phrases: [...preset.splashScreen.phrases],
+      rotationInterval: preset.splashScreen.rotationInterval,
+      minDuration: preset.splashScreen.minDuration,
+      bgTypeLight: preset.splashScreen.backgroundType,
+      bgValueLight: preset.splashScreen.backgroundValueLight,
+      bgCustomLight: preset.storefront.light.baseColor,
+      bgTypeDark: preset.splashScreen.backgroundType,
+      bgValueDark: preset.splashScreen.backgroundValueDark,
+      bgCustomDark: preset.storefront.dark.baseColor,
+      advancedConfig: nextAdvanced,
+    };
 
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem("popshake_loading_settings", JSON.stringify(nextSettings));
-          window.dispatchEvent(new CustomEvent(LOADING_UPDATED_EVENT, { detail: nextSettings }));
-          loadingSettingsService.updateLoadingSettings(nextSettings).catch(() => {});
-        } catch {}
-      }
+    setSettings(nextSettings);
 
-      return nextSettings;
-    });
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("popshake_loading_settings", JSON.stringify(nextSettings));
+        window.dispatchEvent(new CustomEvent(LOADING_UPDATED_EVENT, { detail: nextSettings }));
+        loadingSettingsService.updateLoadingSettings(nextSettings).catch(() => {});
+      } catch {}
+    }
   };
 
   const toggleCardMode = (presetId: string, e: React.MouseEvent) => {
