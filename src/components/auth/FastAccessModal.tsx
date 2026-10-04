@@ -25,7 +25,7 @@ import { PasswordRecoveryRescueModal } from "@/components/auth/PasswordRecoveryR
 interface FastAccessModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (verifiedAddress?: any) => void;
+  onSuccess: (verifiedAddress?: unknown) => void;
   onRequestNewAddress?: () => void;
 }
 
@@ -65,7 +65,13 @@ export function FastAccessModal({
   const [isRescueModalOpen, setIsRescueModalOpen] = useState(false);
 
   // Campos de novo aparelho detectado
-  const [maskedAddress, setMaskedAddress] = useState<any>(null);
+  const [maskedAddress, setMaskedAddress] = useState<{
+    addressId?: string;
+    maskedStreet?: string;
+    street?: string;
+    neighborhood?: string;
+    city?: string;
+  } | null>(null);
   const [houseNumberInput, setHouseNumberInput] = useState("");
   const [isNoNumber, setIsNoNumber] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
@@ -139,8 +145,9 @@ export function FastAccessModal({
         onSuccess();
         onClose();
       }
-    } catch (err: any) {
-      setError(err.message || "Erro ao conectar. Verifique seus dados.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro ao conectar. Verifique seus dados.";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -178,8 +185,9 @@ export function FastAccessModal({
       await refreshUser();
       onSuccess();
       onClose();
-    } catch (err: any) {
-      setPasswordError(err.message || "Senha incorreta. Tente novamente.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Senha incorreta. Tente novamente.";
+      setPasswordError(message);
     } finally {
       setPasswordLoading(false);
     }
@@ -216,18 +224,18 @@ export function FastAccessModal({
         onSuccess(res.verifiedAddress);
         onClose();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       const nextAttempts = failedAttempts + 1;
       setFailedAttempts(nextAttempts);
-      if (nextAttempts >= 5 || err?.code === "MAX_ATTEMPTS_EXCEEDED") {
+      const isMaxExceeded = nextAttempts >= 5 || (typeof err === "object" && err !== null && "code" in err && (err as { code: string }).code === "MAX_ATTEMPTS_EXCEEDED");
+      if (isMaxExceeded) {
         setIsLocked(true);
         setVerifyError(
           "Limite de tentativas atingido. Por segurança, selecione 'Entregar em outro endereço' para preencher o local de entrega."
         );
       } else {
-        setVerifyError(
-          err.message || `Número residencial incorreto. Tentativas restantes: ${5 - nextAttempts}.`
-        );
+        const message = err instanceof Error ? err.message : `Número residencial incorreto. Tentativas restantes: ${5 - nextAttempts}.`;
+        setVerifyError(message);
       }
     } finally {
       setVerifyLoading(false);

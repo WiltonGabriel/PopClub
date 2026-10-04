@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser, verifyPassword, hashPassword } from "@/lib/auth";
 
@@ -44,18 +45,18 @@ export async function GET(request: Request) {
 
     const defaultAvatar = profile.isRegistered === false ? GUEST_DEFAULT_AVATAR : DEFAULT_AVATAR;
     const avatar = profile.avatarUrl || defaultAvatar;
-    const rawSettings = (profile.accessibilitySettings as Record<string, any>) || {};
+    const rawSettings = (profile.accessibilitySettings as Record<string, unknown>) || {};
     const accessibilitySettings = {
-      fontSize: rawSettings.fontSize || DEFAULT_ACCESSIBILITY.fontSize,
-      colorBlindMode: rawSettings.colorBlindMode || DEFAULT_ACCESSIBILITY.colorBlindMode,
+      fontSize: (rawSettings.fontSize as string) || DEFAULT_ACCESSIBILITY.fontSize,
+      colorBlindMode: (rawSettings.colorBlindMode as string) || DEFAULT_ACCESSIBILITY.colorBlindMode,
       highContrast: Boolean(rawSettings.highContrast),
       reduceMotion: Boolean(rawSettings.reduceMotion),
       visualAlerts: Boolean(rawSettings.visualAlerts),
       dyslexicFont: Boolean(rawSettings.dyslexicFont),
     };
 
-    const defaultPaymentMethod = rawSettings.defaultPaymentMethod || null;
-    const defaultChangeFor = rawSettings.defaultChangeFor !== undefined ? rawSettings.defaultChangeFor : null;
+    const defaultPaymentMethod = (rawSettings.defaultPaymentMethod as string) || null;
+    const defaultChangeFor = rawSettings.defaultChangeFor !== undefined ? (rawSettings.defaultChangeFor as number) : null;
 
     return NextResponse.json({
       id: profile.id,
@@ -80,9 +81,30 @@ export async function GET(request: Request) {
       lastPasswordChangedAt: profile.lastPasswordChangedAt?.toISOString() || null,
       created_at: profile.createdAt.toISOString(),
     });
-  } catch (error: any) {
+  } catch {
     return NextResponse.json({ error: "Erro ao buscar perfil." }, { status: 500 });
   }
+}
+
+interface UpdateProfileBody {
+  full_name?: string;
+  fullName?: string;
+  avatar?: string;
+  avatar_url?: string;
+  email?: string;
+  current_password?: string;
+  currentPassword?: string;
+  new_password?: string;
+  newPassword?: string;
+  phone?: string;
+  notificationsEnabled?: boolean;
+  notifications_enabled?: boolean;
+  accessibilitySettings?: Record<string, unknown>;
+  accessibility_settings?: Record<string, unknown>;
+  default_payment_method?: string;
+  defaultPaymentMethod?: string;
+  default_change_for?: string | number | null;
+  defaultChangeFor?: string | number | null;
 }
 
 async function handleUpdateProfile(request: Request) {
@@ -92,7 +114,7 @@ async function handleUpdateProfile(request: Request) {
       return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     }
 
-    let body: any;
+    let body: UpdateProfileBody;
     try {
       body = await request.json();
     } catch {
@@ -128,7 +150,7 @@ async function handleUpdateProfile(request: Request) {
     });
 
     const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
-    const dataToUpdate: any = {};
+    const dataToUpdate: Prisma.UserUpdateInput = {};
 
     // 1. Alteração de Nome Completo
     const requestedName = body?.full_name ?? body?.fullName;
@@ -261,8 +283,8 @@ async function handleUpdateProfile(request: Request) {
     if (body?.notificationsEnabled !== undefined) dataToUpdate.notificationsEnabled = Boolean(body.notificationsEnabled);
     if (body?.notifications_enabled !== undefined) dataToUpdate.notificationsEnabled = Boolean(body.notifications_enabled);
 
-    const currentSettings = (current?.accessibilitySettings as Record<string, any>) || {};
-    let newSettings: Record<string, any> = { ...currentSettings };
+    const currentSettings = (current?.accessibilitySettings as Record<string, unknown>) || {};
+    let newSettings: Record<string, unknown> = { ...currentSettings };
 
     if (body?.accessibilitySettings !== undefined) {
       newSettings = { ...newSettings, ...body.accessibilitySettings };
@@ -282,7 +304,7 @@ async function handleUpdateProfile(request: Request) {
       newSettings.defaultChangeFor = body.defaultChangeFor !== "" && body.defaultChangeFor !== null ? Number(body.defaultChangeFor) : null;
     }
 
-    dataToUpdate.accessibilitySettings = newSettings;
+    dataToUpdate.accessibilitySettings = newSettings as Prisma.InputJsonValue;
 
     const updated = await prisma.user.update({
       where: { id: authUser.id },
@@ -291,18 +313,18 @@ async function handleUpdateProfile(request: Request) {
 
     const defaultAvatar = updated.isRegistered === false ? GUEST_DEFAULT_AVATAR : DEFAULT_AVATAR;
     const avatar = updated.avatarUrl || defaultAvatar;
-    const updatedRaw = (updated.accessibilitySettings as Record<string, any>) || {};
+    const updatedRaw = (updated.accessibilitySettings as Record<string, unknown>) || {};
     const accessibilitySettings = {
-      fontSize: updatedRaw.fontSize || DEFAULT_ACCESSIBILITY.fontSize,
-      colorBlindMode: updatedRaw.colorBlindMode || DEFAULT_ACCESSIBILITY.colorBlindMode,
+      fontSize: (updatedRaw.fontSize as string) || DEFAULT_ACCESSIBILITY.fontSize,
+      colorBlindMode: (updatedRaw.colorBlindMode as string) || DEFAULT_ACCESSIBILITY.colorBlindMode,
       highContrast: Boolean(updatedRaw.highContrast),
       reduceMotion: Boolean(updatedRaw.reduceMotion),
       visualAlerts: Boolean(updatedRaw.visualAlerts),
       dyslexicFont: Boolean(updatedRaw.dyslexicFont),
     };
 
-    const defaultPaymentMethod = updatedRaw.defaultPaymentMethod || null;
-    const defaultChangeFor = updatedRaw.defaultChangeFor !== undefined ? updatedRaw.defaultChangeFor : null;
+    const defaultPaymentMethod = (updatedRaw.defaultPaymentMethod as string) || null;
+    const defaultChangeFor = updatedRaw.defaultChangeFor !== undefined ? (updatedRaw.defaultChangeFor as number) : null;
 
     return NextResponse.json({
       id: updated.id,
@@ -327,7 +349,7 @@ async function handleUpdateProfile(request: Request) {
       lastPasswordChangedAt: updated.lastPasswordChangedAt?.toISOString() || null,
       created_at: updated.createdAt.toISOString(),
     });
-  } catch (error: any) {
+  } catch {
     return NextResponse.json({ error: "Erro ao atualizar perfil." }, { status: 500 });
   }
 }

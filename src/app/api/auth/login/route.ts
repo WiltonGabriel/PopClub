@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { verifyPassword, signToken, setSessionCookies } from "@/lib/auth";
+import { verifyPassword, signToken, setSessionCookies, type CookieResponseTarget } from "@/lib/auth";
 import { cookies } from "next/headers";
 import { authLimiter, getIpFromRequest } from "@/lib/rateLimit";
 
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
       );
     }
 
-    let body: any;
+    let body: { identifier?: string; email?: string; username?: string; password?: string };
     try {
       body = await request.json();
     } catch (parseErr) {
@@ -37,10 +38,10 @@ export async function POST(request: Request) {
     }
 
     // Busca usuário por e-mail, username ou telefone de forma segura
-    let user: any = null;
+    let user: Awaited<ReturnType<typeof prisma.user.findFirst>> = null;
     try {
       const cleanDigits = identifier.replace(/\D/g, "");
-      const orConditions: any[] = [
+      const orConditions: Prisma.UserWhereInput[] = [
         { email: identifier.toLowerCase().trim() },
         { username: identifier.trim() },
       ];
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
           OR: orConditions,
         },
       });
-    } catch (dbErr: any) {
+    } catch (dbErr: unknown) {
       console.error("❌ [API /api/auth/login] Erro de banco de dados ao buscar usuário:", dbErr);
       return NextResponse.json(
         { error: "Erro de conexão ao verificar credenciais no banco." },
@@ -97,7 +98,7 @@ export async function POST(request: Request) {
         role: user.role,
         isRegistered: Boolean(user.isRegistered),
       });
-    } catch (tokenErr: any) {
+    } catch (tokenErr: unknown) {
       console.error("❌ [API /api/auth/login] Falha ao assinar token JWT:", tokenErr);
       return NextResponse.json(
         { error: "Erro ao gerar sessão de autenticação." },
@@ -131,22 +132,23 @@ export async function POST(request: Request) {
 
     try {
       const cookieStore = await cookies();
-      setSessionCookies({ cookies: cookieStore } as any, token, isHttps);
+      setSessionCookies({ cookies: cookieStore } as CookieResponseTarget, token, isHttps);
     } catch {
       // Ignora erro se o contexto do store já estiver encerrado
     }
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errObj = error instanceof Error ? error : null;
     console.error("❌ [API /api/auth/login] Erro interno não tratado:", {
-      message: error?.message,
-      name: error?.name,
-      stack: error?.stack,
+      message: errObj?.message,
+      name: errObj?.name,
+      stack: errObj?.stack,
     });
     return NextResponse.json(
       {
         error: "Erro interno no servidor ao realizar login.",
-        message: process.env.NODE_ENV !== "production" ? error?.message : undefined,
+        message: process.env.NODE_ENV !== "production" ? errObj?.message : undefined,
       },
       { status: 500 }
     );

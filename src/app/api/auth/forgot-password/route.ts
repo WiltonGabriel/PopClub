@@ -13,13 +13,13 @@ export async function POST(request: Request) {
       );
     }
 
-    let body: any;
+    let body: { email?: string };
     try {
       body = await request.json();
     } catch {
       return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
     }
-    const { email } = body || {};
+    const email = body?.email;
 
     if (!email) {
       return NextResponse.json({ error: "E-mail é obrigatório." }, { status: 400 });
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
       success: true,
       message: "Se o e-mail estiver cadastrado, um código foi enviado.",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro no forgot-password:", error);
     return NextResponse.json(
       { error: "Erro interno no servidor ao solicitar recuperação de senha." },
