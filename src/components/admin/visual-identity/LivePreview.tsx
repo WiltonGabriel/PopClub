@@ -81,6 +81,11 @@ export function LivePreview({
     splashConfig.dynamicStyle ||
     ((isDark ? settings.bgValueDark : settings.bgValueLight) === "aurora_orbs"
       ? "aurora_orbs"
+      : (isDark ? settings.bgValueDark : settings.bgValueLight) === "fluid_orbs"
+      ? "fluid_orbs"
+      : (isDark ? settings.bgValueDark : settings.bgValueLight) === "aurora_mesh" ||
+        (isDark ? settings.bgValueDark : settings.bgValueLight) === "noctalia_mesh"
+      ? "aurora_mesh"
       : "constellation");
 
   // Cores inteligentes de contraste (WCAG AA)

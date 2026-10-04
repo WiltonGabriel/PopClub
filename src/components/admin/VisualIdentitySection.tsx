@@ -233,7 +233,9 @@ export function VisualIdentitySection() {
   const isSimConfirmed = confirmText.trim().toLowerCase() === "sim";
 
   // Identificação do tema para o resumo no modal
-  const activePreset = HARMONIZED_PRESETS.find((p) => p.id === advancedConfig.themeId);
+  const activePreset = HARMONIZED_PRESETS.find(
+    (p) => p.id === advancedConfig.themeId || (advancedConfig.themeId === "noctalia_mesh" && p.id === "aurora_mesh")
+  );
   const themeCategoryLabel =
     advancedConfig.themeType === "custom" || advancedConfig.isCoupled === false
       ? "Personalizado (Desacoplado)"

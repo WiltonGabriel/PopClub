@@ -1,0 +1,83 @@
+{
+  "timestamp": "2026-10-04T17:33:05.069Z",
+  "results": [
+    {
+      "id": "popclub_original",
+      "name": "PopClub Original",
+      "expectedColor": "#7C3AED",
+      "computedColor": "#7C3AED",
+      "colorMatches": true,
+      "splash": "liquid cream",
+      "screenshot": "01-tema-popclub-original.png",
+      "dynamicChecks": null
+    },
+    {
+      "id": "acai_sunset",
+      "name": "Açaí Sunset",
+      "expectedColor": "#BE185D",
+      "computedColor": "#BE185D",
+      "colorMatches": true,
+      "splash": "liquid cream",
+      "screenshot": "02-tema-acai-sunset.png",
+      "dynamicChecks": null
+    },
+    {
+      "id": "clean_fresh",
+      "name": "Clean Fresh",
+      "expectedColor": "#059669",
+      "computedColor": "#059669",
+      "colorMatches": true,
+      "splash": "playful bounce",
+      "screenshot": "03-tema-clean-fresh.png",
+      "dynamicChecks": null
+    },
+    {
+      "id": "aurora_mesh",
+      "name": "Aurora Mesh",
+      "expectedColor": "#6366F1",
+      "computedColor": "#6366F1",
+      "colorMatches": true,
+      "splash": "minimal pulse",
+      "screenshot": "04-tema-aurora-mesh.png",
+      "dynamicChecks": {
+        "canvasCount": 1,
+        "canvasInfo": [
+          {
+            "width": 310,
+            "height": 654,
+            "pointerEvents": "none",
+            "parentPointerEvents": "none",
+            "parentZIndex": "0"
+          }
+        ],
+        "isClickable": true
+      }
+    },
+    {
+      "id": "fluid_orbs",
+      "name": "Fluid Orbs",
+      "expectedColor": "#9333EA",
+      "computedColor": "#9333EA",
+      "colorMatches": true,
+      "splash": "liquid cream",
+      "screenshot": "05-tema-fluid-orbs.png",
+      "dynamicChecks": {
+        "canvasCount": 1,
+        "canvasInfo": [
+          {
+            "width": 310,
+            "height": 654,
+            "pointerEvents": "none",
+            "parentPointerEvents": "none",
+            "parentZIndex": "0"
+          }
+        ],
+        "isClickable": true
+      }
+    }
+  ],
+  "persistence": {
+    "fluidOrbs": true,
+    "auroraMesh": true
+  }
+}

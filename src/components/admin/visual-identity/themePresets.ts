@@ -42,7 +42,7 @@ export interface HarmonizedThemePreset {
     backgroundType: "solid" | "gradient" | "dynamic";
     backgroundValueLight: string;
     backgroundValueDark: string;
-    dynamicStyle?: "constellation" | "aurora_orbs" | "noctalia_mesh" | "fluid_orbs";
+    dynamicStyle?: "constellation" | "aurora_orbs" | "noctalia_mesh" | "aurora_mesh" | "fluid_orbs";
     phrases: string[];
     rotationInterval: number;
     minDuration: number;
@@ -250,11 +250,11 @@ export const HARMONIZED_PRESETS: HarmonizedThemePreset[] = [
 
   // ── ABA 2: TEMAS DINÂMICOS (2 Presets com Canvas Interativo) ──
   {
-    id: "noctalia_mesh",
-    name: "Noctalia Mesh",
+    id: "aurora_mesh",
+    name: "Aurora Mesh",
     category: "dynamic",
     categoryLabel: "Tema Dinâmico",
-    subtitle: "Inspirado no Noctalia.dev",
+    subtitle: "Gradiente Fluido Reativo",
     description: "Malha de gradiente orgânico e suave com partículas reativas ao movimento do cursor e toque.",
     badge: "Canvas 60fps",
     icon: "✨",
@@ -289,9 +289,9 @@ export const HARMONIZED_PRESETS: HarmonizedThemePreset[] = [
       progressBarColorLight: "#6366F1",
       progressBarColorDark: "#818CF8",
       backgroundType: "dynamic",
-      backgroundValueLight: "noctalia_mesh",
-      backgroundValueDark: "noctalia_mesh",
-      dynamicStyle: "noctalia_mesh",
+      backgroundValueLight: "aurora_mesh",
+      backgroundValueDark: "aurora_mesh",
+      dynamicStyle: "aurora_mesh",
       phrases: [
         "Sincronizando malha dinâmica do cardápio...",
         "Conectando partículas artesanais...",

@@ -3,7 +3,7 @@
 import React, { useEffect, useRef } from "react";
 
 export interface DynamicCanvasBackgroundProps {
-  style?: "constellation" | "aurora_orbs" | "noctalia_mesh" | "fluid_orbs";
+  style?: "constellation" | "aurora_orbs" | "noctalia_mesh" | "aurora_mesh" | "fluid_orbs";
   isDark?: boolean;
   className?: string;
   // Se fornecido, restringe o rastreamento do mouse ao container de preview mock
@@ -42,7 +42,8 @@ export function DynamicCanvasBackground({
       window.matchMedia &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    const isConstellationMesh = style === "constellation" || style === "noctalia_mesh";
+    const isConstellationMesh =
+      style === "constellation" || style === "noctalia_mesh" || style === "aurora_mesh";
 
     // Posição do mouse
     const mouse = {

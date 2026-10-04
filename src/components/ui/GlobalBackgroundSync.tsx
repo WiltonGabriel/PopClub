@@ -184,7 +184,13 @@ export function GlobalBackgroundSync() {
   if (bgType === "dynamic") {
     const canvasStyle =
       settings.advancedConfig?.splashScreen?.dynamicStyle ||
-      (bgValue === "aurora_orbs" ? "aurora_orbs" : "constellation");
+      (bgValue === "aurora_orbs"
+        ? "aurora_orbs"
+        : bgValue === "fluid_orbs"
+        ? "fluid_orbs"
+        : bgValue === "aurora_mesh" || bgValue === "noctalia_mesh"
+        ? "aurora_mesh"
+        : "constellation");
 
     return (
       <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden" aria-hidden="true">

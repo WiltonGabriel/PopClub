@@ -16,7 +16,7 @@ import {
   HarmonizedThemePreset,
   getContrastTextColor,
 } from "./themePresets";
-import { LoadingSettingsData, AdvancedConfig } from "@/services/loadingSettingsService";
+import { LoadingSettingsData, AdvancedConfig, LOADING_UPDATED_EVENT, loadingSettingsService } from "@/services/loadingSettingsService";
 
 interface Props {
   settings?: LoadingSettingsData;
@@ -67,29 +67,44 @@ export function ThemePresetsCatalog({
       dynamicStyle: preset.splashScreen.dynamicStyle,
     };
 
-    setAdvancedConfig((prev) => ({
-      ...prev,
+    const nextAdvanced: AdvancedConfig = {
+      ...advancedConfig,
       themeId: preset.id,
       themeType: preset.category === "dynamic" ? "dynamic" : "solid",
       isCoupled: true,
       storefront: updatedStorefront,
       splashScreen: updatedSplashScreen,
-    }));
+    };
 
-    setSettings((prev) => ({
-      ...prev,
-      theme: preset.splashScreen.theme,
-      centerIcon: preset.splashScreen.centerIcon,
-      phrases: [...preset.splashScreen.phrases],
-      rotationInterval: preset.splashScreen.rotationInterval,
-      minDuration: preset.splashScreen.minDuration,
-      bgTypeLight: preset.splashScreen.backgroundType,
-      bgValueLight: preset.splashScreen.backgroundValueLight,
-      bgCustomLight: preset.storefront.light.baseColor,
-      bgTypeDark: preset.splashScreen.backgroundType,
-      bgValueDark: preset.splashScreen.backgroundValueDark,
-      bgCustomDark: preset.storefront.dark.baseColor,
-    }));
+    setAdvancedConfig(nextAdvanced);
+
+    setSettings((prev) => {
+      const nextSettings: LoadingSettingsData = {
+        ...prev,
+        theme: preset.splashScreen.theme,
+        centerIcon: preset.splashScreen.centerIcon,
+        phrases: [...preset.splashScreen.phrases],
+        rotationInterval: preset.splashScreen.rotationInterval,
+        minDuration: preset.splashScreen.minDuration,
+        bgTypeLight: preset.splashScreen.backgroundType,
+        bgValueLight: preset.splashScreen.backgroundValueLight,
+        bgCustomLight: preset.storefront.light.baseColor,
+        bgTypeDark: preset.splashScreen.backgroundType,
+        bgValueDark: preset.splashScreen.backgroundValueDark,
+        bgCustomDark: preset.storefront.dark.baseColor,
+        advancedConfig: nextAdvanced,
+      };
+
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("popshake_loading_settings", JSON.stringify(nextSettings));
+          window.dispatchEvent(new CustomEvent(LOADING_UPDATED_EVENT, { detail: nextSettings }));
+          loadingSettingsService.updateLoadingSettings(nextSettings).catch(() => {});
+        } catch {}
+      }
+
+      return nextSettings;
+    });
   };
 
   const toggleCardMode = (presetId: string, e: React.MouseEvent) => {
@@ -104,7 +119,9 @@ export function ThemePresetsCatalog({
     (preset) => preset.category === activeTab
   );
 
-  const activePreset = HARMONIZED_PRESETS.find((p) => p.id === currentThemeId);
+  const activePreset = HARMONIZED_PRESETS.find(
+    (p) => p.id === currentThemeId || (currentThemeId === "noctalia_mesh" && p.id === "aurora_mesh")
+  );
 
   return (
     <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
@@ -235,6 +252,7 @@ export function ThemePresetsCatalog({
           return (
             <div
               key={preset.id}
+              data-theme-id={preset.id}
               onClick={() => handleSelectPreset(preset)}
               className={`group relative rounded-2xl border p-4 cursor-pointer transition-all duration-300 flex flex-col justify-between overflow-hidden ${
                 isSelected
@@ -344,7 +362,10 @@ export function ThemePresetsCatalog({
                   <span>Splash {preset.splashScreen.theme.replace("_", " ")}</span>
                 </div>
 
-                <span className="text-primary font-bold group-hover:translate-x-0.5 transition-transform">
+                <span
+                  data-apply-theme={preset.id}
+                  className="text-primary font-bold group-hover:translate-x-0.5 transition-transform"
+                >
                   Aplicar →
                 </span>
               </div>

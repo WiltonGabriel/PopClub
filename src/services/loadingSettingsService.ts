@@ -42,7 +42,7 @@ export interface AdvancedConfig {
     backgroundType: string;
     backgroundValue: string;
     progressBarColor: string;
-    dynamicStyle?: "constellation" | "aurora_orbs" | "noctalia_mesh" | "fluid_orbs";
+    dynamicStyle?: "constellation" | "aurora_orbs" | "noctalia_mesh" | "aurora_mesh" | "fluid_orbs";
   };
   presets: PresetSlotItem[];
 }

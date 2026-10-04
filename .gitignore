@@ -62,6 +62,7 @@ public/workbox-*.js.map
 
 # Screenshots & Audit artifacts
 /docs/screenshots-audit/
+!/docs/screenshots-audit/temas/
 screenshots-audit/
 screenshots/
 /screenshots/
