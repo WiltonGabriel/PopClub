@@ -167,7 +167,7 @@ export default function AdminDashboard() {
 
   const fetchOrders = useCallback(async () => {
     try {
-      const data = await orderService.getAllOrders();
+      const data = await orderService.getAllOrders(true);
       setOrders((_prev) => {
         if (previousOrderCountRef.current > 0 && data.length > previousOrderCountRef.current) {
           playNewOrderChime();
@@ -761,7 +761,11 @@ export default function AdminDashboard() {
               {/* CONTEÚDO DA ABA 1: MÉTRICAS & DESEMPENHO */}
               {activeTab === "metrics" && (
                 <div className="animate-in fade-in duration-150">
-                  <AnalyticsDashboard orders={orders} loading={fetching} />
+                  <AnalyticsDashboard
+                    orders={orders}
+                    loading={fetching}
+                    currentShiftId={storeSettings?.currentShiftId}
+                  />
                 </div>
               )}
 

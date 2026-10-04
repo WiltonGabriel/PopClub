@@ -2738,9 +2738,21 @@ export default function AccountPage() {
 
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                  Senha Atual
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                    Senha Atual
+                  </Label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsPasswordModalOpen(false);
+                      setIsRescueModalOpen(true);
+                    }}
+                    className="text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                  >
+                    Esqueceu a senha?
+                  </button>
+                </div>
                 <div className="relative">
                   <Input
                     type={showPasswordCurrent ? "text" : "password"}

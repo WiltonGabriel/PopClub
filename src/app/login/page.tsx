@@ -849,12 +849,13 @@ function AuthPageInner() {
                     <label htmlFor="loginPassword" className="block text-xs font-semibold text-[#7A587D] dark:text-[#E2D2E4]">
                       Sua Senha *
                     </label>
-                    <Link
-                      href="/recuperar-senha"
-                      className="text-xs text-primary hover:text-accent dark:hover:text-muted-foreground hover:underline transition-colors"
+                    <button
+                      type="button"
+                      onClick={() => setIsRescueModalOpen(true)}
+                      className="text-xs text-primary hover:text-accent dark:hover:text-muted-foreground hover:underline transition-colors cursor-pointer"
                     >
                       Esqueceu a senha?
-                    </Link>
+                    </button>
                   </div>
                   <AuthInput
                     id="loginPassword"
@@ -1098,6 +1099,12 @@ function AuthPageInner() {
           setIsFastBypass(true);
           setFastRegisteredDetected(false);
           setIsRescueModalOpen(false);
+        }}
+        onSuccess={({ email }) => {
+          if (email) {
+            setLoginId(email);
+            setActiveTab("password");
+          }
         }}
       />
     </div>

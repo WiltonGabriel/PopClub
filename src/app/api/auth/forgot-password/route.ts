@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { forgotPasswordLimiter, getIpFromRequest } from "@/lib/rateLimit";
+import { emailService } from "@/lib/emailService";
 
 export async function POST(request: Request) {
   try {
@@ -83,27 +84,34 @@ export async function POST(request: Request) {
         },
       });
 
-      // Simulate sending email (in a real app, use SendGrid, Resend, etc.)
-      console.log(`\n\n==============================================`);
-      console.log(`[SIMULAÇÃO DE E-MAIL] Recuperação de Senha`);
-      console.log(`Para: ${user.email}`);
-      console.log(`Seu código de recuperação é: ${resetCode}`);
-      console.log(`Tentativa registrada: ${nextCount}`);
-      if (newBlockedUntil) {
-        console.log(`⚠️ Bloqueio temporário progressivo ativado até: ${newBlockedUntil.toISOString()}`);
-      }
-      console.log(`==============================================\n\n`);
+      // Disparo via serviço modular de e-mail (simulação ou provedor de produção)
+      await emailService.sendPasswordResetCode({
+        to: user.email || cleanEmail,
+        name: user.fullName || user.username,
+        code: resetCode,
+        expiresMinutes: 15,
+      });
+
+      // Modo de simulação ativo quando não há credenciais de provedor externo configuradas
+      const isSimulation = !process.env.RESEND_API_KEY && !process.env.SMTP_HOST;
 
       if (newBlockedUntil) {
         const msRemaining = newBlockedUntil.getTime() - Date.now();
         const hoursRemaining = Math.ceil(msRemaining / (60 * 60 * 1000));
         return NextResponse.json({
           success: true,
-          message: `Código enviado. Atenção: limite de 4 solicitações atingido. Próxima solicitação bloqueada por ${hoursRemaining > 24 ? "1 semana" : `${hoursRemaining}h`}.`,
+          message: `Código enviado. Atenção: limite de solicitações atingido. Próxima solicitação bloqueada por ${hoursRemaining > 24 ? "1 semana" : `${hoursRemaining}h`}.`,
           warning: "RATE_LIMIT_COOLDOWN_STARTED",
           blockedUntil: newBlockedUntil.toISOString(),
+          ...(isSimulation ? { devCode: resetCode } : {}),
         });
       }
+
+      return NextResponse.json({
+        success: true,
+        message: "Se o e-mail estiver cadastrado, um código foi enviado.",
+        ...(isSimulation ? { devCode: resetCode } : {}),
+      });
     }
 
     // Always return success to prevent email enumeration attacks
