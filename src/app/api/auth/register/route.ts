@@ -66,16 +66,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "A senha deve conter pelo menos um número ou caractere especial." }, { status: 400 });
     }
 
-    // Validação de Telefone / WhatsApp (se informado)
+    // Validação de Telefone / WhatsApp (obrigatório)
     let cleanPhone: string | null = null;
     if (phone && typeof phone === "string" && phone.trim()) {
       cleanPhone = phone.replace(/\D/g, "");
       if (cleanPhone.length < 10) {
         return NextResponse.json({ error: "WhatsApp inválido. Inclua o DDD com 2 dígitos." }, { status: 400 });
       }
+    } else {
+      return NextResponse.json({ error: "WhatsApp / Telefone é obrigatório." }, { status: 400 });
     }
 
-    // Validação e Limpeza de CPF (se informado)
+    // CPF opcional (validado apenas se fornecido)
     let cleanedCpf: string | null = null;
     if (cpf && typeof cpf === "string" && cpf.trim()) {
       cleanedCpf = cleanCpf(cpf);

@@ -18,12 +18,10 @@ import {
   X,
   ArrowRight,
   Mail,
-  CreditCard,
 } from "lucide-react";
 import { authService } from "../../services/authService";
 import { useAuth } from "../../hooks/useAuth";
 import { formatPhoneInput } from "@/components/auth/FastAccessModal";
-import { formatCpf, cleanCpf, validateCpf } from "@/lib/cpf";
 
 interface MaskedAddressInfo {
   addressId?: string;
@@ -167,7 +165,6 @@ function AuthPageInner() {
   const [registerFullName, setRegisterFullName] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPhone, setRegisterPhone] = useState("");
-  const [registerCpf, setRegisterCpf] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [registerLoading, setRegisterLoading] = useState(false);
@@ -283,11 +280,6 @@ function AuthPageInner() {
       setRegisterError("Por favor, informe o WhatsApp com DDD (mínimo 10 dígitos).");
       return;
     }
-    const cleanedCpf = cleanCpf(registerCpf);
-    if (!validateCpf(cleanedCpf)) {
-      setRegisterError("Por favor, informe um CPF válido com dígitos verificadores matematicamente corretos.");
-      return;
-    }
     if (registerPassword.length < 6) {
       setRegisterError("A senha deve conter no mínimo 6 caracteres.");
       return;
@@ -299,7 +291,6 @@ function AuthPageInner() {
         fullName: registerFullName.trim(),
         email: cleanMail,
         phone: cleanPhone,
-        cpf: cleanedCpf,
         password: registerPassword,
       });
       window.location.replace(redirectTarget);
@@ -785,26 +776,6 @@ function AuthPageInner() {
                   />
                 </div>
 
-                {/* E-mail */}
-                <div className="space-y-1.5">
-                  <label htmlFor="registerEmail" className="block text-xs font-semibold text-[#7A587D] dark:text-[#E2D2E4]">
-                    E-mail *
-                  </label>
-                  <AuthInput
-                    id="registerEmail"
-                    type="email"
-                    value={registerEmail}
-                    onChange={(e) => {
-                      setRegisterEmail(e.target.value);
-                      if (registerError) setRegisterError(null);
-                    }}
-                    placeholder="gabriel.qa@popclub.test"
-                    required
-                    autoComplete="email"
-                    leftIcon={<Mail className="w-4 h-4" />}
-                  />
-                </div>
-
                 {/* WhatsApp */}
                 <div className="space-y-1.5">
                   <label htmlFor="registerPhone" className="block text-xs font-semibold text-[#7A587D] dark:text-[#E2D2E4]">
@@ -825,22 +796,23 @@ function AuthPageInner() {
                   />
                 </div>
 
-                {/* CPF */}
+                {/* E-mail */}
                 <div className="space-y-1.5">
-                  <label htmlFor="registerCpf" className="block text-xs font-semibold text-[#7A587D] dark:text-[#E2D2E4]">
-                    CPF *
+                  <label htmlFor="registerEmail" className="block text-xs font-semibold text-[#7A587D] dark:text-[#E2D2E4]">
+                    E-mail *
                   </label>
                   <AuthInput
-                    id="registerCpf"
-                    type="text"
-                    value={registerCpf}
+                    id="registerEmail"
+                    type="email"
+                    value={registerEmail}
                     onChange={(e) => {
-                      setRegisterCpf(formatCpf(e.target.value));
+                      setRegisterEmail(e.target.value);
                       if (registerError) setRegisterError(null);
                     }}
-                    placeholder="000.000.000-00"
+                    placeholder="gabriel.qa@popclub.test"
                     required
-                    leftIcon={<CreditCard className="w-4 h-4" />}
+                    autoComplete="email"
+                    leftIcon={<Mail className="w-4 h-4" />}
                   />
                 </div>
 
