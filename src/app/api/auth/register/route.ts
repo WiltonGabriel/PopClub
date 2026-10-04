@@ -1,10 +1,21 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Role } from "@prisma/client";
-import { hashPassword, signToken, setSessionCookies } from "@/lib/auth";
+import { Role, type User } from "@prisma/client";
+import { hashPassword, signToken, setSessionCookies, type CookieResponseTarget } from "@/lib/auth";
 import { cleanCpf, validateCpf } from "@/lib/cpf";
 import { cookies } from "next/headers";
 import { authLimiter, getIpFromRequest } from "@/lib/rateLimit";
+
+interface RegisteredUser {
+  id: string;
+  email: string | null;
+  username: string | null;
+  fullName: string | null;
+  phone: string | null;
+  cpf: string | null;
+  role: Role;
+  isRegistered: boolean;
+}
 
 export async function POST(request: Request) {
   try {
@@ -47,6 +58,9 @@ export async function POST(request: Request) {
 
     if (password.length < 6) {
       return NextResponse.json({ error: "A senha deve ter pelo menos 6 caracteres." }, { status: 400 });
+    }
+    if (!hasLetter) {
+      return NextResponse.json({ error: "A senha deve conter pelo menos uma letra." }, { status: 400 });
     }
     if (!hasNumber && !hasSpecial) {
       return NextResponse.json({ error: "A senha deve conter pelo menos um número ou caractere especial." }, { status: 400 });
@@ -102,7 +116,7 @@ export async function POST(request: Request) {
     const passwordHash = await hashPassword(password);
 
     // Se houver um usuário guest/acesso rápido pelo telefone, promove a conta
-    let user: any = null;
+    let user: RegisteredUser | null = null;
     if (cleanPhone) {
       const existingPhoneUser = await prisma.user.findFirst({
         where: { phone: cleanPhone },
@@ -167,6 +181,10 @@ export async function POST(request: Request) {
       });
     }
 
+    if (!user) {
+      return NextResponse.json({ error: "Erro ao criar usuário." }, { status: 500 });
+    }
+
     const token = signToken({
       userId: user.id,
       email: user.email,
@@ -190,7 +208,7 @@ export async function POST(request: Request) {
     setSessionCookies(response, token, isHttps);
     try {
       const cookieStore = await cookies();
-      setSessionCookies({ cookies: cookieStore } as any, token, isHttps);
+      setSessionCookies({ cookies: cookieStore } as CookieResponseTarget, token, isHttps);
     } catch {}
 
     return response;

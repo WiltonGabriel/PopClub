@@ -76,7 +76,14 @@ export const authService = {
     phone?: string,
     cpf?: string
   ) {
-    let payload: Record<string, any>;
+    let payload: {
+      username?: string;
+      email?: string;
+      password?: string;
+      fullName?: string;
+      phone?: string;
+      cpf?: string;
+    };
     if (typeof usernameOrData === "object") {
       payload = usernameOrData;
     } else {

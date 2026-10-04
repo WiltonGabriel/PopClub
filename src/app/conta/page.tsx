@@ -57,7 +57,6 @@ import { formatPhoneInput } from "@/components/auth/FastAccessModal";
 import { formatCpf } from "@/lib/cpf";
 import { BottomNav } from "../../components/storefront/BottomNav";
 import { useToast } from "../../components/ui/ToastNotification";
-import { authService } from "../../services/authService";
 import { userService, UserProfile } from "../../services/userService";
 import { useAddress } from "../../contexts/AddressContext";
 import { Button } from "../../components/ui/button";
@@ -256,7 +255,7 @@ export default function AccountPage() {
   }, []);
 
   const userRole = user?.role || profile?.role || (isAdmin ? "ADMIN" : "CLIENT");
-  const userCreatedAt = profile?.created_at || (user as any)?.createdAt || (user as any)?.created_at;
+  const userCreatedAt = profile?.created_at || user?.createdAt || user?.created_at;
   const profileBadge = computeProfileBadge(userRole, user?.isRegistered, userCreatedAt, loyaltyBadges);
 
   // Navegação Drill-down reativa

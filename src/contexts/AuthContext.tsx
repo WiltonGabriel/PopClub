@@ -22,6 +22,8 @@ export interface AppUser {
   defaultChangeFor?: number | null;
   default_payment_method?: "pix_entrega" | "cartao_maquininha" | "dinheiro" | null;
   default_change_for?: number | null;
+  createdAt?: string | Date | null;
+  created_at?: string | Date | null;
   user_metadata?: {
     username?: string;
     full_name?: string;

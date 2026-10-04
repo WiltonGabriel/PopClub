@@ -19,13 +19,20 @@ import {
   ArrowRight,
   Mail,
   CreditCard,
-  Sparkles,
 } from "lucide-react";
 import { authService } from "../../services/authService";
 import { useAuth } from "../../hooks/useAuth";
 import { formatPhoneInput } from "@/components/auth/FastAccessModal";
 import { formatCpf, cleanCpf, validateCpf } from "@/lib/cpf";
-import { Button } from "@/components/ui/button";
+
+interface MaskedAddressInfo {
+  addressId?: string;
+  street?: string;
+  neighborhood?: string;
+  city?: string;
+  houseNumber?: string;
+  [key: string]: unknown;
+}
 
 /* ─── Reusable styled input wrapper ─── */
 interface AuthInputProps {
@@ -141,7 +148,7 @@ function AuthPageInner() {
 
   // Verificação de novo aparelho em Acesso Rápido
   const [isVerifyingDevice, setIsVerifyingDevice] = useState(false);
-  const [maskedAddress, setMaskedAddress] = useState<any>(null);
+  const [maskedAddress, setMaskedAddress] = useState<MaskedAddressInfo | null>(null);
   const [houseNumber, setHouseNumber] = useState("");
   const [isNoNumber, setIsNoNumber] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
@@ -190,8 +197,9 @@ function AuthPageInner() {
       } else if (res.status === "authenticated") {
         window.location.replace(redirectTarget);
       }
-    } catch (err: any) {
-      setFastError(err.message || "Erro ao identificar. Verifique seus dados.");
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : (err as { message?: string })?.message;
+      setFastError(errorMsg || "Erro ao identificar. Verifique seus dados.");
     } finally {
       setFastLoading(false);
     }
@@ -221,17 +229,18 @@ function AuthPageInner() {
       if (res.status === "authenticated") {
         window.location.replace(redirectTarget);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errObj = err as { message?: string; code?: string };
       const nextAttempts = failedAttempts + 1;
       setFailedAttempts(nextAttempts);
-      if (nextAttempts >= 5 || err?.code === "MAX_ATTEMPTS_EXCEEDED") {
+      if (nextAttempts >= 5 || errObj?.code === "MAX_ATTEMPTS_EXCEEDED") {
         setIsLocked(true);
         setVerifyError(
           "Limite de tentativas atingido. Por segurança, selecione 'Entrar com Senha' ou consulte seu atendente."
         );
       } else {
         setVerifyError(
-          err.message || `Número incorreto. Restam ${5 - nextAttempts} tentativas.`
+          errObj?.message || `Número incorreto. Restam ${5 - nextAttempts} tentativas.`
         );
       }
     } finally {
@@ -247,8 +256,9 @@ function AuthPageInner() {
     try {
       await authService.signIn(loginId.trim(), loginPassword);
       window.location.replace(redirectTarget);
-    } catch (err: any) {
-      setLoginError(err.message || "Credenciais inválidas.");
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : (err as { message?: string })?.message;
+      setLoginError(errorMsg || "Credenciais inválidas.");
     } finally {
       setLoginLoading(false);
     }
@@ -293,8 +303,9 @@ function AuthPageInner() {
         password: registerPassword,
       });
       window.location.replace(redirectTarget);
-    } catch (err: any) {
-      setRegisterError(err.message || "Erro ao realizar cadastro.");
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : (err as { message?: string })?.message;
+      setRegisterError(errorMsg || "Erro ao realizar cadastro.");
     } finally {
       setRegisterLoading(false);
     }
@@ -303,8 +314,9 @@ function AuthPageInner() {
   const handleGoogleLogin = async () => {
     try {
       await authService.signInWithGoogle();
-    } catch (err: any) {
-      setLoginError(err.message || "Erro ao conectar com Google.");
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : (err as { message?: string })?.message;
+      setLoginError(errorMsg || "Erro ao conectar com Google.");
     }
   };
 
