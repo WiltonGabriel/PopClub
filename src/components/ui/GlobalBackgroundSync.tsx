@@ -40,7 +40,7 @@ function hexToHslChannels(hex: string): string | null {
 }
 
 export function GlobalBackgroundSync() {
-  const { theme } = useTheme();
+  const { theme, resolvedTheme, isDark: contextIsDark } = useTheme();
   const [settings, setSettings] = useState<LoadingSettingsData>(() =>
     loadingSettingsService.getCachedLoadingSettings()
   );
@@ -72,7 +72,7 @@ export function GlobalBackgroundSync() {
   useEffect(() => {
     if (!mounted || typeof document === "undefined") return;
 
-    const isDark = theme === "dark";
+    const isDark = contextIsDark ?? ((resolvedTheme || theme) === "dark");
     const modeConfig = isDark
       ? settings.advancedConfig?.storefront?.dark
       : settings.advancedConfig?.storefront?.light;

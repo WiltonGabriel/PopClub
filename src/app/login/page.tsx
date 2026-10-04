@@ -130,7 +130,7 @@ function AuthPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading: authLoading, fastAccess, verifyDevice } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, resolvedTheme } = useTheme();
 
   const redirectTarget = searchParams?.get("redirect") || "/";
   const rawTab = searchParams?.get("tab");
@@ -444,10 +444,10 @@ function AuthPageInner() {
           type="button"
           onClick={toggleTheme}
           className="flex items-center justify-center p-2.5 rounded-xl text-zinc-700 dark:text-zinc-200 hover:text-foreground dark:hover:text-white bg-white/80 dark:bg-zinc-900/80 border border-gray-200/90 dark:border-zinc-800 backdrop-blur-md shadow-xs hover:bg-white dark:hover:bg-zinc-800 transition-all cursor-pointer"
-          title={theme === "dark" ? "Mudar para modo claro" : "Mudar para modo escuro"}
-          aria-label={theme === "dark" ? "Ativar Modo Claro" : "Ativar Modo Escuro"}
+          title={(resolvedTheme || theme) === "dark" ? "Mudar para modo claro" : "Mudar para modo escuro"}
+          aria-label={(resolvedTheme || theme) === "dark" ? "Ativar Modo Claro" : "Ativar Modo Escuro"}
         >
-          {theme === "dark" ? (
+          {(resolvedTheme || theme) === "dark" ? (
             <Sun className="w-4 h-4 text-amber-400 animate-in spin-in-90 duration-300" />
           ) : (
             <Moon className="w-4 h-4 text-violet-600 animate-in spin-in-90 duration-300" />

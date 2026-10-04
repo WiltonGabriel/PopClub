@@ -75,7 +75,7 @@ import { OrderDeliveryIssueDialog } from "../../../components/admin/OrderDeliver
 import { MobileOrientationBanner } from "@/components/admin/MobileOrientationBanner";
 
 export default function AdminPedidosPage() {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, resolvedTheme } = useTheme();
   const { user, loading: authLoading, isAdmin, canAccess } = useAuth();
   const router = useRouter();
 
@@ -1713,11 +1713,11 @@ export default function AdminPedidosPage() {
 
           <button
             onClick={toggleTheme}
-            aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
-            title={theme === "dark" ? "Modo claro" : "Modo escuro"}
+            aria-label={(resolvedTheme || theme) === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
+            title={(resolvedTheme || theme) === "dark" ? "Modo claro" : "Modo escuro"}
             className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
-            {theme === "dark" ? (
+            {(resolvedTheme || theme) === "dark" ? (
               <Sun className="w-4 h-4 text-amber-500" />
             ) : (
               <Moon className="w-4 h-4 text-primary" />

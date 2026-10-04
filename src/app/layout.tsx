@@ -61,7 +61,7 @@ export default function RootLayout({
         <script
           id="theme-initializer"
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var s=localStorage.getItem('popshake-theme');if(s==='dark'){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}var a=localStorage.getItem('popshake-accessibility');if(a){var cfg=JSON.parse(a);if(cfg.fontSize==='large')document.documentElement.classList.add('font-scale-large');if(cfg.fontSize==='xlarge')document.documentElement.classList.add('font-scale-xlarge');if(cfg.highContrast)document.documentElement.classList.add('high-contrast');if(cfg.dyslexicFont)document.documentElement.classList.add('font-dyslexic');if(cfg.reduceMotion)document.documentElement.classList.add('reduce-motion');if(cfg.colorBlindMode&&cfg.colorBlindMode!=='none')document.documentElement.classList.add('colorblind-'+cfg.colorBlindMode);}}catch(e){}})();`,
+            __html: `(function(){try{var s=localStorage.getItem('popshake-theme');var isDark=false;if(s==='dark'){isDark=true;}else if(s==='light'){isDark=false;}else{isDark=!!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);}if(isDark){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}var a=localStorage.getItem('popshake-accessibility');if(a){var cfg=JSON.parse(a);if(cfg.fontSize==='large')document.documentElement.classList.add('font-scale-large');if(cfg.fontSize==='xlarge')document.documentElement.classList.add('font-scale-xlarge');if(cfg.highContrast)document.documentElement.classList.add('high-contrast');if(cfg.dyslexicFont)document.documentElement.classList.add('font-dyslexic');if(cfg.reduceMotion)document.documentElement.classList.add('reduce-motion');if(cfg.colorBlindMode&&cfg.colorBlindMode!=='none')document.documentElement.classList.add('colorblind-'+cfg.colorBlindMode);}}catch(e){}})();`,
           }}
         />
       </head>
@@ -70,7 +70,13 @@ export default function RootLayout({
         suppressHydrationWarning
       >
 
-        <ThemeProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem={true}
+          disableTransitionOnChange={false}
+          storageKey="popshake-theme"
+        >
           <GlobalBackgroundSync />
           <AuthProvider>
             <ToastProvider>

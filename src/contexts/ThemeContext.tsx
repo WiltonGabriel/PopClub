@@ -1,19 +1,28 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useMemo, useEffect, useState } from "react";
+import { ThemeProvider as NextThemesProvider, useTheme as useNextThemes } from "next-themes";
+import type { ThemeProviderProps } from "next-themes";
 
-type Theme = "light" | "dark";
+export type Theme = "light" | "dark" | "system";
+export type ResolvedTheme = "light" | "dark";
 
-interface ThemeContextType {
+export interface ThemeContextValue {
   theme: Theme;
-  toggleTheme: () => void;
+  resolvedTheme: ResolvedTheme;
+  systemTheme: ResolvedTheme;
+  isDark: boolean;
   setTheme: (theme: Theme) => void;
+  toggleTheme: () => void;
 }
 
-const ThemeContext = createContext<ThemeContextType>({
-  theme: "light",
-  toggleTheme: () => {},
+const ThemeContext = createContext<ThemeContextValue>({
+  theme: "system",
+  resolvedTheme: "light",
+  systemTheme: "light",
+  isDark: false,
   setTheme: () => {},
+  toggleTheme: () => {},
 });
 
 // Suprime aviso falso-positivo do React 19 em desenvolvimento para scripts síncronos de prevenção de FOUC
@@ -25,41 +34,74 @@ if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
   };
 }
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("light");
+function ThemeBridge({ children }: { children: React.ReactNode }) {
+  const {
+    theme: nextTheme,
+    setTheme: setNextTheme,
+    resolvedTheme: nextResolved,
+    systemTheme: nextSystem,
+  } = useNextThemes();
+
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Read persisted preference, default to light mode
-    const stored = localStorage.getItem("popshake-theme") as Theme | null;
-    const initial: Theme = stored === "dark" ? "dark" : "light";
-
-    setThemeState(initial);
-    document.documentElement.classList.toggle("dark", initial === "dark");
+    setMounted(true);
   }, []);
 
-  const setTheme = (next: Theme) => {
-    setThemeState(next);
-    document.documentElement.classList.toggle("dark", next === "dark");
-    try {
-      localStorage.setItem("popshake-theme", next);
-    } catch {}
-  };
+  const theme: Theme = (nextTheme as Theme) || "system";
+  const systemTheme: ResolvedTheme = (nextSystem as ResolvedTheme) || "light";
+  const resolvedTheme: ResolvedTheme =
+    (nextResolved as ResolvedTheme) ||
+    (typeof document !== "undefined" && document.documentElement.classList.contains("dark")
+      ? "dark"
+      : systemTheme);
+  const isDark = resolvedTheme === "dark";
 
   const toggleTheme = () => {
-    setThemeState((prev) => {
-      const next: Theme = prev === "light" ? "dark" : "light";
-      document.documentElement.classList.toggle("dark", next === "dark");
-      try {
-        localStorage.setItem("popshake-theme", next);
-      } catch {}
-      return next;
-    });
+    // Alterna entre light e dark respeitando a resolução atual
+    const next = isDark ? "light" : "dark";
+    setNextTheme(next);
   };
 
+  const setTheme = (newTheme: Theme) => {
+    setNextTheme(newTheme);
+  };
+
+  const value = useMemo(
+    () => ({
+      theme,
+      resolvedTheme,
+      systemTheme,
+      isDark,
+      setTheme,
+      toggleTheme,
+    }),
+    [theme, resolvedTheme, systemTheme, isDark]
+  );
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}
+
+export function ThemeProvider({
+  children,
+  attribute = "class",
+  defaultTheme = "system",
+  enableSystem = true,
+  disableTransitionOnChange = false,
+  storageKey = "popshake-theme",
+  ...props
+}: ThemeProviderProps) {
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
-      {children}
-    </ThemeContext.Provider>
+    <NextThemesProvider
+      attribute={attribute}
+      defaultTheme={defaultTheme}
+      enableSystem={enableSystem}
+      disableTransitionOnChange={disableTransitionOnChange}
+      storageKey={storageKey}
+      {...props}
+    >
+      <ThemeBridge>{children}</ThemeBridge>
+    </NextThemesProvider>
   );
 }
 

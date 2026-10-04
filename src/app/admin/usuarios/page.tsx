@@ -20,7 +20,7 @@ import { MobileOrientationBanner } from "@/components/admin/MobileOrientationBan
 
 export default function AdminUsuariosPage() {
   const { user, loading, isAdmin, canAccess } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, resolvedTheme } = useTheme();
   const router = useRouter();
 
   const canAccessUsers = isAdmin || canAccess("users_manage") || canAccess("USERS_MANAGE");
@@ -110,11 +110,11 @@ export default function AdminUsuariosPage() {
 
           <button
             onClick={toggleTheme}
-            aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
-            title={theme === "dark" ? "Modo claro" : "Modo escuro"}
+            aria-label={(resolvedTheme || theme) === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
+            title={(resolvedTheme || theme) === "dark" ? "Modo claro" : "Modo escuro"}
             className="flex items-center justify-center w-9 h-9 rounded-xl border border-gray-200 dark:border-border/40 hover:bg-gray-100 dark:hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
-            {theme === "dark" ? (
+            {(resolvedTheme || theme) === "dark" ? (
               <Sun className="w-4 h-4 text-amber-500" />
             ) : (
               <Moon className="w-4 h-4 text-primary" />

@@ -28,6 +28,7 @@ import {
   Clock,
   Bike,
   Accessibility,
+  Laptop,
   Sun,
   Moon,
   Banknote,
@@ -233,7 +234,7 @@ function computeProfileBadge(
 
 export default function AccountPage() {
   const { user, loading, refreshUser, isAdmin, isEditor, canAccess, signOut } = useAuth();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const { 
     addresses, 
     activeAddressId, 
@@ -2146,52 +2147,120 @@ export default function AccountPage() {
                 <Label className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
                   Tema da Aplicação
                 </Label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Card Modo Claro */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Card 1: Padrão do Dispositivo (Automático) */}
                   <button
                     type="button"
-                    onClick={() => setTheme("light")}
-                    className={`flex items-start gap-3.5 p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                      theme === "light"
-                        ? "border-[#9306CF] bg-purple-50/60 shadow-md shadow-[#9306CF]/10"
-                        : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#190B1A]/60"
+                    id="theme-card-system"
+                    data-testid="theme-card-system"
+                    onClick={() => setTheme("system")}
+                    className={`flex flex-col justify-between p-4 sm:p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                      theme === "system"
+                        ? "border-[#9306CF] bg-purple-50/70 dark:bg-purple-950/40 shadow-md shadow-[#9306CF]/15 ring-1 ring-[#9306CF]/30"
+                        : "border-gray-200 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700 bg-white dark:bg-[#181D2D]/80"
                     }`}
                   >
-                    <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 shadow-xs">
-                      <Sun className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="font-heading font-bold text-sm text-gray-900 dark:text-white">Modo Claro</span>
-                        {theme === "light" && <Check className="w-4 h-4 text-[#9306CF]" />}
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 shadow-xs">
+                          <Laptop className="w-5 h-5" />
+                        </div>
+                        {theme === "system" && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#9306CF] text-white shadow-xs">
+                            <Check className="w-3 h-3 stroke-[3]" />
+                            Ativo
+                          </span>
+                        )}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Fundo branco, tons neutros e visual solar.
+                      <span className="font-heading font-bold text-sm text-gray-900 dark:text-white block">
+                        Automático / Sistema
+                      </span>
+                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                        Sincroniza com as configurações de tema do seu celular ou computador.
                       </p>
+                    </div>
+
+                    <div className="mt-4 pt-2.5 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>Status do Sistema:</span>
+                      <span className="font-semibold text-foreground">
+                        {resolvedTheme === "dark" ? "🌙 Escuro" : "☀️ Claro"}
+                      </span>
                     </div>
                   </button>
 
-                  {/* Card Modo Escuro */}
+                  {/* Card 2: Modo Claro */}
                   <button
                     type="button"
-                    onClick={() => setTheme("dark")}
-                    className={`flex items-start gap-3.5 p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                      theme === "dark"
-                        ? "border-[#9306CF] bg-[#2A1030] shadow-md shadow-[#9306CF]/20"
-                        : "border-gray-200 dark:border-[#512B54]/40 hover:border-gray-300 dark:hover:border-[#512B54]/80 bg-white dark:bg-[#190B1A]/60"
+                    id="theme-card-light"
+                    data-testid="theme-card-light"
+                    onClick={() => setTheme("light")}
+                    className={`flex flex-col justify-between p-4 sm:p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                      theme === "light"
+                        ? "border-[#9306CF] bg-purple-50/70 dark:bg-purple-950/40 shadow-md shadow-[#9306CF]/15 ring-1 ring-[#9306CF]/30"
+                        : "border-gray-200 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700 bg-white dark:bg-[#181D2D]/80"
                     }`}
                   >
-                    <div className="w-10 h-10 rounded-xl bg-purple-950 text-purple-300 flex items-center justify-center shrink-0 shadow-xs">
-                      <Moon className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="font-heading font-bold text-sm text-gray-900 dark:text-white">Modo Escuro</span>
-                        {theme === "dark" && <Check className="w-4 h-4 text-[#9306CF]" />}
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-xs">
+                          <Sun className="w-5 h-5" />
+                        </div>
+                        {theme === "light" && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#9306CF] text-white shadow-xs">
+                            <Check className="w-3 h-3 stroke-[3]" />
+                            Ativo
+                          </span>
+                        )}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Roxo escuro (#190B1A) perfeito para conforto visual à noite.
+                      <span className="font-heading font-bold text-sm text-gray-900 dark:text-white block">
+                        Claro
+                      </span>
+                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                        Fundo branco, tons neutros e visual solar para ambientes iluminados.
                       </p>
+                    </div>
+
+                    <div className="mt-4 pt-2.5 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>Visualização:</span>
+                      <span className="font-semibold text-foreground">☀️ Sempre Claro</span>
+                    </div>
+                  </button>
+
+                  {/* Card 3: Modo Escuro */}
+                  <button
+                    type="button"
+                    id="theme-card-dark"
+                    data-testid="theme-card-dark"
+                    onClick={() => setTheme("dark")}
+                    className={`flex flex-col justify-between p-4 sm:p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                      theme === "dark"
+                        ? "border-[#9306CF] bg-purple-50/70 dark:bg-purple-950/40 shadow-md shadow-[#9306CF]/15 ring-1 ring-[#9306CF]/30"
+                        : "border-gray-200 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700 bg-white dark:bg-[#181D2D]/80"
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-300 flex items-center justify-center shrink-0 shadow-xs">
+                          <Moon className="w-5 h-5" />
+                        </div>
+                        {theme === "dark" && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#9306CF] text-white shadow-xs">
+                            <Check className="w-3 h-3 stroke-[3]" />
+                            Ativo
+                          </span>
+                        )}
+                      </div>
+                      <span className="font-heading font-bold text-sm text-gray-900 dark:text-white block">
+                        Escuro
+                      </span>
+                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                        Fundo escuro profundo ideal para menor cansaço visual e conforto à noite.
+                      </p>
+                    </div>
+
+                    <div className="mt-4 pt-2.5 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>Visualização:</span>
+                      <span className="font-semibold text-foreground">🌙 Sempre Escuro</span>
                     </div>
                   </button>
                 </div>

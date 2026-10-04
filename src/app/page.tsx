@@ -143,7 +143,7 @@ export default function Storefront() {
   const { isEditMode } = useEditMode();
   const canEdit = isAdmin && isEditMode;
   const { totalItems, itemsTotal } = useCart();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, resolvedTheme } = useTheme();
   const { activeOrders } = useOrders();
 
   // Pedidos ativos relevantes para o badge do cabeçalho (pending, accepted, preparing, delivering)
@@ -788,7 +788,7 @@ export default function Storefront() {
                       onClick={() => toggleTheme()}
                       className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors text-left cursor-pointer"
                     >
-                      {theme === "dark" ? (
+                      {(resolvedTheme || theme) === "dark" ? (
                         <Sun className="w-4 h-4 text-amber-500 shrink-0" />
                       ) : (
                         <Moon className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
@@ -990,7 +990,7 @@ export default function Storefront() {
                       }}
                       className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors text-left cursor-pointer"
                     >
-                      {theme === "dark" ? (
+                      {(resolvedTheme || theme) === "dark" ? (
                         <Sun className="w-4 h-4 text-amber-500 shrink-0" />
                       ) : (
                         <Moon className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
