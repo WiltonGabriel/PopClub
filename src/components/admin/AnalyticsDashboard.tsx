@@ -5,21 +5,15 @@ import {
   DollarSign,
   TrendingUp,
   ShoppingBag,
-  Clock,
   CheckCircle2,
-  XCircle,
-  Calendar,
-  Layers,
   CreditCard,
   Bike,
   Store,
   Award,
   MapPin,
-  Tag,
   Filter,
   AlertTriangle,
   ArrowRightLeft,
-  Percent,
   Search,
   X,
   Flame,
@@ -74,14 +68,6 @@ const BRAND_COLORS = {
   pickup: "#3B82F6",
   cancelled: "#EF4444",
 };
-
-const PIE_COLORS = [
-  "#00BDAE", // PIX
-  "#7C3AED", // Cartão
-  "#F59E0B", // Dinheiro
-  "#10B981", // Esmeralda
-  "#3B82F6", // Azul Real
-];
 
 const MONTH_NAMES = [
   "Jan",
