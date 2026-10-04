@@ -22,7 +22,6 @@ const DEFAULT_SETTINGS = {
   ],
   storeLatitude: -15.6536,
   storeLongitude: -56.1322,
-  storeAddress: "Várzea Grande, MT",
   maxDeliveryRadiusKm: 10,
   businessHours: [
     { day: "monday", label: "Segunda-feira", isOpen: true, openTime: "13:00", closeTime: "22:00" },
@@ -34,6 +33,12 @@ const DEFAULT_SETTINGS = {
     { day: "sunday", label: "Domingo", isOpen: true, openTime: "13:00", closeTime: "23:00" },
   ],
   openingHoursText: "Terça a Domingo das 14h às 22h",
+  footerSlogan: "Açaí artesanal, cremosidade única e o sabor que transforma o seu dia.",
+  footerBadgeText: "Delivery Próprio e Artesanal",
+  showPaymentMethods: true,
+  acceptedPayments: ["pix", "dinheiro", "credito", "debito"],
+  googleMapsUrl: "https://maps.google.com/?q=Av.+Filinto+M%C3%BCller,+850+-+Centro+Sul,+V%C3%A1rzea+Grande+-+MT",
+  storeAddress: "Av. Filinto Müller, 850 - Centro Sul, Várzea Grande - MT",
   orderNotificationTemplates: {
     pending: "Olá, {cliente}! Recebemos seu pedido #{codigo_pedido} no Pop Shake. Estamos preparando tudo com muito carinho! Total: {total} ({forma_pagamento}).",
     preparing: "Seu pedido #{codigo_pedido} já está na cozinha sendo preparado! Tempo estimado: {tempo_estimado}.",
@@ -42,7 +47,7 @@ const DEFAULT_SETTINGS = {
     completed: "Pedido #{codigo_pedido} entregue com sucesso! Obrigado pela preferência, {cliente}! 🍧 Avalie nosso atendimento e ganhe mimos!",
     support: "Olá, {cliente}! Precisa de ajuda com o pedido #{codigo_pedido}? Estamos à disposição pelo WhatsApp ou telefone da loja.",
   },
-  instagramUrl: "https://instagram.com/popshake",
+  instagramUrl: "@popshake",
   facebookUrl: "",
   supportPhone: "5565999999999",
   postSaleMessage: "Obrigado pelo seu pedido no Pop Shake! Como foi sua experiência hoje? Avalie nosso atendimento e ganhe um cupom de desconto para o próximo pedido! 🍧",
@@ -67,6 +72,7 @@ const settingsUpdateSchema = z.object({
   deliveryFee: z.preprocess(coerceOptionalNumber, z.number().min(0, "A taxa de entrega não pode ser negativa")).optional(),
   freeDeliveryThreshold: z.preprocess(coerceNullableNumber, z.number().min(0, "O valor mínimo não pode ser negativo").nullable()).optional(),
   whatsappNumber: z.string().nullable().optional(),
+  supportWhatsapp: z.string().nullable().optional(),
   whatsappMessage: z.string().nullable().optional(),
   isOpen: z.boolean().optional(),
   currentShiftId: z.string().nullable().optional(),
@@ -89,6 +95,15 @@ const settingsUpdateSchema = z.object({
   supportMessage: z.string().nullable().optional(),
   openedAt: z.string().nullable().optional(),
   closedAt: z.string().nullable().optional(),
+  footerSlogan: z.string().nullable().optional(),
+  footerBadgeText: z.string().nullable().optional(),
+  showPaymentMethods: z.boolean().optional(),
+  acceptedPayments: z.union([z.array(z.string()), z.string()]).transform((val) => {
+    if (Array.isArray(val)) return val;
+    if (typeof val === "string") return val.split(",").map((s) => s.trim()).filter(Boolean);
+    return ["pix", "dinheiro", "credito", "debito"];
+  }).optional(),
+  googleMapsUrl: z.string().nullable().optional(),
 });
 
 export async function GET() {
@@ -107,6 +122,13 @@ export async function GET() {
           whatsappMessage: DEFAULT_SETTINGS.whatsappMessage,
           isOpen: DEFAULT_SETTINGS.isOpen,
           estimatedDeliveryTime: DEFAULT_SETTINGS.estimatedDeliveryTime,
+          footerSlogan: DEFAULT_SETTINGS.footerSlogan,
+          footerBadgeText: DEFAULT_SETTINGS.footerBadgeText,
+          showPaymentMethods: DEFAULT_SETTINGS.showPaymentMethods,
+          acceptedPayments: DEFAULT_SETTINGS.acceptedPayments,
+          googleMapsUrl: DEFAULT_SETTINGS.googleMapsUrl,
+          storeAddress: DEFAULT_SETTINGS.storeAddress,
+          openingHoursText: DEFAULT_SETTINGS.openingHoursText,
         },
       });
     }
@@ -116,6 +138,7 @@ export async function GET() {
       deliveryFee: Number(settings.deliveryFee),
       freeDeliveryThreshold: settings.freeDeliveryThreshold ? Number(settings.freeDeliveryThreshold) : null,
       whatsappNumber: settings.whatsappNumber || DEFAULT_SETTINGS.whatsappNumber,
+      supportWhatsapp: settings.whatsappNumber || DEFAULT_SETTINGS.whatsappNumber,
       whatsappMessage: settings.whatsappMessage || DEFAULT_SETTINGS.whatsappMessage,
       isOpen: settings.isOpen,
       currentShiftId: settings.currentShiftId,
@@ -128,6 +151,11 @@ export async function GET() {
       maxDeliveryRadiusKm: settings.maxDeliveryRadiusKm ?? DEFAULT_SETTINGS.maxDeliveryRadiusKm,
       businessHours: settings.businessHours || DEFAULT_SETTINGS.businessHours,
       openingHoursText: settings.openingHoursText || DEFAULT_SETTINGS.openingHoursText,
+      footerSlogan: settings.footerSlogan || DEFAULT_SETTINGS.footerSlogan,
+      footerBadgeText: settings.footerBadgeText || DEFAULT_SETTINGS.footerBadgeText,
+      showPaymentMethods: settings.showPaymentMethods ?? DEFAULT_SETTINGS.showPaymentMethods,
+      acceptedPayments: settings.acceptedPayments?.length ? settings.acceptedPayments : DEFAULT_SETTINGS.acceptedPayments,
+      googleMapsUrl: settings.googleMapsUrl || DEFAULT_SETTINGS.googleMapsUrl,
       orderNotificationTemplates: settings.orderNotificationTemplates || DEFAULT_SETTINGS.orderNotificationTemplates,
       instagramUrl: settings.instagramUrl || DEFAULT_SETTINGS.instagramUrl,
       facebookUrl: settings.facebookUrl || DEFAULT_SETTINGS.facebookUrl,
@@ -145,6 +173,7 @@ export async function GET() {
       deliveryFee: DEFAULT_SETTINGS.deliveryFee,
       freeDeliveryThreshold: DEFAULT_SETTINGS.freeDeliveryThreshold,
       whatsappNumber: DEFAULT_SETTINGS.whatsappNumber,
+      supportWhatsapp: DEFAULT_SETTINGS.whatsappNumber,
       whatsappMessage: DEFAULT_SETTINGS.whatsappMessage,
       isOpen: true,
       currentShiftId: null,
@@ -157,6 +186,11 @@ export async function GET() {
       maxDeliveryRadiusKm: DEFAULT_SETTINGS.maxDeliveryRadiusKm,
       businessHours: DEFAULT_SETTINGS.businessHours,
       openingHoursText: DEFAULT_SETTINGS.openingHoursText,
+      footerSlogan: DEFAULT_SETTINGS.footerSlogan,
+      footerBadgeText: DEFAULT_SETTINGS.footerBadgeText,
+      showPaymentMethods: DEFAULT_SETTINGS.showPaymentMethods,
+      acceptedPayments: DEFAULT_SETTINGS.acceptedPayments,
+      googleMapsUrl: DEFAULT_SETTINGS.googleMapsUrl,
       orderNotificationTemplates: DEFAULT_SETTINGS.orderNotificationTemplates,
       instagramUrl: DEFAULT_SETTINGS.instagramUrl,
       facebookUrl: DEFAULT_SETTINGS.facebookUrl,
@@ -193,6 +227,7 @@ export async function PUT(request: Request) {
       deliveryFee,
       freeDeliveryThreshold,
       whatsappNumber,
+      supportWhatsapp,
       whatsappMessage,
       isOpen,
       currentShiftId,
@@ -215,15 +250,21 @@ export async function PUT(request: Request) {
       supportMessage,
       openedAt,
       closedAt,
+      footerSlogan,
+      footerBadgeText,
+      showPaymentMethods,
+      acceptedPayments,
+      googleMapsUrl,
     } = parsed.data;
 
     const effectiveLat = storeLatitude !== undefined ? storeLatitude : latitude;
     const effectiveLng = storeLongitude !== undefined ? storeLongitude : longitude;
+    const effectiveWhatsapp = whatsappNumber !== undefined ? whatsappNumber : supportWhatsapp;
 
     const dataToUpdate: Record<string, unknown> = {};
     if (deliveryFee !== undefined) dataToUpdate.deliveryFee = deliveryFee;
     if (freeDeliveryThreshold !== undefined) dataToUpdate.freeDeliveryThreshold = freeDeliveryThreshold;
-    if (whatsappNumber !== undefined) dataToUpdate.whatsappNumber = whatsappNumber;
+    if (effectiveWhatsapp !== undefined) dataToUpdate.whatsappNumber = effectiveWhatsapp;
     if (whatsappMessage !== undefined) dataToUpdate.whatsappMessage = whatsappMessage;
     if (isOpen !== undefined) dataToUpdate.isOpen = isOpen;
     if (currentShiftId !== undefined) dataToUpdate.currentShiftId = currentShiftId;
@@ -244,6 +285,11 @@ export async function PUT(request: Request) {
     if (supportMessage !== undefined) dataToUpdate.supportMessage = supportMessage;
     if (openedAt !== undefined) dataToUpdate.openedAt = openedAt ? new Date(openedAt) : null;
     if (closedAt !== undefined) dataToUpdate.closedAt = closedAt ? new Date(closedAt) : null;
+    if (footerSlogan !== undefined) dataToUpdate.footerSlogan = footerSlogan;
+    if (footerBadgeText !== undefined) dataToUpdate.footerBadgeText = footerBadgeText;
+    if (showPaymentMethods !== undefined) dataToUpdate.showPaymentMethods = showPaymentMethods;
+    if (acceptedPayments !== undefined) dataToUpdate.acceptedPayments = acceptedPayments;
+    if (googleMapsUrl !== undefined) dataToUpdate.googleMapsUrl = googleMapsUrl;
 
     const settings = await prisma.storeSettings.upsert({
       where: { id: "store_config" },
@@ -252,7 +298,7 @@ export async function PUT(request: Request) {
         id: "store_config",
         deliveryFee: deliveryFee ?? DEFAULT_SETTINGS.deliveryFee,
         freeDeliveryThreshold: freeDeliveryThreshold !== undefined ? freeDeliveryThreshold : DEFAULT_SETTINGS.freeDeliveryThreshold,
-        whatsappNumber: whatsappNumber || DEFAULT_SETTINGS.whatsappNumber,
+        whatsappNumber: effectiveWhatsapp || DEFAULT_SETTINGS.whatsappNumber,
         whatsappMessage: whatsappMessage || DEFAULT_SETTINGS.whatsappMessage,
         isOpen: isOpen !== undefined ? isOpen : DEFAULT_SETTINGS.isOpen,
         currentShiftId: currentShiftId || null,
@@ -273,6 +319,11 @@ export async function PUT(request: Request) {
         supportMessage: supportMessage || DEFAULT_SETTINGS.supportMessage,
         openedAt: openedAt ? new Date(openedAt) : null,
         closedAt: closedAt ? new Date(closedAt) : null,
+        footerSlogan: footerSlogan || DEFAULT_SETTINGS.footerSlogan,
+        footerBadgeText: footerBadgeText || DEFAULT_SETTINGS.footerBadgeText,
+        showPaymentMethods: showPaymentMethods !== undefined ? showPaymentMethods : DEFAULT_SETTINGS.showPaymentMethods,
+        acceptedPayments: acceptedPayments || DEFAULT_SETTINGS.acceptedPayments,
+        googleMapsUrl: googleMapsUrl || DEFAULT_SETTINGS.googleMapsUrl,
       },
     });
 
@@ -283,6 +334,7 @@ export async function PUT(request: Request) {
         deliveryFee: Number(settings.deliveryFee),
         freeDeliveryThreshold: settings.freeDeliveryThreshold ? Number(settings.freeDeliveryThreshold) : null,
         whatsappNumber: settings.whatsappNumber || DEFAULT_SETTINGS.whatsappNumber,
+        supportWhatsapp: settings.whatsappNumber || DEFAULT_SETTINGS.whatsappNumber,
         whatsappMessage: settings.whatsappMessage || DEFAULT_SETTINGS.whatsappMessage,
         isOpen: settings.isOpen,
         currentShiftId: settings.currentShiftId,
@@ -295,6 +347,11 @@ export async function PUT(request: Request) {
         maxDeliveryRadiusKm: settings.maxDeliveryRadiusKm ?? DEFAULT_SETTINGS.maxDeliveryRadiusKm,
         businessHours: settings.businessHours || DEFAULT_SETTINGS.businessHours,
         openingHoursText: settings.openingHoursText || DEFAULT_SETTINGS.openingHoursText,
+        footerSlogan: settings.footerSlogan || DEFAULT_SETTINGS.footerSlogan,
+        footerBadgeText: settings.footerBadgeText || DEFAULT_SETTINGS.footerBadgeText,
+        showPaymentMethods: settings.showPaymentMethods ?? DEFAULT_SETTINGS.showPaymentMethods,
+        acceptedPayments: settings.acceptedPayments?.length ? settings.acceptedPayments : DEFAULT_SETTINGS.acceptedPayments,
+        googleMapsUrl: settings.googleMapsUrl || DEFAULT_SETTINGS.googleMapsUrl,
         orderNotificationTemplates: settings.orderNotificationTemplates || DEFAULT_SETTINGS.orderNotificationTemplates,
         instagramUrl: settings.instagramUrl || DEFAULT_SETTINGS.instagramUrl,
         facebookUrl: settings.facebookUrl || DEFAULT_SETTINGS.facebookUrl,

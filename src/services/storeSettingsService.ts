@@ -36,8 +36,14 @@ export interface StoreSettings {
   instagramUrl?: string | null;
   facebookUrl?: string | null;
   supportPhone?: string | null;
+  supportWhatsapp?: string | null;
   postSaleMessage?: string | null;
   supportMessage?: string | null;
+  footerSlogan?: string | null;
+  footerBadgeText?: string | null;
+  showPaymentMethods?: boolean;
+  acceptedPayments?: string[];
+  googleMapsUrl?: string | null;
   openedAt?: string | null;
   closedAt?: string | null;
   updatedAt?: string;
@@ -94,11 +100,17 @@ export const storeSettingsService = {
           completed: "Pedido #{codigo_pedido} entregue com sucesso! Obrigado pela preferência, {cliente}! 🍧 Avalie nosso atendimento e ganhe mimos!",
           support: "Olá, {cliente}! Precisa de ajuda com o pedido #{codigo_pedido}? Estamos à disposição pelo WhatsApp ou telefone da loja.",
         },
-        instagramUrl: "https://instagram.com/popshake",
+        instagramUrl: "@popshake",
         facebookUrl: "",
-        supportPhone: "5565999999999",
+        supportPhone: "(65) 3682-0000",
+        supportWhatsapp: "5565999999999",
         postSaleMessage: "Obrigado pelo seu pedido no Pop Shake! Como foi sua experiência hoje? Avalie nosso atendimento e ganhe um cupom de desconto para o próximo pedido! 🍧",
         supportMessage: "Olá! Preciso de ajuda com meu pedido no Pop Shake.",
+        footerSlogan: "Açaí artesanal, cremosidade única e o sabor que transforma o seu dia.",
+        footerBadgeText: "Delivery Próprio e Artesanal",
+        showPaymentMethods: true,
+        acceptedPayments: ["pix", "dinheiro", "credito", "debito"],
+        googleMapsUrl: "https://www.google.com/maps/search/?api=1&query=Av.+Filinto+M%C3%BCller%2C+850+-+Centro+Sul%2C+V%C3%A1rzea+Grande+-+MT",
       };
     }
   },
@@ -123,8 +135,14 @@ export const storeSettingsService = {
     instagramUrl?: string | null;
     facebookUrl?: string | null;
     supportPhone?: string | null;
+    supportWhatsapp?: string | null;
     postSaleMessage?: string | null;
     supportMessage?: string | null;
+    footerSlogan?: string | null;
+    footerBadgeText?: string | null;
+    showPaymentMethods?: boolean;
+    acceptedPayments?: string[];
+    googleMapsUrl?: string | null;
     openedAt?: string | null;
     closedAt?: string | null;
   }): Promise<StoreSettings> {
