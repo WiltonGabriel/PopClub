@@ -13,7 +13,6 @@ import {
   QrCode,
   ChevronDown,
   PhoneCall,
-  ShieldCheck,
 } from "lucide-react";
 import { storeSettingsService, StoreSettings } from "../../services/storeSettingsService";
 

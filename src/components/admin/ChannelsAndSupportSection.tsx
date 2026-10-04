@@ -8,13 +8,11 @@ import {
   Save,
   Loader2,
   Sparkles,
-  Mail,
   Clock,
   MapPin,
   Send,
   RotateCcw,
   CheckCircle2,
-  Copy,
   ChefHat,
   PackageCheck,
   Bike,
@@ -177,7 +175,6 @@ export function ChannelsAndSupportSection() {
   const [supportPhone, setSupportPhone] = useState("(65) 3682-0000");
   const [instagramUrl, setInstagramUrl] = useState("@popshake");
   const [facebookUrl, setFacebookUrl] = useState("");
-  const [supportEmail, setSupportEmail] = useState("contato@popshake.com.br");
 
   // 3. Formas de Pagamento no Rodapé
   const [showPaymentMethods, setShowPaymentMethods] = useState(true);

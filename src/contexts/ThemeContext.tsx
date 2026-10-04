@@ -39,10 +39,8 @@ function ThemeBridge({ children }: { children: React.ReactNode }) {
     theme: nextTheme,
     setTheme: setNextTheme,
     resolvedTheme: nextResolved,
-    systemTheme: nextSystem,
   } = useNextThemes();
 
-  const [mounted, setMounted] = useState(false);
   const [systemMatchesDark, setSystemMatchesDark] = useState<boolean>(() => {
     if (typeof window !== "undefined" && window.matchMedia) {
       return window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -53,7 +51,6 @@ function ThemeBridge({ children }: { children: React.ReactNode }) {
   const theme: Theme = (nextTheme as Theme) || "system";
 
   useEffect(() => {
-    setMounted(true);
     if (typeof window === "undefined" || !window.matchMedia) return;
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -72,15 +69,15 @@ function ThemeBridge({ children }: { children: React.ReactNode }) {
 
     if (mediaQuery.addEventListener) {
       mediaQuery.addEventListener("change", onMediaChange);
-    } else if ((mediaQuery as any).addListener) {
-      (mediaQuery as any).addListener(onMediaChange);
+    } else if ("addListener" in mediaQuery) {
+      (mediaQuery as unknown as { addListener: (cb: (ev: MediaQueryListEvent) => void) => void }).addListener(onMediaChange);
     }
 
     return () => {
       if (mediaQuery.removeEventListener) {
         mediaQuery.removeEventListener("change", onMediaChange);
-      } else if ((mediaQuery as any).removeListener) {
-        (mediaQuery as any).removeListener(onMediaChange);
+      } else if ("removeListener" in mediaQuery) {
+        (mediaQuery as unknown as { removeListener: (cb: (ev: MediaQueryListEvent) => void) => void }).removeListener(onMediaChange);
       }
     };
   }, [nextTheme]);
@@ -95,22 +92,28 @@ function ThemeBridge({ children }: { children: React.ReactNode }) {
           : (theme === "dark" ? "dark" : "light"));
   const isDark = resolvedTheme === "dark";
 
-  const toggleTheme = () => {
+  const setTheme = React.useCallback(
+    (newTheme: Theme) => {
+      setNextTheme(newTheme);
+      if (typeof document !== "undefined") {
+        if (newTheme === "system") {
+          const matches =
+            typeof window !== "undefined" && window.matchMedia
+              ? window.matchMedia("(prefers-color-scheme: dark)").matches
+              : false;
+          document.documentElement.classList.toggle("dark", matches);
+        } else {
+          document.documentElement.classList.toggle("dark", newTheme === "dark");
+        }
+      }
+    },
+    [setNextTheme]
+  );
+
+  const toggleTheme = React.useCallback(() => {
     const next = isDark ? "light" : "dark";
     setTheme(next);
-  };
-
-  const setTheme = (newTheme: Theme) => {
-    setNextTheme(newTheme);
-    if (typeof document !== "undefined") {
-      if (newTheme === "system") {
-        const matches = typeof window !== "undefined" && window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)").matches : false;
-        document.documentElement.classList.toggle("dark", matches);
-      } else {
-        document.documentElement.classList.toggle("dark", newTheme === "dark");
-      }
-    }
-  };
+  }, [isDark, setTheme]);
 
   const value = useMemo(
     () => ({
@@ -121,7 +124,7 @@ function ThemeBridge({ children }: { children: React.ReactNode }) {
       setTheme,
       toggleTheme,
     }),
-    [theme, resolvedTheme, systemTheme, isDark]
+    [theme, resolvedTheme, systemTheme, isDark, setTheme, toggleTheme]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
