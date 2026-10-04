@@ -17,7 +17,7 @@ import {
   HarmonizedThemePreset,
   getContrastTextColor,
 } from "./themePresets";
-import { LoadingSettingsData, AdvancedConfig } from "@/services/loadingSettingsService";
+import type { LoadingSettingsData, AdvancedConfig } from "@/services/loadingSettingsService";
 
 interface Props {
   settings?: LoadingSettingsData;

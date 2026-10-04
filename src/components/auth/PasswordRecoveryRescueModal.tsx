@@ -56,7 +56,7 @@ export function PasswordRecoveryRescueModal({
   // Step 2: Code
   const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState<string | null>(null);
-  const [codeLoading, setCodeLoading] = useState(false);
+  const [codeLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
 
   // Step 3: Password
@@ -82,6 +82,7 @@ export function PasswordRecoveryRescueModal({
       setCodeError(null);
       setPasswordError(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Resend cooldown timer
