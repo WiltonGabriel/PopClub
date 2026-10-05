@@ -362,12 +362,9 @@ export function Footer() {
 
                 {/* Dinheiro */}
                 {acceptedPayments.includes("dinheiro") && (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs shadow-2xs">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-semibold shadow-2xs">
                     <Banknote className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                    <span className="flex flex-col items-start leading-tight">
-                      <span className="font-semibold">Dinheiro</span>
-                      <span className="text-[9px] opacity-80 uppercase tracking-wide">Em Espécie</span>
-                    </span>
+                    <span>Dinheiro</span>
                   </div>
                 )}
 

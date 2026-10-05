@@ -28,6 +28,7 @@ import {
   User,
   IceCream,
   MessageCircle,
+  Bell,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
@@ -64,14 +65,14 @@ const TAB_DEFINITIONS = [
   { id: "promocoes", label: "🏷️ Promoções", perm: "promotions_manage", icon: Tag },
   { id: "cupons", label: "🎟️ Cupons", perm: "coupons_manage", icon: Ticket },
   { id: "identidade_visual", label: "🎨 Identidade Visual", perm: "theme_manage", icon: Palette },
-  { id: "canais_atendimento", label: "📞 Canais & Atendimento", perm: "settings_manage", icon: MessageCircle },
-  { id: "configuracoes", label: "⚙️ Configurações", perm: "settings_manage", icon: Store },
-  { id: "horarios", label: "⏰ Horários de Funcionamento", perm: "settings_manage", icon: Clock },
-  { id: "zonas_entrega", label: "🚚 Zonas de Entrega", perm: "settings_manage", icon: Truck },
-  { id: "usuarios", label: "👥 Usuários", perm: "users_manage", icon: User },
+  { id: "avatares", label: "✨ Avatares Oficiais", perm: "theme_manage", icon: User },
+  { id: "banners_selos", label: "🖼️ Banners & Selos", perm: "theme_manage", icon: ImageIcon },
+  { id: "logistica_entregadores", label: "🛵 Logística & Entregadores", perm: "settings_manage", icon: Truck },
+  { id: "canais_atendimento", label: "💬 Canais & Atendimento", perm: "settings_manage", icon: MessageCircle },
+  { id: "disparos_notificacoes", label: "📢 Disparos & Notificações", perm: "settings_manage", icon: Bell },
 ] as const;
 
-export type AdminTab = typeof TAB_DEFINITIONS[number]["id"] | "banners" | "messages" | "avatars";
+export type AdminTab = typeof TAB_DEFINITIONS[number]["id"];
 
 export default function AdminDashboard() {
   const { theme, toggleTheme, resolvedTheme } = useTheme();
@@ -878,8 +879,8 @@ export default function AdminDashboard() {
               {/* CONTEÚDO DA ABA 4: COMPLEMENTOS (Grupos de Adicionais Globais) */}
               {activeTab === "complementos" && <AddonsManagement />}
 
-              {/* CONTEÚDO DA ABA 4: BANNERS (Faixas e Carrossel da Vitrine) */}
-              {(activeTab as string) === "banners" && (
+              {/* CONTEÚDO DA ABA 4: BANNERS E SELOS (Faixas e Carrossel da Vitrine) */}
+              {(activeTab as string) === "banners_selos" && (
                 <section className="bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 sm:p-7 shadow-sm space-y-8 animate-in fade-in duration-150">
                   {/* SEÇÃO 1: Faixa de Destaque da Vitrine (Home Banner) */}
                   <div className="space-y-4">
@@ -1061,7 +1062,7 @@ export default function AdminDashboard() {
               )}
 
               {/* CONTEÚDO: LOGÍSTICA & ENTREGADORES */}
-              {(activeTab === "zonas_entrega") && (
+              {(activeTab === "logistica_entregadores") && (
                 <div className="space-y-6 animate-in fade-in duration-150">
                   <LogisticsAndCouriersSection />
                   <OrderFlowSettings />
@@ -1076,14 +1077,14 @@ export default function AdminDashboard() {
               )}
 
               {/* CONTEÚDO: DISPAROS & NOTIFICAÇÕES */}
-              {(activeTab as string) === "messages" && (
+              {(activeTab as string) === "disparos_notificacoes" && (
                 <div className="animate-in fade-in duration-150">
                   <CommunicationSection />
                 </div>
               )}
 
               {/* CONTEÚDO DA ABA 7: GESTÃO DO CATÁLOGO DE AVATARES */}
-              {(activeTab as string) === "avatars" && (
+              {(activeTab as string) === "avatares" && (
                 <div className="animate-in fade-in duration-150">
                   <AvatarPresetManager />
                 </div>

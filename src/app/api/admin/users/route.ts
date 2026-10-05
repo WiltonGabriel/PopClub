@@ -69,10 +69,11 @@ export async function GET(request: Request) {
       const maxO = maxOrdersStr ? parseInt(maxOrdersStr, 10) : null;
       // Note: we can't easily filter by relation count in standard Prisma where without specific config in older versions, but assuming Prisma 6 supports _count filtering:
       /* If Prisma doesn't support _count in where we might have a type error, but Prisma >= 4.3 supports it */
-      const countFilter: any = {};
+      const countFilter: { gte?: number; lte?: number } = {};
       if (minO !== null && !isNaN(minO)) countFilter.gte = minO;
       if (maxO !== null && !isNaN(maxO)) countFilter.lte = maxO;
       if (Object.keys(countFilter).length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         where.orders = { ...(where.orders as object || {}), _count: countFilter } as any;
       }
     }
@@ -123,6 +124,7 @@ export async function GET(request: Request) {
       orderBy = [{ createdAt: "asc" }];
     } else if (sort === "orders") {
       // Prisma supports order by relation count
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       orderBy = [{ orders: { _count: "desc" } as any }, { createdAt: "desc" }];
     } else if (sort === "alphabetical") {
       orderBy = [{ fullName: "asc" }, { username: "asc" }];
