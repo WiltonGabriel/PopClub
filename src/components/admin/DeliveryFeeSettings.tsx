@@ -16,14 +16,13 @@ import {
   ExternalLink,
   MapPin,
   Store,
-  Navigation,
   Search,
   Crosshair,
   AlertTriangle,
   X,
   ShieldAlert,
 } from "lucide-react";
-import { storeSettingsService, StoreSettings } from "../../services/storeSettingsService";
+import { storeSettingsService } from "../../services/storeSettingsService";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";

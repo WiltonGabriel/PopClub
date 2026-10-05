@@ -234,7 +234,7 @@ function computeProfileBadge(
 
 export default function AccountPage() {
   const { user, loading, refreshUser, isAdmin, isEditor, canAccess, signOut } = useAuth();
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { theme, setTheme, systemTheme } = useTheme();
   const { 
     addresses, 
     activeAddressId, 
@@ -2147,121 +2147,104 @@ export default function AccountPage() {
                 <Label className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
                   Tema da Aplicação
                 </Label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* Card 1: Padrão do Dispositivo (Automático) */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch">
+                  {/* Card 1: Automático Sistema */}
                   <button
                     type="button"
                     id="theme-card-system"
                     data-testid="theme-card-system"
                     onClick={() => setTheme("system")}
-                    className={`flex flex-col justify-between p-4 sm:p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                    className={`flex flex-col h-full min-h-[160px] p-4 sm:p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
                       theme === "system"
                         ? "border-[#9306CF] bg-purple-50/70 dark:bg-purple-950/40 shadow-md shadow-[#9306CF]/15 ring-1 ring-[#9306CF]/30"
                         : "border-gray-200 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700 bg-white dark:bg-[#181D2D]/80"
                     }`}
                   >
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 shadow-xs">
-                          <Laptop className="w-5 h-5" />
-                        </div>
-                        {theme === "system" && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#9306CF] text-white shadow-xs">
-                            <Check className="w-3 h-3 stroke-[3]" />
-                            Ativo
-                          </span>
-                        )}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 shadow-xs">
+                        <Laptop className="w-5 h-5" />
                       </div>
-                      <span className="font-heading font-bold text-sm text-gray-900 dark:text-white block">
-                        Automático / Sistema
-                      </span>
-                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                        Acompanha o tema do seu aparelho em tempo real (muda sozinho do dia para a noite).
-                      </p>
+                      {theme === "system" && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#9306CF] text-white shadow-xs">
+                          <Check className="w-3 h-3 stroke-[3]" />
+                          Ativo
+                        </span>
+                      )}
                     </div>
-
-                    <div className="mt-4 pt-2.5 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between text-[11px] text-muted-foreground">
-                      <span>Status do Sistema:</span>
-                      <span className="font-semibold text-foreground">
-                        {resolvedTheme === "dark" ? "🌙 Escuro" : "☀️ Claro"}
-                      </span>
-                    </div>
+                    <span className="font-heading font-bold text-sm text-gray-900 dark:text-white block">
+                      Automático Sistema
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                      Acompanha o tema do seu aparelho em tempo real.
+                    </p>
+                    <p
+                      data-testid="theme-system-status"
+                      className="text-[11px] font-semibold text-foreground mt-2"
+                    >
+                      Status atual: {systemTheme === "dark" ? "🌙 Escuro" : "☀️ Claro"}
+                    </p>
                   </button>
 
-                  {/* Card 2: Modo Claro */}
+                  {/* Card 2: Sempre Claro */}
                   <button
                     type="button"
                     id="theme-card-light"
                     data-testid="theme-card-light"
                     onClick={() => setTheme("light")}
-                    className={`flex flex-col justify-between p-4 sm:p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                    className={`flex flex-col h-full min-h-[160px] p-4 sm:p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
                       theme === "light"
                         ? "border-[#9306CF] bg-purple-50/70 dark:bg-purple-950/40 shadow-md shadow-[#9306CF]/15 ring-1 ring-[#9306CF]/30"
                         : "border-gray-200 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700 bg-white dark:bg-[#181D2D]/80"
                     }`}
                   >
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-xs">
-                          <Sun className="w-5 h-5" />
-                        </div>
-                        {theme === "light" && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#9306CF] text-white shadow-xs">
-                            <Check className="w-3 h-3 stroke-[3]" />
-                            Ativo
-                          </span>
-                        )}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-xs">
+                        <Sun className="w-5 h-5" />
                       </div>
-                      <span className="font-heading font-bold text-sm text-gray-900 dark:text-white block">
-                        Sempre Claro
-                      </span>
-                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                        Mantém fundo claro independente do horário ou sistema.
-                      </p>
+                      {theme === "light" && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#9306CF] text-white shadow-xs">
+                          <Check className="w-3 h-3 stroke-[3]" />
+                          Ativo
+                        </span>
+                      )}
                     </div>
-
-                    <div className="mt-4 pt-2.5 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between text-[11px] text-muted-foreground">
-                      <span>Visualização:</span>
-                      <span className="font-semibold text-foreground">☀️ Sempre Claro</span>
-                    </div>
+                    <span className="font-heading font-bold text-sm text-gray-900 dark:text-white block">
+                      Sempre Claro
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                      Mantém fundo claro independente do horário ou sistema.
+                    </p>
                   </button>
 
-                  {/* Card 3: Modo Escuro */}
+                  {/* Card 3: Sempre Escuro */}
                   <button
                     type="button"
                     id="theme-card-dark"
                     data-testid="theme-card-dark"
                     onClick={() => setTheme("dark")}
-                    className={`flex flex-col justify-between p-4 sm:p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                    className={`flex flex-col h-full min-h-[160px] p-4 sm:p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
                       theme === "dark"
                         ? "border-[#9306CF] bg-purple-50/70 dark:bg-purple-950/40 shadow-md shadow-[#9306CF]/15 ring-1 ring-[#9306CF]/30"
                         : "border-gray-200 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700 bg-white dark:bg-[#181D2D]/80"
                     }`}
                   >
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-300 flex items-center justify-center shrink-0 shadow-xs">
-                          <Moon className="w-5 h-5" />
-                        </div>
-                        {theme === "dark" && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#9306CF] text-white shadow-xs">
-                            <Check className="w-3 h-3 stroke-[3]" />
-                            Ativo
-                          </span>
-                        )}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-300 flex items-center justify-center shrink-0 shadow-xs">
+                        <Moon className="w-5 h-5" />
                       </div>
-                      <span className="font-heading font-bold text-sm text-gray-900 dark:text-white block">
-                        Sempre Escuro
-                      </span>
-                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                        Mantém fundo escuro contínuo.
-                      </p>
+                      {theme === "dark" && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#9306CF] text-white shadow-xs">
+                          <Check className="w-3 h-3 stroke-[3]" />
+                          Ativo
+                        </span>
+                      )}
                     </div>
-
-                    <div className="mt-4 pt-2.5 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between text-[11px] text-muted-foreground">
-                      <span>Visualização:</span>
-                      <span className="font-semibold text-foreground">🌙 Sempre Escuro</span>
-                    </div>
+                    <span className="font-heading font-bold text-sm text-gray-900 dark:text-white block">
+                      Sempre Escuro
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                      Mantém fundo escuro contínuo.
+                    </p>
                   </button>
                 </div>
               </div>

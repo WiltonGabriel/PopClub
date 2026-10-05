@@ -31,7 +31,6 @@ import {
   Truck,
 } from "lucide-react";
 import { calculateDistanceKm } from "@/lib/geo";
-import { shippingService } from "@/services/shippingService";
 import { useCart } from "../../hooks/useCart";
 import { useAuth } from "../../hooks/useAuth";
 import { couponService, ValidatedCoupon } from "../../services/couponService";

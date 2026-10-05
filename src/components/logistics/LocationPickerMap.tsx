@@ -16,7 +16,6 @@ import {
   Crosshair,
   Loader2,
   Radio,
-  Layers,
 } from "lucide-react";
 
 export interface ReverseGeocodeResult {
