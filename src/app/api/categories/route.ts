@@ -8,9 +8,12 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const includeInactive = searchParams.get("includeInactive") === "true";
 
-    const categories = await prisma.category.findMany({
-      where: includeInactive ? {} : { isActive: true },
-      orderBy: [{ order: "asc" }, { name: "asc" }],
+    const whereClause: any = includeInactive ? {} : { isActive: true };
+    const orderByClause: any = [{ order: "asc" }, { name: "asc" }];
+
+    const categories = await (prisma.category as any).findMany({
+      where: whereClause,
+      orderBy: orderByClause,
     });
     return apiSuccess(categories);
   } catch (error: unknown) {
@@ -47,15 +50,17 @@ export async function POST(request: Request) {
 
     const autoSlug = slug || name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 
-    const category = await prisma.category.create({
-      data: {
-        name,
-        slug: autoSlug,
-        order: Number(order ?? order_index ?? 0),
-        isDynamic: Boolean(isDynamic),
-        dynamicType: dynamicType || null,
-        isActive: isActive !== undefined ? Boolean(isActive) : true,
-      },
+    const categoryData: any = {
+      name,
+      slug: autoSlug,
+      order: Number(order ?? order_index ?? 0),
+      isDynamic: Boolean(isDynamic),
+      dynamicType: dynamicType || null,
+      isActive: isActive !== undefined ? Boolean(isActive) : true,
+    };
+
+    const category = await (prisma.category as any).create({
+      data: categoryData,
     });
 
     return apiSuccess(category, 201);
