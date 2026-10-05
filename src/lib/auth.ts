@@ -69,6 +69,28 @@ export interface CookieResponseTarget {
 }
 
 /**
+ * Determina de forma inteligente se a requisição atual é HTTPS (direta ou atrás de proxy reverso Traefik/Nginx),
+ * garantindo compatibilidade com redes locais mobile (192.168.x.x, 10.x.x.x, localhost).
+ */
+export function isRequestHttps(request?: Request): boolean {
+  if (!request) {
+    return process.env.NODE_ENV === "production" && (process.env.NEXTAUTH_URL?.startsWith("https") ?? false);
+  }
+  const proto = request.headers.get("x-forwarded-proto");
+  const ssl = request.headers.get("x-forwarded-ssl");
+  const host = request.headers.get("host") || "";
+
+  if (proto === "https" || ssl === "on") return true;
+  if (typeof request.url === "string" && request.url.startsWith("https://")) return true;
+
+  if (host.includes("localhost") || host.includes("127.0.0.1") || /^192\.168\./.test(host) || /^10\./.test(host)) {
+    return false;
+  }
+
+  return process.env.NODE_ENV === "production";
+}
+
+/**
  * Define o cookie de sessão HttpOnly popshake_session (e auth_token para compatibilidade).
  */
 export function setSessionCookies(

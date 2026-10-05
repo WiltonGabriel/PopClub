@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthUser, signToken, setSessionCookies, hashPassword } from "@/lib/auth";
+import { getAuthUser, signToken, setSessionCookies, hashPassword, isRequestHttps } from "@/lib/auth";
 import { completeProfileSchema } from "@/lib/validations/auth";
 import { cookies } from "next/headers";
 
@@ -71,13 +71,7 @@ export async function POST(request: Request) {
       },
     });
 
-    let isHttps = false;
-    try {
-      const proto = request.headers.get("x-forwarded-proto");
-      isHttps = proto === "https" || (typeof request.url === "string" && request.url.startsWith("https://"));
-    } catch {
-      isHttps = false;
-    }
+    const isHttps = isRequestHttps(request);
 
     const token = signToken({
       userId: updatedUser.id,
@@ -101,6 +95,7 @@ export async function POST(request: Request) {
         role: updatedUser.role,
         isRegistered: true,
       },
+      token,
     });
 
     setSessionCookies(response, token, isHttps);

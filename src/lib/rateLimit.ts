@@ -37,9 +37,9 @@ export class RateLimiter {
   }
 }
 
-export const checkoutLimiter = new RateLimiter(60 * 1000, 10); // 10 requests per minute
-export const couponLimiter = new RateLimiter(60 * 1000, 10); // 10 requests per minute
-export const authLimiter = new RateLimiter(60 * 1000, 5); // 5 requests per minute
+export const checkoutLimiter = new RateLimiter(60 * 1000, 20); // 20 requests per minute
+export const couponLimiter = new RateLimiter(60 * 1000, 20); // 20 requests per minute
+export const authLimiter = new RateLimiter(60 * 1000, 20); // 20 requests per minute
 export const forgotPasswordLimiter = new RateLimiter(15 * 60 * 1000, 10); // 10 requests per 15 minutes
 export const addonUploadLimiter = new RateLimiter(60 * 1000, 20); // 20 uploads per minute
 export const addonCrudLimiter = new RateLimiter(60 * 1000, 120); // 120 requests per minute

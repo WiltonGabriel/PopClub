@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
-import { signToken, setSessionCookies, getAuthUser } from "@/lib/auth";
+import { signToken, setSessionCookies, getAuthUser, isRequestHttps } from "@/lib/auth";
 import { fastAccessSchema } from "@/lib/validations/auth";
 import { cookies } from "next/headers";
 import { authLimiter, getIpFromRequest } from "@/lib/rateLimit";
@@ -38,14 +38,7 @@ export async function POST(request: Request) {
     }
 
     const { fullName, phone } = parseResult.data;
-
-    let isHttps = false;
-    try {
-      const proto = request.headers.get("x-forwarded-proto");
-      isHttps = proto === "https" || (typeof request.url === "string" && request.url.startsWith("https://"));
-    } catch {
-      isHttps = false;
-    }
+    const isHttps = isRequestHttps(request);
 
     // Verifica se este dispositivo já possui uma sessão ativa para o mesmo telefone
     const currentAuth = await getAuthUser(request);
@@ -111,6 +104,7 @@ export async function POST(request: Request) {
           avatar: GUEST_DEFAULT_AVATAR,
           isRegistered: false,
         },
+        token,
         isNewUser: true,
       });
 
@@ -193,6 +187,7 @@ export async function POST(request: Request) {
         avatar: userAvatar || (existingUser.isRegistered ? "/avatars/avatar-sorvete.svg" : GUEST_DEFAULT_AVATAR),
         isRegistered: Boolean(existingUser.isRegistered),
       },
+      token,
     });
 
     setSessionCookies(response, token, isHttps);

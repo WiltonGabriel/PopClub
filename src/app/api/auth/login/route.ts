@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { verifyPassword, signToken, setSessionCookies, type CookieResponseTarget } from "@/lib/auth";
+import { verifyPassword, signToken, setSessionCookies, isRequestHttps, type CookieResponseTarget } from "@/lib/auth";
+import { sanitizeAndNormalizePhone } from "@/lib/validations/auth";
 import { cookies } from "next/headers";
 import { authLimiter, getIpFromRequest } from "@/lib/rateLimit";
 
@@ -40,13 +41,26 @@ export async function POST(request: Request) {
     // Busca usuário por e-mail, username ou telefone de forma segura
     let user: Awaited<ReturnType<typeof prisma.user.findFirst>> = null;
     try {
+      const trimmedId = identifier.trim();
+      const withoutAt = trimmedId.replace(/^@+/, "");
       const cleanDigits = identifier.replace(/\D/g, "");
+      const normalizedPhone = sanitizeAndNormalizePhone(identifier);
+
       const orConditions: Prisma.UserWhereInput[] = [
-        { email: identifier.toLowerCase().trim() },
-        { username: identifier.trim() },
+        { email: { equals: trimmedId.toLowerCase(), mode: "insensitive" } },
+        { username: { equals: trimmedId, mode: "insensitive" } },
+        { username: { equals: withoutAt, mode: "insensitive" } },
+        { username: { equals: `@${withoutAt}`, mode: "insensitive" } },
       ];
+
+      if (normalizedPhone && normalizedPhone.length >= 10) {
+        orConditions.push({ phone: normalizedPhone });
+      }
       if (cleanDigits.length >= 10) {
         orConditions.push({ phone: cleanDigits });
+        if (cleanDigits.startsWith("55") && (cleanDigits.length === 12 || cleanDigits.length === 13)) {
+          orConditions.push({ phone: cleanDigits.substring(2) });
+        }
       }
 
       user = await prisma.user.findFirst({
@@ -106,14 +120,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Determina se a requisição atual é HTTPS (direta ou atrás de proxy reverso Traefik)
-    let isHttps = false;
-    try {
-      const proto = request.headers.get("x-forwarded-proto");
-      isHttps = proto === "https" || (typeof request.url === "string" && request.url.startsWith("https://"));
-    } catch {
-      isHttps = false;
-    }
+    const isHttps = isRequestHttps(request);
 
     const response = NextResponse.json({
       user: {

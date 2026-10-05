@@ -270,6 +270,7 @@ export async function POST(request: Request) {
           where: { isActive: true },
           orderBy: { createdAt: "desc" as const },
         },
+        comboItems: true,
       },
     });
 
@@ -368,15 +369,18 @@ export async function POST(request: Request) {
       if (item.selectedAddons && item.selectedAddons.length > 0) {
         finalSelectedAddons = [];
         
-        // Separa itens virtuais (ex: talheres) de adicionais de tabela
+        // Separa itens virtuais (ex: talheres ou complementos de combo virtuais) de adicionais de tabela
         const realAddons = item.selectedAddons.filter((addon) => {
           if (addon.id.startsWith("combo-") || addon.id.startsWith("cutlery")) {
+            const virtualPrice = Number(addon.price) || 0;
+            const virtualQty = addon.quantity || 1;
+            addonsTotalPerUnit += virtualPrice * virtualQty;
             finalSelectedAddons!.push({
               id: addon.id,
               name: addon.name || "Item Virtual",
-              groupName: addon.groupName || "Utensílios",
-              price: 0,
-              quantity: addon.quantity || 1,
+              groupName: addon.groupName || (addon.id.startsWith("cutlery") ? "Utensílios" : "Combo"),
+              price: virtualPrice,
+              quantity: virtualQty,
             });
             return false;
           }
@@ -400,18 +404,29 @@ export async function POST(request: Request) {
           }
         }
 
+        // Multiplicador de cotas gratuitas para combos compostos (ex: combo com 2 copos = 2x cotas gratuitas do grupo)
+        const comboMultiplier =
+          product.isCombo && product.comboItems && product.comboItems.length > 0
+            ? product.comboItems.reduce((acc, ci) => acc + (ci.quantity || 1), 0)
+            : 1;
+
         // Agrupamento por grupo para aplicar a cota de itens grátis (freeQuantity)
-        const selectionsByGroup = new Map<string, Array<{ dbAddon: typeof dbAddons[0]; quantity: number }>>();
+        const selectionsByGroup = new Map<string, Array<{ dbAddon: typeof dbAddons[0]; quantity: number; originalName?: string | null; originalGroupName?: string | null }>>();
         for (const addon of realAddons) {
           const dbAddon = dbAddonsMap.get(addon.id)!;
           const list = selectionsByGroup.get(dbAddon.groupId) || [];
-          list.push({ dbAddon, quantity: addon.quantity || 1 });
+          list.push({
+            dbAddon,
+            quantity: addon.quantity || 1,
+            originalName: addon.name,
+            originalGroupName: addon.groupName,
+          });
           selectionsByGroup.set(dbAddon.groupId, list);
         }
 
         for (const [, groupSelections] of selectionsByGroup.entries()) {
           const group = groupSelections[0]?.dbAddon.group;
-          let freeSlotsLeft = group?.freeQuantity ?? 0;
+          let freeSlotsLeft = (group?.freeQuantity ?? 0) * comboMultiplier;
 
           for (const sel of groupSelections) {
             const rawPrice = Number(sel.dbAddon.price);
@@ -426,20 +441,13 @@ export async function POST(request: Request) {
 
               addonsTotalPerUnit += chargedPrice;
 
-              const existingSnap = finalSelectedAddons.find(
-                (s) => s.id === sel.dbAddon.id && s.price === chargedPrice
-              );
-              if (existingSnap) {
-                existingSnap.quantity += 1;
-              } else {
-                finalSelectedAddons.push({
-                  id: sel.dbAddon.id,
-                  name: sel.dbAddon.name,
-                  groupName: group?.name || "Complementos",
-                  price: chargedPrice,
-                  quantity: 1,
-                });
-              }
+              finalSelectedAddons.push({
+                id: sel.dbAddon.id,
+                name: sel.originalName || sel.dbAddon.name,
+                groupName: sel.originalGroupName || group?.name || "Complementos",
+                price: chargedPrice,
+                quantity: 1,
+              });
             }
           }
         }

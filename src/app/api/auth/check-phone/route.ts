@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sanitizeAndNormalizePhone } from "@/lib/validations/auth";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const rawPhone = searchParams.get("phone") || "";
-    const cleanPhone = rawPhone.replace(/\D/g, "");
+    const cleanPhone = sanitizeAndNormalizePhone(rawPhone) || rawPhone.replace(/\D/g, "");
 
     if (cleanPhone.length < 10 || cleanPhone.length > 11) {
       return NextResponse.json({
@@ -16,7 +17,12 @@ export async function GET(request: Request) {
     }
 
     const user = await prisma.user.findFirst({
-      where: { phone: cleanPhone },
+      where: {
+        OR: [
+          { phone: cleanPhone },
+          { phone: rawPhone.replace(/\D/g, "") },
+        ],
+      },
       select: {
         id: true,
         fullName: true,
