@@ -190,14 +190,19 @@ async function runE2EBattery() {
   });
 
   assert(
-    order1 !== null && order1.status === "pending",
+    order1 !== null && order1.user !== null && order1.status === "pending",
     "Banco de Dados: Pedido 1 registrado com status 'pending'",
     `Status: ${order1?.status} | Subtotal: R$ ${order1?.subtotal}`
   );
+
+  if (!order1 || !order1.user) {
+    throw new Error("Pedido 1 ou usuário não encontrado no banco");
+  }
+
   assert(
-    order1?.user?.isRegistered === false && order1?.user?.passwordHash === null,
+    order1.user.isRegistered === false && order1.user.passwordHash === null,
     "Banco de Dados: Pedido 1 associado ao cliente não registrado (Acesso Rápido)",
-    `User ID: ${order1?.userId} | isRegistered: ${order1?.user?.isRegistered}`
+    `User ID: ${order1.userId} | isRegistered: ${order1.user.isRegistered}`
   );
   assert(
     Number(order1?.items[0]?.product.price) === 26.0 &&
@@ -408,10 +413,14 @@ async function runE2EBattery() {
   });
 
   assert(
-    order2 !== null && order2.userId === guestUserId && order2?.user?.isRegistered === true,
+    order2 !== null && order2.user !== null && order2.userId === guestUserId && order2.user.isRegistered === true,
     "Banco de Dados: Pedido 2 vinculado com sucesso ao mesmo usuário, agora registrado",
     `User ID: ${order2?.userId} | isRegistered: ${order2?.user?.isRegistered}`
   );
+
+  if (!order2 || !order2.user) {
+    throw new Error("Pedido 2 ou usuário não encontrado no banco");
+  }
 
   const discountApplied = Number((39.99 - 29.69).toFixed(2)); // R$ 10,30
   assert(
