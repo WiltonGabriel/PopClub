@@ -299,7 +299,6 @@ export default function AccountPage() {
   // Edit profile state
   const [fullName, setFullName] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState("/avatars/avatar-sorvete.svg");
-  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
   // Estados de Segurança e Edição de Perfil
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
@@ -510,36 +509,6 @@ export default function AccountPage() {
       loadUserData();
     }
   }, [user, loading, router, loadUserData]);
-
-  // Atualizar dados de perfil (Nome e Avatar)
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    setIsUpdatingProfile(true);
-    try {
-      const updated = await userService.updateProfile(user.id, { 
-        full_name: fullName,
-        avatar: selectedAvatar,
-        avatar_url: selectedAvatar
-      });
-      setProfile(updated);
-      await refreshUser();
-      showToast({
-        type: "success",
-        title: "Perfil Atualizado!",
-        message: "Suas informações e avatar foram salvos com sucesso.",
-      });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Não foi possível salvar os dados do perfil.";
-      showToast({
-        type: "error",
-        title: "Erro ao atualizar",
-        message,
-      });
-    } finally {
-      setIsUpdatingProfile(false);
-    }
-  };
 
   // Ação: Alterar Nome Completo com Confirmação de Senha e Carência
   const handleChangeName = async (e: React.FormEvent) => {

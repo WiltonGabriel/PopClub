@@ -60,17 +60,50 @@ for (const scheme of ["light", "dark"]) {
   const lightText = await light.innerText();
   const darkText = await dark.innerText();
 
-  sysText.includes("Automático Sistema") && !sysText.includes("/") ? ok('Título "Automático Sistema"') : fail(`Título: ${sysText}`);
-  sysText.includes("Acompanha o tema do seu aparelho em tempo real.") && !sysText.includes("muda sozinho") ? ok("Descrição enxuta") : fail("Descrição do card automático");
+  if (sysText.includes("Automático Sistema") && !sysText.includes("/")) {
+    ok('Título "Automático Sistema"');
+  } else {
+    fail(`Título: ${sysText}`);
+  }
+
+  if (sysText.includes("Acompanha o tema do seu aparelho em tempo real.") && !sysText.includes("muda sozinho")) {
+    ok("Descrição enxuta");
+  } else {
+    fail("Descrição do card automático");
+  }
+
   const expected = scheme === "dark" ? "Status atual: 🌙 Escuro" : "Status atual: ☀️ Claro";
-  sysText.includes(expected) ? ok(`"${expected}"`) : fail(`Status esperado "${expected}", obtido: ${sysText}`);
-  !/Visualização/i.test(lightText) ? ok('Card "Sempre Claro" sem linha "Visualização"') : fail("Linha Visualização presente no card claro");
-  !/Visualização/i.test(darkText) ? ok('Card "Sempre Escuro" sem linha "Visualização"') : fail("Linha Visualização presente no card escuro");
-  sysText.includes("Ativo") ? ok('Badge "Ativo" no card automático') : fail("Badge Ativo ausente");
+  if (sysText.includes(expected)) {
+    ok(`"${expected}"`);
+  } else {
+    fail(`Status esperado "${expected}", obtido: ${sysText}`);
+  }
+
+  if (!/Visualização/i.test(lightText)) {
+    ok('Card "Sempre Claro" sem linha "Visualização"');
+  } else {
+    fail("Linha Visualização presente no card claro");
+  }
+
+  if (!/Visualização/i.test(darkText)) {
+    ok('Card "Sempre Escuro" sem linha "Visualização"');
+  } else {
+    fail("Linha Visualização presente no card escuro");
+  }
+
+  if (sysText.includes("Ativo")) {
+    ok('Badge "Ativo" no card automático');
+  } else {
+    fail("Badge Ativo ausente");
+  }
 
   // Alturas uniformes
   const heights = await Promise.all([system, light, dark].map((l) => l.evaluate((el) => Math.round(el.getBoundingClientRect().height))));
-  new Set(heights).size === 1 && heights[0] >= 160 ? ok(`Alturas uniformes: ${heights.join("px / ")}px`) : fail(`Alturas divergentes: ${heights}`);
+  if (new Set(heights).size === 1 && heights[0] >= 160) {
+    ok(`Alturas uniformes: ${heights.join("px / ")}px`);
+  } else {
+    fail(`Alturas divergentes: ${heights}`);
+  }
 
   // Sem elementos com position:absolute dentro dos cards
   const abs = await page.evaluate(() =>
@@ -78,7 +111,11 @@ for (const scheme of ["light", "dark"]) {
       [...document.getElementById(id).querySelectorAll("*")].filter((e) => getComputedStyle(e).position === "absolute").map(() => id)
     )
   );
-  abs.length === 0 ? ok("Nenhum elemento absolute dentro dos cards") : fail(`Elementos absolute: ${abs}`);
+  if (abs.length === 0) {
+    ok("Nenhum elemento absolute dentro dos cards");
+  } else {
+    fail(`Elementos absolute: ${abs}`);
+  }
 
   // Screenshot: modo claro é o oficial; o escuro vai com sufixo
   const section = page.locator("#theme-card-system").locator("xpath=ancestor::div[contains(@class,'space-y-3')][1]");
