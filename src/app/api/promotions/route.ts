@@ -29,7 +29,6 @@ export async function GET(request: Request) {
     });
 
     const formatted = promotions.map((p) => {
-      // Calcula o preço final com desconto da promoção
       let finalPrice = p.product ? Number(p.product.price) : 0;
       const originalTotal = finalPrice;
       if (p.discountType === "percentage") {
@@ -37,7 +36,7 @@ export async function GET(request: Request) {
         finalPrice = originalTotal * (1 - pct / 100);
       } else {
         const fixed = Number(p.discountValue);
-        finalPrice = Math.max(0, originalTotal - fixed);
+        finalPrice = Math.max(0, fixed < originalTotal ? fixed : originalTotal - fixed);
       }
 
       return {
@@ -51,6 +50,7 @@ export async function GET(request: Request) {
         discountType: p.discountType,
         discountValue: Number(p.discountValue),
         isActive: p.isActive,
+        startsAt: p.startsAt ? p.startsAt.toISOString() : null,
         expiresAt: p.expiresAt ? p.expiresAt.toISOString() : null,
         showDuration: p.showDuration,
         durationDisplay: p.durationDisplay,
@@ -102,6 +102,7 @@ export async function POST(request: Request) {
       discountType,
       discountValue,
       isActive,
+      startsAt,
       expiresAt,
       showDuration,
       durationDisplay,
@@ -115,6 +116,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Título e Badge são obrigatórios." }, { status: 400 });
     }
 
+    if (!productId || typeof productId !== "string") {
+      return NextResponse.json({ error: "O produto alvo da promoção é obrigatório." }, { status: 400 });
+    }
+
     const promo = await prisma.promotion.create({
       data: {
         title: String(title),
@@ -126,10 +131,11 @@ export async function POST(request: Request) {
         discountType: (discountType as DiscountType) || "percentage",
         discountValue: Number(discountValue || 0),
         isActive: isActive !== undefined ? Boolean(isActive) : true,
+        startsAt: startsAt ? new Date(String(startsAt)) : new Date(),
         expiresAt: expiresAt ? new Date(String(expiresAt)) : null,
         showDuration: Boolean(showDuration),
         durationDisplay: Array.isArray(durationDisplay) ? durationDisplay.map(String) : [],
-        productId: productId ? String(productId) : null,
+        productId: String(productId),
         autoBanner: Boolean(autoBanner),
         showScarcity: Boolean(showScarcity),
         scarcityUnits: scarcityUnits !== undefined && scarcityUnits !== null ? Number(scarcityUnits) : null,

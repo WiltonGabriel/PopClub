@@ -29,6 +29,14 @@ interface ProductDetailModalProps {
   onClose: () => void;
 }
 
+interface ComboUnit {
+  key: string;
+  unitIndex: number;
+  totalInCombo: number;
+  product: Product;
+  title: string;
+}
+
 export function ProductDetailModal({
   product,
   isOpen,
@@ -40,14 +48,22 @@ export function ProductDetailModal({
   const [quantity, setQuantity] = useState<number>(1);
   const [notes, setNotes] = useState<string>("");
   const [loadingAddons, setLoadingAddons] = useState(false);
+  
+  // Para produtos convencionais
   const [groups, setGroups] = useState<AddonGroup[]>([]);
   // Record<groupId, itemId[]>
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>({});
 
+  // Para combos como bundles inteligentes
+  const [comboUnits, setComboUnits] = useState<ComboUnit[]>([]);
+  // Record<unitKey, Record<groupId, itemId[]>>
+  const [comboSelections, setComboSelections] = useState<Record<string, Record<string, string[]>>>({});
+  const [needsCutlery, setNeedsCutlery] = useState<boolean>(true);
+  const [cutleryCount, setCutleryCount] = useState<number>(2);
+
   const initSelections = useCallback((addonGroups: AddonGroup[]) => {
     const initial: Record<string, string[]> = {};
     addonGroups.forEach((group) => {
-      // Se for obrigatório de escolha única (min=1, max=1), pré-seleciona a 1ª opção disponível
       if (group.isRequired && group.minQuantity === 1 && group.maxQuantity === 1) {
         const firstAvail = group.items.find((i) => i.isAvailable);
         if (firstAvail) {
@@ -60,37 +76,112 @@ export function ProductDetailModal({
     setSelectedOptions(initial);
   }, []);
 
-  // Carrega os grupos reais associados ao produto via API
+  const processComboUnits = useCallback((items: NonNullable<Product["comboItems"]>) => {
+    const units: ComboUnit[] = [];
+    let globalIdx = 1;
+    const total = items.reduce((acc, it) => acc + (it.quantity || 1), 0);
+    
+    items.forEach((item) => {
+      const qty = item.quantity || 1;
+      const childProd = item.product || {
+        id: item.productId,
+        name: "Item do Combo",
+        price: 0,
+        description: "",
+        imageUrl: "",
+      };
+
+      for (let i = 0; i < qty; i++) {
+        const key = `${item.id || item.productId}_${i}`;
+        const title = qty > 1 ? `${childProd.name} #${i + 1}` : childProd.name;
+        units.push({
+          key,
+          unitIndex: globalIdx,
+          totalInCombo: total,
+          product: childProd,
+          title,
+        });
+        globalIdx++;
+      }
+    });
+
+    setComboUnits(units);
+    setCutleryCount(Math.max(1, total));
+
+    const initialComboSel: Record<string, Record<string, string[]>> = {};
+    units.forEach((u) => {
+      initialComboSel[u.key] = {};
+      (u.product.addonGroups || []).forEach((g) => {
+        if (g.isRequired && g.minQuantity === 1 && g.maxQuantity === 1) {
+          const firstAvail = g.items.find((it) => it.isAvailable);
+          if (firstAvail) {
+            initialComboSel[u.key][g.id] = [firstAvail.id];
+            return;
+          }
+        }
+        initialComboSel[u.key][g.id] = [];
+      });
+    });
+    setComboSelections(initialComboSel);
+  }, []);
+
+  // Carrega os dados reais do produto ou combo
   useEffect(() => {
     if (isOpen && product) {
       setQuantity(1);
       setNotes("");
 
-      if (product.addonGroups && product.addonGroups.length > 0) {
-        setGroups(product.addonGroups);
-        initSelections(product.addonGroups);
+      if (product.isCombo) {
+        if (product.comboItems && product.comboItems.length > 0) {
+          processComboUnits(product.comboItems);
+        } else {
+          setLoadingAddons(true);
+          productService
+            .getProductById(product.id)
+            .then((fullProduct) => {
+              if (fullProduct.comboItems && fullProduct.comboItems.length > 0) {
+                processComboUnits(fullProduct.comboItems);
+              } else {
+                setComboUnits([]);
+              }
+            })
+            .catch((err) => {
+              console.warn("Aviso ao carregar itens do combo:", err);
+              setComboUnits([]);
+            })
+            .finally(() => {
+              setLoadingAddons(false);
+            });
+        }
       } else {
-        setLoadingAddons(true);
-        productService
-          .getProductById(product.id)
-          .then((fullProduct) => {
-            const loadedGroups = fullProduct.addonGroups || [];
-            setGroups(loadedGroups);
-            initSelections(loadedGroups);
-          })
-          .catch((err) => {
-            console.warn("Aviso ao carregar complementos reais do produto:", err);
-            setGroups([]);
-          })
-          .finally(() => {
-            setLoadingAddons(false);
-          });
+        if (product.addonGroups && product.addonGroups.length > 0) {
+          setGroups(product.addonGroups);
+          initSelections(product.addonGroups);
+        } else {
+          setLoadingAddons(true);
+          productService
+            .getProductById(product.id)
+            .then((fullProduct) => {
+              const loadedGroups = fullProduct.addonGroups || [];
+              setGroups(loadedGroups);
+              initSelections(loadedGroups);
+            })
+            .catch((err) => {
+              console.warn("Aviso ao carregar complementos reais do produto:", err);
+              setGroups([]);
+            })
+            .finally(() => {
+              setLoadingAddons(false);
+            });
+        }
       }
     } else {
       setGroups([]);
       setSelectedOptions({});
+      setComboUnits([]);
+      setComboSelections({});
     }
-  }, [isOpen, product, initSelections]);
+  }, [isOpen, product, initSelections, processComboUnits]);
 
   // Bloqueio do scroll da página quando modal aberto
   useEffect(() => {
@@ -116,17 +207,15 @@ export function ProductDetailModal({
 
   if (!isOpen || !product) return null;
 
-  // Lógica de Seleção / Toggle de Opção
+  // Toggle de Opção para Produto Normal
   const handleToggleOption = (group: AddonGroup, item: AddonItem) => {
     if (!item.isAvailable) return;
 
     const current = selectedOptions[group.id] || [];
     const isSingle = group.maxQuantity === 1;
 
-    // Escolha única (Radio)
     if (isSingle) {
       if (current.includes(item.id)) {
-        // Se for obrigatório, não permite desmarcar deixando 0
         if (group.isRequired && group.minQuantity >= 1) return;
         setSelectedOptions((prev) => ({ ...prev, [group.id]: [] }));
       } else {
@@ -135,7 +224,6 @@ export function ProductDetailModal({
       return;
     }
 
-    // Múltipla escolha (Checkbox)
     if (current.includes(item.id)) {
       setSelectedOptions((prev) => ({
         ...prev,
@@ -151,6 +239,43 @@ export function ProductDetailModal({
     }
   };
 
+  // Toggle de Opção para Unidade do Combo
+  const handleToggleComboOption = (unitKey: string, group: AddonGroup, item: AddonItem) => {
+    if (!item.isAvailable) return;
+
+    const unitSel = comboSelections[unitKey] || {};
+    const current = unitSel[group.id] || [];
+    const isSingle = group.maxQuantity === 1;
+
+    let updatedGroup: string[];
+    if (isSingle) {
+      if (current.includes(item.id)) {
+        if (group.isRequired && group.minQuantity >= 1) return;
+        updatedGroup = [];
+      } else {
+        updatedGroup = [item.id];
+      }
+    } else {
+      if (current.includes(item.id)) {
+        updatedGroup = current.filter((id) => id !== item.id);
+      } else {
+        if (current.length < group.maxQuantity) {
+          updatedGroup = [...current, item.id];
+        } else {
+          return;
+        }
+      }
+    }
+
+    setComboSelections((prev) => ({
+      ...prev,
+      [unitKey]: {
+        ...(prev[unitKey] || {}),
+        [group.id]: updatedGroup,
+      },
+    }));
+  };
+
   // Cálculo de Preço Reativo e Snapshot de Adicionais
   const pricing = calculateProductPrice(product);
   const basePrice = pricing.currentPrice;
@@ -158,43 +283,94 @@ export function ProductDetailModal({
   let extrasTotal = 0;
   const flatSelectedOptionsList: SelectedOption[] = [];
 
-  groups.forEach((group) => {
-    const selectedIds = selectedOptions[group.id] || [];
-    const freeQuota = group.freeQuantity || 0;
+  if (product.isCombo) {
+    comboUnits.forEach((unit) => {
+      const unitGroups = unit.product.addonGroups || [];
+      unitGroups.forEach((group) => {
+        const selectedIds = comboSelections[unit.key]?.[group.id] || [];
+        const freeQuota = group.freeQuantity || 0;
 
-    selectedIds.forEach((id, index) => {
-      const item = group.items.find((i) => i.id === id);
-      if (item) {
-        // Os primeiros `freeQuota` itens selecionados no grupo têm custo 0
-        const itemPrice = parseSafeNumber(item.price);
-        const isFree = index < freeQuota || itemPrice === 0;
-        const effectivePrice = isFree ? 0 : itemPrice;
-        extrasTotal += effectivePrice;
+        selectedIds.forEach((id, index) => {
+          const item = group.items.find((i) => i.id === id);
+          if (item) {
+            const itemPrice = parseSafeNumber(item.price);
+            const isFree = index < freeQuota || itemPrice === 0;
+            const effectivePrice = isFree ? 0 : itemPrice;
+            extrasTotal += effectivePrice;
 
-        flatSelectedOptionsList.push({
-          id: item.id,
-          groupName: group.name,
-          name: item.name,
-          price: effectivePrice,
-          quantity: 1,
+            flatSelectedOptionsList.push({
+              id: item.id,
+              groupName: `${unit.title} • ${group.name}`,
+              name: `${item.name} (${unit.title})`,
+              price: effectivePrice,
+              quantity: 1,
+            });
+          }
         });
-      }
+      });
     });
-  });
+
+    if (needsCutlery) {
+      flatSelectedOptionsList.push({
+        id: "combo-cutlery",
+        groupName: "Utensílios",
+        name: `Talheres descartáveis (${cutleryCount} un.)`,
+        price: 0,
+        quantity: 1,
+      });
+    }
+  } else {
+    groups.forEach((group) => {
+      const selectedIds = selectedOptions[group.id] || [];
+      const freeQuota = group.freeQuantity || 0;
+
+      selectedIds.forEach((id, index) => {
+        const item = group.items.find((i) => i.id === id);
+        if (item) {
+          const itemPrice = parseSafeNumber(item.price);
+          const isFree = index < freeQuota || itemPrice === 0;
+          const effectivePrice = isFree ? 0 : itemPrice;
+          extrasTotal += effectivePrice;
+
+          flatSelectedOptionsList.push({
+            id: item.id,
+            groupName: group.name,
+            name: item.name,
+            price: effectivePrice,
+            quantity: 1,
+          });
+        }
+      });
+    });
+  }
 
   const unitPrice = basePrice + extrasTotal;
   const totalPrice = unitPrice * quantity;
   const isPromo = pricing.isPromotional;
-  const originalUnitPrice = isPromo ? baseOriginalPrice + extrasTotal : undefined;
+  const originalUnitPrice = isPromo && baseOriginalPrice ? baseOriginalPrice + extrasTotal : undefined;
 
-  // Validação de grupos obrigatórios e mínimos
-  const unsatisfiedRequiredGroups = groups.filter((group) => {
-    const count = (selectedOptions[group.id] || []).length;
-    const minRequired = group.isRequired ? Math.max(1, group.minQuantity) : group.minQuantity;
-    return count < minRequired;
-  });
-
-  const isValid = unsatisfiedRequiredGroups.length === 0;
+  // Validação de grupos obrigatórios
+  let isValid = true;
+  if (product.isCombo) {
+    for (const unit of comboUnits) {
+      for (const group of unit.product.addonGroups || []) {
+        const count = (comboSelections[unit.key]?.[group.id] || []).length;
+        const minRequired = group.isRequired ? Math.max(1, group.minQuantity) : group.minQuantity;
+        if (count < minRequired) {
+          isValid = false;
+          break;
+        }
+      }
+      if (!isValid) break;
+    }
+  } else {
+    const unsatisfied = groups.filter((group) => {
+      const count = (selectedOptions[group.id] || []).length;
+      const minRequired = group.isRequired ? Math.max(1, group.minQuantity) : group.minQuantity;
+      return count < minRequired;
+    });
+    isValid = unsatisfied.length === 0;
+  }
 
   // Adicionar ao Carrinho
   const handleAddToCart = () => {
@@ -269,84 +445,73 @@ export function ProductDetailModal({
           <X className="w-5 h-5" />
         </button>
 
-        {/* ── COLUNA ESQUERDA (Foto e Badges) ── */}
-        <div className="w-full md:w-1/2 h-44 sm:h-52 md:h-auto md:min-h-[440px] relative bg-muted/40 shrink-0 overflow-hidden">
-          {product.imageUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={product.imageUrl}
-              alt={product.name}
-              className="w-full h-full object-cover object-center md:rounded-l-3xl"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/20 md:rounded-l-3xl">
-              <span className="font-heading font-black text-6xl text-primary dark:text-violet-400">
-                {product.name[0]}
-              </span>
-            </div>
-          )}
-
-          {/* Gradiente sutil */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none md:bg-gradient-to-t md:from-black/40 md:via-transparent md:to-black/20" />
-
-          {/* Badges Sobrepostas */}
-          <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-20 flex flex-wrap gap-2 pointer-events-none">
-            {isPromo && (
-              <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-xs uppercase tracking-wider px-2.5 py-1 rounded-full shadow-md">
-                <Sparkles className="w-3.5 h-3.5" />
-                Oferta Especial
-              </span>
+        {/* ── COLUNA DA ESQUERDA: FOTO, RENDIMENTO & BADGES ── */}
+        <div className="md:w-5/12 shrink-0 bg-gray-50 dark:bg-zinc-900/50 flex flex-col justify-between border-b md:border-b-0 md:border-r border-gray-200 dark:border-zinc-800 relative">
+          <div className="relative aspect-4/3 md:aspect-square w-full bg-zinc-100 dark:bg-zinc-800/80 overflow-hidden flex items-center justify-center">
+            {product.imageUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={product.imageUrl}
+                alt={product.name}
+                className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center text-muted-foreground gap-2">
+                <Utensils className="w-12 h-12 stroke-[1.5] text-muted-foreground/40" />
+                <span className="text-xs font-medium">Sem foto</span>
+              </div>
             )}
-            {product.category && (
-              <span className="inline-flex items-center gap-1 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md text-foreground font-semibold text-[11px] px-2.5 py-1 rounded-full shadow-sm border border-white/20">
-                <Tag className="w-3 h-3 text-primary" />
-                {product.category}
-              </span>
+
+            {/* Badges Flutuantes sobre a Imagem */}
+            <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10">
+              {product.category && (
+                <span className="bg-black/60 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm">
+                  {product.category}
+                </span>
+              )}
+              {product.cardBadge && (
+                <span
+                  style={{
+                    backgroundColor: product.cardBadge.bgColor,
+                    color: product.cardBadge.textColor,
+                  }}
+                  className="px-2.5 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 shadow-sm"
+                >
+                  {product.cardBadge.icon && <span>{product.cardBadge.icon}</span>}
+                  <span>{product.cardBadge.text}</span>
+                </span>
+              )}
+            </div>
+
+            {/* Rendimento Flutuante */}
+            {product.servesText && (
+              <div className="absolute bottom-3 left-3 bg-black/65 backdrop-blur-md text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+                <Users className="w-3.5 h-3.5 text-primary" />
+                <span>{product.servesText}</span>
+              </div>
             )}
           </div>
 
-          {/* Selo do Card */}
-          {product.cardBadge && (
-            <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 pointer-events-none">
-              <span
-                style={{
-                  backgroundColor: product.cardBadge.bgColor,
-                  color: product.cardBadge.textColor,
-                }}
-                className="rounded-full px-3 py-1 text-xs font-bold flex items-center gap-1.5 shadow-md"
-              >
-                {product.cardBadge.icon && <span>{product.cardBadge.icon}</span>}
-                <span>{product.cardBadge.text}</span>
-              </span>
+          {/* Destaque de Garantia / Benefício PopClub */}
+          <div className="hidden md:flex flex-col gap-2 p-5 bg-white/60 dark:bg-zinc-900/40 border-t border-gray-200/60 dark:border-zinc-800/60">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+              <span>Garantia de Qualidade e Sabor PopClub</span>
             </div>
-          )}
-
-          {/* Badge de Pronta Entrega */}
-          <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 z-20 flex items-center gap-2 text-white text-xs font-medium drop-shadow pointer-events-none">
-            <span className="flex items-center gap-1 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">
-              <Clock className="w-3.5 h-3.5 text-emerald-400" />
-              Preparo em ~15 min
-            </span>
-            <span className="flex items-center gap-1 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">
-              <ShieldCheck className="w-3.5 h-3.5 text-primary/80" />
-              Embalagem Selada
-            </span>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Clock className="w-4 h-4 text-primary shrink-0" />
+              <span>Preparo imediato com ingredientes frescos</span>
+            </div>
           </div>
         </div>
 
-        {/* ── COLUNA DIREITA (Informações e Grupos de Complementos Reais) ── */}
-        <div className="w-full md:w-1/2 flex flex-col flex-1 min-h-0 bg-white dark:bg-[#181D2D] overflow-hidden">
-          {/* Painel Rolável */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 space-y-6 scrollbar-thin pb-32 md:pb-8">
-            {/* Cabeçalho do Produto */}
-            <div className="space-y-2 border-b border-gray-100 dark:border-zinc-800 pb-4">
-              <div className="flex flex-col gap-1.5">
-                {product.servesText && (
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary dark:text-violet-300 text-xs font-semibold w-fit">
-                    <Users className="w-3.5 h-3.5 shrink-0" />
-                    <span>{product.servesText}</span>
-                  </div>
-                )}
+        {/* ── COLUNA DA DIREITA: DETALHES, ADICIONAIS & COMBOS ── */}
+        <div className="md:w-7/12 flex flex-col justify-between flex-1 min-h-0 bg-white dark:bg-[#181D2D]">
+          {/* Área com Scroll dos Complementos */}
+          <div className="overflow-y-auto p-4 sm:p-6 space-y-6 flex-1 pb-32 md:pb-6">
+            {/* Título & Preço */}
+            <div className="space-y-2">
+              <div className="flex items-start justify-between gap-3">
                 <h2
                   id="modal-product-title"
                   className="font-heading font-black text-xl sm:text-2xl text-foreground leading-tight"
@@ -383,187 +548,437 @@ export function ProductDetailModal({
               )}
             </div>
 
-            {/* GRUPOS REAIS DE COMPLEMENTOS VINCULADOS */}
-            {loadingAddons ? (
-              <div className="p-6 flex items-center justify-center gap-2 text-muted-foreground">
-                <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                <span className="text-xs">Carregando adicionais disponíveis...</span>
-              </div>
-            ) : groups.length === 0 ? null : (
-              <div className="space-y-5">
-                {groups.map((group) => {
-                  const selectedInGroup = selectedOptions[group.id] || [];
-                  const currentCount = selectedInGroup.length;
-                  const isSingleChoice = group.maxQuantity === 1;
-                  const minReq = group.isRequired ? Math.max(1, group.minQuantity) : group.minQuantity;
-                  const isSatisfied = currentCount >= minReq;
-                  const freeQuota = group.freeQuantity || 0;
+            {/* ── MODO 1: MONTAGEM INTELIGENTE DE COMBOS ── */}
+            {product.isCombo ? (
+              <div className="space-y-6">
+                <div className="p-3.5 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                      Personalize Cada Item do Combo ({comboUnits.length} itens)
+                    </span>
+                  </div>
+                  {product.servesText && (
+                    <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                      <Users className="w-3.5 h-3.5" />
+                      {product.servesText}
+                    </span>
+                  )}
+                </div>
 
-                  return (
-                    <section
-                      key={group.id}
-                      className="border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 bg-zinc-50/50 dark:bg-zinc-900/30 space-y-3"
-                    >
-                      {/* Cabeçalho do Grupo com Hierarquia Vertical Padrão iFood */}
-                      <div className="space-y-1.5">
-                        {/* Linha Superior: Nome do Grupo e Badge de Obrigatoriedade */}
-                        <div className="flex items-center justify-between gap-2">
-                          <h3 className="font-heading font-bold text-base text-foreground leading-snug">
-                            {group.name}
-                          </h3>
+                {loadingAddons ? (
+                  <div className="p-6 flex items-center justify-center gap-2 text-muted-foreground">
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                    <span className="text-xs">Carregando itens do combo...</span>
+                  </div>
+                ) : comboUnits.length === 0 ? (
+                  <div className="p-4 rounded-xl border border-dashed border-gray-200 text-center text-xs text-muted-foreground">
+                    Este combo não possui itens configurados.
+                  </div>
+                ) : (
+                  comboUnits.map((unit, unitIdx) => {
+                    const unitGroups = unit.product.addonGroups || [];
 
-                          {minReq >= 1 ? (
-                            <span
-                              className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border shrink-0 ${
-                                isSatisfied
-                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                                  : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 animate-pulse"
-                              }`}
-                            >
-                              {isSatisfied ? "Obrigatório" : `Obrigatório • Escolha ${minReq}`}
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-medium uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-muted-foreground border border-zinc-200 dark:border-zinc-700/60 shrink-0">
-                              Opcional
-                            </span>
-                          )}
+                    return (
+                      <div
+                        key={unit.key}
+                        className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/40 dark:bg-zinc-900/30 p-4 space-y-4"
+                      >
+                        {/* Header da Unidade */}
+                        <div className="flex items-center gap-3 pb-3 border-b border-border/40">
+                          <div className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center font-heading font-black text-sm shrink-0 shadow-xs">
+                            {unitIdx + 1}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-heading font-bold text-sm sm:text-base text-foreground truncate">
+                              {unit.title}
+                            </h3>
+                            <p className="text-[11px] text-muted-foreground">
+                              Escolha os complementos específicos para este item
+                            </p>
+                          </div>
                         </div>
 
-                        {/* Linha Intermediária: Badges Flexíveis (Contador e Benefício) */}
-                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                          <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-zinc-200/80 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
-                            {currentCount} de {group.maxQuantity} selecionado{group.maxQuantity === 1 ? "" : "s"}
-                          </span>
-
-                          {freeQuota > 0 && (
-                            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                              Até {freeQuota} incluso{freeQuota === 1 ? "" : "s"}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Linha Inferior: Descrição em largura total */}
-                        {group.description && (
-                          <p className="w-full text-xs text-muted-foreground pt-0.5 leading-relaxed">
-                            {group.description}
+                        {/* Grupos de Complementos da Unidade */}
+                        {unitGroups.length === 0 ? (
+                          <p className="text-xs text-muted-foreground italic">
+                            Sem complementos personalizáveis para este item.
                           </p>
+                        ) : (
+                          <div className="space-y-4">
+                            {unitGroups.map((group) => {
+                              const selectedInGroup = comboSelections[unit.key]?.[group.id] || [];
+                              const currentCount = selectedInGroup.length;
+                              const isSingleChoice = group.maxQuantity === 1;
+                              const minReq = group.isRequired ? Math.max(1, group.minQuantity) : group.minQuantity;
+                              const isSatisfied = currentCount >= minReq;
+                              const freeQuota = group.freeQuantity || 0;
+
+                              return (
+                                <section
+                                  key={group.id}
+                                  className="border border-zinc-200/80 dark:border-zinc-800 rounded-xl p-3 sm:p-3.5 bg-white dark:bg-zinc-800/40 space-y-2.5 shadow-2xs"
+                                >
+                                  <div className="space-y-1">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <h4 className="font-heading font-bold text-xs sm:text-sm text-foreground">
+                                        {group.name}
+                                      </h4>
+                                      {minReq >= 1 ? (
+                                        <span
+                                          className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border shrink-0 ${
+                                            isSatisfied
+                                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                                              : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 animate-pulse"
+                                          }`}
+                                        >
+                                          {isSatisfied ? "Obrigatório" : `Escolha ${minReq}`}
+                                        </span>
+                                      ) : (
+                                        <span className="text-[9px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-muted-foreground border border-zinc-200 dark:border-zinc-700/60 shrink-0">
+                                          Opcional
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                                        {currentCount} de {group.maxQuantity}
+                                      </span>
+                                      {freeQuota > 0 && (
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                                          Até {freeQuota} incluso{freeQuota === 1 ? "" : "s"}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-1.5">
+                                    {group.items.map((item) => {
+                                      const isSelected = selectedInGroup.includes(item.id);
+                                      const isMaxReached =
+                                        !isSelected && !isSingleChoice && currentCount >= group.maxQuantity;
+                                      const isPaused = !item.isAvailable;
+                                      const selectedIndex = selectedInGroup.indexOf(item.id);
+                                      const itemPrice = parseSafeNumber(item.price);
+
+                                      let priceDisplay = "Incluso";
+                                      let priceColor = "text-emerald-600 dark:text-emerald-400 font-bold";
+
+                                      if (itemPrice > 0) {
+                                        if (isSelected && selectedIndex < freeQuota) {
+                                          priceDisplay = "Incluso";
+                                        } else if (!isSelected && currentCount < freeQuota) {
+                                          priceDisplay = "Incluso";
+                                        } else {
+                                          priceDisplay = `+ ${formatCurrency(itemPrice)}`;
+                                          priceColor = "text-primary dark:text-violet-400 font-bold font-mono";
+                                        }
+                                      }
+
+                                      return (
+                                        <button
+                                          key={item.id}
+                                          type="button"
+                                          disabled={isPaused || isMaxReached}
+                                          onClick={() => handleToggleComboOption(unit.key, group, item)}
+                                          className={`
+                                            w-full flex items-center justify-between p-2 rounded-xl
+                                            border transition-all text-left gap-2.5
+                                            ${
+                                              isPaused
+                                                ? "border-dashed border-zinc-200 dark:border-zinc-800 opacity-50 cursor-not-allowed"
+                                                : isSelected
+                                                ? "border-primary bg-primary/10 dark:bg-primary/20 shadow-2xs"
+                                                : isMaxReached
+                                                ? "opacity-40 cursor-not-allowed bg-transparent"
+                                                : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 hover:border-primary/40 cursor-pointer"
+                                            }
+                                          `}
+                                        >
+                                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                            <div
+                                              className={`w-3.5 h-3.5 rounded-${
+                                                isSingleChoice ? "full" : "sm"
+                                              } border flex items-center justify-center shrink-0 ${
+                                                isSelected
+                                                  ? "border-primary bg-primary text-white"
+                                                  : "border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800"
+                                              }`}
+                                            >
+                                              {isSelected && (
+                                                isSingleChoice ? (
+                                                  <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                                ) : (
+                                                  <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                                )
+                                              )}
+                                            </div>
+                                            <span
+                                              className={`text-xs font-semibold truncate ${
+                                                isSelected
+                                                  ? "text-primary dark:text-violet-300"
+                                                  : "text-zinc-900 dark:text-zinc-100"
+                                              }`}
+                                            >
+                                              {item.name}
+                                            </span>
+                                          </div>
+                                          <span className={`text-[11px] shrink-0 ${priceColor}`}>
+                                            {isPaused ? "Esgotado" : priceDisplay}
+                                          </span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </section>
+                              );
+                            })}
+                          </div>
                         )}
                       </div>
+                    );
+                  })
+                )}
 
-                      {/* Lista de Opções do Grupo */}
-                      <div className="space-y-2">
-                        {group.items.map((item) => {
-                          const isSelected = selectedInGroup.includes(item.id);
-                          const isMaxReached =
-                            !isSelected && !isSingleChoice && currentCount >= group.maxQuantity;
-                          const isPaused = !item.isAvailable;
+                {/* Seletor Consolidado de Talheres para o Combo */}
+                <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 bg-zinc-50/50 dark:bg-zinc-900/40 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Utensils className="w-4 h-4 text-primary" />
+                      <span className="text-xs font-bold text-foreground">
+                        Talheres e Guardanapos Descartáveis
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                      Grátis
+                    </span>
+                  </div>
 
-                          // Preço formatado dinamicamente: se selecionado e dentro da cota grátis, é Incluso!
-                          const selectedIndex = selectedInGroup.indexOf(item.id);
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="text-xs text-muted-foreground">
+                      Deseja que enviemos talheres descartáveis para este combo?
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setNeedsCutlery(false)}
+                        className={`text-xs px-3 py-1.5 rounded-xl font-bold border transition-colors ${
+                          !needsCutlery
+                            ? "bg-zinc-800 text-white border-zinc-800 dark:bg-white dark:text-black"
+                            : "bg-white dark:bg-zinc-800 text-muted-foreground border-zinc-200 dark:border-zinc-700"
+                        }`}
+                      >
+                        Não
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNeedsCutlery(true)}
+                        className={`text-xs px-3 py-1.5 rounded-xl font-bold border transition-colors ${
+                          needsCutlery
+                            ? "bg-primary text-white border-primary"
+                            : "bg-white dark:bg-zinc-800 text-muted-foreground border-zinc-200 dark:border-zinc-700"
+                        }`}
+                      >
+                        Sim
+                      </button>
+                    </div>
+                  </div>
 
-                          const itemPrice = parseSafeNumber(item.price);
-                          let priceDisplay = "Incluso";
-                          let priceColor = "text-emerald-600 dark:text-emerald-400 font-bold";
+                  {needsCutlery && (
+                    <div className="flex items-center justify-between pt-2 border-t border-border/30 text-xs">
+                      <span className="text-muted-foreground">Quantidade de colheres/guardanapos:</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setCutleryCount((c) => Math.max(1, c - 1))}
+                          className="w-6 h-6 rounded-md bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center font-bold"
+                        >
+                          -
+                        </button>
+                        <span className="font-bold w-4 text-center">{cutleryCount}</span>
+                        <button
+                          type="button"
+                          onClick={() => setCutleryCount((c) => Math.min(10, c + 1))}
+                          className="w-6 h-6 rounded-md bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center font-bold"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* ── MODO 2: PRODUTO TRADICIONAL COM COMPLEMENTOS ── */
+              loadingAddons ? (
+                <div className="p-6 flex items-center justify-center gap-2 text-muted-foreground">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  <span className="text-xs">Carregando adicionais disponíveis...</span>
+                </div>
+              ) : groups.length === 0 ? null : (
+                <div className="space-y-5">
+                  {groups.map((group) => {
+                    const selectedInGroup = selectedOptions[group.id] || [];
+                    const currentCount = selectedInGroup.length;
+                    const isSingleChoice = group.maxQuantity === 1;
+                    const minReq = group.isRequired ? Math.max(1, group.minQuantity) : group.minQuantity;
+                    const isSatisfied = currentCount >= minReq;
+                    const freeQuota = group.freeQuantity || 0;
 
-                          if (itemPrice > 0) {
-                            if (isSelected && selectedIndex < freeQuota) {
-                              priceDisplay = "Incluso";
-                              priceColor = "text-emerald-600 dark:text-emerald-400 font-bold";
-                            } else if (!isSelected && currentCount < freeQuota) {
-                              priceDisplay = "Incluso";
-                              priceColor = "text-emerald-600 dark:text-emerald-400 font-bold";
-                            } else {
-                              priceDisplay = `+ ${formatCurrency(itemPrice)}`;
-                              priceColor = "text-primary dark:text-violet-400 font-bold font-mono";
+                    return (
+                      <section
+                        key={group.id}
+                        className="border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 bg-zinc-50/50 dark:bg-zinc-900/30 space-y-3"
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <h3 className="font-heading font-bold text-base text-foreground leading-snug">
+                              {group.name}
+                            </h3>
+
+                            {minReq >= 1 ? (
+                              <span
+                                className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border shrink-0 ${
+                                  isSatisfied
+                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                                    : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 animate-pulse"
+                                }`}
+                              >
+                                {isSatisfied ? "Obrigatório" : `Obrigatório • Escolha ${minReq}`}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-medium uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-muted-foreground border border-zinc-200 dark:border-zinc-700/60 shrink-0">
+                                Opcional
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                            <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-zinc-200/80 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                              {currentCount} de {group.maxQuantity} selecionado{group.maxQuantity === 1 ? "" : "s"}
+                            </span>
+
+                            {freeQuota > 0 && (
+                              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                                Até {freeQuota} incluso{freeQuota === 1 ? "" : "s"}
+                              </span>
+                            )}
+                          </div>
+
+                          {group.description && (
+                            <p className="w-full text-xs text-muted-foreground pt-0.5 leading-relaxed">
+                              {group.description}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          {group.items.map((item) => {
+                            const isSelected = selectedInGroup.includes(item.id);
+                            const isMaxReached =
+                              !isSelected && !isSingleChoice && currentCount >= group.maxQuantity;
+                            const isPaused = !item.isAvailable;
+                            const selectedIndex = selectedInGroup.indexOf(item.id);
+                            const itemPrice = parseSafeNumber(item.price);
+                            let priceDisplay = "Incluso";
+                            let priceColor = "text-emerald-600 dark:text-emerald-400 font-bold";
+
+                            if (itemPrice > 0) {
+                              if (isSelected && selectedIndex < freeQuota) {
+                                priceDisplay = "Incluso";
+                                priceColor = "text-emerald-600 dark:text-emerald-400 font-bold";
+                              } else if (!isSelected && currentCount < freeQuota) {
+                                priceDisplay = "Incluso";
+                                priceColor = "text-emerald-600 dark:text-emerald-400 font-bold";
+                              } else {
+                                priceDisplay = `+ ${formatCurrency(itemPrice)}`;
+                                priceColor = "text-primary dark:text-violet-400 font-bold font-mono";
+                              }
                             }
-                          }
 
-                          return (
-                            <button
-                              key={item.id}
-                              type="button"
-                              disabled={isPaused || isMaxReached}
-                              onClick={() => handleToggleOption(group, item)}
-                              className={`
-                                w-full flex items-center justify-between p-2.5 sm:p-3 rounded-2xl
-                                border transition-all text-left gap-3
-                                ${
-                                  isPaused
-                                    ? "border-dashed border-zinc-300 dark:border-zinc-800 bg-zinc-100/50 dark:bg-zinc-900/30 opacity-50 cursor-not-allowed"
-                                    : isSelected
-                                    ? "border-primary bg-primary/8 dark:bg-primary/15 shadow-2xs"
-                                    : isMaxReached
-                                    ? "border-transparent opacity-40 cursor-not-allowed bg-transparent"
-                                    : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#181D2D] hover:border-primary/40 cursor-pointer shadow-2xs"
-                                }
-                              `}
-                            >
-                              {/* Miniatura WebP 40x40 px + Seletor + Nome */}
-                              <div className="flex items-center gap-3 min-w-0 flex-1">
-                                {/* Miniatura 40x40 px com cantos arredondados */}
-                                <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-border/50 shrink-0 overflow-hidden flex items-center justify-center">
-                                  {item.imageUrl ? (
-                                    /* eslint-disable-next-line @next/next/no-img-element */
-                                    <img
-                                      src={item.imageUrl}
-                                      alt={item.name}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <Utensils className="w-4 h-4 text-muted-foreground/50" />
-                                  )}
-                                </div>
-
-                                {/* Checkbox / Radio Visual */}
-                                <div
-                                  className={`w-4 h-4 rounded-${
-                                    isSingleChoice ? "full" : "md"
-                                  } border flex items-center justify-center shrink-0 transition-colors ${
-                                    isSelected
-                                      ? "border-primary bg-primary text-white"
-                                      : "border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800"
-                                  }`}
-                                >
-                                  {isSelected && (
-                                    isSingleChoice ? (
-                                      <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                disabled={isPaused || isMaxReached}
+                                onClick={() => handleToggleOption(group, item)}
+                                className={`
+                                  w-full flex items-center justify-between p-2.5 sm:p-3 rounded-2xl
+                                  border transition-all text-left gap-3
+                                  ${
+                                    isPaused
+                                      ? "border-dashed border-zinc-300 dark:border-zinc-800 bg-zinc-100/50 dark:bg-zinc-900/30 opacity-50 cursor-not-allowed"
+                                      : isSelected
+                                      ? "border-primary bg-primary/8 dark:bg-primary/15 shadow-2xs"
+                                      : isMaxReached
+                                      ? "border-transparent opacity-40 cursor-not-allowed bg-transparent"
+                                      : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#181D2D] hover:border-primary/40 cursor-pointer shadow-2xs"
+                                  }
+                                `}
+                              >
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                  <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-border/50 shrink-0 overflow-hidden flex items-center justify-center">
+                                    {item.imageUrl ? (
+                                      /* eslint-disable-next-line @next/next/no-img-element */
+                                      <img
+                                        src={item.imageUrl}
+                                        alt={item.name}
+                                        className="w-full h-full object-cover"
+                                      />
                                     ) : (
-                                      <Check className="w-3 h-3 stroke-[3]" />
-                                    )
-                                  )}
-                                </div>
+                                      <Utensils className="w-4 h-4 text-muted-foreground/50" />
+                                    )}
+                                  </div>
 
-                                <div className="min-w-0">
-                                  <p
-                                    className={`text-xs sm:text-sm font-semibold truncate ${
+                                  <div
+                                    className={`w-4 h-4 rounded-${
+                                      isSingleChoice ? "full" : "md"
+                                    } border flex items-center justify-center shrink-0 transition-colors ${
                                       isSelected
-                                        ? "text-primary dark:text-violet-300"
-                                        : "text-zinc-900 dark:text-zinc-100"
+                                        ? "border-primary bg-primary text-white"
+                                        : "border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800"
                                     }`}
                                   >
-                                    {item.name}
-                                  </p>
-                                </div>
-                              </div>
+                                    {isSelected && (
+                                      isSingleChoice ? (
+                                        <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                      ) : (
+                                        <Check className="w-3 h-3 stroke-[3]" />
+                                      )
+                                    )}
+                                  </div>
 
-                              {/* Lado Direito: Preço ou Esgotado */}
-                              <div className="shrink-0 text-right ml-2">
-                                {isPaused ? (
-                                  <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded-md">
-                                    Esgotado
-                                  </span>
-                                ) : (
-                                  <span className={`text-xs ${priceColor}`}>{priceDisplay}</span>
-                                )}
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </section>
-                  );
-                })}
-              </div>
+                                  <div className="min-w-0">
+                                    <p
+                                      className={`text-xs sm:text-sm font-semibold truncate ${
+                                        isSelected
+                                          ? "text-primary dark:text-violet-300"
+                                          : "text-zinc-900 dark:text-zinc-100"
+                                      }`}
+                                    >
+                                      {item.name}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="shrink-0 text-right ml-2">
+                                  {isPaused ? (
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded-md">
+                                      Esgotado
+                                    </span>
+                                  ) : (
+                                    <span className={`text-xs ${priceColor}`}>{priceDisplay}</span>
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
+              )
             )}
 
             {/* Observações do Pedido */}
@@ -639,33 +1054,32 @@ export function ProductDetailModal({
               </button>
             </div>
 
-            {/* Botão Adicionar ao Pedido */}
+            {/* Botão Adicionar ao Carrinho */}
             <button
               type="button"
               disabled={!isValid || isOutOfStock}
               onClick={handleAddToCart}
               className={`
-                flex-1 h-12 px-4 py-2.5 rounded-full flex items-center justify-between font-semibold text-sm sm:text-base whitespace-nowrap shadow-md hover:brightness-105 transition-all
+                flex-1 h-12 rounded-2xl font-heading font-black text-sm
+                flex items-center justify-between px-5
+                transition-all duration-200 shadow-md cursor-pointer select-none
                 ${
                   !isValid || isOutOfStock
-                    ? "bg-gray-200 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500 cursor-not-allowed border border-dashed border-gray-300 dark:border-zinc-700"
-                    : "bg-gradient-to-r from-primary to-accent text-white active:scale-[0.98] cursor-pointer shadow-primary/25"
+                    ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-600 cursor-not-allowed shadow-none"
+                    : "bg-primary hover:bg-primary/90 text-white shadow-primary/25 active:scale-[0.99]"
                 }
               `}
             >
               <span className="flex items-center gap-2">
-                <ShoppingBag className="w-4 h-4 shrink-0" />
-                <span>
-                  {isOutOfStock
-                    ? "Item Esgotado"
-                    : !isValid
-                    ? `Selecione: ${unsatisfiedRequiredGroups[0]?.name || "Obrigatórios"}`
-                    : "Adicionar"}
-                </span>
+                <ShoppingBag className="w-4 h-4" />
+                {isOutOfStock
+                  ? "Esgotado"
+                  : !isValid
+                  ? "Selecione as opções obrigatórias"
+                  : "Adicionar à Sacola"}
               </span>
-
-              <span className="font-mono font-black text-sm sm:text-base shrink-0 ml-2">
-                • {formatCurrency(totalPrice)}
+              <span className="font-mono text-base font-black">
+                {formatCurrency(totalPrice)}
               </span>
             </button>
           </div>

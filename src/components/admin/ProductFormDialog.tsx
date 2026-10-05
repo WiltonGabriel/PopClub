@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   IceCream,
   ChevronDown,
+  Users,
 } from "lucide-react";
 
 interface ProductFormDialogProps {
@@ -41,6 +42,7 @@ export function ProductFormDialog({
   const [name, setName] = useState(productToEdit?.name || "");
   const [description, setDescription] = useState(productToEdit?.description || "");
   const [price, setPrice] = useState(productToEdit?.price !== undefined ? productToEdit.price.toString() : "");
+  const [servesText, setServesText] = useState(productToEdit?.servesText || "");
   const [categoryId, setCategoryId] = useState(productToEdit?.category_id || "");
   const [cardBadgeId, setCardBadgeId] = useState<string>(productToEdit?.cardBadgeId || "none");
   const [badges, setBadges] = useState<CardBadge[]>([]);
@@ -76,6 +78,7 @@ export function ProductFormDialog({
       setName(productToEdit?.name || "");
       setDescription(productToEdit?.description || "");
       setPrice(productToEdit?.price !== undefined ? productToEdit.price.toString() : "");
+      setServesText(productToEdit?.servesText || "");
 
       const list = activeCategories.length > 0 ? activeCategories : categories;
       const currentCatId = productToEdit?.category_id || productToEdit?.categoryId;
@@ -207,6 +210,7 @@ export function ProductFormDialog({
             name: name.trim(),
             description: description.trim(),
             price: numPrice,
+            servesText: servesText.trim() || null,
             category_id: categoryId,
             category: catName,
             cardBadgeId: finalCardBadgeId,
@@ -220,6 +224,7 @@ export function ProductFormDialog({
             name: name.trim(),
             description: description.trim(),
             price: numPrice,
+            servesText: servesText.trim() || null,
             category_id: categoryId,
             category: catName,
             imageUrl: "",
@@ -302,6 +307,12 @@ export function ProductFormDialog({
                     <h4 className="font-heading font-bold text-base text-foreground dark:text-foreground line-clamp-1">
                       {name.trim() || "Nome do Produto"}
                     </h4>
+                    {servesText.trim() && (
+                      <div className="flex items-center gap-1.5 text-[11px] font-medium text-primary">
+                        <Users className="w-3.5 h-3.5 shrink-0" />
+                        <span>{servesText.trim()}</span>
+                      </div>
+                    )}
                     <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 min-h-[32px] leading-relaxed">
                       {description.trim() || "A descrição apetitosa do produto aparecerá aqui para seus clientes..."}
                     </p>
@@ -429,6 +440,46 @@ export function ProductFormDialog({
                       className="h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-card dark:border-border/50 dark:text-white pl-10 focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary font-semibold text-sm"
                       placeholder="0,00"
                     />
+                  </div>
+                </div>
+
+                {/* Rendimento / Serve X Pessoas */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <Label
+                      htmlFor="serves-text"
+                      className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-1.5"
+                    >
+                      <Users className="w-3.5 h-3.5 text-primary" />
+                      Rendimento / "Serve X Pessoas"
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground font-normal">
+                      opcional
+                    </span>
+                  </div>
+                  <Input
+                    id="serves-text"
+                    type="text"
+                    value={servesText}
+                    onChange={(e) => setServesText(e.target.value)}
+                    className="h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-card dark:border-border/50 dark:text-white text-sm"
+                    placeholder="Ex: Serve 1 a 2 pessoas"
+                  />
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {["Serve 1 pessoa", "Serve 1 a 2 pessoas", "Serve 2 pessoas", "Serve 2 a 3 pessoas", "Serve 3 a 4 pessoas"].map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => setServesText(opt)}
+                        className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all font-medium ${
+                          servesText === opt
+                            ? "bg-primary text-white border-primary shadow-xs"
+                            : "bg-gray-50 dark:bg-card border-gray-200 dark:border-border/50 text-gray-700 dark:text-gray-300 hover:border-primary/50"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
                   </div>
                 </div>
 

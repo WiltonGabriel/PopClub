@@ -28,7 +28,7 @@ export async function GET(
       finalPrice = originalTotal * (1 - pct / 100);
     } else {
       const fixed = Number(promo.discountValue);
-      finalPrice = Math.max(0, originalTotal - fixed);
+      finalPrice = Math.max(0, fixed < originalTotal ? fixed : originalTotal - fixed);
     }
 
     const discountAmount = Math.max(0, originalTotal - finalPrice);
@@ -47,6 +47,7 @@ export async function GET(
       originalTotal: Number(originalTotal.toFixed(2)),
       discountAmount: Number(discountAmount.toFixed(2)),
       finalPrice: Number(finalPrice.toFixed(2)),
+      startsAt: promo.startsAt ? promo.startsAt.toISOString() : null,
       expiresAt: promo.expiresAt ? promo.expiresAt.toISOString() : null,
       showDuration: promo.showDuration,
       durationDisplay: promo.durationDisplay,
@@ -96,6 +97,7 @@ export async function PUT(
       discountType,
       discountValue,
       isActive,
+      startsAt,
       expiresAt,
       showDuration,
       durationDisplay,
@@ -115,10 +117,11 @@ export async function PUT(
     if (discountType !== undefined) dataToUpdate.discountType = String(discountType) as DiscountType;
     if (discountValue !== undefined) dataToUpdate.discountValue = Number(discountValue);
     if (isActive !== undefined) dataToUpdate.isActive = Boolean(isActive);
+    if (startsAt !== undefined) dataToUpdate.startsAt = startsAt ? new Date(String(startsAt)) : new Date();
     if (expiresAt !== undefined) dataToUpdate.expiresAt = expiresAt ? new Date(String(expiresAt)) : null;
     if (showDuration !== undefined) dataToUpdate.showDuration = Boolean(showDuration);
     if (durationDisplay !== undefined) dataToUpdate.durationDisplay = Array.isArray(durationDisplay) ? durationDisplay.map(String) : [];
-    if (productId !== undefined) dataToUpdate.productId = productId ? String(productId) : null;
+    if (productId !== undefined && productId) dataToUpdate.productId = String(productId);
     if (autoBanner !== undefined) dataToUpdate.autoBanner = Boolean(autoBanner);
     if (showScarcity !== undefined) dataToUpdate.showScarcity = Boolean(showScarcity);
     if (scarcityUnits !== undefined) dataToUpdate.scarcityUnits = scarcityUnits !== null ? Number(scarcityUnits) : null;
@@ -154,9 +157,9 @@ export async function DELETE(
     const { id } = await params;
     await prisma.promotion.delete({ where: { id } });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, message: "Promoção excluída com sucesso." });
   } catch (error: unknown) {
-    console.error("Erro ao deletar promoção:", error);
+    console.error("Erro ao excluir promoção:", error);
     if ((error as { code?: string })?.code === "P2025") {
       return NextResponse.json({ error: "Promoção não encontrada." }, { status: 404 });
     }

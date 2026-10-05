@@ -141,11 +141,6 @@ model Product {
   name             String
   description      String?
   price            Decimal                @db.Decimal(10, 2)
-  originalPrice    Decimal?               @map("original_price") @db.Decimal(10, 2)
-  promotionalPrice Decimal?               @map("promotional_price") @db.Decimal(10, 2)
-  startsAt         DateTime?              @map("starts_at")
-  endsAt           DateTime?              @map("ends_at")
-  isPromoActive    Boolean                @default(true) @map("is_promo_active")
   servesText       String?                @map("serves_text")
   isHighlight      Boolean                @default(false) @map("is_highlight")
   categoryId       String?                @map("category_id")
@@ -162,7 +157,6 @@ model Product {
   promotions       Promotion[]
   comboItems       ComboItem[]            @relation("ComboParent")
   partOfCombos     ComboItem[]            @relation("ComboChild")
-  addonCategories  ProductAddonCategory[]
   addonGroups      ProductAddonGroup[]
 
   @@map("products")
@@ -213,33 +207,10 @@ model ProductAddonGroup {
   @@map("product_addon_groups")
 }
 
-model ProductAddonCategory {
-  id          String   @id @default(uuid())
-  productId   String   @map("product_id")
-  name        String   // Ex: "Acompanhamentos Extras", "Calda"
-  isRequired  Boolean  @default(false) @map("is_required")
-  maxChoices  Int?     @map("max_choices")
-  addons      ProductAddon[]
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@map("product_addon_categories")
-}
-
-model ProductAddon {
-  id          String   @id @default(uuid())
-  categoryId  String   @map("category_id")
-  name        String   // Ex: "Nutella", "Leite em Pó"
-  price       Decimal  @default(0) @db.Decimal(10, 2)
-  isAvailable Boolean  @default(true) @map("is_available")
-  category    ProductAddonCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-
-  @@map("product_addons")
-}
-
 model Promotion {
   id             String          @id @default(uuid())
   title          String
-  badge          String
+  badge          String          @default("PROMO")
   description    String?
   bannerImageUrl String?         @map("banner_image_url")
   gradientStart  String          @default("#9306CF") @map("gradient_start")
@@ -248,20 +219,24 @@ model Promotion {
   discountValue  Decimal         @default(0) @db.Decimal(10, 2) @map("discount_value")
   isActive       Boolean         @default(true) @map("is_active")
   
-  // Duração e Escassez
+  // Vigência Temporal
+  startsAt       DateTime        @default(now()) @map("starts_at")
   expiresAt      DateTime?       @map("expires_at")
+  
+  // Duração e Escassez (Marketing)
   showDuration   Boolean         @default(false) @map("show_duration")
   durationDisplay String[]       @default([]) @map("duration_display")
-  
-  createdAt      DateTime        @default(now()) @map("created_at")
-  updatedAt      DateTime        @updatedAt @map("updated_at")
-  
-  productId      String?         @map("product_id")
-  product        Product?        @relation(fields: [productId], references: [id], onDelete: Cascade)
   autoBanner     Boolean         @default(false) @map("auto_banner")
   showScarcity   Boolean         @default(false) @map("show_scarcity")
   scarcityUnits  Int?            @map("scarcity_units")
 
+  productId      String          @map("product_id")
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  @@index([productId])
   @@map("promotions")
 }
 

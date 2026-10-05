@@ -37,12 +37,9 @@ export function getProductCustomization(product: {
   const isCombo = catLower.includes("combo") || nameLower.includes("combo");
   const isShake = nameLower.includes("shake") || catLower.includes("shake");
 
-  // Preço original promocional (se for combo ou itens com desconto)
-  const isPromo = isCombo || nameLower.includes("hits") || nameLower.includes("promo");
-  const originalPrice = isPromo
-    ? Number((product.price * 1.25).toFixed(2))
-    : undefined;
-  const promotionalTag = isPromo ? "Oferta Especial" : undefined;
+  // Não aplica descontos sintéticos fictícios em memória; o motor oficial de promoções é gerido via Promotion / pricing.ts
+  const originalPrice = undefined;
+  const promotionalTag = undefined;
 
   // 1. SORVETES ARTESANAIS
   if (isSorvete && !isShake) {
@@ -166,7 +163,7 @@ export function getProductCustomization(product: {
     preparationNotice:
       "⚠️ Aviso de Preparo: Para manter a consistência e cremosidade ideais durante o transporte, caldas quentes e cremes densos (Nutella/Ninho trufado) são concentrados no topo e em camadas intermediárias estratégicas.",
     originalPrice,
-    promotionalTag: isPromo ? "Destaque da Vitrine" : undefined,
+    promotionalTag,
     groups: [
       {
         id: "camadas",

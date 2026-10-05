@@ -11,8 +11,6 @@ async function main() {
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
   await prisma.productAddonGroup.deleteMany();
-  await prisma.productAddonCategory.deleteMany();
-  await prisma.productAddon.deleteMany();
   await prisma.addonItem.deleteMany();
   await prisma.addonGroup.deleteMany();
   await prisma.comboItem.deleteMany();
@@ -802,16 +800,10 @@ async function main() {
       name: "Copo 300ml Tradicional",
       description: "Açaí artesanal super cremoso batido na hora no copo de 300ml. Acompanha até 4 adicionais tradicionais grátis.",
       price: 21.90,
-      originalPrice: 35.99,
-      promotionalPrice: 21.90,
-      startsAt,
-      endsAt,
-      isPromoActive: true,
       servesText: "Serve 1 pessoa",
       categoryId: cat2.id,
       category: cat2.name,
       imageUrl: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=600&q=80",
-      cardBadgeId: badgePromo.id,
     },
   });
 
@@ -820,16 +812,10 @@ async function main() {
       name: "Copo 400ml Tradicional",
       description: "Copo de 400ml com açaí artesanal bem consistente e geladinho. Acompanha até 4 adicionais tradicionais grátis.",
       price: 25.90,
-      originalPrice: 37.99,
-      promotionalPrice: 25.90,
-      startsAt,
-      endsAt,
-      isPromoActive: true,
       servesText: "Serve 1 pessoa",
       categoryId: cat2.id,
       category: cat2.name,
       imageUrl: "https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=600&q=80",
-      cardBadgeId: badgePromo.id,
     },
   });
 
@@ -837,12 +823,7 @@ async function main() {
     data: {
       name: "Copo Pop 500ml Turbinado",
       description: "O campeão absoluto de vendas! 500ml de açaí artesanal aveludado batido na hora com até 4 adicionais grátis.",
-      price: 29.69,
-      originalPrice: 39.99,
-      promotionalPrice: 29.69,
-      startsAt,
-      endsAt,
-      isPromoActive: true,
+      price: 39.99,
       isHighlight: true,
       servesText: "Serve 1 pessoa",
       categoryId: cat2.id,
@@ -856,17 +837,11 @@ async function main() {
     data: {
       name: "Copo 700ml (Giga)",
       description: "Tamanho Giga para os verdadeiros apaixonados por açaí! Copo gigante de 700ml com até 5 adicionais tradicionais grátis inclusos.",
-      price: 36.90,
-      originalPrice: 46.90,
-      promotionalPrice: 36.90,
-      startsAt,
-      endsAt,
-      isPromoActive: true,
+      price: 46.90,
       servesText: "Serve 1 a 2 pessoas",
       categoryId: cat2.id,
       category: cat2.name,
       imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
-      cardBadgeId: badgePromo.id,
     },
   });
 
@@ -898,17 +873,11 @@ async function main() {
     data: {
       name: "Marmita 500ml (P)",
       description: "Marmita de 500ml montada com generosidade em camadas de açaí cremoso. Inclui até 4 adicionais tradicionais grátis.",
-      price: 32.90,
-      originalPrice: 42.00,
-      promotionalPrice: 32.90,
-      startsAt,
-      endsAt,
-      isPromoActive: true,
+      price: 42.00,
       servesText: "Serve 1 a 2 pessoas",
       categoryId: cat3.id,
       category: cat3.name,
       imageUrl: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=600&q=80",
-      cardBadgeId: badgePromo.id,
     },
   });
 
@@ -916,12 +885,7 @@ async function main() {
     data: {
       name: "Marmita 750ml (M)",
       description: "Marmita de 750ml montada em camadas generosas com até 6 adicionais tradicionais grátis inclusos.",
-      price: 45.99,
-      originalPrice: 55.00,
-      promotionalPrice: 45.99,
-      startsAt,
-      endsAt,
-      isPromoActive: true,
+      price: 55.00,
       servesText: "Serve 2 pessoas",
       categoryId: cat3.id,
       category: cat3.name,
@@ -934,17 +898,11 @@ async function main() {
     data: {
       name: "Marmita 1000ml (1 Litro)",
       description: "Marmita gigante de 1 Litro! Uma explosão de açaí artesanal intercalado com até 6 acompanhamentos tradicionais grátis.",
-      price: 58.00,
-      originalPrice: 69.90,
-      promotionalPrice: 58.00,
-      startsAt,
-      endsAt,
-      isPromoActive: true,
+      price: 69.90,
       servesText: "Serve 3 pessoas",
       categoryId: cat3.id,
       category: cat3.name,
       imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
-      cardBadgeId: badgePromo.id,
     },
   });
 
@@ -952,12 +910,7 @@ async function main() {
     data: {
       name: "Roleta Gourmet P (G540ml)",
       description: "Embalagem gourmet com divisórias independentes para saborear cada acompanhamento de forma impecável. Até 4 adicionais inclusos.",
-      price: 35.50,
-      originalPrice: 50.00,
-      promotionalPrice: 35.50,
-      startsAt,
-      endsAt,
-      isPromoActive: true,
+      price: 50.00,
       isHighlight: true,
       servesText: "Serve 1 a 2 pessoas",
       categoryId: cat3.id,
@@ -971,17 +924,11 @@ async function main() {
     data: {
       name: "Roleta Gourmet M (G800ml)",
       description: "Roleta especial de 800ml com divisórias para fartura em família. Açaí puro ao centro e acompanhamentos selecionados em volta.",
-      price: 52.90,
-      originalPrice: 68.00,
-      promotionalPrice: 52.90,
-      startsAt,
-      endsAt,
-      isPromoActive: true,
+      price: 68.00,
       servesText: "Serve 2 a 3 pessoas",
       categoryId: cat3.id,
       category: cat3.name,
       imageUrl: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=600&q=80",
-      cardBadgeId: badgePromo.id,
     },
   });
 
@@ -1069,17 +1016,12 @@ async function main() {
     },
   });
 
-  // O item de 500ml em destaque promocional oficial
+  // O item de 500ml em destaque oficial
   const pShakeNinhoNutella500 = await prisma.product.create({
     data: {
       name: "Milk Shake Ninho com Nutella 500ml",
-      description: "Sorvete cremoso de Leite Ninho batido com farta dose de Nutella original italiana. Edição especial de 500ml em promoção!",
-      price: 24.90,
-      originalPrice: 29.90,
-      promotionalPrice: 24.90,
-      startsAt,
-      endsAt,
-      isPromoActive: true,
+      description: "Sorvete cremoso de Leite Ninho batido com farta dose de Nutella original italiana. Edição especial de 500ml!",
+      price: 29.90,
       isHighlight: true,
       servesText: "Serve 1 pessoa",
       categoryId: cat5.id,
@@ -1274,11 +1216,6 @@ async function main() {
       name: "Combo Casal (2 Copos de 400ml)",
       description: "Dois copos de 400ml com montagens totalmente independentes! Cada pessoa escolhe seus 4 adicionais tradicionais grátis e cremes prediletos.",
       price: 47.00,
-      originalPrice: 50.00,
-      promotionalPrice: 47.00,
-      startsAt,
-      endsAt,
-      isPromoActive: true,
       isHighlight: true,
       isCombo: true,
       servesText: "Serve 2 pessoas",
@@ -1287,6 +1224,12 @@ async function main() {
       imageUrl: "https://images.unsplash.com/photo-1567206563064-6f60f40a2b57?auto=format&fit=crop&w=600&q=80",
       cardBadgeId: badgeDestaque.id,
     },
+  });
+
+  await prisma.comboItem.createMany({
+    data: [
+      { comboId: pComboCasal.id, productId: pCopo400.id, quantity: 2 },
+    ],
   });
 
   await prisma.productAddonGroup.createMany({
@@ -1304,11 +1247,6 @@ async function main() {
       name: "Combo Família (1 Marmita 750ml + 2 Copos 300ml)",
       description: "O combo mais farto e econômico! 1 Marmita de 750ml em camadas com 6 adicionais grátis + 2 Copos de 300ml com 4 adicionais grátis cada.",
       price: 79.90,
-      originalPrice: 98.00,
-      promotionalPrice: 79.90,
-      startsAt,
-      endsAt,
-      isPromoActive: true,
       isCombo: true,
       servesText: "Serve 3 a 4 pessoas",
       categoryId: cat8.id,
@@ -1316,6 +1254,13 @@ async function main() {
       imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
       cardBadgeId: badgePromo.id,
     },
+  });
+
+  await prisma.comboItem.createMany({
+    data: [
+      { comboId: pComboFamilia.id, productId: pMarmita750.id, quantity: 1 },
+      { comboId: pComboFamilia.id, productId: pCopo300.id, quantity: 2 },
+    ],
   });
 
   await prisma.productAddonGroup.createMany({
@@ -1333,11 +1278,6 @@ async function main() {
       name: "Combo Shake & Açaí (1 Copo 500ml + 1 Milk Shake 500ml)",
       description: "O melhor dos dois mundos: 1 Copo de 500ml com até 4 adicionais grátis + 1 Milk Shake artesanal de 500ml no sabor que preferir.",
       price: 49.90,
-      originalPrice: 64.00,
-      promotionalPrice: 49.90,
-      startsAt,
-      endsAt,
-      isPromoActive: true,
       isCombo: true,
       servesText: "Serve 2 pessoas",
       categoryId: cat8.id,
@@ -1347,6 +1287,13 @@ async function main() {
     },
   });
 
+  await prisma.comboItem.createMany({
+    data: [
+      { comboId: pComboShakeAcai.id, productId: pCopo500.id, quantity: 1 },
+      { comboId: pComboShakeAcai.id, productId: pShakeNinhoNutella500.id, quantity: 1 },
+    ],
+  });
+
   await prisma.productAddonGroup.createMany({
     data: [
       { productId: pComboShakeAcai.id, groupId: groupComboShakeCopoTrad.id, sortOrder: 1 },
@@ -1354,6 +1301,54 @@ async function main() {
       { productId: pComboShakeAcai.id, groupId: groupComboShakeSaborBase.id, sortOrder: 3 },
       { productId: pComboShakeAcai.id, groupId: groupComboShakeOpcionais.id, sortOrder: 4 },
       { productId: pComboShakeAcai.id, groupId: groupComboShakeTalheres.id, sortOrder: 5 },
+    ],
+  });
+
+  // ── PROMOÇÕES OFICIAIS ATIVAS (PILAR 2)
+  console.log("🏷️ 5/6: Cadastrando promoções ativas na tabela de promoções...");
+  await prisma.promotion.createMany({
+    data: [
+      {
+        productId: pCopo500.id,
+        title: "Copo 500ml Turbinado em Promoção!",
+        badge: "25% OFF",
+        description: "Aproveite 25% de desconto no copo mais vendido da casa!",
+        discountType: "percentage",
+        discountValue: 25,
+        startsAt: new Date(Date.now() - 2 * 86400000),
+        expiresAt: new Date(Date.now() + 30 * 86400000),
+        isActive: true,
+        autoBanner: true,
+        showScarcity: true,
+        scarcityUnits: 15,
+      },
+      {
+        productId: pRoletaP.id,
+        title: "Roleta Gourmet P com Desconto",
+        badge: "OFERTA",
+        description: "Roleta com divisórias de R$ 50,00 por apenas R$ 35,50!",
+        discountType: "fixed",
+        discountValue: 35.50,
+        startsAt: new Date(Date.now() - 1 * 86400000),
+        expiresAt: new Date(Date.now() + 15 * 86400000),
+        isActive: true,
+        autoBanner: true,
+        showScarcity: true,
+        scarcityUnits: 8,
+      },
+      {
+        productId: pShakeNinhoNutella500.id,
+        title: "Festival Milk Shake Ninho & Nutella",
+        badge: "PROMO SHAKE",
+        description: "Preço especial de R$ 29,90 por R$ 24,90 no shake de 500ml!",
+        discountType: "fixed",
+        discountValue: 24.90,
+        startsAt: new Date(Date.now() - 1 * 86400000),
+        expiresAt: new Date(Date.now() + 20 * 86400000),
+        isActive: true,
+        autoBanner: true,
+        showScarcity: false,
+      },
     ],
   });
 

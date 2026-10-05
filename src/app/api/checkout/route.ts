@@ -265,6 +265,12 @@ export async function POST(request: Request) {
     const productIds = Array.from(productQtyMap.keys());
     const dbProducts = await prisma.product.findMany({
       where: { id: { in: productIds } },
+      include: {
+        promotions: {
+          where: { isActive: true },
+          orderBy: { createdAt: "desc" as const },
+        },
+      },
     });
 
     const productsMap = new Map(dbProducts.map((p) => [p.id, p]));
@@ -311,7 +317,11 @@ export async function POST(request: Request) {
 
     // Busca e validação segura de complementos (AddonItem) cadastrados no banco
     const allSelectedAddonIds = Array.from(
-      new Set(items.flatMap((i) => (i.selectedAddons || []).map((a) => a.id)))
+      new Set(
+        items
+          .flatMap((i) => (i.selectedAddons || []).map((a) => a.id))
+          .filter((id) => !id.startsWith("combo-") && !id.startsWith("cutlery"))
+      )
     );
     const dbAddons: DBAddonItem[] = allSelectedAddonIds.length > 0
       ? await prisma.addonItem.findMany({
@@ -357,8 +367,24 @@ export async function POST(request: Request) {
 
       if (item.selectedAddons && item.selectedAddons.length > 0) {
         finalSelectedAddons = [];
-        // Validação estrita: verifica se todos os addons existem e não estão pausados
-        for (const addon of item.selectedAddons) {
+        
+        // Separa itens virtuais (ex: talheres) de adicionais de tabela
+        const realAddons = item.selectedAddons.filter((addon) => {
+          if (addon.id.startsWith("combo-") || addon.id.startsWith("cutlery")) {
+            finalSelectedAddons!.push({
+              id: addon.id,
+              name: addon.name || "Item Virtual",
+              groupName: addon.groupName || "Utensílios",
+              price: 0,
+              quantity: addon.quantity || 1,
+            });
+            return false;
+          }
+          return true;
+        });
+
+        // Validação estrita: verifica se todos os addons reais existem e não estão pausados
+        for (const addon of realAddons) {
           const dbAddon = dbAddonsMap.get(addon.id);
           if (!dbAddon) {
             return NextResponse.json(
@@ -376,7 +402,7 @@ export async function POST(request: Request) {
 
         // Agrupamento por grupo para aplicar a cota de itens grátis (freeQuantity)
         const selectionsByGroup = new Map<string, Array<{ dbAddon: typeof dbAddons[0]; quantity: number }>>();
-        for (const addon of item.selectedAddons) {
+        for (const addon of realAddons) {
           const dbAddon = dbAddonsMap.get(addon.id)!;
           const list = selectionsByGroup.get(dbAddon.groupId) || [];
           list.push({ dbAddon, quantity: addon.quantity || 1 });
@@ -420,7 +446,7 @@ export async function POST(request: Request) {
       }
 
       const pricing = calculateProductPrice(product);
-      const baseOriginalPrice = pricing.originalPrice;
+      const baseOriginalPrice = pricing.originalPrice ?? Number(product.price);
       if (isNaN(baseOriginalPrice) || baseOriginalPrice <= 0) {
         return NextResponse.json(
           { error: `O produto "${product.name}" possui preço inválido no sistema.` },

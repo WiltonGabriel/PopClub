@@ -2,61 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { sanitizeText } from "@/lib/sanitize";
-
-const productInclude = {
-  categoryRel: { select: { name: true } },
-  cardBadge: true,
-  comboItems: { include: { product: true } },
-  addonGroups: {
-    include: {
-      group: {
-        include: {
-          items: {
-            orderBy: { sortOrder: "asc" as const },
-          },
-        },
-      },
-    },
-    orderBy: { sortOrder: "asc" as const },
-  },
-};
-
-function formatProduct(product: any) {
-  return {
-    id: product.id,
-    name: product.name,
-    description: product.description || "",
-    price: Number(product.price),
-    originalPrice: product.originalPrice ? Number(product.originalPrice) : null,
-    promotionalPrice: product.promotionalPrice ? Number(product.promotionalPrice) : null,
-    startsAt: product.startsAt ? (product.startsAt instanceof Date ? product.startsAt.toISOString() : product.startsAt) : null,
-    endsAt: product.endsAt ? (product.endsAt instanceof Date ? product.endsAt.toISOString() : product.endsAt) : null,
-    isPromoActive: product.isPromoActive ?? true,
-    servesText: product.servesText || null,
-    isHighlight: Boolean(product.isHighlight),
-    categoryId: product.categoryId,
-    category: product.categoryRel?.name || product.category || "Outros",
-    imageUrl: product.imageUrl || "",
-    stock: product.stock,
-    isAvailable: product.isAvailable,
-    cardBadgeId: product.cardBadgeId,
-    cardBadge: product.cardBadge,
-    isCombo: product.isCombo,
-    comboItems: product.comboItems?.map((ci: any) => ({
-      id: ci.id,
-      productId: ci.productId,
-      quantity: ci.quantity,
-      product: ci.product ? {
-        id: ci.product.id,
-        name: ci.product.name,
-        price: Number(ci.product.price),
-        imageUrl: ci.product.imageUrl || "",
-      } : undefined,
-    })) || [],
-    addonGroupIds: product.addonGroups?.map((ag: any) => ag.groupId) || [],
-    addonGroups: product.addonGroups?.map((ag: any) => ag.group) || [],
-  };
-}
+import { productInclude, formatProduct } from "@/lib/productHelper";
 
 export async function GET(
   request: Request,
@@ -110,22 +56,12 @@ export async function PUT(
       isCombo,
       comboItems,
       addonGroupIds,
-      originalPrice,
-      promotionalPrice,
-      startsAt,
-      endsAt,
-      isPromoActive,
       servesText,
       isHighlight,
     } = (body || {}) as {
       name?: string;
       description?: string;
       price?: number | string;
-      originalPrice?: number | string | null;
-      promotionalPrice?: number | string | null;
-      startsAt?: string | null;
-      endsAt?: string | null;
-      isPromoActive?: boolean;
       servesText?: string | null;
       isHighlight?: boolean;
       categoryId?: string;
@@ -149,21 +85,6 @@ export async function PUT(
       }
       dataToUpdate.price = parsedPrice;
     }
-    if (originalPrice !== undefined) {
-      dataToUpdate.originalPrice = originalPrice !== null && originalPrice !== "" ? Number(originalPrice) : null;
-    }
-    if (promotionalPrice !== undefined) {
-      dataToUpdate.promotionalPrice = promotionalPrice !== null && promotionalPrice !== "" ? Number(promotionalPrice) : null;
-    }
-    if (startsAt !== undefined) {
-      dataToUpdate.startsAt = startsAt ? new Date(startsAt) : null;
-    }
-    if (endsAt !== undefined) {
-      dataToUpdate.endsAt = endsAt ? new Date(endsAt) : null;
-    }
-    if (isPromoActive !== undefined) {
-      dataToUpdate.isPromoActive = Boolean(isPromoActive);
-    }
     if (servesText !== undefined) {
       dataToUpdate.servesText = servesText ? String(servesText) : null;
     }
@@ -177,13 +98,14 @@ export async function PUT(
     if (isAvailable !== undefined) dataToUpdate.isAvailable = Boolean(isAvailable);
     if (cardBadgeId !== undefined) dataToUpdate.cardBadgeId = cardBadgeId || null;
     if (isCombo !== undefined) dataToUpdate.isCombo = Boolean(isCombo);
+    
     if (isCombo && Array.isArray(comboItems)) {
       dataToUpdate.comboItems = {
         deleteMany: {}, // Clean old items
         create: comboItems.map((ci) => ({
           productId: ci.productId,
-          quantity: ci.quantity || 1
-        }))
+          quantity: ci.quantity || 1,
+        })),
       };
     }
 

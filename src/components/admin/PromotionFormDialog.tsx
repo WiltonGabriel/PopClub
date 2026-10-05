@@ -177,6 +177,12 @@ export function PromotionFormDialog({
     setLoading(true);
     setError("");
 
+    if (!selectedProductId) {
+      setError("Por favor, selecione o produto alvo desta promoção.");
+      setLoading(false);
+      return;
+    }
+
     try {
       let expiresAt: string | null = null;
       if (durationDays) {
@@ -484,10 +490,10 @@ export function PromotionFormDialog({
               </div>
             </div>
 
-            {/* 6. Produtos Vinculados (Opcional) */}
+            {/* 6. Produto Alvo da Promoção */}
             <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-border/30">
               <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center justify-between">
-                <span>Produto da Promoção (Opcional)</span>
+                <span>Produto Alvo da Promoção * (Obrigatório)</span>
                 <span className="text-[11px] font-mono text-gray-400">
                   {selectedProductId ? "1" : "0"} selecionado
                 </span>

@@ -8,6 +8,7 @@ import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { productService, Product } from "../../services/productService";
 import { badgeService, CardBadge } from "../../services/badgeService";
+import { ImageCropperDialog } from "./ImageCropperDialog";
 import {
   UtensilsCrossed,
   Plus,
@@ -22,6 +23,9 @@ import {
   TrendingDown,
   Clock,
   Eye,
+  Users,
+  Image as ImageIcon,
+  Upload,
 } from "lucide-react";
 
 interface ComboFormDialogProps {
@@ -44,6 +48,12 @@ export function ComboFormDialog({
   const [discountPercent, setDiscountPercent] = useState("15");
   const [fixedComboPrice, setFixedComboPrice] = useState("");
   const [isActive, setIsActive] = useState(true);
+
+  // Rendimento e Imagem
+  const [servesText, setServesText] = useState(comboToEdit?.servesText || "");
+  const [file, setFile] = useState<File | null>(null);
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
 
   // Duração
   const [durationDays, setDurationDays] = useState<string>("");
@@ -70,6 +80,45 @@ export function ComboFormDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const previewUrl = useMemo(() => {
+    if (file) return URL.createObjectURL(file);
+    return comboToEdit?.imageUrl || "";
+  }, [file, comboToEdit?.imageUrl]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+    e.target.value = "";
+    const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+    if (!allowedMimeTypes.includes(selectedFile.type.toLowerCase())) {
+      setError("Formato inválido. Apenas imagens JPEG, PNG ou WebP são aceitas.");
+      return;
+    }
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (selectedFile.size > MAX_SIZE) {
+      setError(`O arquivo selecionado excede o limite de 10MB (${(selectedFile.size / (1024 * 1024)).toFixed(1)}MB).`);
+      return;
+    }
+    setError("");
+    const reader = new FileReader();
+    reader.onload = () => {
+      setRawImageSrc(reader.result as string);
+      setCropModalOpen(true);
+    };
+    reader.readAsDataURL(selectedFile);
+  };
+
+  const handleCropComplete = (croppedFile: File) => {
+    setFile(croppedFile);
+    setCropModalOpen(false);
+    setRawImageSrc(null);
+  };
+
+  const handleCropCancel = () => {
+    setCropModalOpen(false);
+    setRawImageSrc(null);
+  };
+
   useEffect(() => {
     if (open) {
       productService
@@ -89,6 +138,10 @@ export function ComboFormDialog({
       setBadge(comboToEdit.cardBadge?.text || "COMBO POP"); // Fallback
       setDescription(comboToEdit.description || "");
       setIsActive(comboToEdit.isAvailable ?? true);
+      setServesText(comboToEdit.servesText || "");
+      setFile(null);
+      setCropModalOpen(false);
+      setRawImageSrc(null);
 
       const itemsMap: { [productId: string]: number } = {};
       comboToEdit.comboItems?.forEach((it) => {
@@ -111,6 +164,10 @@ export function ComboFormDialog({
       setDiscountPercent("15");
       setFixedComboPrice("");
       setIsActive(true);
+      setServesText("");
+      setFile(null);
+      setCropModalOpen(false);
+      setRawImageSrc(null);
       setComboItems({});
       setDurationDays("");
       setShowDuration(false);
@@ -227,17 +284,18 @@ export function ComboFormDialog({
         name: title.trim(),
         description: description.trim(),
         price: finalPrice,
+        servesText: servesText.trim() || null,
         category: "Combo Especial",
         isAvailable: isActive,
         isCombo: true,
         comboItems: itemsPayload,
-        imageUrl: "", // Combos don't have a distinct image yet
+        imageUrl: comboToEdit?.imageUrl || "",
       };
 
       if (comboToEdit) {
-        await productService.updateProduct(comboToEdit.id, payload);
+        await productService.updateProduct(comboToEdit.id, payload, file || undefined);
       } else {
-        await productService.createProduct(payload);
+        await productService.createProduct(payload, file || undefined);
       }
 
       onSaved();
@@ -251,7 +309,8 @@ export function ComboFormDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-3xl sm:max-w-3xl max-h-[85vh] overflow-y-auto overflow-x-hidden p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-white dark:bg-[#200B22] border border-gray-200 dark:border-border/40 text-foreground shadow-2xl space-y-6">
         <DialogHeader className="border-b border-gray-100 dark:border-border/30 pb-4">
           <DialogTitle className="text-xl sm:text-2xl font-heading font-black text-foreground dark:text-foreground flex items-center gap-2.5">
@@ -340,6 +399,81 @@ export function ComboFormDialog({
               placeholder="Descreva o que acompanha este combo e as vantagens para o cliente..."
               className="w-full rounded-xl p-3 resize-none h-20 text-xs sm:text-sm bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-gray-900 dark:text-gray-100"
             />
+          </div>
+
+          {/* Foto e Rendimento do Combo */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-2xl bg-gray-50/70 dark:bg-background/60 border border-gray-200/70 dark:border-border/40">
+            {/* Upload de Foto */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-primary" />
+                  Foto do Combo
+                </Label>
+                <span className="text-[10px] font-semibold text-primary dark:text-muted-foreground bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+                  1:1 Quadrado
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-16 h-16 rounded-xl bg-white dark:bg-card border border-gray-200 dark:border-border/50 overflow-hidden relative shrink-0 flex items-center justify-center shadow-xs">
+                  {previewUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={previewUrl} alt="Foto do combo" className="w-full h-full object-cover" />
+                  ) : (
+                    <ImageIcon className="w-6 h-6 text-gray-400" />
+                  )}
+                </div>
+                <div className="flex-1 space-y-1">
+                  <label className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-xl bg-white dark:bg-card border border-gray-200 dark:border-border/60 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-muted/50 cursor-pointer shadow-xs transition-colors">
+                    <Upload className="w-3.5 h-3.5 text-primary" />
+                    <span>{previewUrl ? "Alterar Foto" : "Escolher Foto"}</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/jpg"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                  </label>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500">
+                    JPG, PNG ou WebP até 10MB.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Rendimento / Serve X Pessoas */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label htmlFor="combo-serves" className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-primary" />
+                  Serve X Pessoas
+                </Label>
+                <span className="text-[10px] text-muted-foreground font-normal">opcional</span>
+              </div>
+              <Input
+                id="combo-serves"
+                value={servesText}
+                onChange={(e) => setServesText(e.target.value)}
+                placeholder="Ex: Serve 2 a 3 pessoas"
+                className="h-10 rounded-xl bg-white dark:bg-card border-gray-200 dark:border-border/50 text-xs sm:text-sm font-medium"
+              />
+              <div className="flex flex-wrap gap-1.5">
+                {["Serve 1 a 2 pessoas", "Serve 2 pessoas", "Serve 2 a 3 pessoas", "Serve 3 a 4 pessoas"].map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => setServesText(opt)}
+                    className={`text-[10px] px-2 py-0.5 rounded-md border transition-all font-medium ${
+                      servesText === opt
+                        ? "bg-primary text-white border-primary"
+                        : "bg-white dark:bg-card border-gray-200 dark:border-border/50 text-gray-600 dark:text-gray-300 hover:border-primary/50"
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* 3. Seleção de Produtos para Montagem do Combo */}
@@ -728,5 +862,15 @@ export function ComboFormDialog({
         </form>
       </DialogContent>
     </Dialog>
+
+    <ImageCropperDialog
+      open={cropModalOpen}
+      imageSrc={rawImageSrc}
+      aspectRatio={1}
+      aspectLabel="1:1 (Quadrado)"
+      onCropComplete={handleCropComplete}
+      onCancel={handleCropCancel}
+    />
+  </>
   );
 }

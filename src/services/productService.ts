@@ -1,6 +1,17 @@
 import { CardBadge } from "./badgeService";
 import { AddonGroup } from "./addonService";
 
+export interface ProductPromotion {
+  id: string;
+  title: string;
+  badge: string;
+  discountType: "percentage" | "fixed";
+  discountValue: number;
+  startsAt?: string | null;
+  expiresAt?: string | null;
+  isActive: boolean;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -30,6 +41,7 @@ export interface Product {
   }[];
   addonGroupIds?: string[];
   addonGroups?: AddonGroup[];
+  promotions?: ProductPromotion[];
 }
 
 export const productService = {
@@ -96,6 +108,7 @@ export const productService = {
       comboItems: (item.comboItems as Product["comboItems"]) || [],
       addonGroupIds: (item.addonGroupIds as string[]) || [],
       addonGroups: (item.addonGroups as Product["addonGroups"]) || [],
+      promotions: (item.promotions as Product["promotions"]) || [],
     }));
   },
 
@@ -131,6 +144,7 @@ export const productService = {
       comboItems: data.comboItems || [],
       addonGroupIds: data.addonGroupIds || [],
       addonGroups: data.addonGroups || [],
+      promotions: data.promotions || [],
     };
   },
 
