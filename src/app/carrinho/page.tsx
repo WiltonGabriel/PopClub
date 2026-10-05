@@ -27,7 +27,11 @@ import {
   Lock,
   Eye,
   EyeOff,
+  Store,
+  Truck,
 } from "lucide-react";
+import { calculateDistanceKm } from "@/lib/geo";
+import { shippingService } from "@/services/shippingService";
 import { useCart } from "../../hooks/useCart";
 import { useAuth } from "../../hooks/useAuth";
 import { couponService, ValidatedCoupon } from "../../services/couponService";
@@ -176,6 +180,65 @@ export default function CarrinhoPage() {
   const [zip, setZip] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+
+  // Modalidade de Atendimento (Entrega em Domicílio vs Retirada no Balcão)
+  const [deliveryMode, setDeliveryMode] = useState<"delivery" | "retirada">("delivery");
+
+  // Cotação e Verificação do Raio Geográfico em Tempo Real
+  const [deliveryQuote, setDeliveryQuote] = useState<{
+    isDeliverable: boolean;
+    distanceKm: number;
+    maxRadiusKm: number;
+    reason?: string;
+  } | null>(null);
+
+  // Recálculo automático do raio ao atualizar coordenadas ou dados da loja
+  useEffect(() => {
+    if (!storeSettings) return;
+    const storeLat = storeSettings.storeLatitude ?? -15.6536;
+    const storeLng = storeSettings.storeLongitude ?? -56.1322;
+    const maxRadius = storeSettings.maxDeliveryRadiusKm ?? 12;
+
+    if (latitude && longitude && !isNaN(latitude) && !isNaN(longitude)) {
+      const dist = calculateDistanceKm(storeLat, storeLng, latitude, longitude);
+      const isDeliverable = dist <= maxRadius;
+      setDeliveryQuote({
+        isDeliverable,
+        distanceKm: Number(dist.toFixed(2)),
+        maxRadiusKm: maxRadius,
+        reason: isDeliverable
+          ? undefined
+          : `Identificamos que seu endereço fica a ${dist.toFixed(1)} km da nossa sede, e nosso raio máximo atual é de ${maxRadius} km.`,
+      });
+    } else {
+      setDeliveryQuote(null);
+    }
+  }, [latitude, longitude, storeSettings]);
+
+  // Se o usuário digitar Rua e Bairro mas ainda não tiver clicado no mapa/GPS, busca geolocalização automática
+  useEffect(() => {
+    if (latitude && longitude) return;
+    if (!street.trim() || !neighborhood.trim() || street.trim().length < 3) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        const fullQuery = `${street}, ${number ? number + " - " : ""}${neighborhood}, ${city || "Várzea Grande"}, MT, Brasil`;
+        const res = await fetch(`/api/geocode/search?q=${encodeURIComponent(fullQuery)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.results && data.results.length > 0) {
+            const first = data.results[0];
+            if (first.latitude && first.longitude) {
+              setLatitude(first.latitude);
+              setLongitude(first.longitude);
+            }
+          }
+        }
+      } catch {}
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [street, number, neighborhood, city, latitude, longitude]);
 
   // Integração com AddressContext global
   const {
@@ -394,23 +457,26 @@ export default function CarrinhoPage() {
 
   // Cálculos de Entrega & Totais
   const isFreeDelivery = useMemo(() => {
+    if (deliveryMode === "retirada") return true;
     if (!storeSettings) return false;
     if (storeSettings.freeDeliveryThreshold !== null && storeSettings.freeDeliveryThreshold !== undefined) {
       return itemsTotal >= storeSettings.freeDeliveryThreshold;
     }
     return storeSettings.deliveryFee === 0;
-  }, [storeSettings, itemsTotal]);
+  }, [storeSettings, itemsTotal, deliveryMode]);
 
   const deliveryFee = useMemo(() => {
+    if (deliveryMode === "retirada") return 0;
     if (!storeSettings) return 5.0;
     if (isFreeDelivery) return 0;
     return storeSettings.deliveryFee;
-  }, [storeSettings, isFreeDelivery]);
+  }, [storeSettings, isFreeDelivery, deliveryMode]);
 
   const amountToFreeShipping = useMemo(() => {
+    if (deliveryMode === "retirada") return 0;
     if (!storeSettings || storeSettings.freeDeliveryThreshold === null || isFreeDelivery) return 0;
     return Math.max(0, Number((storeSettings.freeDeliveryThreshold - itemsTotal).toFixed(2)));
-  }, [storeSettings, itemsTotal, isFreeDelivery]);
+  }, [storeSettings, itemsTotal, isFreeDelivery, deliveryMode]);
 
   const couponDiscount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const totalDiscount = Number((promoDiscount + couponDiscount).toFixed(2));
@@ -425,17 +491,21 @@ export default function CarrinhoPage() {
           `• ${item.quantity}x ${item.name} - R$ ${(item.price * item.quantity).toFixed(2).replace(".", ",")}`
       )
       .join("\n");
-    const addressStr = street
-      ? `${street}, ${number || "S/N"} - ${neighborhood || ""}${city ? `, ${city}` : ""}${complement ? ` (${complement})` : ""}`
-      : "A combinar";
+    const addressStr =
+      deliveryMode === "retirada"
+        ? `Retirada no Balcão da Loja (${storeSettings?.storeAddress || "Sede Pop Shake"})`
+        : street
+        ? `${street}, ${number || "S/N"} - ${neighborhood || ""}${city ? `, ${city}` : ""}${complement ? ` (${complement})` : ""}`
+        : "A combinar";
     const paymentStr =
       paymentType === "dinheiro"
         ? `Dinheiro${changeFor ? ` (Troco para R$ ${parseFloat(changeFor).toFixed(2).replace(".", ",")})` : ""}`
         : paymentType === "cartao_maquininha"
         ? "Cartão na Maquininha"
         : "Pix na Entrega";
-    return `*Novo Pedido PopClub*\n\n*Itens:*\n${itemsList}\n\n*Entrega:* ${addressStr}\n*Forma de Pagamento:* ${paymentStr}\n*Total:* R$ ${finalTotal.toFixed(2).replace(".", ",")}`;
-  }, [items, street, number, neighborhood, city, complement, paymentType, changeFor, finalTotal]);
+    const modalidadeStr = deliveryMode === "retirada" ? "*Modalidade:* Retirada no Balcão (Frete Grátis)" : "*Modalidade:* Entrega em Domicílio";
+    return `*Novo Pedido PopClub*\n\n*Itens:*\n${itemsList}\n\n${modalidadeStr}\n*Endereço/Local:* ${addressStr}\n*Forma de Pagamento:* ${paymentStr}\n*Total:* R$ ${finalTotal.toFixed(2).replace(".", ",")}`;
+  }, [items, deliveryMode, street, number, neighborhood, city, complement, paymentType, changeFor, finalTotal, storeSettings]);
 
   const handleReviewAddress = () => {
     if (addressSectionRef.current) {
@@ -587,16 +657,25 @@ export default function CarrinhoPage() {
       return;
     }
 
-    if (!street.trim() || !number.trim() || !neighborhood.trim()) {
-      const msg = "Preencha todos os campos obrigatórios de endereço (Rua, Número e Bairro).";
-      setCheckoutError(msg);
-      setCheckoutErrorObj(
-        new AppApiError(msg, "VALIDATION_ERROR", 400, [
-          { field: "Endereço", message: "Rua, Número e Bairro são obrigatórios" },
-        ])
-      );
-      handleReviewAddress();
-      return;
+    if (deliveryMode === "delivery") {
+      if (deliveryQuote && !deliveryQuote.isDeliverable) {
+        const msg = `Seu endereço fica a ${deliveryQuote.distanceKm.toFixed(1)} km da nossa sede (raio máximo: ${deliveryQuote.maxRadiusKm} km). Infelizmente não conseguimos entregar aí no momento. Você pode optar por Retirada no Balcão para prosseguir com seu pedido!`;
+        setCheckoutError(msg);
+        setCheckoutErrorObj(new AppApiError(msg, "OUT_OF_DELIVERY_RADIUS", 400));
+        return;
+      }
+
+      if (!street.trim() || !number.trim() || !neighborhood.trim()) {
+        const msg = "Preencha todos os campos obrigatórios de endereço (Rua, Número e Bairro).";
+        setCheckoutError(msg);
+        setCheckoutErrorObj(
+          new AppApiError(msg, "VALIDATION_ERROR", 400, [
+            { field: "Endereço", message: "Rua, Número e Bairro são obrigatórios" },
+          ])
+        );
+        handleReviewAddress();
+        return;
+      }
     }
 
     if (paymentType === "dinheiro" && changeFor) {
@@ -612,7 +691,10 @@ export default function CarrinhoPage() {
     setSubmitting(true);
 
     try {
+      const isPickup = deliveryMode === "retirada";
       const payload = {
+        deliveryType: deliveryMode,
+        isPickup: isPickup,
         items: items.map((i) => ({
           productId: i.productId,
           quantity: i.quantity,
@@ -625,15 +707,15 @@ export default function CarrinhoPage() {
           })) : null,
         })),
         deliveryAddress: {
-          street: street.trim(),
-          number: number.trim(),
-          neighborhood: neighborhood.trim(),
-          city: city.trim() || "Local",
-          complement: complement.trim() || null,
-          reference: reference.trim() || null,
-          zip: zip.trim() || null,
-          latitude: latitude || null,
-          longitude: longitude || null,
+          street: isPickup ? "Retirada no Balcão" : street.trim(),
+          number: isPickup ? "S/N" : number.trim(),
+          neighborhood: isPickup ? "Centro Sul" : neighborhood.trim(),
+          city: isPickup ? (storeSettings?.storeAddress?.split(",")[0] || "Várzea Grande") : (city.trim() || "Local"),
+          complement: isPickup ? null : (complement.trim() || null),
+          reference: isPickup ? null : (reference.trim() || null),
+          zip: isPickup ? null : (zip.trim() || null),
+          latitude: isPickup ? (storeSettings?.storeLatitude ?? null) : (latitude || null),
+          longitude: isPickup ? (storeSettings?.storeLongitude ?? null) : (longitude || null),
         },
         paymentMethod: {
           type: paymentType,
@@ -731,16 +813,25 @@ export default function CarrinhoPage() {
       setCheckoutErrorObj(new AppApiError(msg, "STORE_CLOSED", 400));
       return;
     }
-    if (!street.trim() || !number.trim() || !neighborhood.trim()) {
-      const msg = "Preencha todos os campos obrigatórios de endereço (Rua, Número e Bairro).";
-      setCheckoutError(msg);
-      setCheckoutErrorObj(
-        new AppApiError(msg, "VALIDATION_ERROR", 400, [
-          { field: "Endereço", message: "Rua, Número e Bairro são obrigatórios" },
-        ])
-      );
-      handleReviewAddress();
-      return;
+    if (deliveryMode === "delivery") {
+      if (deliveryQuote && !deliveryQuote.isDeliverable) {
+        const msg = `Seu endereço fica a ${deliveryQuote.distanceKm.toFixed(1)} km da nossa sede (raio máximo: ${deliveryQuote.maxRadiusKm} km). Infelizmente não conseguimos entregar aí no momento. Alterne para Retirada no Balcão para prosseguir com seu pedido!`;
+        setCheckoutError(msg);
+        setCheckoutErrorObj(new AppApiError(msg, "OUT_OF_DELIVERY_RADIUS", 400));
+        return;
+      }
+
+      if (!street.trim() || !number.trim() || !neighborhood.trim()) {
+        const msg = "Preencha todos os campos obrigatórios de endereço (Rua, Número e Bairro).";
+        setCheckoutError(msg);
+        setCheckoutErrorObj(
+          new AppApiError(msg, "VALIDATION_ERROR", 400, [
+            { field: "Endereço", message: "Rua, Número e Bairro são obrigatórios" },
+          ])
+        );
+        handleReviewAddress();
+        return;
+      }
     }
     if (paymentType === "dinheiro" && changeFor) {
       const changeNum = parseFloat(changeFor);
@@ -1301,48 +1392,176 @@ export default function CarrinhoPage() {
               )}
             </section>
 
-            {/* 3. Endereço de Entrega */}
+            {/* 3. Modalidade de Atendimento & Endereço */}
             <section ref={addressSectionRef} className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-border/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-border/30">
                 <h3 className="font-heading text-base sm:text-lg font-bold uppercase tracking-wide flex items-center gap-2.5 text-foreground">
                   <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary dark:text-muted-foreground flex items-center justify-center">
-                    <MapPin className="w-4 h-4" />
+                    {deliveryMode === "delivery" ? <Truck className="w-4 h-4" /> : <Store className="w-4 h-4" />}
                   </div>
-                  <span>Endereço de Entrega</span>
+                  <span>3. Como deseja receber seu pedido?</span>
                 </h3>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* Botão de Trocar / Gerenciar Endereços */}
-                  <button
-                    type="button"
-                    onClick={openAddressModal}
-                    className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-primary dark:text-muted-foreground bg-primary/5 dark:bg-primary/95/40 border border-primary/20 dark:border-primary/80 hover:bg-primary/10 dark:hover:bg-primary/90/40 px-3 py-2 rounded-xl transition-colors cursor-pointer"
-                  >
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span>Selecionar / Alterar</span>
-                  </button>
+                {deliveryMode === "delivery" && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Botão de Trocar / Gerenciar Endereços */}
+                    <button
+                      type="button"
+                      onClick={openAddressModal}
+                      className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-primary dark:text-muted-foreground bg-primary/5 dark:bg-primary/95/40 border border-primary/20 dark:border-primary/80 hover:bg-primary/10 dark:hover:bg-primary/90/40 px-3 py-2 rounded-xl transition-colors cursor-pointer"
+                    >
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>Selecionar / Alterar</span>
+                    </button>
 
-                  {/* Botão de Ação Rápida: Usar Minha Localização Atual */}
+                    {/* Botão de Ação Rápida: Usar Minha Localização Atual */}
+                    <button
+                      type="button"
+                      onClick={handleGetLocation}
+                      disabled={isLocating}
+                      className="inline-flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-primary to-accent hover:opacity-95 px-3.5 py-2 rounded-xl shadow-xs shadow-primary/20 transition-all cursor-pointer disabled:opacity-60 shrink-0"
+                    >
+                      {isLocating ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin text-white" />
+                          <span>Buscando GPS...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Navigation className="w-4 h-4 text-white" />
+                          <span>📍 GPS Atual</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Seletor de Modalidade: Entrega em Domicílio vs Retirada no Balcão */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Opção A: Entrega em Domicílio */}
+                <button
+                  type="button"
+                  onClick={() => setDeliveryMode("delivery")}
+                  className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between relative ${
+                    deliveryMode === "delivery"
+                      ? deliveryQuote && !deliveryQuote.isDeliverable
+                        ? "border-amber-500 bg-amber-500/10 dark:bg-amber-950/30 ring-1 ring-amber-500/40"
+                        : "border-primary bg-primary/5 dark:bg-primary/20 shadow-sm ring-1 ring-primary/30"
+                      : "border-gray-200 dark:border-border/40 hover:border-gray-300 dark:hover:border-border/80 bg-white dark:bg-background/60"
+                  }`}
+                >
+                  <div className="flex items-start justify-between w-full mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                      <Truck className="w-5 h-5" />
+                    </div>
+                    {deliveryQuote && !deliveryQuote.isDeliverable ? (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white font-mono uppercase tracking-wider animate-pulse">
+                        Fora da Área
+                      </span>
+                    ) : deliveryMode === "delivery" ? (
+                      <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shadow-xs">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      </span>
+                    ) : null}
+                  </div>
+                  <div>
+                    <span className="font-heading font-bold text-sm text-foreground block">
+                      Entrega em Domicílio
+                    </span>
+                    <span className="text-xs text-muted-foreground mt-0.5 block">
+                      Receba no conforto da sua casa
+                    </span>
+                  </div>
+                </button>
+
+                {/* Opção B: Retirada no Balcão */}
+                <button
+                  type="button"
+                  onClick={() => setDeliveryMode("retirada")}
+                  className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between relative ${
+                    deliveryMode === "retirada"
+                      ? "border-primary bg-primary/5 dark:bg-primary/20 shadow-sm ring-1 ring-primary/30"
+                      : "border-gray-200 dark:border-border/40 hover:border-gray-300 dark:hover:border-border/80 bg-white dark:bg-background/60"
+                  }`}
+                >
+                  <div className="flex items-start justify-between w-full mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                      <Store className="w-5 h-5" />
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300/40 uppercase tracking-wider">
+                      Frete Grátis 🎉
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-heading font-bold text-sm text-foreground block">
+                      Retirada no Balcão
+                    </span>
+                    <span className="text-xs text-muted-foreground mt-0.5 block">
+                      Retire na nossa sede (R$ 0,00)
+                    </span>
+                  </div>
+                </button>
+              </div>
+
+              {/* CARD DE AVISO ACOLHEDOR: FORA DO RAIO DE ATENDIMENTO */}
+              {deliveryMode === "delivery" && deliveryQuote && !deliveryQuote.isDeliverable && (
+                <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 dark:bg-amber-950/40 border-2 border-amber-500/30 text-amber-900 dark:text-amber-200 space-y-3.5 animate-in fade-in">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                      <MapPin className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="font-heading font-black text-xs sm:text-sm uppercase tracking-wide text-amber-900 dark:text-amber-200 flex items-center gap-2">
+                        <span>📍 Endereço fora do raio de entrega</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                          Raio Máximo: {deliveryQuote.maxRadiusKm} km
+                        </span>
+                      </h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Identificamos que seu endereço fica a <strong className="text-amber-700 dark:text-amber-300 font-mono font-bold">{deliveryQuote.distanceKm.toFixed(1)} km</strong> da nossa sede, e nosso raio máximo atual é de <strong className="text-amber-700 dark:text-amber-300 font-mono font-bold">{deliveryQuote.maxRadiusKm} km</strong>. Infelizmente não conseguimos entregar aí no momento.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Resgate Automático para Retirada no Balcão */}
                   <button
                     type="button"
-                    onClick={handleGetLocation}
-                    disabled={isLocating}
-                    className="inline-flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-primary to-accent hover:opacity-95 px-3.5 py-2 rounded-xl shadow-xs shadow-primary/20 transition-all cursor-pointer disabled:opacity-60 shrink-0"
+                    onClick={() => setDeliveryMode("retirada")}
+                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-heading font-bold text-xs uppercase tracking-wider shadow-sm transition-all cursor-pointer"
                   >
-                    {isLocating ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin text-white" />
-                        <span>Buscando GPS...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Navigation className="w-4 h-4 text-white" />
-                        <span>📍 GPS Atual</span>
-                      </>
-                    )}
+                    <Store className="w-4 h-4" />
+                    <span>Prefere retirar no balcão? Clique aqui para continuar seu pedido</span>
                   </button>
                 </div>
-              </div>
+              )}
+
+              {/* CARD DE DETALHES DE RETIRADA */}
+              {deliveryMode === "retirada" && (
+                <div className="p-4 rounded-2xl bg-purple-500/10 dark:bg-purple-950/40 border border-purple-500/30 text-purple-900 dark:text-purple-200 space-y-2 animate-in fade-in">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 mt-0.5">
+                      <Store className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-heading font-black text-xs sm:text-sm uppercase tracking-wide text-foreground">
+                        Retirada Presencial na Loja
+                      </h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Seu pedido será embalado e ficará pronto na bancada para retirada imediata sem cobrança de frete.
+                      </p>
+                      <div className="mt-2 text-xs font-semibold text-foreground flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                        <span>{storeSettings?.storeAddress || "Av. Filinto Müller, 850 - Centro Sul, Várzea Grande - MT"}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* FORMULÁRIO DE ENDEREÇO DE ENTREGA */}
+              {deliveryMode === "delivery" && (
+                <div className="space-y-4 pt-1">
 
               {/* Se houver endereços salvos via AddressContext */}
               {addresses.length > 0 && (
@@ -1547,51 +1766,53 @@ export default function CarrinhoPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                <div className="space-y-1.5">
-                  <Label className="font-mono text-xs uppercase text-muted-foreground">
-                    Complemento (Apto, Bloco...)
-                  </Label>
-                  <Input
-                    value={complement}
-                    onChange={(e) => handleComplementChange(e.target.value)}
-                    placeholder="Ex: Apto 302 Bloco B"
-                    className="rounded-xl border border-input text-base md:text-sm h-11 px-3"
-                  />
-                </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <div className="space-y-1.5">
+                      <Label className="font-mono text-xs uppercase text-muted-foreground">
+                        Complemento (Apto, Bloco...)
+                      </Label>
+                      <Input
+                        value={complement}
+                        onChange={(e) => handleComplementChange(e.target.value)}
+                        placeholder="Ex: Apto 302 Bloco B"
+                        className="rounded-xl border border-input text-base md:text-sm h-11 px-3"
+                      />
+                    </div>
 
-                <div className="space-y-1.5">
-                  <Label className="font-mono text-xs uppercase text-muted-foreground">
-                    Ponto de Referência
-                  </Label>
-                  <Input
-                    value={reference}
-                    onChange={(e) => handleReferenceChange(e.target.value)}
-                    placeholder="Ex: Próximo à praça central"
-                    className="rounded-xl border border-input text-base md:text-sm h-11 px-3"
-                  />
+                    <div className="space-y-1.5">
+                      <Label className="font-mono text-xs uppercase text-muted-foreground">
+                        Ponto de Referência
+                      </Label>
+                      <Input
+                        value={reference}
+                        onChange={(e) => handleReferenceChange(e.target.value)}
+                        placeholder="Ex: Próximo à praça central"
+                        className="rounded-xl border border-input text-base md:text-sm h-11 px-3"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </section>
 
-            {/* 4. Forma de Pagamento & AVISO VISUAL DESTACADO */}
+            {/* 4. Forma de Pagamento */}
             <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-border/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
               <h3 className="font-heading text-base sm:text-lg font-bold uppercase tracking-wide flex items-center gap-2.5 text-foreground">
                 <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary dark:text-muted-foreground flex items-center justify-center">
                   <CreditCard className="w-4 h-4" />
                 </div>
-                <span>Forma de Pagamento na Entrega</span>
+                <span>4. Forma de Pagamento ({deliveryMode === "retirada" ? "no Balcão" : "na Entrega"})</span>
               </h3>
 
-              {/* CRITICAL: AVISO VISUAL DESTACADO DE PAGAMENTO NA ENTREGA */}
+              {/* CRITICAL: AVISO VISUAL DESTACADO DE PAGAMENTO */}
               <div className="bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-2xl p-4 flex items-start gap-3 shadow-xs">
                 <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 <div>
                   <h4 className="font-heading font-black text-xs sm:text-sm uppercase tracking-wide text-amber-800 dark:text-amber-300">
-                    Pagamento Exclusivo no Momento da Entrega
+                    Pagamento no Momento da {deliveryMode === "retirada" ? "Retirada no Balcão" : "Entrega"}
                   </h4>
                   <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                    Nenhum valor é cobrado online agora. O pagamento é realizado diretamente ao entregador na chegada do seu pedido via Pix, Cartão ou Dinheiro.
+                    Nenhum valor é cobrado online agora. O pagamento é realizado diretamente {deliveryMode === "retirada" ? "no balcão da loja" : "ao entregador"} na chegada do seu pedido via Pix, Cartão ou Dinheiro.
                   </p>
                 </div>
               </div>
@@ -1757,8 +1978,12 @@ export default function CarrinhoPage() {
                 )}
 
                 <div className="flex justify-between items-center text-muted-foreground pt-1">
-                  <span>Taxa de Entrega:</span>
-                  {isFreeDelivery ? (
+                  <span>{deliveryMode === "retirada" ? "Taxa de Retirada:" : "Taxa de Entrega:"}</span>
+                  {deliveryMode === "retirada" ? (
+                    <span className="px-2.5 py-0.5 rounded-full font-bold text-[11px] bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-300/50 uppercase tracking-wider">
+                      Grátis (Balcão)
+                    </span>
+                  ) : isFreeDelivery ? (
                     <span className="px-2.5 py-0.5 rounded-full font-bold text-[11px] bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300/50 uppercase tracking-wider">
                       Grátis
                     </span>
@@ -1769,7 +1994,7 @@ export default function CarrinhoPage() {
                   )}
                 </div>
 
-                {amountToFreeShipping > 0 && (
+                {deliveryMode === "delivery" && amountToFreeShipping > 0 && (
                   <div className="mt-2 p-2.5 rounded-xl bg-primary/5 dark:bg-primary/95/30 border border-primary/20/60 dark:border-primary/90/40 text-[11px] text-primary dark:text-muted-foreground flex items-center gap-2">
                     <Sparkles className="w-3.5 h-3.5 shrink-0" />
                     <span>
@@ -1781,7 +2006,7 @@ export default function CarrinhoPage() {
 
               <div className="flex justify-between items-baseline pt-2">
                 <span className="font-heading font-black text-xs sm:text-sm uppercase tracking-wider text-muted-foreground">
-                  Total a Pagar na Entrega:
+                  Total a Pagar {deliveryMode === "retirada" ? "no Balcão" : "na Entrega"}:
                 </span>
                 <span className="font-heading text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
                   R$ {finalTotal.toFixed(2).replace(".", ",")}
@@ -1797,12 +2022,18 @@ export default function CarrinhoPage() {
                   <span>Nossa esteira de pedidos está fechada neste momento.</span>
                 </div>
               )}
+              {deliveryMode === "delivery" && deliveryQuote && !deliveryQuote.isDeliverable && (
+                <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 rounded-2xl p-3 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>Endereço fora do raio de entrega. Alterne para retirada no balcão para continuar.</span>
+                </div>
+              )}
               <Button
                 type="button"
                 onClick={handleInitiateOrderConfirmation}
-                disabled={submitting || (storeSettings ? !storeSettings.isOpen : false)}
+                disabled={submitting || (storeSettings ? !storeSettings.isOpen : false) || (deliveryMode === "delivery" && deliveryQuote !== null && !deliveryQuote.isDeliverable)}
                 className={`w-full h-14 rounded-2xl font-heading text-sm uppercase tracking-wider font-black shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all ${
-                  storeSettings && !storeSettings.isOpen
+                  (storeSettings && !storeSettings.isOpen) || (deliveryMode === "delivery" && deliveryQuote !== null && !deliveryQuote.isDeliverable)
                     ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed text-white dark:bg-gray-700"
                     : "bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] hover:bg-right text-white shadow-primary/25 border border-white/20"
                 }`}
@@ -1814,6 +2045,16 @@ export default function CarrinhoPage() {
                   </>
                 ) : storeSettings && !storeSettings.isOpen ? (
                   <>Loja Fechada no Momento</>
+                ) : deliveryMode === "delivery" && deliveryQuote && !deliveryQuote.isDeliverable ? (
+                  <>
+                    <AlertTriangle className="w-5 h-5 text-amber-300" />
+                    Fora da Área de Entrega
+                  </>
+                ) : deliveryMode === "retirada" ? (
+                  <>
+                    Revisar Pedido (Retirada no Balcão)
+                    <ArrowRight className="w-5 h-5" />
+                  </>
                 ) : (
                   <>
                     Revisar e Confirmar Pedido
@@ -1822,7 +2063,7 @@ export default function CarrinhoPage() {
                 )}
               </Button>
               <p className="text-[11px] text-center text-muted-foreground">
-                Ambiente seguro &bull; Pagamento no ato da entrega
+                Ambiente seguro &bull; Pagamento no ato da {deliveryMode === "retirada" ? "retirada" : "entrega"}
               </p>
             </div>
           </div>
@@ -1840,10 +2081,16 @@ export default function CarrinhoPage() {
                 <span>Nossa esteira de pedidos está fechada neste momento. Você pode montar seu carrinho e finalizar assim que o atendimento abrir!</span>
               </div>
             )}
+            {deliveryMode === "delivery" && deliveryQuote && !deliveryQuote.isDeliverable && (
+              <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 rounded-xl p-2.5 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                <span>Fora da área de entrega. Alterne para retirada no balcão.</span>
+              </div>
+            )}
             <div className="flex items-center justify-between gap-4">
               <div>
                 <span className="text-[10px] font-mono uppercase text-muted-foreground block">
-                  Total (Pague na Entrega)
+                  Total (Pague {deliveryMode === "retirada" ? "no Balcão" : "na Entrega"})
                 </span>
                 <span className="font-heading text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
                   R$ {finalTotal.toFixed(2).replace(".", ",")}
@@ -1853,9 +2100,9 @@ export default function CarrinhoPage() {
               <Button
                 type="button"
                 onClick={handleInitiateOrderConfirmation}
-                disabled={submitting || (storeSettings ? !storeSettings.isOpen : false)}
-                className={`h-12 px-6 sm:px-8 rounded-2xl font-heading text-sm uppercase tracking-wider font-black shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 transition-all ${
-                  storeSettings && !storeSettings.isOpen
+                disabled={submitting || (storeSettings ? !storeSettings.isOpen : false) || (deliveryMode === "delivery" && deliveryQuote !== null && !deliveryQuote.isDeliverable)}
+                className={`h-12 px-5 sm:px-8 rounded-2xl font-heading text-sm uppercase tracking-wider font-black shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 transition-all ${
+                  (storeSettings && !storeSettings.isOpen) || (deliveryMode === "delivery" && deliveryQuote !== null && !deliveryQuote.isDeliverable)
                     ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed text-white dark:bg-gray-700"
                     : "bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] hover:bg-right text-white shadow-primary/25 border border-white/20"
                 }`}
@@ -1863,13 +2110,23 @@ export default function CarrinhoPage() {
                 {submitting ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Processando Pedido...
+                    Processando...
                   </>
                 ) : storeSettings && !storeSettings.isOpen ? (
-                  <>Loja Fechada no Momento</>
+                  <>Loja Fechada</>
+                ) : deliveryMode === "delivery" && deliveryQuote && !deliveryQuote.isDeliverable ? (
+                  <>
+                    <AlertTriangle className="w-4 h-4 text-amber-300" />
+                    Fora do Raio
+                  </>
+                ) : deliveryMode === "retirada" ? (
+                  <>
+                    Retirar no Balcão
+                    <ArrowRight className="w-5 h-5" />
+                  </>
                 ) : (
                   <>
-                    Revisar e Confirmar Pedido
+                    Revisar Pedido
                     <ArrowRight className="w-5 h-5" />
                   </>
                 )}
@@ -1919,11 +2176,27 @@ export default function CarrinhoPage() {
               ))}
             </div>
 
-            {/* Endereço */}
+            {/* Endereço ou Retirada */}
             <div className="border border-border rounded-xl p-4 space-y-0.5">
-              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1">Endereço de Entrega</p>
-              <p className="text-sm font-semibold text-foreground">{street}, {number}{complement ? `, ${complement}` : ""}</p>
-              <p className="text-xs text-muted-foreground">{neighborhood} &bull; {city}{reference ? ` — Ref: ${reference}` : ""}</p>
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1">
+                {deliveryMode === "retirada" ? "Modalidade do Pedido" : "Endereço de Entrega"}
+              </p>
+              {deliveryMode === "retirada" ? (
+                <>
+                  <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Store className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    Retirada no Balcão da Loja
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Av. Filinto Müller, 1259 - Centro, Várzea Grande - MT
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold text-foreground">{street}, {number}{complement ? `, ${complement}` : ""}</p>
+                  <p className="text-xs text-muted-foreground">{neighborhood} &bull; {city}{reference ? ` — Ref: ${reference}` : ""}</p>
+                </>
+              )}
             </div>
 
             {/* Pagamento */}
@@ -1931,11 +2204,13 @@ export default function CarrinhoPage() {
               <div>
                 <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-0.5">Forma de Pagamento</p>
                 <p className="text-sm font-bold text-foreground">
-                  {paymentType === "dinheiro" ? "Dinheiro" : paymentType === "cartao_maquininha" ? "Cartão (Maquininha)" : "Pix na Entrega"}
+                  {paymentType === "dinheiro" ? "Dinheiro" : paymentType === "cartao_maquininha" ? "Cartão (Maquininha)" : "Pix"}
                   {paymentType === "dinheiro" && changeFor ? ` — Troco para R$ ${parseFloat(changeFor).toFixed(2).replace(".", ",")}` : ""}
                 </p>
               </div>
-              <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-lg">Na Entrega</span>
+              <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-lg">
+                {deliveryMode === "retirada" ? "No Balcão" : "Na Entrega"}
+              </span>
             </div>
 
             {/* Resumo Financeiro */}
@@ -1960,8 +2235,12 @@ export default function CarrinhoPage() {
               )}
 
               <div className="flex justify-between items-center text-muted-foreground">
-                <span>Taxa de Entrega:</span>
-                {isFreeDelivery ? (
+                <span>{deliveryMode === "retirada" ? "Taxa de Retirada:" : "Taxa de Entrega:"}</span>
+                {deliveryMode === "retirada" ? (
+                  <span className="px-2.5 py-0.5 rounded-full font-bold text-[11px] bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-300/50 uppercase tracking-wider">
+                    Grátis (Balcão)
+                  </span>
+                ) : isFreeDelivery ? (
                   <span className="px-2.5 py-0.5 rounded-full font-bold text-[11px] bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300/50 uppercase tracking-wider">
                     Grátis
                   </span>

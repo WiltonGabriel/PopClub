@@ -35,6 +35,12 @@ export function calculateHaversineDistanceKm(
 }
 
 /**
+ * Alias para calculateHaversineDistanceKm
+ */
+export const calculateDistanceKm = calculateHaversineDistanceKm;
+
+
+/**
  * Calcula o ângulo de deslocamento (bearing) em graus entre dois pontos para rotação da moto.
  */
 export function calculateBearing(

@@ -561,6 +561,7 @@ export function LogisticsAndCouriersSection() {
 
               <div className="relative pt-1">
                 <Input
+                  id="input-max-delivery-radius"
                   type="number"
                   step="0.5"
                   min="1"
@@ -856,21 +857,23 @@ export function LogisticsAndCouriersSection() {
               )}
             </div>
 
-            {/* Mapa Interativo */}
-            <div className="space-y-2">
+            {/* Mapa Interativo com Raio de Cobertura */}
+            <div id="admin-store-location-map" className="space-y-2">
               {isStoreSettingsLoaded ? (
                 <LocationPickerMap
                   initialCoords={{ lat: storeLatitude, lng: storeLongitude }}
                   initialAddress={storeAddress}
-                  height="280px"
+                  height="340px"
                   pinEmoji="🍧"
                   pinLabel="Sede Pop Shake"
+                  coverageRadiusKm={parseFloat(maxDeliveryRadiusKm) || 0}
+                  showCoverageCircle={true}
                   onLocationSelect={handleLocationSelectFromMap}
                 />
               ) : (
-                <div className="w-full h-[280px] rounded-2xl bg-muted/40 border border-border/80 flex flex-col items-center justify-center gap-2 text-muted-foreground animate-pulse">
+                <div className="w-full h-[340px] rounded-2xl bg-muted/40 border border-border/80 flex flex-col items-center justify-center gap-2 text-muted-foreground animate-pulse">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                  <span className="text-xs font-medium font-mono">Carregando mapa da sede...</span>
+                  <span className="text-xs font-medium font-mono">Carregando mapa da sede e raio...</span>
                 </div>
               )}
             </div>

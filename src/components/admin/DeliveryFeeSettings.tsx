@@ -689,6 +689,8 @@ export function DeliveryFeeSettings() {
                 height="300px"
                 pinEmoji="🍧"
                 pinLabel="Sede Pop Shake"
+                coverageRadiusKm={12}
+                showCoverageCircle={true}
                 onLocationSelect={handleLocationSelectFromMap}
               />
             ) : (

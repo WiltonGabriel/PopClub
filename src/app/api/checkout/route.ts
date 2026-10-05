@@ -16,7 +16,12 @@ import {
   calculateAccountAgeMonths,
 } from "@/services/loyaltyBadgeService";
 
+import { calculateDistanceKm } from "@/lib/geo";
+
 const checkoutSchema = z.object({
+  deliveryType: z.enum(["delivery", "retirada"]).optional().default("delivery"),
+  orderType: z.enum(["delivery", "retirada"]).optional(),
+  isPickup: z.boolean().optional(),
   items: z.array(
     z.object({
       productId: z.string().min(1, "ID do produto inválido"),
@@ -35,9 +40,9 @@ const checkoutSchema = z.object({
   ).min(1, "O carrinho deve ter pelo menos 1 item"),
 
   deliveryAddress: z.object({
-    street: z.string().trim().min(1, "Logradouro/Rua é obrigatório").max(100, "Rua/Logradouro muito longo (máximo 100 caracteres)"),
-    number: z.string().trim().min(1, "Número é obrigatório").max(50, "Número muito longo (máximo 50 caracteres)"),
-    neighborhood: z.string().trim().min(1, "Bairro é obrigatório").max(100, "Bairro muito longo (máximo 100 caracteres)"),
+    street: z.string().trim().max(100, "Rua/Logradouro muito longo (máximo 100 caracteres)").optional().default(""),
+    number: z.string().trim().max(50, "Número muito longo (máximo 50 caracteres)").optional().default(""),
+    neighborhood: z.string().trim().max(100, "Bairro muito longo (máximo 100 caracteres)").optional().default(""),
     city: z.string().trim().max(100, "Cidade muito longa (máximo 100 caracteres)").default("Local"),
     complement: z.string().trim().max(300, "Complemento muito longo (máximo 300 caracteres)").optional().nullable(),
     reference: z.string().trim().max(300, "Referência muito longa (máximo 300 caracteres)").optional().nullable(),
@@ -90,11 +95,34 @@ export async function POST(request: Request) {
     const rawPhone = parsed.data.customerPhone || parsed.data.phone || null;
     const rawName = parsed.data.customerName || parsed.data.fullName || parsed.data.name || null;
 
+    // Identificação de modalidade (Entrega em Domicílio vs Retirada no Balcão)
+    const isPickup =
+      parsed.data.deliveryType === "retirada" ||
+      parsed.data.orderType === "retirada" ||
+      parsed.data.isPickup === true ||
+      Boolean(deliveryAddress.street && deliveryAddress.street.toLowerCase().includes("retirada"));
+
+    // Se NÃO for retirada, valida obrigatoriedade de Rua, Número e Bairro
+    if (!isPickup) {
+      if (!deliveryAddress.street?.trim() || !deliveryAddress.number?.trim() || !deliveryAddress.neighborhood?.trim()) {
+        return NextResponse.json(
+          { error: "Preencha todos os campos obrigatórios de endereço (Rua, Número e Bairro)." },
+          { status: 400 }
+        );
+      }
+    }
+
     // Sanitização rigorosa de entradas de texto do endereço
-    const cleanStreet = sanitizeText(deliveryAddress.street);
-    const cleanNumber = sanitizeText(deliveryAddress.number);
-    const cleanNeighborhood = sanitizeText(deliveryAddress.neighborhood);
-    const cleanCity = sanitizeText(deliveryAddress.city || "Local");
+    const cleanStreet = isPickup
+      ? (deliveryAddress.street && deliveryAddress.street.toLowerCase().includes("retirada") ? sanitizeText(deliveryAddress.street) : "Retirada no Balcão")
+      : sanitizeText(deliveryAddress.street);
+    const cleanNumber = isPickup
+      ? (deliveryAddress.number ? sanitizeText(deliveryAddress.number) : "S/N")
+      : sanitizeText(deliveryAddress.number);
+    const cleanNeighborhood = isPickup
+      ? (deliveryAddress.neighborhood ? sanitizeText(deliveryAddress.neighborhood) : "Centro Sul")
+      : sanitizeText(deliveryAddress.neighborhood);
+    const cleanCity = sanitizeText(deliveryAddress.city || "Várzea Grande");
     const cleanComplement = deliveryAddress.complement ? sanitizeText(deliveryAddress.complement) : null;
     const cleanReference = deliveryAddress.reference ? sanitizeText(deliveryAddress.reference) : null;
     const cleanZip = deliveryAddress.zip ? sanitizeText(deliveryAddress.zip) : null;
@@ -582,9 +610,38 @@ export async function POST(request: Request) {
       }
     }
 
+    // Validação de Raio Geográfico (Haversine) para pedidos de Entrega
+    if (!isPickup && deliveryAddress.latitude && deliveryAddress.longitude) {
+      const storeLat = storeSettings?.storeLatitude ?? -15.6536;
+      const storeLng = storeSettings?.storeLongitude ?? -56.1322;
+      const maxRadius = storeSettings?.maxDeliveryRadiusKm ?? 12;
+
+      const distanceKm = calculateDistanceKm(
+        storeLat,
+        storeLng,
+        deliveryAddress.latitude,
+        deliveryAddress.longitude
+      );
+
+      if (distanceKm > maxRadius) {
+        return NextResponse.json(
+          {
+            error: `Identificamos que seu endereço fica a ${distanceKm.toFixed(1)} km da nossa sede, e nosso raio máximo atual é de ${maxRadius} km. Infelizmente não conseguimos entregar aí no momento.`,
+            code: "OUT_OF_DELIVERY_RADIUS",
+            distanceKm: Number(distanceKm.toFixed(2)),
+            maxRadiusKm: maxRadius,
+            isDeliverable: false,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // 2.1. Cálculo da Taxa de Entrega com Regra de Frete Grátis e Origem do Estabelecimento
     let calculatedDeliveryFee = 5.0;
-    if (storeSettings) {
+    if (isPickup) {
+      calculatedDeliveryFee = 0;
+    } else if (storeSettings) {
       const fee = Number(storeSettings.deliveryFee);
       const threshold =
         storeSettings.freeDeliveryThreshold !== null
