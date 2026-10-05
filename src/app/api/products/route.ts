@@ -3,71 +3,75 @@ import { getAuthUser } from "@/lib/auth";
 import { handleApiError, apiError, apiSuccess } from "@/lib/apiResponse";
 import { sanitizeText } from "@/lib/sanitize";
 
+const productInclude = {
+  categoryRel: {
+    select: { name: true },
+  },
+  cardBadge: true,
+  comboItems: {
+    include: {
+      product: true,
+    },
+  },
+  addonGroups: {
+    include: {
+      group: {
+        include: {
+          items: {
+            orderBy: { sortOrder: "asc" as const },
+          },
+        },
+      },
+    },
+    orderBy: { sortOrder: "asc" as const },
+  },
+};
+
+function formatProduct(p: any) {
+  return {
+    id: p.id,
+    name: p.name,
+    description: p.description || "",
+    price: Number(p.price),
+    originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+    promotionalPrice: p.promotionalPrice ? Number(p.promotionalPrice) : null,
+    startsAt: p.startsAt ? (p.startsAt instanceof Date ? p.startsAt.toISOString() : p.startsAt) : null,
+    endsAt: p.endsAt ? (p.endsAt instanceof Date ? p.endsAt.toISOString() : p.endsAt) : null,
+    isPromoActive: p.isPromoActive ?? true,
+    servesText: p.servesText || null,
+    isHighlight: Boolean(p.isHighlight),
+    categoryId: p.categoryId,
+    category: p.categoryRel?.name || p.category || "Outros",
+    imageUrl: p.imageUrl || "",
+    stock: p.stock,
+    isAvailable: p.isAvailable,
+    cardBadgeId: p.cardBadgeId,
+    cardBadge: p.cardBadge,
+    isCombo: p.isCombo,
+    comboItems: p.comboItems?.map((ci: any) => ({
+      id: ci.id,
+      productId: ci.productId,
+      quantity: ci.quantity,
+      product: ci.product ? {
+        id: ci.product.id,
+        name: ci.product.name,
+        price: Number(ci.product.price),
+        imageUrl: ci.product.imageUrl || "",
+      } : undefined,
+    })) || [],
+    addonGroupIds: p.addonGroups?.map((ag: any) => ag.groupId) || [],
+    addonGroups: p.addonGroups?.map((ag: any) => ag.group) || [],
+  };
+}
+
 export async function GET() {
   try {
     const products = await prisma.product.findMany({
-      include: {
-        categoryRel: {
-          select: { name: true },
-        },
-        cardBadge: true,
-        comboItems: {
-          include: {
-            product: true
-          }
-        },
-        addonGroups: {
-          include: {
-            group: {
-              include: {
-                items: {
-                  orderBy: { sortOrder: "asc" }
-                }
-              }
-            }
-          },
-          orderBy: { sortOrder: "asc" }
-        }
-      },
+      include: productInclude,
       orderBy: { createdAt: "desc" },
     });
 
-    const formatted = products.map((p) => ({
-      id: p.id,
-      name: p.name,
-      description: p.description || "",
-      price: Number(p.price),
-      originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-      promotionalPrice: p.promotionalPrice ? Number(p.promotionalPrice) : null,
-      startsAt: p.startsAt ? p.startsAt.toISOString() : null,
-      endsAt: p.endsAt ? p.endsAt.toISOString() : null,
-      isPromoActive: p.isPromoActive,
-      servesText: p.servesText || null,
-      isHighlight: p.isHighlight,
-      categoryId: p.categoryId,
-      category: p.categoryRel?.name || p.category || "Outros",
-      imageUrl: p.imageUrl || "",
-      stock: p.stock,
-      isAvailable: p.isAvailable,
-      cardBadgeId: p.cardBadgeId,
-      cardBadge: p.cardBadge,
-      isCombo: p.isCombo,
-      comboItems: p.comboItems?.map(ci => ({
-        id: ci.id,
-        productId: ci.productId,
-        quantity: ci.quantity,
-        product: {
-          id: ci.product.id,
-          name: ci.product.name,
-          price: Number(ci.product.price),
-          imageUrl: ci.product.imageUrl || ""
-        }
-      })) || [],
-      addonGroupIds: p.addonGroups?.map(ag => ag.groupId) || [],
-      addonGroups: p.addonGroups?.map(ag => ag.group) || [],
-    }));
-
-    return apiSuccess(formatted);
+    return apiSuccess(products.map(formatProduct));
   } catch (error: unknown) {
     return handleApiError(error, "API:products:GET", "Não foi possível carregar os produtos.");
   }
@@ -156,91 +160,44 @@ export async function POST(request: Request) {
     const parsedOriginalPrice = originalPrice !== undefined && originalPrice !== null && originalPrice !== "" ? Number(originalPrice) : null;
     const parsedPromotionalPrice = promotionalPrice !== undefined && promotionalPrice !== null && promotionalPrice !== "" ? Number(promotionalPrice) : null;
 
+    const productData: any = {
+      name: cleanName,
+      description: cleanDescription,
+      price: parsedPrice,
+      originalPrice: parsedOriginalPrice,
+      promotionalPrice: parsedPromotionalPrice,
+      startsAt: startsAt ? new Date(startsAt) : null,
+      endsAt: endsAt ? new Date(endsAt) : null,
+      isPromoActive: isPromoActive !== undefined ? Boolean(isPromoActive) : true,
+      servesText: servesText ? String(servesText) : null,
+      isHighlight: Boolean(isHighlight),
+      categoryId: categoryId || null,
+      category: cleanCategory,
+      imageUrl: imageUrl || null,
+      stock: parsedStock !== null && !isNaN(parsedStock) ? Math.max(0, parsedStock) : null,
+      isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : true,
+      cardBadgeId: cardBadgeId || null,
+      isCombo: isCombo ? true : false,
+      comboItems: (isCombo && Array.isArray(comboItems)) ? {
+        create: comboItems.map((ci: any) => ({
+          productId: ci.productId,
+          quantity: ci.quantity || 1,
+        })),
+      } : undefined,
+      addonGroups: (Array.isArray(addonGroupIds) && addonGroupIds.length > 0) ? {
+        create: addonGroupIds.map((groupId: string, index: number) => ({
+          groupId,
+          sortOrder: index,
+        })),
+      } : undefined,
+    };
+
     const product = await prisma.product.create({
-      data: {
-        name: cleanName,
-        description: cleanDescription,
-        price: parsedPrice,
-        originalPrice: parsedOriginalPrice,
-        promotionalPrice: parsedPromotionalPrice,
-        startsAt: startsAt ? new Date(startsAt) : null,
-        endsAt: endsAt ? new Date(endsAt) : null,
-        isPromoActive: isPromoActive !== undefined ? Boolean(isPromoActive) : true,
-        servesText: servesText ? String(servesText) : null,
-        isHighlight: Boolean(isHighlight),
-        categoryId: categoryId || null,
-        category: cleanCategory,
-        imageUrl: imageUrl || null,
-        stock: parsedStock !== null && !isNaN(parsedStock) ? Math.max(0, parsedStock) : null,
-        isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : true,
-        cardBadgeId: cardBadgeId || null,
-        isCombo: isCombo ? true : false,
-        comboItems: (isCombo && Array.isArray(comboItems)) ? {
-          create: comboItems.map((ci) => ({
-            productId: ci.productId,
-            quantity: ci.quantity || 1
-          }))
-        } : undefined,
-        addonGroups: (Array.isArray(addonGroupIds) && addonGroupIds.length > 0) ? {
-          create: addonGroupIds.map((groupId: string, index: number) => ({
-            groupId,
-            sortOrder: index,
-          }))
-        } : undefined,
-      },
-      include: {
-        categoryRel: { select: { name: true } },
-        cardBadge: true,
-        comboItems: { include: { product: true } },
-        addonGroups: {
-          include: {
-            group: {
-              include: {
-                items: {
-                  orderBy: { sortOrder: "asc" }
-                }
-              }
-            }
-          },
-          orderBy: { sortOrder: "asc" }
-        }
-      },
+      data: productData,
+      include: productInclude,
     });
 
-    return apiSuccess({
-      id: product.id,
-      name: product.name,
-      description: product.description || "",
-      price: Number(product.price),
-      originalPrice: product.originalPrice ? Number(product.originalPrice) : null,
-      promotionalPrice: product.promotionalPrice ? Number(product.promotionalPrice) : null,
-      startsAt: product.startsAt ? product.startsAt.toISOString() : null,
-      endsAt: product.endsAt ? product.endsAt.toISOString() : null,
-      isPromoActive: product.isPromoActive,
-      servesText: product.servesText || null,
-      isHighlight: product.isHighlight,
-      categoryId: product.categoryId,
-      category: product.categoryRel?.name || product.category || "Outros",
-      imageUrl: product.imageUrl || "",
-      stock: product.stock,
-      isAvailable: product.isAvailable,
-      cardBadgeId: product.cardBadgeId,
-      cardBadge: product.cardBadge,
-      isCombo: product.isCombo,
-      comboItems: product.comboItems?.map(ci => ({
-        id: ci.id,
-        productId: ci.productId,
-        quantity: ci.quantity,
-        product: {
-          id: ci.product.id,
-          name: ci.product.name,
-          price: Number(ci.product.price),
-          imageUrl: ci.product.imageUrl || ""
-        }
-      })) || [],
-      addonGroupIds: product.addonGroups?.map(ag => ag.groupId) || [],
-      addonGroups: product.addonGroups?.map(ag => ag.group) || [],
-    }, 201);
+    return apiSuccess(formatProduct(product), 201);
   } catch (error: unknown) {
     return handleApiError(error, "API:products:POST", "Não foi possível cadastrar o produto.");
   }

@@ -1,8 +1,62 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
 import { getAuthUser } from "@/lib/auth";
 import { sanitizeText } from "@/lib/sanitize";
+
+const productInclude = {
+  categoryRel: { select: { name: true } },
+  cardBadge: true,
+  comboItems: { include: { product: true } },
+  addonGroups: {
+    include: {
+      group: {
+        include: {
+          items: {
+            orderBy: { sortOrder: "asc" as const },
+          },
+        },
+      },
+    },
+    orderBy: { sortOrder: "asc" as const },
+  },
+};
+
+function formatProduct(product: any) {
+  return {
+    id: product.id,
+    name: product.name,
+    description: product.description || "",
+    price: Number(product.price),
+    originalPrice: product.originalPrice ? Number(product.originalPrice) : null,
+    promotionalPrice: product.promotionalPrice ? Number(product.promotionalPrice) : null,
+    startsAt: product.startsAt ? (product.startsAt instanceof Date ? product.startsAt.toISOString() : product.startsAt) : null,
+    endsAt: product.endsAt ? (product.endsAt instanceof Date ? product.endsAt.toISOString() : product.endsAt) : null,
+    isPromoActive: product.isPromoActive ?? true,
+    servesText: product.servesText || null,
+    isHighlight: Boolean(product.isHighlight),
+    categoryId: product.categoryId,
+    category: product.categoryRel?.name || product.category || "Outros",
+    imageUrl: product.imageUrl || "",
+    stock: product.stock,
+    isAvailable: product.isAvailable,
+    cardBadgeId: product.cardBadgeId,
+    cardBadge: product.cardBadge,
+    isCombo: product.isCombo,
+    comboItems: product.comboItems?.map((ci: any) => ({
+      id: ci.id,
+      productId: ci.productId,
+      quantity: ci.quantity,
+      product: ci.product ? {
+        id: ci.product.id,
+        name: ci.product.name,
+        price: Number(ci.product.price),
+        imageUrl: ci.product.imageUrl || "",
+      } : undefined,
+    })) || [],
+    addonGroupIds: product.addonGroups?.map((ag: any) => ag.groupId) || [],
+    addonGroups: product.addonGroups?.map((ag: any) => ag.group) || [],
+  };
+}
 
 export async function GET(
   request: Request,
@@ -12,63 +66,14 @@ export async function GET(
     const { id } = await params;
     const product = await prisma.product.findUnique({
       where: { id },
-      include: {
-        categoryRel: { select: { name: true } },
-        cardBadge: true,
-        comboItems: { include: { product: true } },
-        addonGroups: {
-          include: {
-            group: {
-              include: {
-                items: {
-                  orderBy: { sortOrder: "asc" },
-                },
-              },
-            },
-          },
-          orderBy: { sortOrder: "asc" },
-        },
-      },
+      include: productInclude,
     });
 
     if (!product) {
       return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
     }
 
-    return NextResponse.json({
-      id: product.id,
-      name: product.name,
-      description: product.description || "",
-      price: Number(product.price),
-      originalPrice: product.originalPrice ? Number(product.originalPrice) : null,
-      promotionalPrice: product.promotionalPrice ? Number(product.promotionalPrice) : null,
-      startsAt: product.startsAt ? product.startsAt.toISOString() : null,
-      endsAt: product.endsAt ? product.endsAt.toISOString() : null,
-      isPromoActive: product.isPromoActive,
-      servesText: product.servesText || null,
-      isHighlight: product.isHighlight,
-      categoryId: product.categoryId,
-      category: product.categoryRel?.name || product.category || "Outros",
-      imageUrl: product.imageUrl || "",
-      stock: product.stock,
-      isAvailable: product.isAvailable,
-      cardBadgeId: product.cardBadgeId,
-      cardBadge: product.cardBadge,
-      isCombo: product.isCombo,
-      comboItems: product.comboItems?.map((ci) => ({
-        id: ci.id,
-        productId: ci.productId,
-        quantity: ci.quantity,
-        product: {
-          id: ci.product.id,
-          name: ci.product.name,
-          price: Number(ci.product.price),
-          imageUrl: ci.product.imageUrl || "",
-        },
-      })) || [],
-      addonGroupIds: product.addonGroups?.map((ag) => ag.groupId) || [],
-      addonGroups: product.addonGroups?.map((ag) => ag.group) || [],
-    });
+    return NextResponse.json(formatProduct(product));
   } catch (error: unknown) {
     console.error("Erro ao buscar detalhes do produto:", error);
     return NextResponse.json({ error: "Erro ao buscar detalhes do produto." }, { status: 500 });
@@ -134,7 +139,7 @@ export async function PUT(
       addonGroupIds?: string[];
     };
 
-    const dataToUpdate: Prisma.ProductUncheckedUpdateInput = {};
+    const dataToUpdate: any = {};
     if (name !== undefined) dataToUpdate.name = sanitizeText(name);
     if (description !== undefined) dataToUpdate.description = description ? sanitizeText(description) : null;
     if (price !== undefined) {
@@ -195,59 +200,10 @@ export async function PUT(
     const updated = await prisma.product.update({
       where: { id },
       data: dataToUpdate,
-      include: {
-        categoryRel: { select: { name: true } },
-        cardBadge: true,
-        comboItems: { include: { product: true } },
-        addonGroups: {
-          include: {
-            group: {
-              include: {
-                items: {
-                  orderBy: { sortOrder: "asc" }
-                }
-              }
-            }
-          },
-          orderBy: { sortOrder: "asc" }
-        }
-      },
+      include: productInclude,
     });
 
-    return NextResponse.json({
-      id: updated.id,
-      name: updated.name,
-      description: updated.description || "",
-      price: Number(updated.price),
-      originalPrice: updated.originalPrice ? Number(updated.originalPrice) : null,
-      promotionalPrice: updated.promotionalPrice ? Number(updated.promotionalPrice) : null,
-      startsAt: updated.startsAt ? updated.startsAt.toISOString() : null,
-      endsAt: updated.endsAt ? updated.endsAt.toISOString() : null,
-      isPromoActive: updated.isPromoActive,
-      servesText: updated.servesText || null,
-      isHighlight: updated.isHighlight,
-      categoryId: updated.categoryId,
-      category: updated.categoryRel?.name || updated.category || "Outros",
-      imageUrl: updated.imageUrl || "",
-      stock: updated.stock,
-      isAvailable: updated.isAvailable,
-      cardBadgeId: updated.cardBadgeId,
-      cardBadge: updated.cardBadge,
-      isCombo: updated.isCombo,
-      comboItems: updated.comboItems?.map(ci => ({
-        id: ci.id,
-        productId: ci.productId,
-        quantity: ci.quantity,
-        product: {
-          id: ci.product.id,
-          name: ci.product.name,
-          price: Number(ci.product.price),
-          imageUrl: ci.product.imageUrl || ""
-        }
-      })) || [],
-      addonGroupIds: updated.addonGroups?.map(ag => ag.groupId) || [],
-      addonGroups: updated.addonGroups?.map(ag => ag.group) || [],
-    });
+    return NextResponse.json(formatProduct(updated));
   } catch (error: unknown) {
     console.error("Erro ao atualizar produto:", error);
     if (error && typeof error === "object" && "code" in error && (error as { code: string }).code === "P2025") {
