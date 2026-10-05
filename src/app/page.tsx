@@ -9,6 +9,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useCart } from "../hooks/useCart";
 import { useTheme } from "../contexts/ThemeContext";
 import { useOrders } from "../contexts/OrderContext";
+import { calculateProductPrice } from "@/lib/pricing";
 
 // Storefront components
 import { PromoBanner } from "../components/storefront/PromoBanner";
@@ -582,16 +583,42 @@ export default function Storefront() {
 
   const scrollToCategory = handleSelectCategory;
 
+  // Helper para obter produtos de uma categoria (estática ou dinâmica)
+  const getCategoryProducts = useCallback((cat: Category, prodsList: Product[]) => {
+    const isHighlightsCat =
+      cat.isDynamic ||
+      cat.dynamicType === "HIGHLIGHTS" ||
+      (cat.name || "").toLowerCase().includes("destaque");
+
+    if (isHighlightsCat) {
+      return prodsList.filter((p) => {
+        if (
+          p.category_id === cat.id ||
+          (p as Product & { categoryId?: string }).categoryId === cat.id ||
+          p.category === cat.name
+        ) {
+          return true;
+        }
+        if (p.isHighlight) return true;
+        const pricing = calculateProductPrice(p);
+        if (pricing.isPromotional) return true;
+        return false;
+      });
+    }
+
+    return prodsList.filter(
+      (p) =>
+        p.category_id === cat.id ||
+        (p as Product & { categoryId?: string }).categoryId === cat.id ||
+        p.category === cat.name
+    );
+  }, []);
+
   // Produtos filtrados para a visualização dedicada de categoria no mobile
   const dedicatedCategoryProducts = useMemo(() => {
     if (!mobileCategoryView) return [];
-    return products.filter(
-      (p) =>
-        p.category_id === mobileCategoryView.id ||
-        (p as Product & { categoryId?: string }).categoryId === mobileCategoryView.id ||
-        p.category === mobileCategoryView.name
-    );
-  }, [products, mobileCategoryView]);
+    return getCategoryProducts(mobileCategoryView, products);
+  }, [products, mobileCategoryView, getCategoryProducts]);
 
   const { emoji: dedicatedCategoryEmoji, cleanName: dedicatedCategoryName } = useMemo(() => {
     if (!mobileCategoryView) return { emoji: "🍧", cleanName: "" };
@@ -1387,9 +1414,7 @@ export default function Storefront() {
                       // Se tiver uma categoria ativa e não for essa, esconde
                       if (activeCategory && activeCategory !== cat.id) return null;
 
-                      const catProducts = filteredProducts.filter(
-                        (p) => p.category_id === cat.id || p.category === cat.name
-                      );
+                      const catProducts = getCategoryProducts(cat, filteredProducts);
 
                       if (catProducts.length === 0 && !canEdit) return null;
 

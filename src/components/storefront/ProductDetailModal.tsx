@@ -13,6 +13,7 @@ import {
   Tag,
   Utensils,
   Loader2,
+  Users,
 } from "lucide-react";
 import { Product, productService } from "../../services/productService";
 import { AddonGroup, AddonItem } from "../../services/addonService";
@@ -20,6 +21,7 @@ import { SelectedOption } from "../../contexts/CartContext";
 import { useCart } from "../../hooks/useCart";
 import { useToast } from "../ui/ToastNotification";
 import { formatCurrency, parseSafeNumber } from "@/lib/formatters";
+import { calculateProductPrice } from "@/lib/pricing";
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -150,7 +152,9 @@ export function ProductDetailModal({
   };
 
   // Cálculo de Preço Reativo e Snapshot de Adicionais
-  const basePrice = parseSafeNumber(product.price);
+  const pricing = calculateProductPrice(product);
+  const basePrice = pricing.currentPrice;
+  const baseOriginalPrice = pricing.originalPrice;
   let extrasTotal = 0;
   const flatSelectedOptionsList: SelectedOption[] = [];
 
@@ -180,6 +184,8 @@ export function ProductDetailModal({
 
   const unitPrice = basePrice + extrasTotal;
   const totalPrice = unitPrice * quantity;
+  const isPromo = pricing.isPromotional;
+  const originalUnitPrice = isPromo ? baseOriginalPrice + extrasTotal : undefined;
 
   // Validação de grupos obrigatórios e mínimos
   const unsatisfiedRequiredGroups = groups.filter((group) => {
@@ -198,7 +204,7 @@ export function ProductDetailModal({
       productId: product.id,
       name: product.name,
       price: Number(unitPrice.toFixed(2)),
-      originalPrice: Number(unitPrice.toFixed(2)),
+      originalPrice: Number((originalUnitPrice || unitPrice).toFixed(2)),
       quantity,
       imageUrl: product.imageUrl,
       selectedOptions: flatSelectedOptionsList,
@@ -217,10 +223,6 @@ export function ProductDetailModal({
   const isOutOfStock =
     product.isAvailable === false ||
     (product.stock !== undefined && product.stock !== null && product.stock <= 0);
-
-  const numProductPrice = parseSafeNumber(product.price);
-  const isPromo = product.isCombo || (product.name || "").toLowerCase().includes("promo");
-  const originalPrice = isPromo ? Number((numProductPrice * 1.25).toFixed(2)) : undefined;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-6 overflow-hidden animate-in fade-in duration-200">
@@ -338,7 +340,13 @@ export function ProductDetailModal({
           <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 space-y-6 scrollbar-thin pb-32 md:pb-8">
             {/* Cabeçalho do Produto */}
             <div className="space-y-2 border-b border-gray-100 dark:border-zinc-800 pb-4">
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-col gap-1.5">
+                {product.servesText && (
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary dark:text-violet-300 text-xs font-semibold w-fit">
+                    <Users className="w-3.5 h-3.5 shrink-0" />
+                    <span>{product.servesText}</span>
+                  </div>
+                )}
                 <h2
                   id="modal-product-title"
                   className="font-heading font-black text-xl sm:text-2xl text-foreground leading-tight"
@@ -349,21 +357,21 @@ export function ProductDetailModal({
 
               {/* Preços */}
               <div className="flex items-baseline gap-2.5 pt-1">
-                {originalPrice ? (
+                {originalUnitPrice ? (
                   <>
                     <span className="text-xs sm:text-sm font-medium text-muted-foreground line-through">
-                      De {formatCurrency(originalPrice)}
+                      De {formatCurrency(originalUnitPrice)}
                     </span>
                     <span className="font-heading font-black text-xl sm:text-2xl text-primary dark:text-violet-400">
-                      por {formatCurrency(product.price)}
+                      por {formatCurrency(unitPrice)}
                     </span>
                     <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                      Economize {formatCurrency(originalPrice - numProductPrice)}
+                      Economize {formatCurrency(originalUnitPrice - unitPrice)}
                     </span>
                   </>
                 ) : (
                   <span className="font-heading font-black text-xl sm:text-2xl text-primary dark:text-violet-400">
-                    {formatCurrency(product.price)}
+                    {formatCurrency(unitPrice)}
                   </span>
                 )}
               </div>

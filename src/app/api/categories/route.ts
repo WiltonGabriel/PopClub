@@ -3,10 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, apiError, apiSuccess } from "@/lib/apiResponse";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const includeInactive = searchParams.get("includeInactive") === "true";
+
     const categories = await prisma.category.findMany({
-      orderBy: { name: "asc" },
+      where: includeInactive ? {} : { isActive: true },
+      orderBy: [{ order: "asc" }, { name: "asc" }],
     });
     return apiSuccess(categories);
   } catch (error: unknown) {
@@ -33,7 +37,7 @@ export async function POST(request: Request) {
       return apiError("Formato de requisição inválido ou corpo vazio.", 400, "BAD_REQUEST");
     }
 
-    const { name, slug } = body || {};
+    const { name, slug, order, order_index, isDynamic, dynamicType, isActive } = body || {};
     if (!name) {
       return apiError("O nome da categoria é obrigatório.", 400, "MISSING_NAME");
     }
@@ -47,6 +51,10 @@ export async function POST(request: Request) {
       data: {
         name,
         slug: autoSlug,
+        order: Number(order ?? order_index ?? 0),
+        isDynamic: Boolean(isDynamic),
+        dynamicType: dynamicType || null,
+        isActive: isActive !== undefined ? Boolean(isActive) : true,
       },
     });
 

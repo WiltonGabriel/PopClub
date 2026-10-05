@@ -15,6 +15,7 @@ import {
   Power,
   X,
   Upload,
+  FolderTree,
 } from "lucide-react";
 import {
   addonService,
@@ -27,9 +28,11 @@ import { formatCurrency, parseSafeNumber } from "@/lib/formatters";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/ToastNotification";
+import { CategoryManagementSection } from "./CategoryManagementSection";
 
 export function AddonsManagement() {
   const { showToast } = useToast();
+  const [activeSubTab, setActiveSubTab] = useState<"addons" | "categories">("addons");
   const [groups, setGroups] = useState<AddonGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
@@ -330,16 +333,48 @@ export function AddonsManagement() {
 
   return (
     <section className="bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6 animate-in fade-in duration-150">
-      {/* Cabeçalho da Seção */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-zinc-800">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary dark:text-violet-400 flex items-center justify-center font-bold">
-              <IceCream className="w-5 h-5" />
-            </div>
+      {/* Seletor de Sub-Abas Internas do Cardápio */}
+      <div className="flex items-center gap-2 p-1.5 bg-zinc-100 dark:bg-zinc-900/60 rounded-2xl w-fit border border-border/40">
+        <button
+          type="button"
+          onClick={() => setActiveSubTab("addons")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeSubTab === "addons"
+              ? "bg-white dark:bg-[#181D2D] text-primary shadow-xs"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <IceCream className="w-4 h-4" />
+          <span>🍨 Grupos de Complementos</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveSubTab("categories")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeSubTab === "categories"
+              ? "bg-white dark:bg-[#181D2D] text-primary shadow-xs"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <FolderTree className="w-4 h-4" />
+          <span>🗂️ Categorias do Cardápio</span>
+        </button>
+      </div>
+
+      {activeSubTab === "categories" ? (
+        <CategoryManagementSection />
+      ) : (
+        <>
+          {/* Cabeçalho da Seção */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-zinc-800">
             <div>
-              <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                Grupos de Complementos & Adicionais
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary dark:text-violet-400 flex items-center justify-center font-bold">
+                  <IceCream className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                    Grupos de Complementos & Adicionais
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Crie grupos globais de adicionais (ex: Frutas, Caldas, Ponto da Base) e vincule a múltiplos produtos com cotas grátis e controle de estoque.
@@ -581,6 +616,8 @@ export function AddonsManagement() {
             );
           })}
         </div>
+      )}
+        </>
       )}
 
       {/* MODAL: Criar / Editar Grupo de Complementos */}

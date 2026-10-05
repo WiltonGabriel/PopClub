@@ -17,6 +17,7 @@ import {
 } from "@/services/loyaltyBadgeService";
 
 import { calculateDistanceKm } from "@/lib/geo";
+import { calculateProductPrice } from "@/lib/pricing";
 
 const checkoutSchema = z.object({
   deliveryType: z.enum(["delivery", "retirada"]).optional().default("delivery"),
@@ -418,35 +419,43 @@ export async function POST(request: Request) {
         }
       }
 
-      const originalPrice = Number(product.price);
-      if (isNaN(originalPrice) || originalPrice <= 0) {
+      const pricing = calculateProductPrice(product);
+      const baseOriginalPrice = pricing.originalPrice;
+      if (isNaN(baseOriginalPrice) || baseOriginalPrice <= 0) {
         return NextResponse.json(
           { error: `O produto "${product.name}" possui preço inválido no sistema.` },
           { status: 400 }
         );
       }
-      let unitPrice = originalPrice + addonsTotalPerUnit;
 
-      // Promoções aplicam desconto apenas sobre o produto original, não sobre os adicionais (regra comum)
-      // Combos NÃO devem aceitar promoções "De/Por" individuais, pois já são agrupamentos fechados.
-      if (item.promotionId && !product.isCombo) {
+      let effectiveBasePrice = pricing.currentPrice;
+      let promoDiscountOnProduct = 0;
+
+      if (pricing.isPromotional) {
+        promoDiscountOnProduct = Math.max(0, baseOriginalPrice - effectiveBasePrice);
+      }
+
+      // Promoções adicionais via promotionId aplicam desconto apenas se não tiver promoção temporal já aplicada
+      if (item.promotionId && !product.isCombo && promoDiscountOnProduct === 0) {
         const promo = promotionsMap.get(item.promotionId);
         const isInPromo = promo?.productId === item.productId;
         if (promo && isInPromo) {
           let discountOnBase = 0;
           if (promo.discountType === "percentage") {
             const pct = Number(promo.discountValue);
-            discountOnBase = Number((originalPrice * (pct / 100)).toFixed(2));
+            discountOnBase = Number((baseOriginalPrice * (pct / 100)).toFixed(2));
           } else {
             const fixed = Number(promo.discountValue);
-            discountOnBase = Math.min(originalPrice, fixed);
+            discountOnBase = Math.min(baseOriginalPrice, fixed);
           }
-          unitPrice = (originalPrice - discountOnBase) + addonsTotalPerUnit;
-          promoDiscountTotal += discountOnBase * item.quantity;
+          effectiveBasePrice = Math.max(0, baseOriginalPrice - discountOnBase);
+          promoDiscountOnProduct = discountOnBase;
         }
       }
 
-      calculatedSubtotal += (originalPrice + addonsTotalPerUnit) * item.quantity;
+      promoDiscountTotal += promoDiscountOnProduct * item.quantity;
+      const unitPrice = effectiveBasePrice + addonsTotalPerUnit;
+      calculatedSubtotal += (baseOriginalPrice + addonsTotalPerUnit) * item.quantity;
 
       validatedOrderItems.push({
         productId: product.id,

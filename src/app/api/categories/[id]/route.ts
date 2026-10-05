@@ -14,20 +14,32 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json().catch(() => ({}));
-    const { name, slug } = body;
+    const { name, slug, order, order_index, isDynamic, dynamicType, isActive } = body;
 
-    if (!name || typeof name !== "string") {
-      return NextResponse.json({ error: "Nome da categoria é obrigatório." }, { status: 400 });
+    const dataToUpdate: any = {};
+    if (name !== undefined) {
+      if (typeof name !== "string" || !name.trim()) {
+        return NextResponse.json({ error: "Nome da categoria inválido." }, { status: 400 });
+      }
+      dataToUpdate.name = name.trim();
+      dataToUpdate.slug = slug || name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
     }
-
-    const autoSlug = slug || name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+    if (order !== undefined || order_index !== undefined) {
+      dataToUpdate.order = Number(order ?? order_index ?? 0);
+    }
+    if (isDynamic !== undefined) {
+      dataToUpdate.isDynamic = Boolean(isDynamic);
+    }
+    if (dynamicType !== undefined) {
+      dataToUpdate.dynamicType = dynamicType || null;
+    }
+    if (isActive !== undefined) {
+      dataToUpdate.isActive = Boolean(isActive);
+    }
 
     const updated = await prisma.category.update({
       where: { id },
-      data: {
-        name,
-        slug: autoSlug,
-      },
+      data: dataToUpdate,
     });
 
     return NextResponse.json(updated);

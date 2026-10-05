@@ -1,40 +1,13 @@
-import { PrismaClient, OrderStatus, PaymentMethodType, Prisma, Role } from "@prisma/client";
+import { PrismaClient, Role, Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-// Lista de bairros e ruas realistas de Cuiabá e Várzea Grande / MT
-const MT_ADDRESSES = [
-  { street: "Av. Couto Magalhães", number: "1420", neighborhood: "Centro", city: "Várzea Grande", zip: "78110-000" },
-  { street: "Av. Filinto Müller", number: "850", neighborhood: "Centro Sul", city: "Várzea Grande", zip: "78110-300" },
-  { street: "Av. Alzira Santana", number: "1200", neighborhood: "Água Limpa", city: "Várzea Grande", zip: "78125-000" },
-  { street: "Av. Isaac Póvoas", number: "1250", neighborhood: "Goiabeiras", city: "Cuiabá", zip: "78045-000" },
-  { street: "Rua Cândido Mariano", number: "480", neighborhood: "Centro Norte", city: "Cuiabá", zip: "78005-150" },
-  { street: "Av. Senador Metello", number: "920", neighborhood: "Porto", city: "Cuiabá", zip: "78025-100" },
-  { street: "Rua das Amendoeiras", number: "310", neighborhood: "Bosque da Saúde", city: "Cuiabá", zip: "78050-020" },
-  { street: "Av. Miguel Sutil", number: "4500", neighborhood: "Santa Rosa", city: "Cuiabá", zip: "78040-000" },
-  { street: "Rua Buenos Aires", number: "215", neighborhood: "Jardim das Américas", city: "Cuiabá", zip: "78060-600" },
-  { street: "Av. Historiador Rubens de Mendonça", number: "2100", neighborhood: "Bosque da Saúde", city: "Cuiabá", zip: "78050-000" },
-];
-
-const CLIENT_PROFILES = [
-  { name: "Lucas Gabriel Oliveira", email: "lucas.oliveira@gmail.com", phone: "(65) 99234-1122" },
-  { name: "Camila Fernandes Santos", email: "camila.santos@outlook.com", phone: "(65) 98412-3344" },
-  { name: "Rodrigo Albuquerque Neto", email: "rodrigo.neto@gmail.com", phone: "(65) 99988-7766" },
-  { name: "Mariana Costa e Silva", email: "mariana.costa@hotmail.com", phone: "(65) 99655-4433" },
-  { name: "Felipe Augusto Martins", email: "felipe.martins@gmail.com", phone: "(65) 98123-9988" },
-  { name: "Beatriz Lima Pimentel", email: "beatriz.lima@yahoo.com.br", phone: "(65) 99344-1155" },
-  { name: "Gabriel Zanin Souza", email: "gabriel.souza@gmail.com", phone: "(65) 98455-6677" },
-  { name: "Larissa Ferreira Dias", email: "larissa.dias@gmail.com", phone: "(65) 99722-3311" },
-  { name: "Rafael Vinicius Silva", email: "rafael.silva@gmail.com", phone: "(65) 99188-4422" },
-  { name: "Amanda Rocha Albuquerque", email: "amanda.rocha@gmail.com", phone: "(65) 99200-3388" },
-];
-
 async function main() {
-  console.log("🍧 [Pop Shake] Iniciando limpeza cirúrgica e semeadura oficial...");
+  console.log("🍧 [Pop Shake] Iniciando limpeza controlada (Clean Slate) e novo catálogo oficial...");
 
-  // ── 1. EXPURGO DE DADOS ANTIGOS E CORROMPIDOS (XSS / DUMMY)
-  console.log("🧹 1/7: Purgando pedidos, notificações e itens corrompidos...");
+  // ── FASE 1: LIMPEZA CONTROLADA DO BANCO DE DADOS (CLEAN SLATE)
+  console.log("🧹 1/6: Purgando histórico transacional e catálogo legado...");
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
   await prisma.productAddonGroup.deleteMany();
@@ -47,16 +20,31 @@ async function main() {
   await prisma.product.deleteMany();
   await prisma.category.deleteMany();
   await prisma.cardBadge.deleteMany();
-  await prisma.coupon.deleteMany();
-  await prisma.notification.deleteMany();
-  await prisma.shift.deleteMany();
-  await prisma.userLocation.deleteMany();
-  await prisma.user.deleteMany({
-    where: { email: { not: "admin@popclub.com" } },
-  });
 
-  // ── 2. USUÁRIO ADMINISTRADOR PRINCIPAL
-  console.log("👤 2/7: Assegurando administrador oficial...");
+  // Limpeza de clientes de teste (preservando rigorosamente ADMIN e EDITOR)
+  console.log("👥 Purgando clientes de teste/rápidos e preservando contas administrativas...");
+  await prisma.userLocation.deleteMany({
+    where: {
+      user: {
+        role: Role.CLIENT,
+      },
+    },
+  });
+  await prisma.userNotification.deleteMany({
+    where: {
+      user: {
+        role: Role.CLIENT,
+      },
+    },
+  });
+  const deletedClients = await prisma.user.deleteMany({
+    where: {
+      role: Role.CLIENT,
+    },
+  });
+  console.log(`✅ ${deletedClients.count} usuários de teste removidos. Administradores e Operadores preservados.`);
+
+  // Assegura conta do administrador principal
   const adminPasswordHash = await bcrypt.hash("@64844048", 10);
   const admin = await prisma.user.upsert({
     where: { email: "admin@popclub.com" },
@@ -74,10 +62,9 @@ async function main() {
       fullName: "Administrador Pop Shake",
     },
   });
-  console.log(`✅ Admin configurado: ${admin.email}`);
+  console.log(`✅ Admin verificado: ${admin.email} (${admin.fullName})`);
 
-  // ── 3. CONFIGURAÇÕES DA LOJA E HORÁRIOS DE ATENDIMENTO
-  console.log("⚙️ 3/7: Gravando configurações da loja...");
+  // Configurações da Loja
   const defaultBusinessHours = [
     { day: "monday", label: "Segunda-feira", isOpen: true, openTime: "13:00", closeTime: "23:00" },
     { day: "tuesday", label: "Terça-feira", isOpen: true, openTime: "13:00", closeTime: "23:00" },
@@ -125,614 +112,1268 @@ async function main() {
     },
   });
 
-  // Highlight Banner
+  // Banner destaque da home
   await prisma.highlightBanner.upsert({
     where: { id: "home_highlight" },
     update: {
       icon: "🥣",
-      title: "Monte do seu jeito: escolha o tamanho e adicione seus acompanhamentos favoritos",
-      subtitle: "Açaí puro batido na hora, cremoso e com acompanhamentos selecionados à sua escolha.",
-      badge: "Refrescância Artesanal",
+      title: "Cardápio Oficial Pop Shake: Açaí Puro, Milk Shakes e Sorvetes Artesanais",
+      subtitle: "Monte do seu jeito com acompanhamentos selecionados ou aproveite nossas super promoções.",
+      badge: "Qualidade Premium",
     },
     create: {
       id: "home_highlight",
       icon: "🥣",
-      title: "Monte do seu jeito: escolha o tamanho e adicione seus acompanhamentos favoritos",
-      subtitle: "Açaí puro batido na hora, cremoso e com acompanhamentos selecionados à sua escolha.",
-      badge: "Refrescância Artesanal",
+      title: "Cardápio Oficial Pop Shake: Açaí Puro, Milk Shakes e Sorvetes Artesanais",
+      subtitle: "Monte do seu jeito com acompanhamentos selecionados ou aproveite nossas super promoções.",
+      badge: "Qualidade Premium",
     },
   });
 
-  // ── 4. CATEGORIAS BASE DO CARDÁPIO
-  console.log("📂 4/7: Criando 4 categorias base...");
-  const catAcai = await prisma.category.create({
-    data: { name: "Açaí Tradicional & Copos", slug: "acai-tradicional-copos" },
+  // Selos visuais (Badges)
+  const badgeDestaque = await prisma.cardBadge.create({
+    data: { text: "Destaque", icon: "⭐", bgColor: "#FEF3C7", textColor: "#B45309" },
   });
-  const catShakes = await prisma.category.create({
-    data: { name: "Shakes & Vitaminas", slug: "shakes-vitaminas" },
+  const badgeMaisVendido = await prisma.cardBadge.create({
+    data: { text: "Mais Pedido", icon: "🔥", bgColor: "#FEE2E2", textColor: "#DC2626" },
   });
-  const catSorvetes = await prisma.category.create({
-    data: { name: "Sorvetes Artesanais", slug: "sorvetes-artesanais" },
-  });
-  const catCombos = await prisma.category.create({
-    data: { name: "Combos & Barcas", slug: "combos-barcas" },
+  const badgePromo = await prisma.cardBadge.create({
+    data: { text: "Super Promoção", icon: "⚡", bgColor: "#E0E7FF", textColor: "#3730A3" },
   });
 
-  // ── 5. GRUPOS GLOBAIS DE COMPLEMENTOS (AddonGroup + AddonItem)
-  console.log("🍧 5/7: Cadastrando Grupos Globais de Complementos com regras oficiais...");
+  // ── FASE 2: GESTÃO DE CATEGORIAS ESTÁTICAS E DINÂMICAS (8 CATEGORIAS OFICIAIS)
+  console.log("📂 2/6: Criando as 8 categorias oficiais do cardápio...");
 
-  // Grupo 1: "Ponto da Base" (Obrigatório, min=1, max=1, free=1)
-  const groupBase = await prisma.addonGroup.create({
+  const cat1 = await prisma.category.create({
     data: {
-      name: "Ponto da Base",
-      description: "Escolha a base perfeita para o seu copo (1 opção obrigatória)",
+      name: "⭐ Destaques da Casa",
+      slug: "destaques-da-casa",
+      order: 0,
+      isDynamic: true,
+      dynamicType: "HIGHLIGHTS",
+      isActive: true,
+    },
+  });
+
+  const cat2 = await prisma.category.create({
+    data: {
+      name: "🫐 Copos de Açaí Tradicionais",
+      slug: "copos-de-acai-tradicionais",
+      order: 1,
+      isDynamic: false,
+      isActive: true,
+    },
+  });
+
+  const cat3 = await prisma.category.create({
+    data: {
+      name: "🍱 Marmitas & Roletas Especiais",
+      slug: "marmitas-roletas-especiais",
+      order: 2,
+      isDynamic: false,
+      isActive: true,
+    },
+  });
+
+  const cat4 = await prisma.category.create({
+    data: {
+      name: "🍾 Açaí Batido na Garrafa",
+      slug: "acai-batido-na-garrafa",
+      order: 3,
+      isDynamic: false,
+      isActive: true,
+    },
+  });
+
+  const cat5 = await prisma.category.create({
+    data: {
+      name: "🥤 Milk Shakes Cremosos",
+      slug: "milk-shakes-cremosos",
+      order: 4,
+      isDynamic: false,
+      isActive: true,
+    },
+  });
+
+  const cat6 = await prisma.category.create({
+    data: {
+      name: "🍨 Sorvetes & Casquinhas",
+      slug: "sorvetes-casquinhas",
+      order: 5,
+      isDynamic: false,
+      isActive: true,
+    },
+  });
+
+  const cat7 = await prisma.category.create({
+    data: {
+      name: "🫙 Potes Família (Açaí Puro Artesanal)",
+      slug: "potes-familia-acai-puro-artesanal",
+      order: 6,
+      isDynamic: false,
+      isActive: true,
+    },
+  });
+
+  const cat8 = await prisma.category.create({
+    data: {
+      name: "⚡ Combos PopClub",
+      slug: "combos-popclub",
+      order: 7,
+      isDynamic: false,
+      isActive: true,
+    },
+  });
+
+  console.log(`✅ 8 categorias criadas com sucesso.`);
+
+  // ── FASE 4: MODELAGEM DE GRUPOS REUTILIZÁVEIS DE COMPLEMENTOS
+  console.log("🍧 3/6: Criando grupos de complementos e regras de cotas gratuitas...");
+
+  // Itens padrão de Acompanhamentos Tradicionais
+  const traditionalItems = [
+    { name: "Banana Fatiada", price: 1.5, sortOrder: 1 },
+    { name: "Morango Fresco", price: 1.5, sortOrder: 2 },
+    { name: "Uva Thompson", price: 1.5, sortOrder: 3 },
+    { name: "Kiwi Fatiado", price: 1.5, sortOrder: 4 },
+    { name: "Abacaxi em Calda", price: 1.5, sortOrder: 5 },
+    { name: "Manga em Cubos", price: 1.5, sortOrder: 6 },
+    { name: "Granola Tradicional Crocante", price: 1.5, sortOrder: 7 },
+    { name: "Paçoca Rolha Esfarelada", price: 1.5, sortOrder: 8 },
+    { name: "Leite em Pó Ninho", price: 1.5, sortOrder: 9 },
+    { name: "Leite Condensado Moça", price: 1.5, sortOrder: 10 },
+    { name: "Mel Silvestre Puro", price: 1.5, sortOrder: 11 },
+    { name: "Flocos de Arroz Crocante", price: 1.5, sortOrder: 12 },
+    { name: "Aveia em Flocos Finos", price: 1.5, sortOrder: 13 },
+    { name: "Chocoball Crocante", price: 1.5, sortOrder: 14 },
+    { name: "Gotas de Chocolate Nobre", price: 1.5, sortOrder: 15 },
+    { name: "Confetes de Chocolate Coloridos", price: 1.5, sortOrder: 16 },
+  ];
+
+  // 1. Grupo Acompanhamentos Tradicionais (4 Grátis)
+  const groupTradicionais4 = await prisma.addonGroup.create({
+    data: {
+      name: "Acompanhamentos Tradicionais (4 Grátis)",
+      description: "Escolha até 4 adicionais inclusos. Itens adicionais por apenas R$ 1,50 cada.",
+      minQuantity: 0,
+      maxQuantity: 10,
+      freeQuantity: 4,
+      isRequired: false,
+      sortOrder: 1,
+      items: {
+        create: traditionalItems,
+      },
+    },
+  });
+
+  // 2. Grupo Acompanhamentos Tradicionais (5 Grátis)
+  const groupTradicionais5 = await prisma.addonGroup.create({
+    data: {
+      name: "Acompanhamentos Tradicionais (5 Grátis)",
+      description: "Escolha até 5 adicionais inclusos no copo Giga.",
+      minQuantity: 0,
+      maxQuantity: 10,
+      freeQuantity: 5,
+      isRequired: false,
+      sortOrder: 1,
+      items: {
+        create: traditionalItems,
+      },
+    },
+  });
+
+  // 3. Grupo Acompanhamentos Tradicionais (6 Grátis)
+  const groupTradicionais6 = await prisma.addonGroup.create({
+    data: {
+      name: "Acompanhamentos Tradicionais (6 Grátis)",
+      description: "Escolha até 6 adicionais inclusos na marmita.",
+      minQuantity: 0,
+      maxQuantity: 12,
+      freeQuantity: 6,
+      isRequired: false,
+      sortOrder: 1,
+      items: {
+        create: traditionalItems,
+      },
+    },
+  });
+
+  // 4. Cremes Nobres & Frutas Especiais (Cobrança à parte)
+  const groupCremesNobres = await prisma.addonGroup.create({
+    data: {
+      name: "Cremes Nobres & Frutas Especiais",
+      description: "Adicionais nobres selecionados para turbinar sua experiência",
+      minQuantity: 0,
+      maxQuantity: 6,
+      freeQuantity: 0,
+      isRequired: false,
+      sortOrder: 2,
+      items: {
+        create: [
+          { name: "Nutella Original Pura", price: 7.0, sortOrder: 1 },
+          { name: "Creme de Leite Ninho Artesanal", price: 5.0, sortOrder: 2 },
+          { name: "Creme de Pistache Nobre Italiano", price: 8.0, sortOrder: 3 },
+          { name: "Doce de Leite Viçosa", price: 4.5, sortOrder: 4 },
+          { name: "Pasta de Amendoim Integral", price: 4.0, sortOrder: 5 },
+          { name: "Creme de Avelã Branco", price: 6.0, sortOrder: 6 },
+          { name: "Dose Extra de Morango Selecionado", price: 5.0, sortOrder: 7 },
+          { name: "Amoras Silvestres", price: 6.0, sortOrder: 8 },
+        ],
+      },
+    },
+  });
+
+  // 5. Caldas & Coberturas (+R$ 2,00 por unidade)
+  const groupCaldas = await prisma.addonGroup.create({
+    data: {
+      name: "Caldas & Coberturas Extras",
+      description: "Caldas deliciosas (+R$ 2,00 por unidade)",
+      minQuantity: 0,
+      maxQuantity: 4,
+      freeQuantity: 0,
+      isRequired: false,
+      sortOrder: 3,
+      items: {
+        create: [
+          { name: "Calda de Chocolate Belga", price: 2.0, sortOrder: 1 },
+          { name: "Calda de Morango Especial", price: 2.0, sortOrder: 2 },
+          { name: "Calda de Caramelo Toffee Salgado", price: 2.0, sortOrder: 3 },
+          { name: "Cobertura de Maracujá com Sementes", price: 2.0, sortOrder: 4 },
+        ],
+      },
+    },
+  });
+
+  // 6. Crocantes Especiais (+R$ 3,00 por unidade)
+  const groupCrocantes = await prisma.addonGroup.create({
+    data: {
+      name: "Crocantes Especiais",
+      description: "Toppings crocantes selecionados (+R$ 3,00 por unidade)",
+      minQuantity: 0,
+      maxQuantity: 4,
+      freeQuantity: 0,
+      isRequired: false,
+      sortOrder: 4,
+      items: {
+        create: [
+          { name: "Ovomaltine Crocante", price: 3.0, sortOrder: 1 },
+          { name: "Castanha de Caju Moída", price: 3.0, sortOrder: 2 },
+          { name: "Amendoim Torrado sem Pele", price: 3.0, sortOrder: 3 },
+          { name: "Granulado Belga Meio Amargo", price: 3.0, sortOrder: 4 },
+          { name: "Biscoito Oreo em Pedaços", price: 3.0, sortOrder: 5 },
+        ],
+      },
+    },
+  });
+
+  // 7. Talheres / Descartáveis (Escolha única obrigatória)
+  const groupTalheres = await prisma.addonGroup.create({
+    data: {
+      name: "Talheres / Descartáveis",
+      description: "Selecione se precisa de colher descartável",
+      minQuantity: 1,
+      maxQuantity: 1,
+      freeQuantity: 0,
+      isRequired: true,
+      sortOrder: 5,
+      items: {
+        create: [
+          { name: "Quero colher descartável reforçada (+R$ 0,98)", price: 0.98, sortOrder: 1 },
+          { name: "Não preciso de colher (Tenho em casa 🌱)", price: 0.0, sortOrder: 2 },
+        ],
+      },
+    },
+  });
+
+  // 8. Customização Garrafa (Açaí Batido na Garrafa)
+  const groupGarrafaModo = await prisma.addonGroup.create({
+    data: {
+      name: "Como deseja os acompanhamentos?",
+      description: "Escolha a forma de preparo da sua garrafa",
+      minQuantity: 1,
+      maxQuantity: 1,
+      freeQuantity: 0,
+      isRequired: true,
+      sortOrder: 1,
+      items: {
+        create: [
+          { name: "Batido junto com o açaí", price: 0.0, sortOrder: 1 },
+          { name: "Montado em camadas", price: 0.0, sortOrder: 2 },
+        ],
+      },
+    },
+  });
+
+  // 9. Complementos de Milk Shake
+  const groupComplementosShake = await prisma.addonGroup.create({
+    data: {
+      name: "Complementos de Milk Shake",
+      description: "Turbine seu milk shake com bordas e coberturas cremosas",
+      minQuantity: 0,
+      maxQuantity: 4,
+      freeQuantity: 0,
+      isRequired: false,
+      sortOrder: 2,
+      items: {
+        create: [
+          { name: "Chantilly artesanal", price: 3.5, sortOrder: 1 },
+          { name: "Borda de Nutella", price: 4.0, sortOrder: 2 },
+          { name: "Borda de Doce de Leite", price: 3.5, sortOrder: 3 },
+          { name: "Calda de Chocolate extra", price: 2.0, sortOrder: 4 },
+        ],
+      },
+    },
+  });
+
+  // 10. Seletor de Tamanho para Shakes
+  const groupTamanhoShake = await prisma.addonGroup.create({
+    data: {
+      name: "Escolha o Tamanho do Milk Shake",
+      description: "Selecione o tamanho desejado para o shake",
+      minQuantity: 1,
+      maxQuantity: 1,
+      freeQuantity: 0,
+      isRequired: true,
+      sortOrder: 1,
+      items: {
+        create: [
+          { name: "300ml (Pequeno)", price: 0.0, sortOrder: 1 },
+          { name: "500ml (Médio)", price: 5.0, sortOrder: 2 },
+          { name: "700ml (Grande)", price: 11.0, sortOrder: 3 },
+        ],
+      },
+    },
+  });
+
+  // 11. Sabores de Massa de Sorvete (9 Sabores)
+  const sorveteFlavors = [
+    { name: "Baunilha Tradicional", price: 0.0, sortOrder: 1 },
+    { name: "Chocolate Belga", price: 0.0, sortOrder: 2 },
+    { name: "Flocos", price: 0.0, sortOrder: 3 },
+    { name: "Ninho Trufado", price: 0.0, sortOrder: 4 },
+    { name: "Morango Especial", price: 0.0, sortOrder: 5 },
+    { name: "Maracujá Tropical", price: 0.0, sortOrder: 6 },
+    { name: "Torta de Limão", price: 0.0, sortOrder: 7 },
+    { name: "Chiclete Kids", price: 0.0, sortOrder: 8 },
+    { name: "Pistache Italiano", price: 0.0, sortOrder: 9 },
+  ];
+
+  const groupSorvete1Bola = await prisma.addonGroup.create({
+    data: {
+      name: "Escolha o Sabor da Massa (1 Bola)",
+      description: "Escolha 1 sabor artesanal",
       minQuantity: 1,
       maxQuantity: 1,
       freeQuantity: 1,
       isRequired: true,
       sortOrder: 1,
-      isActive: true,
-      items: {
-        create: [
-          {
-            name: "Açaí Tradicional Batido",
-            price: 0.0,
-            imageUrl: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=160&q=80",
-            isAvailable: true,
-            sortOrder: 1,
-          },
-          {
-            name: "Açaí Zero Açúcar",
-            price: 0.0,
-            imageUrl: "https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=160&q=80",
-            isAvailable: true,
-            sortOrder: 2,
-          },
-          {
-            name: "Creme de Cupuaçu Puro",
-            price: 0.0,
-            imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=160&q=80",
-            isAvailable: true,
-            sortOrder: 3,
-          },
-        ],
-      },
+      items: { create: sorveteFlavors },
     },
-    include: { items: true },
   });
 
-  // Grupo 2: "Frutas Frescas" (Incluso, min=0, max=3, free=3)
-  const groupFrutas = await prisma.addonGroup.create({
+  const groupSorvete2Bolas = await prisma.addonGroup.create({
     data: {
-      name: "Frutas Frescas",
-      description: "Selecione até 3 opções de frutas frescas inclusas",
-      minQuantity: 0,
+      name: "Escolha os Sabores de Massa (Até 2 Sabores)",
+      description: "Escolha até 2 sabores para compor suas bolas",
+      minQuantity: 1,
+      maxQuantity: 2,
+      freeQuantity: 2,
+      isRequired: true,
+      sortOrder: 1,
+      items: { create: sorveteFlavors },
+    },
+  });
+
+  const groupSorvete3Bolas = await prisma.addonGroup.create({
+    data: {
+      name: "Escolha os Sabores de Massa (Até 3 Sabores)",
+      description: "Escolha até 3 sabores para compor suas bolas",
+      minQuantity: 1,
       maxQuantity: 3,
       freeQuantity: 3,
-      isRequired: false,
+      isRequired: true,
+      sortOrder: 1,
+      items: { create: sorveteFlavors },
+    },
+  });
+
+  const groupRecipienteSorvete = await prisma.addonGroup.create({
+    data: {
+      name: "Escolha o Recipiente",
+      description: "Casquinha crocante ou no copinho descartável?",
+      minQuantity: 1,
+      maxQuantity: 1,
+      freeQuantity: 1,
+      isRequired: true,
       sortOrder: 2,
-      isActive: true,
       items: {
         create: [
-          {
-            name: "Banana Fatiada",
-            price: 0.0,
-            imageUrl: "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&w=160&q=80",
-            isAvailable: true,
-            sortOrder: 1,
-          },
-          {
-            name: "Morango Fresco",
-            price: 0.0,
-            imageUrl: "https://images.unsplash.com/photo-1464965911861-746a04b4bca6?auto=format&fit=crop&w=160&q=80",
-            isAvailable: true,
-            sortOrder: 2,
-          },
-          {
-            name: "Kiwi Picado",
-            price: 0.0,
-            imageUrl: "https://images.unsplash.com/photo-1585059895524-72359e06133a?auto=format&fit=crop&w=160&q=80",
-            isAvailable: true,
-            sortOrder: 3,
-          },
-          {
-            name: "Manga em Cubos",
-            price: 0.0,
-            imageUrl: "https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=160&q=80",
-            isAvailable: true,
-            sortOrder: 4,
-          },
+          { name: "Casquinha Tradicional Crocante", price: 0.0, sortOrder: 1 },
+          { name: "Copinho Descartável com Colherzinha", price: 0.0, sortOrder: 2 },
         ],
       },
     },
-    include: { items: true },
   });
 
-  // Grupo 3: "Turbine seu Copo" (Cobrado à Parte, min=0, max=5, free=0)
-  const groupTurbine = await prisma.addonGroup.create({
+  const groupCascãoTrufadoRecheio = await prisma.addonGroup.create({
     data: {
-      name: "Turbine seu Copo",
-      description: "Adicionais especiais e coberturas crocantes",
+      name: "Recheio da Borda do Cascão Trufado",
+      description: "Escolha o recheio trufado da borda e fundo do cascão",
+      minQuantity: 1,
+      maxQuantity: 1,
+      freeQuantity: 1,
+      isRequired: true,
+      sortOrder: 2,
+      items: {
+        create: [
+          { name: "Trufado de Nutella Original", price: 0.0, sortOrder: 1 },
+          { name: "Trufado de Doce de Leite Cremoso", price: 0.0, sortOrder: 2 },
+          { name: "Trufado de Brigadeiro Artesanal", price: 0.0, sortOrder: 3 },
+        ],
+      },
+    },
+  });
+
+  // ── GRUPOS ESPECÍFICOS PARA OS COMBOS (FASE 5)
+  // Combo Casal: Grupos totalmente independentes para Copo 1 e Copo 2
+  const groupComboCasalCopo1Trad = await prisma.addonGroup.create({
+    data: {
+      name: "Copo 1 (400ml) - Adicionais Tradicionais (Até 4 grátis)",
+      description: "Escolha até 4 adicionais inclusos para o primeiro copo.",
+      minQuantity: 0,
+      maxQuantity: 10,
+      freeQuantity: 4,
+      isRequired: false,
+      sortOrder: 1,
+      items: { create: traditionalItems },
+    },
+  });
+
+  const groupComboCasalCopo1Premium = await prisma.addonGroup.create({
+    data: {
+      name: "Copo 1 (400ml) - Cremes & Frutas Nobres (Opcional)",
+      description: "Adicionais especiais pagos para o Copo 1",
       minQuantity: 0,
       maxQuantity: 5,
       freeQuantity: 0,
       isRequired: false,
-      sortOrder: 3,
-      isActive: true,
+      sortOrder: 2,
       items: {
         create: [
-          {
-            name: "Nutella Original",
-            price: 4.5,
-            imageUrl: "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?auto=format&fit=crop&w=160&q=80",
-            isAvailable: true,
-            sortOrder: 1,
-          },
-          {
-            name: "Leite em Pó Ninho",
-            price: 2.0,
-            imageUrl: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=160&q=80",
-            isAvailable: true,
-            sortOrder: 2,
-          },
-          {
-            name: "Paçoca Rolha",
-            price: 1.5,
-            imageUrl: "https://images.unsplash.com/photo-1505252585461-04db1eb84625?auto=format&fit=crop&w=160&q=80",
-            isAvailable: true,
-            sortOrder: 3,
-          },
-          {
-            name: "Leite Condensado",
-            price: 1.5,
-            imageUrl: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=160&q=80",
-            isAvailable: true,
-            sortOrder: 4,
-          },
-          {
-            name: "Granola Tradicional",
-            price: 1.0,
-            imageUrl: "https://images.unsplash.com/photo-1517093707567-27928cb9e57d?auto=format&fit=crop&w=160&q=80",
-            isAvailable: true,
-            sortOrder: 5,
-          },
+          { name: "Nutella Original Pura (+R$ 7,00)", price: 7.0, sortOrder: 1 },
+          { name: "Creme de Leite Ninho (+R$ 5,00)", price: 5.0, sortOrder: 2 },
+          { name: "Creme de Pistache Italiano (+R$ 8,00)", price: 8.0, sortOrder: 3 },
+          { name: "Morango em Dobro (+R$ 5,00)", price: 5.0, sortOrder: 4 },
         ],
       },
     },
-    include: { items: true },
   });
 
-  // Selos visuais
-  const badgeMaisPedido = await prisma.cardBadge.create({
-    data: { text: "Mais Pedido", icon: "🔥", bgColor: "#FEE2E2", textColor: "#DC2626" },
+  const groupComboCasalCopo2Trad = await prisma.addonGroup.create({
+    data: {
+      name: "Copo 2 (400ml) - Adicionais Tradicionais (Até 4 grátis)",
+      description: "Escolha até 4 adicionais inclusos para o segundo copo (independente do Copo 1).",
+      minQuantity: 0,
+      maxQuantity: 10,
+      freeQuantity: 4,
+      isRequired: false,
+      sortOrder: 3,
+      items: { create: traditionalItems },
+    },
   });
-  const badgeDestaque = await prisma.cardBadge.create({
-    data: { text: "Destaque", icon: "⭐", bgColor: "#FEF3C7", textColor: "#B45309" },
-  });
-  const badgeNovo = await prisma.cardBadge.create({
-    data: { text: "Novo", icon: "✨", bgColor: "#F3E8FF", textColor: "#7E22CE" },
-  });
 
-  // ── 6. PRODUTOS REAIS
-  console.log("📦 6/7: Cadastrando produtos reais e vinculando complementos...");
-  const rawProducts = [
-    // Açaí Tradicional & Copos
-    {
-      name: "Copo 300ml Tradicional",
-      description: "Açaí cremoso batido na hora no copo de 300ml. Perfeito para uma pausa refrescante com seus acompanhamentos prediletos.",
-      price: 16.5,
-      categoryId: catAcai.id,
-      category: catAcai.name,
-      imageUrl: "https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=600&q=80",
-      hasAddons: true,
-      cardBadgeId: null,
-    },
-    {
-      name: "Copo 500ml Tradicional",
-      description: "Nosso copo campeão de vendas! 500ml de açaí artesanal batido na hora, montado com até 3 frutas frescas e seus adicionais favoritos.",
-      price: 21.0,
-      categoryId: catAcai.id,
-      category: catAcai.name,
-      imageUrl: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=600&q=80",
-      hasAddons: true,
-      cardBadgeId: badgeMaisPedido.id,
-    },
-    {
-      name: "Copo 700ml Tradicional",
-      description: "Para os verdadeiros amantes de açaí: copo gigante de 700ml, farto e super consistente. Escolha sua base e monte com fartura.",
-      price: 26.0,
-      categoryId: catAcai.id,
-      category: catAcai.name,
-      imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
-      hasAddons: true,
-      cardBadgeId: badgeDestaque.id,
-    },
-    {
-      name: "Açaí Trufado Especial 400ml",
-      description: "Copo de 400ml com borda trufada em creme de avelã e leite ninho, intercalado com açaí cremoso e frutas selecionadas.",
-      price: 24.0,
-      categoryId: catAcai.id,
-      category: catAcai.name,
-      imageUrl: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=80",
-      hasAddons: true,
-      cardBadgeId: badgeNovo.id,
-    },
-
-    // Shakes & Vitaminas
-    {
-      name: "Milk Shake Nutella 400ml",
-      description: "Delicioso milk shake artesanal com sorvete de baunilha cremoso batido com generosa dose de Nutella original e chantilly.",
-      price: 19.9,
-      categoryId: catShakes.id,
-      category: catShakes.name,
-      imageUrl: "https://images.unsplash.com/photo-1579954115545-a95591f28bfc?auto=format&fit=crop&w=600&q=80",
-      hasAddons: false,
-      cardBadgeId: badgeMaisPedido.id,
-    },
-    {
-      name: "Milk Shake Morango Silvestre 400ml",
-      description: "Batido com sorvete de morango premium e calda artesanal de pedaços de morango fresco selecionado.",
-      price: 18.5,
-      categoryId: catShakes.id,
-      category: catShakes.name,
-      imageUrl: "https://images.unsplash.com/photo-1567206563064-6f60f40a2b57?auto=format&fit=crop&w=600&q=80",
-      hasAddons: false,
-      cardBadgeId: null,
-    },
-    {
-      name: "Vitamina de Açaí Energética 500ml",
-      description: "Açaí batido com banana prata, leite e xarope de guaraná natural. A dose perfeita de energia para o seu dia.",
-      price: 16.0,
-      categoryId: catShakes.id,
-      category: catShakes.name,
-      imageUrl: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=600&q=80",
-      hasAddons: false,
-      cardBadgeId: null,
-    },
-
-    // Sorvetes Artesanais
-    {
-      name: "Copo de Sorvete Tradicional (2 Bolas)",
-      description: "Duas bolas generosas de sorvete de massa artesanal. Sabores clássicos e cremosos preparados com leite fresco.",
-      price: 12.0,
-      categoryId: catSorvetes.id,
-      category: catSorvetes.name,
-      imageUrl: "https://images.unsplash.com/photo-1505252585461-04db1eb84625?auto=format&fit=crop&w=600&q=80",
-      hasAddons: false,
-      cardBadgeId: null,
-    },
-    {
-      name: "Sundae Artesanal Chocolate & Morango",
-      description: "Sorvete cremoso servido com calda quente de chocolate belga, morangos frescos e amendoim granulado crocante.",
-      price: 16.5,
-      categoryId: catSorvetes.id,
-      category: catSorvetes.name,
-      imageUrl: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=600&q=80",
-      hasAddons: false,
-      cardBadgeId: null,
-    },
-    {
-      name: "Pote Gelato Ninho Trufado 500ml",
-      description: "Pote térmico de 500ml com gelato cremoso de Leite Ninho mesclado com trufas artesanais de chocolate ao leite.",
-      price: 26.0,
-      categoryId: catSorvetes.id,
-      category: catSorvetes.name,
-      imageUrl: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=80",
-      hasAddons: false,
-      cardBadgeId: badgeDestaque.id,
-    },
-
-    // Combos & Barcas
-    {
-      name: "Barca Pop Suprema 1 Litro",
-      description: "Nossa famosa barca recheada com 1 Litro de açaí artesanal, decorada com frutas, creme de avelã, chocolates e confeitos.",
-      price: 52.9,
-      categoryId: catCombos.id,
-      category: catCombos.name,
-      imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
-      hasAddons: true,
-      cardBadgeId: badgeDestaque.id,
-    },
-    {
-      name: "Combo Casal 2x Copos 500ml",
-      description: "Dois copos de 500ml montados do seu jeito com economia especial para saborear a dois.",
-      price: 38.0,
-      categoryId: catCombos.id,
-      category: catCombos.name,
-      imageUrl: "https://images.unsplash.com/photo-1567206563064-6f60f40a2b57?auto=format&fit=crop&w=600&q=80",
-      hasAddons: true,
-      cardBadgeId: badgeMaisPedido.id,
-    },
-    {
-      name: "Marmita Açaí Família (1.1 Litros)",
-      description: "Marmita de 1.1 Litros super caprichada com camadas intercaladas de açaí puro e recheios generosos.",
-      price: 42.0,
-      categoryId: catCombos.id,
-      category: catCombos.name,
-      imageUrl: "https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=600&q=80",
-      hasAddons: true,
-      cardBadgeId: null,
-    },
-  ];
-
-  const createdProducts: { id: string; name: string; price: number; hasAddons: boolean }[] = [];
-
-  for (const raw of rawProducts) {
-    const p = await prisma.product.create({
-      data: {
-        name: raw.name,
-        description: raw.description,
-        price: raw.price,
-        categoryId: raw.categoryId,
-        category: raw.category,
-        imageUrl: raw.imageUrl,
-        cardBadgeId: raw.cardBadgeId,
-        isAvailable: true,
-        stock: null,
-      },
-    });
-
-    // Se o produto suporta complementos, vincula os 3 grupos transacionalmente via ProductAddonGroup
-    if (raw.hasAddons) {
-      await prisma.productAddonGroup.createMany({
-        data: [
-          { productId: p.id, groupId: groupBase.id, sortOrder: 1 },
-          { productId: p.id, groupId: groupFrutas.id, sortOrder: 2 },
-          { productId: p.id, groupId: groupTurbine.id, sortOrder: 3 },
+  const groupComboCasalCopo2Premium = await prisma.addonGroup.create({
+    data: {
+      name: "Copo 2 (400ml) - Cremes & Frutas Nobres (Opcional)",
+      description: "Adicionais especiais pagos para o Copo 2",
+      minQuantity: 0,
+      maxQuantity: 5,
+      freeQuantity: 0,
+      isRequired: false,
+      sortOrder: 4,
+      items: {
+        create: [
+          { name: "Nutella Original Pura (+R$ 7,00)", price: 7.0, sortOrder: 1 },
+          { name: "Creme de Leite Ninho (+R$ 5,00)", price: 5.0, sortOrder: 2 },
+          { name: "Creme de Pistache Italiano (+R$ 8,00)", price: 8.0, sortOrder: 3 },
+          { name: "Morango em Dobro (+R$ 5,00)", price: 5.0, sortOrder: 4 },
         ],
-      });
-    }
-
-    createdProducts.push({ id: p.id, name: p.name, price: raw.price, hasAddons: raw.hasAddons });
-  }
-  console.log(`✅ ${createdProducts.length} produtos criados e vinculados a complementos.`);
-
-  // ── 7. CRIAÇÃO DE TURNOS E PEDIDOS HISTÓRICOS AUDITÁVEIS
-  console.log("⏱️ 7/7: Gerando turnos (Shifts) e pedidos históricos consistentes...");
-
-  // Criar clientes
-  const createdUsers = [];
-  const defaultPasswordHash = await bcrypt.hash("cliente123", 10);
-  for (let i = 0; i < CLIENT_PROFILES.length; i++) {
-    const prof = CLIENT_PROFILES[i];
-    const u = await prisma.user.create({
-      data: {
-        email: prof.email,
-        username: `cliente_${i + 1}`,
-        fullName: prof.name,
-        phone: prof.phone,
-        passwordHash: defaultPasswordHash,
-        role: Role.CLIENT,
       },
-    });
+    },
+  });
 
-    const addr = MT_ADDRESSES[i % MT_ADDRESSES.length];
-    await prisma.userLocation.create({
-      data: {
-        userId: u.id,
-        name: "Casa",
-        addressLine: `${addr.street}, ${addr.number} - ${addr.neighborhood}, ${addr.city} - MT`,
-        latitude: -15.6536 + (Math.random() - 0.5) * 0.04,
-        longitude: -56.1322 + (Math.random() - 0.5) * 0.04,
-        isDefault: true,
+  const groupComboCasalTalheres = await prisma.addonGroup.create({
+    data: {
+      name: "Talheres do Combo Casal (0 a 2 colheres)",
+      description: "Selecione quantas colheres reforçadas precisa para o casal (R$ 0,98 cada)",
+      minQuantity: 0,
+      maxQuantity: 2,
+      freeQuantity: 0,
+      isRequired: false,
+      sortOrder: 5,
+      items: {
+        create: [
+          { name: "Colher reforçada descartável", price: 0.98, sortOrder: 1 },
+        ],
       },
-    });
+    },
+  });
 
-    createdUsers.push(u);
-  }
+  // Combo Família: Marmita 750ml (6 grátis) + Copo 1 300ml (4 grátis) + Copo 2 300ml (4 grátis) + Talheres (0 a 3)
+  const groupComboFamMarmitaTrad = await prisma.addonGroup.create({
+    data: {
+      name: "Marmita 750ml - Adicionais Tradicionais em Camadas (Até 6 grátis)",
+      description: "Escolha até 6 adicionais inclusos montados em camadas generosas.",
+      minQuantity: 0,
+      maxQuantity: 12,
+      freeQuantity: 6,
+      isRequired: false,
+      sortOrder: 1,
+      items: { create: traditionalItems },
+    },
+  });
 
-  // Turnos a semear
+  const groupComboFamMarmitaPremium = await prisma.addonGroup.create({
+    data: {
+      name: "Marmita 750ml - Cremes & Frutas Nobres (Opcional)",
+      description: "Turbine a marmita de 750ml com cremes nobres",
+      minQuantity: 0,
+      maxQuantity: 5,
+      freeQuantity: 0,
+      isRequired: false,
+      sortOrder: 2,
+      items: {
+        create: [
+          { name: "Nutella Original Pura (+R$ 7,00)", price: 7.0, sortOrder: 1 },
+          { name: "Creme de Leite Ninho (+R$ 5,00)", price: 5.0, sortOrder: 2 },
+          { name: "Creme de Pistache Italiano (+R$ 8,00)", price: 8.0, sortOrder: 3 },
+          { name: "Morango em Dobro (+R$ 5,00)", price: 5.0, sortOrder: 4 },
+        ],
+      },
+    },
+  });
+
+  const groupComboFamCopo1Trad = await prisma.addonGroup.create({
+    data: {
+      name: "Copo 1 (300ml) - Adicionais Tradicionais (Até 4 grátis)",
+      description: "Escolha até 4 adicionais inclusos para o primeiro copo de 300ml.",
+      minQuantity: 0,
+      maxQuantity: 10,
+      freeQuantity: 4,
+      isRequired: false,
+      sortOrder: 3,
+      items: { create: traditionalItems },
+    },
+  });
+
+  const groupComboFamCopo2Trad = await prisma.addonGroup.create({
+    data: {
+      name: "Copo 2 (300ml) - Adicionais Tradicionais (Até 4 grátis)",
+      description: "Escolha até 4 adicionais inclusos para o segundo copo de 300ml.",
+      minQuantity: 0,
+      maxQuantity: 10,
+      freeQuantity: 4,
+      isRequired: false,
+      sortOrder: 4,
+      items: { create: traditionalItems },
+    },
+  });
+
+  const groupComboFamTalheres = await prisma.addonGroup.create({
+    data: {
+      name: "Talheres do Combo Família (0 a 3 colheres)",
+      description: "Selecione quantas colheres reforçadas precisa para a família (R$ 0,98 cada)",
+      minQuantity: 0,
+      maxQuantity: 3,
+      freeQuantity: 0,
+      isRequired: false,
+      sortOrder: 5,
+      items: {
+        create: [
+          { name: "Colher reforçada descartável", price: 0.98, sortOrder: 1 },
+        ],
+      },
+    },
+  });
+
+  // Combo Shake & Açaí: Copo 500ml + Milk Shake 500ml
+  const groupComboShakeCopoTrad = await prisma.addonGroup.create({
+    data: {
+      name: "Copo 500ml - Adicionais Tradicionais (Até 4 grátis)",
+      description: "Escolha até 4 adicionais inclusos para o copo de 500ml.",
+      minQuantity: 0,
+      maxQuantity: 10,
+      freeQuantity: 4,
+      isRequired: false,
+      sortOrder: 1,
+      items: { create: traditionalItems },
+    },
+  });
+
+  const groupComboShakeCopoPremium = await prisma.addonGroup.create({
+    data: {
+      name: "Copo 500ml - Cremes & Frutas Nobres (Opcional)",
+      description: "Adicionais especiais pagos para o Copo 500ml",
+      minQuantity: 0,
+      maxQuantity: 5,
+      freeQuantity: 0,
+      isRequired: false,
+      sortOrder: 2,
+      items: {
+        create: [
+          { name: "Nutella Original Pura (+R$ 7,00)", price: 7.0, sortOrder: 1 },
+          { name: "Creme de Leite Ninho (+R$ 5,00)", price: 5.0, sortOrder: 2 },
+          { name: "Creme de Pistache Italiano (+R$ 8,00)", price: 8.0, sortOrder: 3 },
+          { name: "Morango em Dobro (+R$ 5,00)", price: 5.0, sortOrder: 4 },
+        ],
+      },
+    },
+  });
+
+  const groupComboShakeSaborBase = await prisma.addonGroup.create({
+    data: {
+      name: "Milk Shake 500ml - Escolha o Sabor Base (Obrigatório)",
+      description: "Selecione o sabor artesanal do milk shake de 500ml",
+      minQuantity: 1,
+      maxQuantity: 1,
+      freeQuantity: 1,
+      isRequired: true,
+      sortOrder: 3,
+      items: {
+        create: [
+          { name: "Ovomaltine Crocante", price: 0.0, sortOrder: 1 },
+          { name: "Ninho com Nutella", price: 0.0, sortOrder: 2 },
+          { name: "Morango Silvestre", price: 0.0, sortOrder: 3 },
+          { name: "Oreo & Cookies", price: 0.0, sortOrder: 4 },
+        ],
+      },
+    },
+  });
+
+  const groupComboShakeOpcionais = await prisma.addonGroup.create({
+    data: {
+      name: "Milk Shake 500ml - Opcionais de Shake",
+      description: "Opcionais especiais para o shake do combo",
+      minQuantity: 0,
+      maxQuantity: 4,
+      freeQuantity: 0,
+      isRequired: false,
+      sortOrder: 4,
+      items: {
+        create: [
+          { name: "Chantilly artesanal (+R$ 3,50)", price: 3.5, sortOrder: 1 },
+          { name: "Borda de Nutella (+R$ 4,00)", price: 4.0, sortOrder: 2 },
+          { name: "Borda de Doce de Leite (+R$ 3,50)", price: 3.5, sortOrder: 3 },
+        ],
+      },
+    },
+  });
+
+  const groupComboShakeTalheres = await prisma.addonGroup.create({
+    data: {
+      name: "Talheres e Canudos (Combo Shake & Açaí)",
+      description: "Canudo incluso! Selecione se deseja colher para o açaí",
+      minQuantity: 1,
+      maxQuantity: 1,
+      freeQuantity: 0,
+      isRequired: true,
+      sortOrder: 5,
+      items: {
+        create: [
+          { name: "Canudo Incluso + Sem Colher (R$ 0,00)", price: 0.0, sortOrder: 1 },
+          { name: "Canudo Incluso + Quero Colher de Açaí (+R$ 0,98)", price: 0.98, sortOrder: 2 },
+        ],
+      },
+    },
+  });
+
+  console.log("✅ Todos os grupos de complementos criados com sucesso.");
+
+  // ── FASE 3 E FASE 6: SEED DO CARDÁPIO COMPLETO POP SHAKE COM PROMOÇÕES TEMPORAIS
+  console.log("📦 4/6: Cadastrando catálogo completo com promoções temporais e rendimento...");
+
   const now = new Date();
-  const shiftConfigs = [
-    {
-      code: "TURNO-20260925-001",
-      daysAgo: 3,
-      isOpen: false,
-      ordersCount: 18,
+  const startsAt = new Date(now.getTime() - 2 * 86400000); // 2 dias atrás (ativa)
+  const endsAt = new Date(now.getTime() + 30 * 86400000); // válida por 30 dias
+
+  // 2. CATEGORIA: 🫐 Copos de Açaí Tradicionais
+  const pCopo300 = await prisma.product.create({
+    data: {
+      name: "Copo 300ml Tradicional",
+      description: "Açaí artesanal super cremoso batido na hora no copo de 300ml. Acompanha até 4 adicionais tradicionais grátis.",
+      price: 21.90,
+      originalPrice: 35.99,
+      promotionalPrice: 21.90,
+      startsAt,
+      endsAt,
+      isPromoActive: true,
+      servesText: "Serve 1 pessoa",
+      categoryId: cat2.id,
+      category: cat2.name,
+      imageUrl: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=600&q=80",
+      cardBadgeId: badgePromo.id,
     },
-    {
-      code: "TURNO-20260926-002",
-      daysAgo: 2,
-      isOpen: false,
-      ordersCount: 24,
+  });
+
+  const pCopo400 = await prisma.product.create({
+    data: {
+      name: "Copo 400ml Tradicional",
+      description: "Copo de 400ml com açaí artesanal bem consistente e geladinho. Acompanha até 4 adicionais tradicionais grátis.",
+      price: 25.90,
+      originalPrice: 37.99,
+      promotionalPrice: 25.90,
+      startsAt,
+      endsAt,
+      isPromoActive: true,
+      servesText: "Serve 1 pessoa",
+      categoryId: cat2.id,
+      category: cat2.name,
+      imageUrl: "https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=600&q=80",
+      cardBadgeId: badgePromo.id,
     },
-    {
-      code: "TURNO-20260927-003",
-      daysAgo: 1,
-      isOpen: false,
-      ordersCount: 28,
+  });
+
+  const pCopo500 = await prisma.product.create({
+    data: {
+      name: "Copo Pop 500ml Turbinado",
+      description: "O campeão absoluto de vendas! 500ml de açaí artesanal aveludado batido na hora com até 4 adicionais grátis.",
+      price: 29.69,
+      originalPrice: 39.99,
+      promotionalPrice: 29.69,
+      startsAt,
+      endsAt,
+      isPromoActive: true,
+      isHighlight: true,
+      servesText: "Serve 1 pessoa",
+      categoryId: cat2.id,
+      category: cat2.name,
+      imageUrl: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=80",
+      cardBadgeId: badgeMaisVendido.id,
     },
-    {
-      code: "TURNO-20260928-004",
-      daysAgo: 0,
-      isOpen: true,
-      ordersCount: 14,
+  });
+
+  const pCopo700 = await prisma.product.create({
+    data: {
+      name: "Copo 700ml (Giga)",
+      description: "Tamanho Giga para os verdadeiros apaixonados por açaí! Copo gigante de 700ml com até 5 adicionais tradicionais grátis inclusos.",
+      price: 36.90,
+      originalPrice: 46.90,
+      promotionalPrice: 36.90,
+      startsAt,
+      endsAt,
+      isPromoActive: true,
+      servesText: "Serve 1 a 2 pessoas",
+      categoryId: cat2.id,
+      category: cat2.name,
+      imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
+      cardBadgeId: badgePromo.id,
     },
-  ];
+  });
 
-  let currentOpenShiftId: string | null = null;
-
-  for (const sCfg of shiftConfigs) {
-    const openDate = new Date(now.getTime() - sCfg.daysAgo * 86400000);
-    openDate.setHours(13, 0, 0, 0);
-
-    let closeDate: Date | null = null;
-    if (!sCfg.isOpen) {
-      closeDate = new Date(openDate.getTime());
-      closeDate.setHours(23, 30, 0, 0);
-    }
-
-    const shift = await prisma.shift.create({
-      data: {
-        code: sCfg.code,
-        openedAt: openDate,
-        closedAt: closeDate,
-        isOpen: sCfg.isOpen,
-        estimatedDeliveryTime: "30-50 min",
-        notes: sCfg.isOpen ? "Turno operacional em andamento no salão e delivery." : "Turno encerrado com sucesso.",
-      },
-    });
-
-    if (sCfg.isOpen) {
-      currentOpenShiftId = shift.id;
-    }
-
-    let shiftTotalRev = 0;
-    let shiftCashTotal = 0;
-    let shiftPixTotal = 0;
-    let shiftCardTotal = 0;
-    let shiftCompletedCount = 0;
-    let shiftCancelledCount = 0;
-
-    for (let i = 0; i < sCfg.ordersCount; i++) {
-      const u = createdUsers[(i + sCfg.daysAgo) % createdUsers.length];
-      const addr = MT_ADDRESSES[(i + sCfg.daysAgo) % MT_ADDRESSES.length];
-      const isDelivery = i % 4 !== 0;
-
-      // Hora do pedido ao longo do turno
-      const orderDate = new Date(openDate.getTime() + (i * 25 + Math.floor(Math.random() * 15)) * 60000);
-      if (orderDate > now) {
-        orderDate.setTime(now.getTime() - (sCfg.ordersCount - i) * 120000);
-      }
-
-      // Status
-      let orderStatus: OrderStatus = "completed";
-      if (sCfg.isOpen) {
-        if (i === sCfg.ordersCount - 1) orderStatus = "pending";
-        else if (i === sCfg.ordersCount - 2) orderStatus = "accepted";
-        else if (i === sCfg.ordersCount - 3) orderStatus = "preparing";
-        else if (i === sCfg.ordersCount - 4) orderStatus = "delivering";
-        else orderStatus = "completed";
-      } else {
-        orderStatus = i === 3 ? "cancelled" : "completed";
-      }
-
-      // Pagamento: 60% pix, 25% cartão, 15% dinheiro
-      let pType: PaymentMethodType = "pix_entrega";
-      if (i % 3 === 1) pType = "cartao_maquininha";
-      else if (i % 5 === 0) pType = "dinheiro";
-
-      // Itens e complementos selecionados
-      const prod = createdProducts[i % createdProducts.length];
-      const qty = 1;
-      let extrasCost = 0;
-
-      const selectedAddons: any[] = [];
-      if (prod.hasAddons) {
-        // Base obrigatória
-        selectedAddons.push({
-          id: groupBase.items[0].id,
-          groupName: groupBase.name,
-          name: groupBase.items[0].name,
-          price: 0,
-          quantity: 1,
-        });
-        // 2 frutas inclusas
-        selectedAddons.push({
-          id: groupFrutas.items[0].id,
-          groupName: groupFrutas.name,
-          name: groupFrutas.items[0].name,
-          price: 0,
-          quantity: 1,
-        });
-        selectedAddons.push({
-          id: groupFrutas.items[1].id,
-          groupName: groupFrutas.name,
-          name: groupFrutas.items[1].name,
-          price: 0,
-          quantity: 1,
-        });
-        // 1 adicional pago (Nutella)
-        selectedAddons.push({
-          id: groupTurbine.items[0].id,
-          groupName: groupTurbine.name,
-          name: groupTurbine.items[0].name,
-          price: 4.5,
-          quantity: 1,
-        });
-        extrasCost = 4.5;
-      }
-
-      const itemUnitPrice = prod.price + extrasCost;
-      const subtotal = itemUnitPrice * qty;
-      const deliveryFee = isDelivery ? (subtotal >= 60 ? 0 : 5.0) : 0;
-      const totalAmount = subtotal + deliveryFee;
-
-      const order = await prisma.order.create({
-        data: {
-          user: { connect: { id: u.id } },
-          shiftId: shift.id,
-          status: orderStatus,
-          subtotal,
-          deliveryFee,
-          discountAmount: 0,
-          totalAmount,
-          paymentMethodType: pType,
-          paymentChangeFor: pType === "dinheiro" ? Math.ceil(totalAmount / 10) * 10 + 10 : null,
-          changeFor: pType === "dinheiro" ? Math.ceil(totalAmount / 10) * 10 + 10 : null,
-          changeToReturn: pType === "dinheiro" ? Math.ceil(totalAmount / 10) * 10 + 10 - totalAmount : null,
-          deliveryStreet: isDelivery ? addr.street : "Retirada Balcão",
-          deliveryNumber: isDelivery ? addr.number : "S/N",
-          deliveryNeighborhood: isDelivery ? addr.neighborhood : "Loja",
-          deliveryCity: addr.city,
-          deliveryZip: isDelivery ? addr.zip : null,
-          isArchived: !sCfg.isOpen,
-          cancellationReason: orderStatus === "cancelled" ? "Cliente solicitou alteração de endereço" : null,
-          cancelledAt: orderStatus === "cancelled" ? orderDate : null,
-          createdAt: orderDate,
-          updatedAt: orderDate,
-          items: {
-            create: [
-              {
-                productId: prod.id,
-                quantity: qty,
-                priceAtTime: itemUnitPrice,
-                selectedAddons: selectedAddons.length > 0 ? (selectedAddons as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
-                createdAt: orderDate,
-              },
-            ],
-          },
-        },
-      });
-
-      if (orderStatus === "completed") {
-        shiftTotalRev += totalAmount;
-        shiftCompletedCount++;
-        if (pType === "pix_entrega") shiftPixTotal += totalAmount;
-        else if (pType === "cartao_maquininha") shiftCardTotal += totalAmount;
-        else if (pType === "dinheiro") shiftCashTotal += totalAmount;
-      } else if (orderStatus === "cancelled") {
-        shiftCancelledCount++;
-      }
-    }
-
-    // Atualiza estatísticas consolidadas do turno
-    await prisma.shift.update({
-      where: { id: shift.id },
-      data: {
-        totalRevenue: shiftTotalRev,
-        totalOrders: sCfg.ordersCount,
-        completedOrders: shiftCompletedCount,
-        cancelledOrders: shiftCancelledCount,
-        pixTotal: shiftPixTotal,
-        cardTotal: shiftCardTotal,
-        cashTotal: shiftCashTotal,
-      },
+  // Vincula complementos dos copos tradicionais
+  for (const p of [pCopo300, pCopo400, pCopo500]) {
+    await prisma.productAddonGroup.createMany({
+      data: [
+        { productId: p.id, groupId: groupTradicionais4.id, sortOrder: 1 },
+        { productId: p.id, groupId: groupCremesNobres.id, sortOrder: 2 },
+        { productId: p.id, groupId: groupCaldas.id, sortOrder: 3 },
+        { productId: p.id, groupId: groupCrocantes.id, sortOrder: 4 },
+        { productId: p.id, groupId: groupTalheres.id, sortOrder: 5 },
+      ],
     });
   }
 
-  // Se houver turno em aberto hoje, vincula nas StoreSettings
-  if (currentOpenShiftId) {
-    await prisma.storeSettings.update({
-      where: { id: "store_config" },
-      data: {
-        currentShiftId: currentOpenShiftId,
-        isOpen: true,
-      },
+  await prisma.productAddonGroup.createMany({
+    data: [
+      { productId: pCopo700.id, groupId: groupTradicionais5.id, sortOrder: 1 },
+      { productId: pCopo700.id, groupId: groupCremesNobres.id, sortOrder: 2 },
+      { productId: pCopo700.id, groupId: groupCaldas.id, sortOrder: 3 },
+      { productId: pCopo700.id, groupId: groupCrocantes.id, sortOrder: 4 },
+      { productId: pCopo700.id, groupId: groupTalheres.id, sortOrder: 5 },
+    ],
+  });
+
+  // 3. CATEGORIA: 🍱 Marmitas & Roletas Especiais
+  const pMarmita500 = await prisma.product.create({
+    data: {
+      name: "Marmita 500ml (P)",
+      description: "Marmita de 500ml montada com generosidade em camadas de açaí cremoso. Inclui até 4 adicionais tradicionais grátis.",
+      price: 32.90,
+      originalPrice: 42.00,
+      promotionalPrice: 32.90,
+      startsAt,
+      endsAt,
+      isPromoActive: true,
+      servesText: "Serve 1 a 2 pessoas",
+      categoryId: cat3.id,
+      category: cat3.name,
+      imageUrl: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=600&q=80",
+      cardBadgeId: badgePromo.id,
+    },
+  });
+
+  const pMarmita750 = await prisma.product.create({
+    data: {
+      name: "Marmita 750ml (M)",
+      description: "Marmita de 750ml montada em camadas generosas com até 6 adicionais tradicionais grátis inclusos.",
+      price: 45.99,
+      originalPrice: 55.00,
+      promotionalPrice: 45.99,
+      startsAt,
+      endsAt,
+      isPromoActive: true,
+      servesText: "Serve 2 pessoas",
+      categoryId: cat3.id,
+      category: cat3.name,
+      imageUrl: "https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=600&q=80",
+      cardBadgeId: badgeMaisVendido.id,
+    },
+  });
+
+  const pMarmita1000 = await prisma.product.create({
+    data: {
+      name: "Marmita 1000ml (1 Litro)",
+      description: "Marmita gigante de 1 Litro! Uma explosão de açaí artesanal intercalado com até 6 acompanhamentos tradicionais grátis.",
+      price: 58.00,
+      originalPrice: 69.90,
+      promotionalPrice: 58.00,
+      startsAt,
+      endsAt,
+      isPromoActive: true,
+      servesText: "Serve 3 pessoas",
+      categoryId: cat3.id,
+      category: cat3.name,
+      imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
+      cardBadgeId: badgePromo.id,
+    },
+  });
+
+  const pRoletaP = await prisma.product.create({
+    data: {
+      name: "Roleta Gourmet P (G540ml)",
+      description: "Embalagem gourmet com divisórias independentes para saborear cada acompanhamento de forma impecável. Até 4 adicionais inclusos.",
+      price: 35.50,
+      originalPrice: 50.00,
+      promotionalPrice: 35.50,
+      startsAt,
+      endsAt,
+      isPromoActive: true,
+      isHighlight: true,
+      servesText: "Serve 1 a 2 pessoas",
+      categoryId: cat3.id,
+      category: cat3.name,
+      imageUrl: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=80",
+      cardBadgeId: badgeDestaque.id,
+    },
+  });
+
+  const pRoletaM = await prisma.product.create({
+    data: {
+      name: "Roleta Gourmet M (G800ml)",
+      description: "Roleta especial de 800ml com divisórias para fartura em família. Açaí puro ao centro e acompanhamentos selecionados em volta.",
+      price: 52.90,
+      originalPrice: 68.00,
+      promotionalPrice: 52.90,
+      startsAt,
+      endsAt,
+      isPromoActive: true,
+      servesText: "Serve 2 a 3 pessoas",
+      categoryId: cat3.id,
+      category: cat3.name,
+      imageUrl: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=600&q=80",
+      cardBadgeId: badgePromo.id,
+    },
+  });
+
+  // Vincula complementos de marmitas e roletas
+  await prisma.productAddonGroup.createMany({
+    data: [
+      { productId: pMarmita500.id, groupId: groupTradicionais4.id, sortOrder: 1 },
+      { productId: pMarmita500.id, groupId: groupCremesNobres.id, sortOrder: 2 },
+      { productId: pMarmita500.id, groupId: groupCaldas.id, sortOrder: 3 },
+      { productId: pMarmita500.id, groupId: groupCrocantes.id, sortOrder: 4 },
+      { productId: pMarmita500.id, groupId: groupTalheres.id, sortOrder: 5 },
+
+      { productId: pMarmita750.id, groupId: groupTradicionais6.id, sortOrder: 1 },
+      { productId: pMarmita750.id, groupId: groupCremesNobres.id, sortOrder: 2 },
+      { productId: pMarmita750.id, groupId: groupCaldas.id, sortOrder: 3 },
+      { productId: pMarmita750.id, groupId: groupCrocantes.id, sortOrder: 4 },
+      { productId: pMarmita750.id, groupId: groupTalheres.id, sortOrder: 5 },
+
+      { productId: pMarmita1000.id, groupId: groupTradicionais6.id, sortOrder: 1 },
+      { productId: pMarmita1000.id, groupId: groupCremesNobres.id, sortOrder: 2 },
+      { productId: pMarmita1000.id, groupId: groupCaldas.id, sortOrder: 3 },
+      { productId: pMarmita1000.id, groupId: groupCrocantes.id, sortOrder: 4 },
+      { productId: pMarmita1000.id, groupId: groupTalheres.id, sortOrder: 5 },
+
+      { productId: pRoletaP.id, groupId: groupTradicionais4.id, sortOrder: 1 },
+      { productId: pRoletaP.id, groupId: groupCremesNobres.id, sortOrder: 2 },
+      { productId: pRoletaP.id, groupId: groupCaldas.id, sortOrder: 3 },
+      { productId: pRoletaP.id, groupId: groupCrocantes.id, sortOrder: 4 },
+      { productId: pRoletaP.id, groupId: groupTalheres.id, sortOrder: 5 },
+
+      { productId: pRoletaM.id, groupId: groupTradicionais6.id, sortOrder: 1 },
+      { productId: pRoletaM.id, groupId: groupCremesNobres.id, sortOrder: 2 },
+      { productId: pRoletaM.id, groupId: groupCaldas.id, sortOrder: 3 },
+      { productId: pRoletaM.id, groupId: groupCrocantes.id, sortOrder: 4 },
+      { productId: pRoletaM.id, groupId: groupTalheres.id, sortOrder: 5 },
+    ],
+  });
+
+  // 4. CATEGORIA: 🍾 Açaí Batido na Garrafa
+  const pGarrafa300 = await prisma.product.create({
+    data: {
+      name: "Garrafinha 300ml",
+      description: "Açaí cremoso batido na garrafinha prática selada. Leve para qualquer lugar sem vazamento e consuma geladinho!",
+      price: 30.99,
+      servesText: "Serve 1 pessoa",
+      categoryId: cat4.id,
+      category: cat4.name,
+      imageUrl: "https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=600&q=80",
+    },
+  });
+
+  const pGarrafa500 = await prisma.product.create({
+    data: {
+      name: "Garrafa 500ml",
+      description: "Garrafa de 500ml de açaí artesanal com textura densa batido na hora. Escolha se prefere batido junto ou em camadas.",
+      price: 36.00,
+      servesText: "Serve 1 pessoa",
+      categoryId: cat4.id,
+      category: cat4.name,
+      imageUrl: "https://images.unsplash.com/photo-1579954115545-a95591f28bfc?auto=format&fit=crop&w=600&q=80",
+    },
+  });
+
+  for (const p of [pGarrafa300, pGarrafa500]) {
+    await prisma.productAddonGroup.createMany({
+      data: [
+        { productId: p.id, groupId: groupGarrafaModo.id, sortOrder: 1 },
+        { productId: p.id, groupId: groupTradicionais4.id, sortOrder: 2 },
+        { productId: p.id, groupId: groupCremesNobres.id, sortOrder: 3 },
+        { productId: p.id, groupId: groupTalheres.id, sortOrder: 4 },
+      ],
     });
   }
 
-  console.log("🎉 Seed concluído com sucesso total! Catálogo real, complementos vinculados e histórico por turno criados.");
+  // 5. CATEGORIA: 🥤 Milk Shakes Cremosos
+  const pShakeOvomaltine = await prisma.product.create({
+    data: {
+      name: "Milk Shake Ovomaltine Crocante",
+      description: "Sorvete artesanal batido com generosa dose de Ovomaltine suíço crocante. Disponível em 300ml (R$ 21,00), 500ml (R$ 26,00) e 700ml (R$ 32,00).",
+      price: 21.00,
+      servesText: "Serve 1 pessoa",
+      categoryId: cat5.id,
+      category: cat5.name,
+      imageUrl: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=80",
+    },
+  });
+
+  // O item de 500ml em destaque promocional oficial
+  const pShakeNinhoNutella500 = await prisma.product.create({
+    data: {
+      name: "Milk Shake Ninho com Nutella 500ml",
+      description: "Sorvete cremoso de Leite Ninho batido com farta dose de Nutella original italiana. Edição especial de 500ml em promoção!",
+      price: 24.90,
+      originalPrice: 29.90,
+      promotionalPrice: 24.90,
+      startsAt,
+      endsAt,
+      isPromoActive: true,
+      isHighlight: true,
+      servesText: "Serve 1 pessoa",
+      categoryId: cat5.id,
+      category: cat5.name,
+      imageUrl: "https://images.unsplash.com/photo-1579954115545-a95591f28bfc?auto=format&fit=crop&w=600&q=80",
+      cardBadgeId: badgeDestaque.id,
+    },
+  });
+
+  const pShakeMorango = await prisma.product.create({
+    data: {
+      name: "Milk Shake Morango Silvestre",
+      description: "Sorvete de massa artesanal batido com morangos frescos selecionados e calda especial. Disponível em 300ml (R$ 20,00), 500ml (R$ 25,00) e 700ml (R$ 30,00).",
+      price: 20.00,
+      servesText: "Serve 1 pessoa",
+      categoryId: cat5.id,
+      category: cat5.name,
+      imageUrl: "https://images.unsplash.com/photo-1567206563064-6f60f40a2b57?auto=format&fit=crop&w=600&q=80",
+    },
+  });
+
+  const pShakePacoca = await prisma.product.create({
+    data: {
+      name: "Milk Shake Paçoca com Caramelo",
+      description: "Sorvete artesanal batido com paçoca rolha esfarelada e cobertura de caramelo toffee salgado. Disponível em 300ml (R$ 21,00), 500ml (R$ 26,00) e 700ml (R$ 32,00).",
+      price: 21.00,
+      servesText: "Serve 1 pessoa",
+      categoryId: cat5.id,
+      category: cat5.name,
+      imageUrl: "https://images.unsplash.com/photo-1505252585461-04db1eb84625?auto=format&fit=crop&w=600&q=80",
+    },
+  });
+
+  const pShakeOreo = await prisma.product.create({
+    data: {
+      name: "Milk Shake Oreo & Cookies",
+      description: "Sorvete super cremoso batido com biscoito Oreo de verdade em pedacinhos crocantes. Disponível em 300ml (R$ 22,00), 500ml (R$ 27,50) e 700ml (R$ 33,00).",
+      price: 22.00,
+      servesText: "Serve 1 pessoa",
+      categoryId: cat5.id,
+      category: cat5.name,
+      imageUrl: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=600&q=80",
+    },
+  });
+
+  // Vincula seletor de tamanho e complementos de shakes
+  for (const p of [pShakeOvomaltine, pShakeMorango, pShakePacoca, pShakeOreo]) {
+    await prisma.productAddonGroup.createMany({
+      data: [
+        { productId: p.id, groupId: groupTamanhoShake.id, sortOrder: 1 },
+        { productId: p.id, groupId: groupComplementosShake.id, sortOrder: 2 },
+      ],
+    });
+  }
+  await prisma.productAddonGroup.createMany({
+    data: [
+      { productId: pShakeNinhoNutella500.id, groupId: groupComplementosShake.id, sortOrder: 1 },
+    ],
+  });
+
+  // 6. CATEGORIA: 🍨 Sorvetes & Casquinhas
+  const pCasquinhaSimples = await prisma.product.create({
+    data: {
+      name: "Casquinha Simples (1 Bola)",
+      description: "Uma bola caprichada de sorvete de massa artesanal. Escolha se prefere na casquinha crocante ou no copinho descartável.",
+      price: 7.50,
+      servesText: "Serve 1 pessoa",
+      categoryId: cat6.id,
+      category: cat6.name,
+      imageUrl: "https://images.unsplash.com/photo-1505252585461-04db1eb84625?auto=format&fit=crop&w=600&q=80",
+    },
+  });
+
+  const pCascaoTrufado = await prisma.product.create({
+    data: {
+      name: "Cascão Trufado (2 Bolas)",
+      description: "Cascão artesanal com borda e fundo recheados de Nutella ou Doce de Leite + 2 bolas de sorvete de massa.",
+      price: 16.90,
+      servesText: "Serve 1 pessoa",
+      categoryId: cat6.id,
+      category: cat6.name,
+      imageUrl: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=600&q=80",
+    },
+  });
+
+  const pCascaoEspecial = await prisma.product.create({
+    data: {
+      name: "Cascão Especial (3 Bolas)",
+      description: "Cascão crocante reforçado com 3 bolas generosas de sorvete artesanal à sua escolha.",
+      price: 22.00,
+      servesText: "Serve 1 a 2 pessoas",
+      categoryId: cat6.id,
+      category: cat6.name,
+      imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
+    },
+  });
+
+  const pPoteSorvete500 = await prisma.product.create({
+    data: {
+      name: "Pote de Sorvete Artesanal 500ml",
+      description: "Pote térmico lacrado de 500ml com textura cremosa para saborear em casa. Escolha até 2 sabores artesanais.",
+      price: 26.00,
+      servesText: "Serve 2 pessoas",
+      categoryId: cat6.id,
+      category: cat6.name,
+      imageUrl: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=80",
+    },
+  });
+
+  const pPoteSorvete1L = await prisma.product.create({
+    data: {
+      name: "Pote de Sorvete Artesanal 1 Litro",
+      description: "Pote familiar de 1 Litro com sorvete de massa artesanal batido com leite puro. Escolha até 3 sabores prediletos.",
+      price: 44.90,
+      servesText: "Serve 3 a 4 pessoas",
+      categoryId: cat6.id,
+      category: cat6.name,
+      imageUrl: "https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=600&q=80",
+    },
+  });
+
+  // Vincula grupos aos sorvetes
+  await prisma.productAddonGroup.createMany({
+    data: [
+      { productId: pCasquinhaSimples.id, groupId: groupSorvete1Bola.id, sortOrder: 1 },
+      { productId: pCasquinhaSimples.id, groupId: groupRecipienteSorvete.id, sortOrder: 2 },
+
+      { productId: pCascaoTrufado.id, groupId: groupSorvete2Bolas.id, sortOrder: 1 },
+      { productId: pCascaoTrufado.id, groupId: groupCascãoTrufadoRecheio.id, sortOrder: 2 },
+
+      { productId: pCascaoEspecial.id, groupId: groupSorvete3Bolas.id, sortOrder: 1 },
+
+      { productId: pPoteSorvete500.id, groupId: groupSorvete2Bolas.id, sortOrder: 1 },
+      { productId: pPoteSorvete500.id, groupId: groupCaldas.id, sortOrder: 2 },
+
+      { productId: pPoteSorvete1L.id, groupId: groupSorvete3Bolas.id, sortOrder: 1 },
+      { productId: pPoteSorvete1L.id, groupId: groupCaldas.id, sortOrder: 2 },
+    ],
+  });
+
+  // 7. CATEGORIA: 🫙 Potes Família (Açaí Puro Artesanal)
+  const pPotePuro500 = await prisma.product.create({
+    data: {
+      name: "Pote 500ml Puro",
+      description: "Pote lacrado de 500ml com açaí artesanal de polpa pura e consistência densa. Perfeito para servir como preferir em casa.",
+      price: 28.90,
+      servesText: "Serve 1 a 2 pessoas",
+      categoryId: cat7.id,
+      category: cat7.name,
+      imageUrl: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=600&q=80",
+    },
+  });
+
+  const pPotePuro1L = await prisma.product.create({
+    data: {
+      name: "Pote 1 Litro Puro",
+      description: "1 Litro de açaí artesanal sem conservantes, textura aveludada e rendimento excelente para toda a família.",
+      price: 47.90,
+      servesText: "Serve 3 a 4 pessoas",
+      categoryId: cat7.id,
+      category: cat7.name,
+      imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
+    },
+  });
+
+  const pBaldePuro2L = await prisma.product.create({
+    data: {
+      name: "Balde 2 Litros Puro",
+      description: "Balde econômico familiar de 2 Litros de puro açaí artesanal. Máxima economia e fartura para sua casa.",
+      price: 85.00,
+      servesText: "Serve 5+ pessoas",
+      categoryId: cat7.id,
+      category: cat7.name,
+      imageUrl: "https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=600&q=80",
+    },
+  });
+
+  for (const p of [pPotePuro500, pPotePuro1L, pBaldePuro2L]) {
+    await prisma.productAddonGroup.createMany({
+      data: [
+        { productId: p.id, groupId: groupCremesNobres.id, sortOrder: 1 },
+        { productId: p.id, groupId: groupCaldas.id, sortOrder: 2 },
+        { productId: p.id, groupId: groupCrocantes.id, sortOrder: 3 },
+        { productId: p.id, groupId: groupTalheres.id, sortOrder: 4 },
+      ],
+    });
+  }
+
+  // 8. CATEGORIA: ⚡ Combos PopClub (FASE 5)
+  const pComboCasal = await prisma.product.create({
+    data: {
+      name: "Combo Casal (2 Copos de 400ml)",
+      description: "Dois copos de 400ml com montagens totalmente independentes! Cada pessoa escolhe seus 4 adicionais tradicionais grátis e cremes prediletos.",
+      price: 47.00,
+      originalPrice: 50.00,
+      promotionalPrice: 47.00,
+      startsAt,
+      endsAt,
+      isPromoActive: true,
+      isHighlight: true,
+      isCombo: true,
+      servesText: "Serve 2 pessoas",
+      categoryId: cat8.id,
+      category: cat8.name,
+      imageUrl: "https://images.unsplash.com/photo-1567206563064-6f60f40a2b57?auto=format&fit=crop&w=600&q=80",
+      cardBadgeId: badgeDestaque.id,
+    },
+  });
+
+  await prisma.productAddonGroup.createMany({
+    data: [
+      { productId: pComboCasal.id, groupId: groupComboCasalCopo1Trad.id, sortOrder: 1 },
+      { productId: pComboCasal.id, groupId: groupComboCasalCopo1Premium.id, sortOrder: 2 },
+      { productId: pComboCasal.id, groupId: groupComboCasalCopo2Trad.id, sortOrder: 3 },
+      { productId: pComboCasal.id, groupId: groupComboCasalCopo2Premium.id, sortOrder: 4 },
+      { productId: pComboCasal.id, groupId: groupComboCasalTalheres.id, sortOrder: 5 },
+    ],
+  });
+
+  const pComboFamilia = await prisma.product.create({
+    data: {
+      name: "Combo Família (1 Marmita 750ml + 2 Copos 300ml)",
+      description: "O combo mais farto e econômico! 1 Marmita de 750ml em camadas com 6 adicionais grátis + 2 Copos de 300ml com 4 adicionais grátis cada.",
+      price: 79.90,
+      originalPrice: 98.00,
+      promotionalPrice: 79.90,
+      startsAt,
+      endsAt,
+      isPromoActive: true,
+      isCombo: true,
+      servesText: "Serve 3 a 4 pessoas",
+      categoryId: cat8.id,
+      category: cat8.name,
+      imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
+      cardBadgeId: badgePromo.id,
+    },
+  });
+
+  await prisma.productAddonGroup.createMany({
+    data: [
+      { productId: pComboFamilia.id, groupId: groupComboFamMarmitaTrad.id, sortOrder: 1 },
+      { productId: pComboFamilia.id, groupId: groupComboFamMarmitaPremium.id, sortOrder: 2 },
+      { productId: pComboFamilia.id, groupId: groupComboFamCopo1Trad.id, sortOrder: 3 },
+      { productId: pComboFamilia.id, groupId: groupComboFamCopo2Trad.id, sortOrder: 4 },
+      { productId: pComboFamilia.id, groupId: groupComboFamTalheres.id, sortOrder: 5 },
+    ],
+  });
+
+  const pComboShakeAcai = await prisma.product.create({
+    data: {
+      name: "Combo Shake & Açaí (1 Copo 500ml + 1 Milk Shake 500ml)",
+      description: "O melhor dos dois mundos: 1 Copo de 500ml com até 4 adicionais grátis + 1 Milk Shake artesanal de 500ml no sabor que preferir.",
+      price: 49.90,
+      originalPrice: 64.00,
+      promotionalPrice: 49.90,
+      startsAt,
+      endsAt,
+      isPromoActive: true,
+      isCombo: true,
+      servesText: "Serve 2 pessoas",
+      categoryId: cat8.id,
+      category: cat8.name,
+      imageUrl: "https://images.unsplash.com/photo-1579954115545-a95591f28bfc?auto=format&fit=crop&w=600&q=80",
+      cardBadgeId: badgePromo.id,
+    },
+  });
+
+  await prisma.productAddonGroup.createMany({
+    data: [
+      { productId: pComboShakeAcai.id, groupId: groupComboShakeCopoTrad.id, sortOrder: 1 },
+      { productId: pComboShakeAcai.id, groupId: groupComboShakeCopoPremium.id, sortOrder: 2 },
+      { productId: pComboShakeAcai.id, groupId: groupComboShakeSaborBase.id, sortOrder: 3 },
+      { productId: pComboShakeAcai.id, groupId: groupComboShakeOpcionais.id, sortOrder: 4 },
+      { productId: pComboShakeAcai.id, groupId: groupComboShakeTalheres.id, sortOrder: 5 },
+    ],
+  });
+
+  console.log("✅ Produtos e Combos cadastrados e complementos vinculados com sucesso.");
+
+  // ── RESUMO FINAL
+  const totalCategories = await prisma.category.count();
+  const totalProducts = await prisma.product.count();
+  const totalGroups = await prisma.addonGroup.count();
+  const totalItems = await prisma.addonItem.count();
+  const totalUsers = await prisma.user.count();
+
+  console.log("==================================================");
+  console.log("🎉 SEED COMPLETO E AUDITADO:");
+  console.log(`📂 Categorias no Banco: ${totalCategories}`);
+  console.log(`📦 Produtos no Banco: ${totalProducts}`);
+  console.log(`🍨 Grupos de Complementos: ${totalGroups}`);
+  console.log(`🍫 Itens de Adicionais: ${totalItems}`);
+  console.log(`👤 Usuários preservados (Equipe): ${totalUsers}`);
+  console.log("==================================================");
 }
 
 main()

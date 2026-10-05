@@ -40,6 +40,13 @@ export async function GET(
       name: product.name,
       description: product.description || "",
       price: Number(product.price),
+      originalPrice: product.originalPrice ? Number(product.originalPrice) : null,
+      promotionalPrice: product.promotionalPrice ? Number(product.promotionalPrice) : null,
+      startsAt: product.startsAt ? product.startsAt.toISOString() : null,
+      endsAt: product.endsAt ? product.endsAt.toISOString() : null,
+      isPromoActive: product.isPromoActive,
+      servesText: product.servesText || null,
+      isHighlight: product.isHighlight,
       categoryId: product.categoryId,
       category: product.categoryRel?.name || product.category || "Outros",
       imageUrl: product.imageUrl || "",
@@ -98,10 +105,24 @@ export async function PUT(
       isCombo,
       comboItems,
       addonGroupIds,
+      originalPrice,
+      promotionalPrice,
+      startsAt,
+      endsAt,
+      isPromoActive,
+      servesText,
+      isHighlight,
     } = (body || {}) as {
       name?: string;
       description?: string;
       price?: number | string;
+      originalPrice?: number | string | null;
+      promotionalPrice?: number | string | null;
+      startsAt?: string | null;
+      endsAt?: string | null;
+      isPromoActive?: boolean;
+      servesText?: string | null;
+      isHighlight?: boolean;
       categoryId?: string;
       category?: string;
       imageUrl?: string;
@@ -122,6 +143,27 @@ export async function PUT(
         return NextResponse.json({ error: "O preço deve ser um número positivo." }, { status: 400 });
       }
       dataToUpdate.price = parsedPrice;
+    }
+    if (originalPrice !== undefined) {
+      dataToUpdate.originalPrice = originalPrice !== null && originalPrice !== "" ? Number(originalPrice) : null;
+    }
+    if (promotionalPrice !== undefined) {
+      dataToUpdate.promotionalPrice = promotionalPrice !== null && promotionalPrice !== "" ? Number(promotionalPrice) : null;
+    }
+    if (startsAt !== undefined) {
+      dataToUpdate.startsAt = startsAt ? new Date(startsAt) : null;
+    }
+    if (endsAt !== undefined) {
+      dataToUpdate.endsAt = endsAt ? new Date(endsAt) : null;
+    }
+    if (isPromoActive !== undefined) {
+      dataToUpdate.isPromoActive = Boolean(isPromoActive);
+    }
+    if (servesText !== undefined) {
+      dataToUpdate.servesText = servesText ? String(servesText) : null;
+    }
+    if (isHighlight !== undefined) {
+      dataToUpdate.isHighlight = Boolean(isHighlight);
     }
     if (categoryId !== undefined) dataToUpdate.categoryId = categoryId || null;
     if (category !== undefined) dataToUpdate.category = category ? sanitizeText(category) : null;
@@ -177,6 +219,13 @@ export async function PUT(
       name: updated.name,
       description: updated.description || "",
       price: Number(updated.price),
+      originalPrice: updated.originalPrice ? Number(updated.originalPrice) : null,
+      promotionalPrice: updated.promotionalPrice ? Number(updated.promotionalPrice) : null,
+      startsAt: updated.startsAt ? updated.startsAt.toISOString() : null,
+      endsAt: updated.endsAt ? updated.endsAt.toISOString() : null,
+      isPromoActive: updated.isPromoActive,
+      servesText: updated.servesText || null,
+      isHighlight: updated.isHighlight,
       categoryId: updated.categoryId,
       category: updated.categoryRel?.name || updated.category || "Outros",
       imageUrl: updated.imageUrl || "",

@@ -2,7 +2,11 @@ export interface Category {
   id: string;
   name: string;
   slug?: string | null;
+  order?: number;
   order_index?: number;
+  isDynamic?: boolean;
+  dynamicType?: string | null;
+  isActive?: boolean;
 }
 
 export const categoryService = {
@@ -18,11 +22,24 @@ export const categoryService = {
     return Array.isArray(data) ? data : Array.isArray(data?.categories) ? data.categories : Array.isArray(data?.data) ? data.data : [];
   },
 
-  async createCategory(name: string, orderIndex: number = 0): Promise<Category> {
+  async createCategory(
+    name: string,
+    order: number = 0,
+    isDynamic: boolean = false,
+    dynamicType?: string | null,
+    isActive: boolean = true
+  ): Promise<Category> {
     const res = await fetch("/api/categories", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, order_index: orderIndex }),
+      body: JSON.stringify({
+        name,
+        order,
+        order_index: order,
+        isDynamic,
+        dynamicType: dynamicType || null,
+        isActive,
+      }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Erro ao criar categoria.");

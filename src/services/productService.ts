@@ -6,6 +6,13 @@ export interface Product {
   name: string;
   description: string;
   price: number;
+  originalPrice?: number | null;
+  promotionalPrice?: number | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  isPromoActive?: boolean;
+  servesText?: string | null;
+  isHighlight?: boolean;
   category_id?: string;
   categoryId?: string;
   category?: string;
@@ -70,6 +77,13 @@ export const productService = {
       name: String(item.name || ""),
       description: String(item.description || ""),
       price: Number(item.price),
+      originalPrice: item.originalPrice !== undefined && item.originalPrice !== null ? Number(item.originalPrice) : null,
+      promotionalPrice: item.promotionalPrice !== undefined && item.promotionalPrice !== null ? Number(item.promotionalPrice) : null,
+      startsAt: item.startsAt ? String(item.startsAt) : null,
+      endsAt: item.endsAt ? String(item.endsAt) : null,
+      isPromoActive: item.isPromoActive !== undefined ? Boolean(item.isPromoActive) : true,
+      servesText: item.servesText ? String(item.servesText) : null,
+      isHighlight: Boolean(item.isHighlight),
       category_id: (item.categoryId as string) || (item.category_id as string),
       categoryId: (item.categoryId as string) || (item.category_id as string),
       category: item.category as string,
@@ -99,6 +113,13 @@ export const productService = {
       name: data.name,
       description: data.description || "",
       price: Number(data.price),
+      originalPrice: data.originalPrice !== undefined && data.originalPrice !== null ? Number(data.originalPrice) : null,
+      promotionalPrice: data.promotionalPrice !== undefined && data.promotionalPrice !== null ? Number(data.promotionalPrice) : null,
+      startsAt: data.startsAt ? String(data.startsAt) : null,
+      endsAt: data.endsAt ? String(data.endsAt) : null,
+      isPromoActive: data.isPromoActive !== undefined ? Boolean(data.isPromoActive) : true,
+      servesText: data.servesText || null,
+      isHighlight: Boolean(data.isHighlight),
       category_id: data.categoryId,
       category: data.category,
       imageUrl: data.imageUrl || "",
@@ -127,6 +148,13 @@ export const productService = {
         name: product.name,
         description: product.description,
         price: product.price,
+        originalPrice: product.originalPrice,
+        promotionalPrice: product.promotionalPrice,
+        startsAt: product.startsAt,
+        endsAt: product.endsAt,
+        isPromoActive: product.isPromoActive,
+        servesText: product.servesText,
+        isHighlight: product.isHighlight,
         categoryId: product.category_id,
         category: product.category,
         imageUrl: finalImageUrl,
@@ -147,6 +175,13 @@ export const productService = {
       name: data.name,
       description: data.description,
       price: Number(data.price),
+      originalPrice: data.originalPrice ? Number(data.originalPrice) : null,
+      promotionalPrice: data.promotionalPrice ? Number(data.promotionalPrice) : null,
+      startsAt: data.startsAt,
+      endsAt: data.endsAt,
+      isPromoActive: data.isPromoActive,
+      servesText: data.servesText,
+      isHighlight: data.isHighlight,
       category_id: data.categoryId,
       category: data.category,
       imageUrl: data.imageUrl,
@@ -175,6 +210,13 @@ export const productService = {
         name: updates.name,
         description: updates.description,
         price: updates.price,
+        originalPrice: updates.originalPrice,
+        promotionalPrice: updates.promotionalPrice,
+        startsAt: updates.startsAt,
+        endsAt: updates.endsAt,
+        isPromoActive: updates.isPromoActive,
+        servesText: updates.servesText,
+        isHighlight: updates.isHighlight,
         categoryId: updates.category_id,
         category: updates.category,
         imageUrl: finalImageUrl,
@@ -195,6 +237,13 @@ export const productService = {
       name: data.name,
       description: data.description,
       price: Number(data.price),
+      originalPrice: data.originalPrice ? Number(data.originalPrice) : null,
+      promotionalPrice: data.promotionalPrice ? Number(data.promotionalPrice) : null,
+      startsAt: data.startsAt,
+      endsAt: data.endsAt,
+      isPromoActive: data.isPromoActive,
+      servesText: data.servesText,
+      isHighlight: data.isHighlight,
       category_id: data.categoryId,
       category: data.category,
       imageUrl: data.imageUrl,

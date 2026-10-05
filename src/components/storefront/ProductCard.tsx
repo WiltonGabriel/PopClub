@@ -1,8 +1,9 @@
 "use client";
 
-import { Edit2, Trash2, Plus, IceCream, Coffee, Zap } from "lucide-react";
+import { Edit2, Trash2, Plus, IceCream, Coffee, Zap, Users } from "lucide-react";
 import { Product } from "../../services/productService";
 import { formatCurrency, parseSafeNumber } from "@/lib/formatters";
+import { calculateProductPrice } from "@/lib/pricing";
 
 interface ProductCardProps {
   product: Product;
@@ -58,12 +59,10 @@ export function ProductCard({
     product.isAvailable === false ||
     (product.stock !== undefined && product.stock !== null && product.stock <= 0);
 
-  const numPrice = parseSafeNumber(product.price);
-  const isPromo = product.isCombo || (product.name || "").toLowerCase().includes("promo");
-  const originalPrice = isPromo ? Number((numPrice * 1.25).toFixed(2)) : undefined;
-  const discountPercent = originalPrice
-    ? Math.round(((originalPrice - numPrice) / originalPrice) * 100)
-    : null;
+  const pricing = calculateProductPrice(product);
+  const numPrice = pricing.currentPrice;
+  const originalPrice = pricing.isPromotional ? pricing.originalPrice : undefined;
+  const discountPercent = pricing.isPromotional ? pricing.discountPercent : null;
 
   const badge = getCategoryBadge(product);
   const formattedPrice = formatCurrency(numPrice);
@@ -129,6 +128,12 @@ export function ProductCard({
             <p className="text-xs text-zinc-600 dark:text-zinc-200 line-clamp-2 leading-relaxed mt-0.5">
               {product.description}
             </p>
+          )}
+          {product.servesText && (
+            <div className="inline-flex items-center gap-1 text-[10px] text-primary/80 dark:text-violet-300 font-semibold mt-1 bg-primary/10 dark:bg-violet-950/40 px-2 py-0.5 rounded-full w-fit">
+              <Users className="w-2.5 h-2.5 shrink-0" />
+              <span>{product.servesText}</span>
+            </div>
           )}
         </div>
 

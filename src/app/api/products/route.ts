@@ -37,6 +37,13 @@ export async function GET() {
       name: p.name,
       description: p.description || "",
       price: Number(p.price),
+      originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+      promotionalPrice: p.promotionalPrice ? Number(p.promotionalPrice) : null,
+      startsAt: p.startsAt ? p.startsAt.toISOString() : null,
+      endsAt: p.endsAt ? p.endsAt.toISOString() : null,
+      isPromoActive: p.isPromoActive,
+      servesText: p.servesText || null,
+      isHighlight: p.isHighlight,
       categoryId: p.categoryId,
       category: p.categoryRel?.name || p.category || "Outros",
       imageUrl: p.imageUrl || "",
@@ -88,6 +95,13 @@ export async function POST(request: Request) {
       name,
       description,
       price,
+      originalPrice,
+      promotionalPrice,
+      startsAt,
+      endsAt,
+      isPromoActive,
+      servesText,
+      isHighlight,
       categoryId,
       category,
       imageUrl,
@@ -101,6 +115,13 @@ export async function POST(request: Request) {
       name?: string;
       description?: string;
       price?: number | string;
+      originalPrice?: number | string | null;
+      promotionalPrice?: number | string | null;
+      startsAt?: string | null;
+      endsAt?: string | null;
+      isPromoActive?: boolean;
+      servesText?: string | null;
+      isHighlight?: boolean;
       categoryId?: string;
       category?: string;
       imageUrl?: string;
@@ -132,12 +153,21 @@ export async function POST(request: Request) {
     }
 
     const parsedStock = stock !== undefined && stock !== null && stock !== "" ? Number(stock) : null;
+    const parsedOriginalPrice = originalPrice !== undefined && originalPrice !== null && originalPrice !== "" ? Number(originalPrice) : null;
+    const parsedPromotionalPrice = promotionalPrice !== undefined && promotionalPrice !== null && promotionalPrice !== "" ? Number(promotionalPrice) : null;
 
     const product = await prisma.product.create({
       data: {
         name: cleanName,
         description: cleanDescription,
         price: parsedPrice,
+        originalPrice: parsedOriginalPrice,
+        promotionalPrice: parsedPromotionalPrice,
+        startsAt: startsAt ? new Date(startsAt) : null,
+        endsAt: endsAt ? new Date(endsAt) : null,
+        isPromoActive: isPromoActive !== undefined ? Boolean(isPromoActive) : true,
+        servesText: servesText ? String(servesText) : null,
+        isHighlight: Boolean(isHighlight),
         categoryId: categoryId || null,
         category: cleanCategory,
         imageUrl: imageUrl || null,
@@ -182,6 +212,13 @@ export async function POST(request: Request) {
       name: product.name,
       description: product.description || "",
       price: Number(product.price),
+      originalPrice: product.originalPrice ? Number(product.originalPrice) : null,
+      promotionalPrice: product.promotionalPrice ? Number(product.promotionalPrice) : null,
+      startsAt: product.startsAt ? product.startsAt.toISOString() : null,
+      endsAt: product.endsAt ? product.endsAt.toISOString() : null,
+      isPromoActive: product.isPromoActive,
+      servesText: product.servesText || null,
+      isHighlight: product.isHighlight,
       categoryId: product.categoryId,
       category: product.categoryRel?.name || product.category || "Outros",
       imageUrl: product.imageUrl || "",
