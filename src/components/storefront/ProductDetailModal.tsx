@@ -37,7 +37,53 @@ interface ComboUnit {
   title: string;
 }
 
-export function ProductDetailModal({
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  onClose: () => void;
+  productKey?: string;
+}
+
+class ProductModalErrorBoundary extends React.Component<ErrorBoundaryProps, { hasError: boolean }> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("ProductDetailModal ErrorBoundary caught:", error, errorInfo);
+  }
+  componentDidUpdate(prevProps: ErrorBoundaryProps) {
+    if (prevProps.productKey !== this.props.productKey && this.state.hasError) {
+      this.setState({ hasError: false });
+    }
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/65 backdrop-blur-sm transition-opacity">
+          <div className="bg-white dark:bg-[#181D2D] p-6 rounded-3xl max-w-sm w-full text-center shadow-2xl border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95">
+            <div className="w-12 h-12 bg-rose-100 dark:bg-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <X className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+            </div>
+            <h3 className="text-lg font-heading font-bold text-foreground mb-2">Ops, algo deu errado!</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Houve um problema ao carregar as opções deste produto.
+            </p>
+            <button
+              onClick={() => { this.setState({ hasError: false }); this.props.onClose(); }}
+              className="w-full py-3 bg-zinc-100 dark:bg-zinc-800 text-foreground rounded-xl font-semibold hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+            >
+              Fechar e Voltar
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function ProductDetailModalContent({
   product,
   isOpen,
   onClose,
@@ -63,9 +109,10 @@ export function ProductDetailModal({
 
   const initSelections = useCallback((addonGroups: AddonGroup[]) => {
     const initial: Record<string, string[]> = {};
-    addonGroups.forEach((group) => {
+    (addonGroups || []).forEach((group) => {
+      const items = group.items || (group as any).addonItems || [];
       if (group.isRequired && group.minQuantity === 1 && group.maxQuantity === 1) {
-        const firstAvail = group.items.find((i) => i.isAvailable);
+        const firstAvail = items.find((i: any) => i.isAvailable);
         if (firstAvail) {
           initial[group.id] = [firstAvail.id];
           return;
@@ -94,11 +141,24 @@ export function ProductDetailModal({
       for (let i = 0; i < qty; i++) {
         const key = `${item.id || item.productId}_${i}`;
         const title = qty > 1 ? `${childProd.name} #${i + 1}` : childProd.name;
+        
+        // Normalize addonGroups on child product
+        const normalizedGroups = (childProd.addonGroups || []).map((g: any) => {
+          const group = g.group || g;
+          return {
+            ...group,
+            items: group.items || group.addonItems || []
+          };
+        });
+
         units.push({
           key,
           unitIndex: globalIdx,
           totalInCombo: total,
-          product: childProd,
+          product: {
+            ...childProd,
+            addonGroups: normalizedGroups
+          },
           title,
         });
         globalIdx++;
@@ -111,9 +171,10 @@ export function ProductDetailModal({
     const initialComboSel: Record<string, Record<string, string[]>> = {};
     units.forEach((u) => {
       initialComboSel[u.key] = {};
-      (u.product.addonGroups || []).forEach((g) => {
+      (u.product.addonGroups || []).forEach((g: any) => {
+        const items = g.items || g.addonItems || [];
         if (g.isRequired && g.minQuantity === 1 && g.maxQuantity === 1) {
-          const firstAvail = g.items.find((it) => it.isAvailable);
+          const firstAvail = items.find((it: any) => it.isAvailable);
           if (firstAvail) {
             initialComboSel[u.key][g.id] = [firstAvail.id];
             return;
@@ -154,15 +215,26 @@ export function ProductDetailModal({
             });
         }
       } else {
+        const normalizeGroups = (rawGroups: any[]): AddonGroup[] => {
+          return (rawGroups || []).map((g) => {
+            const group = g.group || g;
+            return {
+              ...group,
+              items: group.items || group.addonItems || []
+            };
+          });
+        };
+
         if (product.addonGroups && product.addonGroups.length > 0) {
-          setGroups(product.addonGroups);
-          initSelections(product.addonGroups);
+          const normGroups = normalizeGroups(product.addonGroups);
+          setGroups(normGroups);
+          initSelections(normGroups);
         } else {
           setLoadingAddons(true);
           productService
             .getProductById(product.id)
             .then((fullProduct) => {
-              const loadedGroups = fullProduct.addonGroups || [];
+              const loadedGroups = normalizeGroups(fullProduct.addonGroups || []);
               setGroups(loadedGroups);
               initSelections(loadedGroups);
             })
@@ -1086,5 +1158,14 @@ export function ProductDetailModal({
         </div>
       </div>
     </div>
+  );
+}
+
+export function ProductDetailModal(props: ProductDetailModalProps) {
+  if (!props.isOpen || !props.product) return null;
+  return (
+    <ProductModalErrorBoundary onClose={props.onClose} productKey={props.product.id}>
+      <ProductDetailModalContent {...props} />
+    </ProductModalErrorBoundary>
   );
 }
