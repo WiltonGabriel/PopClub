@@ -61,7 +61,7 @@ export async function PUT(
       return NextResponse.json({ error: "Corpo da requisição inválido." }, { status: 400 });
     }
 
-    const { name, description, minQuantity, maxQuantity, freeQuantity, isRequired, sortOrder, isActive } = body || {};
+    const { name, description, minQuantity, maxQuantity, freeQuantity, isRequired, allowItemQuantity, sortOrder, isActive } = body || {};
 
     const dataToUpdate: Record<string, unknown> = {};
     if (name !== undefined) dataToUpdate.name = String(name).trim();
@@ -70,6 +70,7 @@ export async function PUT(
     if (maxQuantity !== undefined) dataToUpdate.maxQuantity = Math.max(1, parseInt(String(maxQuantity), 10) || 1);
     if (freeQuantity !== undefined) dataToUpdate.freeQuantity = Math.max(0, parseInt(String(freeQuantity), 10) || 0);
     if (isRequired !== undefined) dataToUpdate.isRequired = Boolean(isRequired);
+    if (allowItemQuantity !== undefined) dataToUpdate.allowItemQuantity = Boolean(allowItemQuantity);
     if (sortOrder !== undefined) dataToUpdate.sortOrder = parseInt(String(sortOrder), 10) || 0;
     if (isActive !== undefined) dataToUpdate.isActive = Boolean(isActive);
 

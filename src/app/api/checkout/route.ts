@@ -426,6 +426,15 @@ export async function POST(request: Request) {
 
         for (const [, groupSelections] of selectionsByGroup.entries()) {
           const group = groupSelections[0]?.dbAddon.group;
+          const totalGroupQuantity = groupSelections.reduce((sum, s) => sum + s.quantity, 0);
+          const maxAllowed = (group?.maxQuantity ?? 99) * comboMultiplier;
+          if (group && totalGroupQuantity > maxAllowed) {
+            return NextResponse.json(
+              { error: `O grupo "${group.name}" permite no máximo ${maxAllowed} item(ns). Você selecionou ${totalGroupQuantity}.` },
+              { status: 400 }
+            );
+          }
+
           let freeSlotsLeft = (group?.freeQuantity ?? 0) * comboMultiplier;
 
           for (const sel of groupSelections) {

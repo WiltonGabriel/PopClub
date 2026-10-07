@@ -18,6 +18,7 @@ export interface AddonGroup {
   maxQuantity: number;
   freeQuantity: number;
   isRequired: boolean;
+  allowItemQuantity?: boolean;
   sortOrder: number;
   isActive: boolean;
   productsCount?: number;
@@ -33,6 +34,7 @@ export interface CreateAddonGroupInput {
   maxQuantity?: number;
   freeQuantity?: number;
   isRequired?: boolean;
+  allowItemQuantity?: boolean;
   sortOrder?: number;
   isActive?: boolean;
 }

@@ -182,13 +182,14 @@ model AddonGroup {
   minQuantity  Int                 @default(0) @map("min_quantity")
   maxQuantity  Int                 @default(1) @map("max_quantity")
   freeQuantity Int                 @default(0) @map("free_quantity")
-  isRequired   Boolean             @default(false) @map("is_required")
-  sortOrder    Int                 @default(0) @map("sort_order")
-  isActive     Boolean             @default(true) @map("is_active")
-  createdAt    DateTime            @default(now()) @map("created_at")
-  updatedAt    DateTime            @updatedAt @map("updated_at")
-  items        AddonItem[]
-  products     ProductAddonGroup[]
+  isRequired        Boolean             @default(false) @map("is_required")
+  allowItemQuantity Boolean             @default(false) @map("allow_item_quantity")
+  sortOrder         Int                 @default(0) @map("sort_order")
+  isActive          Boolean             @default(true) @map("is_active")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  items             AddonItem[]
+  products          ProductAddonGroup[]
 
   @@map("addon_groups")
 }

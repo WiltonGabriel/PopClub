@@ -25,6 +25,7 @@ export async function GET() {
       maxQuantity: g.maxQuantity,
       freeQuantity: g.freeQuantity,
       isRequired: g.isRequired,
+      allowItemQuantity: g.allowItemQuantity,
       sortOrder: g.sortOrder,
       isActive: g.isActive,
       createdAt: g.createdAt,
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Corpo da requisição inválido." }, { status: 400 });
     }
 
-    const { name, description, minQuantity, maxQuantity, freeQuantity, isRequired, sortOrder, isActive } = body || {};
+    const { name, description, minQuantity, maxQuantity, freeQuantity, isRequired, allowItemQuantity, sortOrder, isActive } = body || {};
 
     if (!name || typeof name !== "string" || !name.trim()) {
       return NextResponse.json({ error: "O nome do grupo de complementos é obrigatório." }, { status: 400 });
@@ -92,6 +93,7 @@ export async function POST(request: Request) {
         maxQuantity: Math.max(minQ, maxQ),
         freeQuantity: freeQ,
         isRequired: required,
+        allowItemQuantity: Boolean(allowItemQuantity),
         sortOrder: parseInt(String(sortOrder ?? 0), 10) || 0,
         isActive: isActive !== undefined ? Boolean(isActive) : true,
       },

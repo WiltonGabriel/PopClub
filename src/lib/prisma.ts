@@ -10,6 +10,7 @@ export interface DBAddonGroup {
   maxQuantity: number;
   freeQuantity: number;
   isRequired: boolean;
+  allowItemQuantity?: boolean;
   sortOrder: number;
   isActive: boolean;
   createdAt: Date;

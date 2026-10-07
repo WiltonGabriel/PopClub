@@ -47,6 +47,7 @@ export function AddonsManagement() {
     maxQuantity: 1,
     freeQuantity: 0,
     isRequired: false,
+    allowItemQuantity: false,
     isActive: true,
   });
 
@@ -111,6 +112,7 @@ export function AddonsManagement() {
       maxQuantity: 1,
       freeQuantity: 0,
       isRequired: false,
+      allowItemQuantity: false,
       isActive: true,
     });
     setIsGroupModalOpen(true);
@@ -125,6 +127,7 @@ export function AddonsManagement() {
       maxQuantity: group.maxQuantity,
       freeQuantity: group.freeQuantity,
       isRequired: group.isRequired,
+      allowItemQuantity: Boolean(group.allowItemQuantity),
       isActive: group.isActive,
     });
     setIsGroupModalOpen(true);
@@ -468,6 +471,12 @@ export function AddonsManagement() {
                           </span>
                         )}
 
+                        {group.allowItemQuantity && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                            Qtd múltipla (+/-)
+                          </span>
+                        )}
+
                         <span className="text-[10px] font-medium text-muted-foreground bg-zinc-100 dark:bg-zinc-800/80 px-2 py-0.5 rounded-full">
                           {group.productsCount || 0} produto(s) vinculado(s)
                         </span>
@@ -727,6 +736,24 @@ export function AddonsManagement() {
                   checked={groupForm.isRequired}
                   onChange={(e) => setGroupForm((p) => ({ ...p, isRequired: e.target.checked }))}
                   className="w-5 h-5 accent-primary rounded cursor-pointer"
+                />
+              </div>
+
+              {/* Toggle de Repetição / Quantidade (+ / -) */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/40">
+                <div className="pr-3">
+                  <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                    Permitir escolher mais de 1 unidade do mesmo item
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Permite ao cliente clicar em &apos;+&apos; e &apos;-&apos; para pedir, por exemplo, 2x Banana ou 3x Colheres.
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={Boolean(groupForm.allowItemQuantity)}
+                  onChange={(e) => setGroupForm((p) => ({ ...p, allowItemQuantity: e.target.checked }))}
+                  className="w-5 h-5 accent-primary rounded cursor-pointer shrink-0"
                 />
               </div>
 

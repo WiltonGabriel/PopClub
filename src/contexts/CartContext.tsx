@@ -97,7 +97,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addItem = (newItem: Omit<CartItem, "id"> & { id?: string }) => {
     const optionsKey =
       newItem.selectedOptions && newItem.selectedOptions.length > 0
-        ? newItem.selectedOptions.map((o) => `${o.groupName}:${o.name}`).sort().join("|")
+        ? newItem.selectedOptions.map((o) => `${o.groupName}:${o.name}:${o.quantity || 1}`).sort().join("|")
         : "base";
     const notesKey = (newItem.notes || "").trim().toLowerCase();
     const id =
