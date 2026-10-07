@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { productService, Product } from "../../services/productService";
 import { categoryService, Category } from "../../services/categoryService";
+import { promotionService, Promotion } from "../../services/promotionService";
 import { ProductFormDialog } from "./ProductFormDialog";
 import { useToast } from "../ui/ToastNotification";
 
@@ -36,6 +37,7 @@ interface StockControlSectionProps {
 export function StockControlSection({ activeDemandMap = {} }: StockControlSectionProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [activePromotions, setActivePromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -112,9 +114,10 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
   const loadData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
-      const [prodsData, catsData] = await Promise.allSettled([
+      const [prodsData, catsData, promosData] = await Promise.allSettled([
         productService.getProducts(),
         categoryService.getCategories(),
+        promotionService.getActivePromotions(),
       ]);
 
       if (prodsData.status === "fulfilled") {
@@ -122,6 +125,9 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
       }
       if (catsData.status === "fulfilled") {
         setCategories(catsData.value);
+      }
+      if (promosData.status === "fulfilled") {
+        setActivePromotions(promosData.value);
       }
     } catch (err) {
       console.error("Erro ao carregar dados de estoque:", err);
@@ -244,9 +250,35 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
     handleStockChange(product, nextVal);
   };
 
-  // Filtragem dos produtos
-  const filteredProducts = useMemo(() => {
+  // ─── BLINDAGEM ESTREITA DE ESTOQUE: Apenas produtos base comuns ───
+  // Bloqueia e exclui estritamente Combos (isCombo: true) e Itens vinculados a Promoção Ativa
+  const baseProducts = useMemo(() => {
+    const now = new Date();
+    const activePromoProductIds = new Set(
+      activePromotions
+        .filter((pr) => pr.isActive && (!pr.expiresAt || new Date(pr.expiresAt) > now))
+        .map((pr) => pr.productId)
+        .filter((id): id is string => Boolean(id))
+    );
+
     return products.filter((p) => {
+      // 1. Exclui Combos
+      if (p.isCombo) return false;
+      // 2. Exclui produtos com promoção ativa vinculada
+      if (activePromoProductIds.has(p.id)) return false;
+      if (
+        p.promotions &&
+        p.promotions.some((pr) => pr.isActive && (!pr.expiresAt || new Date(pr.expiresAt) > now))
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [products, activePromotions]);
+
+  // Filtragem dos produtos base
+  const filteredProducts = useMemo(() => {
+    return baseProducts.filter((p) => {
       // 1. Busca textual
       if (searchTerm.trim()) {
         const query = searchTerm.toLowerCase();
@@ -273,11 +305,11 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
 
       return true;
     });
-  }, [products, searchTerm, selectedCategory, statusFilter]);
+  }, [baseProducts, searchTerm, selectedCategory, statusFilter]);
 
-  // Estatísticas rápidas
-  const totalItems = products.length;
-  const unavailableCount = products.filter(
+  // Estatísticas rápidas calculadas exclusivamente sobre produtos base
+  const totalItems = baseProducts.length;
+  const unavailableCount = baseProducts.filter(
     (p) => p.isAvailable === false || (p.stock !== null && p.stock !== undefined && p.stock <= 0)
   ).length;
   const totalInKitchen = Object.values(activeDemandMap).reduce((acc, qty) => acc + qty, 0);
@@ -292,11 +324,16 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
               <Package className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-heading font-black text-xl sm:text-2xl text-[#4C264F] dark:text-[#F9F5F9] tracking-tight">
-                Controle de Estoque & Disponibilidade
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="font-heading font-black text-xl sm:text-2xl text-[#4C264F] dark:text-[#F9F5F9] tracking-tight">
+                  Controle de Estoque & Disponibilidade
+                </h2>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                  Apenas Produtos Base
+                </span>
+              </div>
               <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                Pause itens que acabaram na cozinha ou ajuste as quantidades disponíveis em tempo real.
+                Listando exclusivamente produtos normais/base da loja. Combos e promoções ativas possuem centrais de monitoramento de lotes dedicadas em suas respectivas abas.
               </p>
             </div>
           </div>

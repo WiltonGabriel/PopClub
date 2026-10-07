@@ -54,6 +54,12 @@ export async function GET(
       autoBanner: promo.autoBanner,
       showScarcity: promo.showScarcity,
       scarcityUnits: promo.scarcityUnits,
+      scarcityType: promo.scarcityType || "strategic",
+      scarcityInitial: promo.scarcityInitial,
+      scarcitySold: promo.scarcitySold ?? 0,
+      showProgressBar: promo.showProgressBar ?? false,
+      urgencyType: promo.urgencyType || "date",
+      sessionMinutes: promo.sessionMinutes,
       productId: promo.productId,
       product: promo.product ? {
         id: promo.product.id,
@@ -105,6 +111,12 @@ export async function PUT(
       autoBanner,
       showScarcity,
       scarcityUnits,
+      scarcityType,
+      scarcityInitial,
+      scarcitySold,
+      showProgressBar,
+      urgencyType,
+      sessionMinutes,
     } = body || {};
 
     const dataToUpdate: Prisma.PromotionUncheckedUpdateInput = {};
@@ -124,7 +136,13 @@ export async function PUT(
     if (productId !== undefined && productId) dataToUpdate.productId = String(productId);
     if (autoBanner !== undefined) dataToUpdate.autoBanner = Boolean(autoBanner);
     if (showScarcity !== undefined) dataToUpdate.showScarcity = Boolean(showScarcity);
-    if (scarcityUnits !== undefined) dataToUpdate.scarcityUnits = scarcityUnits !== null ? Number(scarcityUnits) : null;
+    if (scarcityUnits !== undefined) dataToUpdate.scarcityUnits = scarcityUnits !== null && scarcityUnits !== "" ? Number(scarcityUnits) : null;
+    if (scarcityType !== undefined) dataToUpdate.scarcityType = String(scarcityType);
+    if (scarcityInitial !== undefined) dataToUpdate.scarcityInitial = scarcityInitial !== null && scarcityInitial !== "" ? Number(scarcityInitial) : null;
+    if (scarcitySold !== undefined) dataToUpdate.scarcitySold = Number(scarcitySold || 0);
+    if (showProgressBar !== undefined) dataToUpdate.showProgressBar = Boolean(showProgressBar);
+    if (urgencyType !== undefined) dataToUpdate.urgencyType = String(urgencyType);
+    if (sessionMinutes !== undefined) dataToUpdate.sessionMinutes = sessionMinutes !== null && sessionMinutes !== "" ? Number(sessionMinutes) : null;
 
     const updated = await prisma.promotion.update({
       where: { id },

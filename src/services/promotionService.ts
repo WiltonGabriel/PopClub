@@ -33,6 +33,13 @@ export interface Promotion {
   autoBanner?: boolean;
   showScarcity?: boolean;
   scarcityUnits?: number | null;
+  scarcityType?: "strategic" | "real" | string;
+  scarcityInitial?: number | null;
+  scarcitySold?: number;
+  showProgressBar?: boolean;
+  urgencyType?: "date" | "day" | "session" | string;
+  sessionMinutes?: number | null;
+  startsAt?: string | null;
 }
 
 export const promotionService = {

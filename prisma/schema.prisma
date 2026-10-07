@@ -129,6 +129,7 @@ model Category {
   order       Int       @default(0)
   isDynamic   Boolean   @default(false) @map("is_dynamic")
   dynamicType String?   @map("dynamic_type")
+  imageUrl    String?   @map("image_url")
   isActive    Boolean   @default(true) @map("is_active")
   createdAt   DateTime  @default(now()) @map("created_at")
   products    Product[]
@@ -158,6 +159,18 @@ model Product {
   comboItems       ComboItem[]            @relation("ComboParent")
   partOfCombos     ComboItem[]            @relation("ComboChild")
   addonGroups      ProductAddonGroup[]
+
+  // Urgência e Escassez (Combos e Ofertas)
+  showScarcity     Boolean                @default(false) @map("show_scarcity")
+  scarcityType     String?                @default("strategic") @map("scarcity_type")
+  scarcityUnits    Int?                   @map("scarcity_units")
+  scarcityInitial  Int?                   @map("scarcity_initial")
+  scarcitySold     Int                    @default(0) @map("scarcity_sold")
+  showProgressBar  Boolean                @default(false) @map("show_progress_bar")
+  showDuration     Boolean                @default(false) @map("show_duration")
+  urgencyType      String?                @default("date") @map("urgency_type")
+  expiresAt        DateTime?              @map("expires_at")
+  sessionMinutes   Int?                   @map("session_minutes")
 
   @@map("products")
 }
@@ -224,11 +237,17 @@ model Promotion {
   expiresAt      DateTime?       @map("expires_at")
   
   // Duração e Escassez (Marketing)
-  showDuration   Boolean         @default(false) @map("show_duration")
-  durationDisplay String[]       @default([]) @map("duration_display")
-  autoBanner     Boolean         @default(false) @map("auto_banner")
-  showScarcity   Boolean         @default(false) @map("show_scarcity")
-  scarcityUnits  Int?            @map("scarcity_units")
+  showDuration    Boolean         @default(false) @map("show_duration")
+  durationDisplay String[]        @default([]) @map("duration_display")
+  autoBanner      Boolean         @default(false) @map("auto_banner")
+  showScarcity    Boolean         @default(false) @map("show_scarcity")
+  scarcityUnits   Int?            @map("scarcity_units")
+  scarcityType    String?         @default("strategic") @map("scarcity_type")
+  scarcityInitial Int?            @map("scarcity_initial")
+  scarcitySold    Int             @default(0) @map("scarcity_sold")
+  showProgressBar Boolean         @default(false) @map("show_progress_bar")
+  urgencyType     String?         @default("date") @map("urgency_type")
+  sessionMinutes  Int?            @map("session_minutes")
 
   productId      String          @map("product_id")
   product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)

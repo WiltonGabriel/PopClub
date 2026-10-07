@@ -51,6 +51,16 @@ export async function POST(request: Request) {
       isCombo,
       comboItems,
       addonGroupIds,
+      showScarcity,
+      scarcityType,
+      scarcityUnits,
+      scarcityInitial,
+      scarcitySold,
+      showProgressBar,
+      showDuration,
+      urgencyType,
+      expiresAt,
+      sessionMinutes,
     } = (body || {}) as {
       name?: string;
       description?: string;
@@ -66,6 +76,16 @@ export async function POST(request: Request) {
       isCombo?: boolean;
       comboItems?: Array<{ productId: string; quantity?: number }>;
       addonGroupIds?: string[];
+      showScarcity?: boolean;
+      scarcityType?: string;
+      scarcityUnits?: number | string;
+      scarcityInitial?: number | string;
+      scarcitySold?: number | string;
+      showProgressBar?: boolean;
+      showDuration?: boolean;
+      urgencyType?: string;
+      expiresAt?: string | null;
+      sessionMinutes?: number | string;
     };
 
     const cleanName = sanitizeText(name);
@@ -102,6 +122,16 @@ export async function POST(request: Request) {
       isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : true,
       cardBadgeId: cardBadgeId || null,
       isCombo: Boolean(isCombo),
+      showScarcity: Boolean(showScarcity),
+      scarcityType: (scarcityType as string) || "strategic",
+      scarcityUnits: scarcityUnits !== undefined && scarcityUnits !== null && scarcityUnits !== "" ? Number(scarcityUnits) : null,
+      scarcityInitial: scarcityInitial !== undefined && scarcityInitial !== null && scarcityInitial !== "" ? Number(scarcityInitial) : (scarcityUnits ? Number(scarcityUnits) : null),
+      scarcitySold: Number(scarcitySold || 0),
+      showProgressBar: Boolean(showProgressBar),
+      showDuration: Boolean(showDuration),
+      urgencyType: (urgencyType as string) || "date",
+      expiresAt: expiresAt ? new Date(expiresAt) : null,
+      sessionMinutes: sessionMinutes !== undefined && sessionMinutes !== null && sessionMinutes !== "" ? Number(sessionMinutes) : null,
       comboItems: (isCombo && Array.isArray(comboItems)) ? {
         create: comboItems.map((ci: any) => ({
           productId: ci.productId,

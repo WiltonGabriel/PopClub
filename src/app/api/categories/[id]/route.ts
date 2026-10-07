@@ -14,7 +14,7 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json().catch(() => ({}));
-    const { name, slug, order, order_index, isDynamic, dynamicType, isActive } = body;
+    const { name, slug, order, order_index, isDynamic, dynamicType, imageUrl, isActive } = body;
 
     const dataToUpdate: any = {};
     if (name !== undefined) {
@@ -32,6 +32,9 @@ export async function PATCH(
     }
     if (dynamicType !== undefined) {
       dataToUpdate.dynamicType = dynamicType || null;
+    }
+    if (imageUrl !== undefined) {
+      dataToUpdate.imageUrl = imageUrl || null;
     }
     if (isActive !== undefined) {
       dataToUpdate.isActive = Boolean(isActive);

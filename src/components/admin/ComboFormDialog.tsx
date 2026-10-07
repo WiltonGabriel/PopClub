@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { productService, Product } from "../../services/productService";
 import { badgeService, CardBadge } from "../../services/badgeService";
 import { ImageCropperDialog } from "./ImageCropperDialog";
+import { UrgencyScarcityConfig, UrgencyScarcityValues } from "./UrgencyScarcityConfig";
 import {
   UtensilsCrossed,
   Plus,
@@ -55,21 +56,17 @@ export function ComboFormDialog({
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
 
-  // Duração
-  const [durationDays, setDurationDays] = useState<string>("");
-  const [showDuration, setShowDuration] = useState(false);
-  const [durationDisplay, setDurationDisplay] = useState<string[]>([]);
-  const [validUntilPreview, setValidUntilPreview] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (durationDays && !isNaN(parseInt(durationDays))) {
-      const d = new Date();
-      d.setDate(d.getDate() + parseInt(durationDays));
-      setValidUntilPreview(d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }));
-    } else {
-      setValidUntilPreview(null);
-    }
-  }, [durationDays]);
+  // Duração & Escassez Unificada
+  const [urgencyState, setUrgencyState] = useState<UrgencyScarcityValues>({
+    showScarcity: false,
+    scarcityType: "strategic",
+    scarcityUnits: "5",
+    showProgressBar: true,
+    showDuration: false,
+    urgencyType: "date",
+    expiresAt: "",
+    sessionMinutes: "60",
+  });
 
   // Produtos do combo: { [productId]: quantity }
   const [comboItems, setComboItems] = useState<{ [productId: string]: number }>({});
@@ -153,9 +150,20 @@ export function ComboFormDialog({
       setPricingMode("fixed_price");
       setFixedComboPrice(String(comboToEdit.price));
       
-      setDurationDays("");
-      setShowDuration(false);
-      setDurationDisplay([]);
+      // Hidratação Completa de Urgência & Escassez
+      setUrgencyState({
+        showScarcity: Boolean(comboToEdit.showScarcity),
+        scarcityType: (comboToEdit.scarcityType as "strategic" | "real") || "strategic",
+        scarcityUnits: comboToEdit.scarcityUnits ? String(comboToEdit.scarcityUnits) : (comboToEdit.scarcityInitial ? String(comboToEdit.scarcityInitial) : "5"),
+        scarcityInitial: comboToEdit.scarcityInitial ? String(comboToEdit.scarcityInitial) : undefined,
+        showProgressBar: comboToEdit.showProgressBar !== undefined ? Boolean(comboToEdit.showProgressBar) : true,
+        showDuration: Boolean(comboToEdit.showDuration || comboToEdit.expiresAt),
+        urgencyType: (comboToEdit.urgencyType as "date" | "day" | "session") || "date",
+        expiresAt: comboToEdit.expiresAt
+          ? new Date(new Date(comboToEdit.expiresAt).getTime() - new Date(comboToEdit.expiresAt).getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+          : "",
+        sessionMinutes: comboToEdit.sessionMinutes ? String(comboToEdit.sessionMinutes) : "60",
+      });
     } else {
       setTitle("");
       setBadge("COMBO POP");
@@ -169,9 +177,16 @@ export function ComboFormDialog({
       setCropModalOpen(false);
       setRawImageSrc(null);
       setComboItems({});
-      setDurationDays("");
-      setShowDuration(false);
-      setDurationDisplay([]);
+      setUrgencyState({
+        showScarcity: false,
+        scarcityType: "strategic",
+        scarcityUnits: "5",
+        showProgressBar: true,
+        showDuration: false,
+        urgencyType: "date",
+        expiresAt: "",
+        sessionMinutes: "60",
+      });
     }
     setError("");
     setProductSearch("");
@@ -280,6 +295,12 @@ export function ComboFormDialog({
     setLoading(true);
 
     try {
+      const matchedBadge = badges.find((b) => (b.icon ? `${b.icon} ${b.text}` : b.text) === badge || b.text === badge);
+
+      const unitsNumber = urgencyState.showScarcity && urgencyState.scarcityUnits
+        ? parseInt(urgencyState.scarcityUnits)
+        : null;
+
       const payload = {
         name: title.trim(),
         description: description.trim(),
@@ -290,6 +311,21 @@ export function ComboFormDialog({
         isCombo: true,
         comboItems: itemsPayload,
         imageUrl: comboToEdit?.imageUrl || "",
+        cardBadgeId: matchedBadge?.id || comboToEdit?.cardBadgeId || null,
+        // Urgência & Escassez
+        showScarcity: urgencyState.showScarcity,
+        scarcityType: urgencyState.scarcityType,
+        scarcityUnits: unitsNumber,
+        scarcityInitial: unitsNumber ?? undefined,
+        showProgressBar: urgencyState.showProgressBar,
+        showDuration: urgencyState.showDuration,
+        urgencyType: urgencyState.urgencyType,
+        expiresAt: urgencyState.showDuration && urgencyState.urgencyType === "date" && urgencyState.expiresAt
+          ? new Date(urgencyState.expiresAt).toISOString()
+          : null,
+        sessionMinutes: urgencyState.showDuration && urgencyState.urgencyType === "session" && urgencyState.sessionMinutes
+          ? parseInt(urgencyState.sessionMinutes)
+          : null,
       };
 
       if (comboToEdit) {
@@ -761,75 +797,12 @@ export function ComboFormDialog({
             </div>
           </div>
 
-          {/* Escassez e Prazo */}
-          <div className="pt-6 border-t border-gray-100 dark:border-border/30">
-            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-primary" /> Regras de Escassez e Prazo
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <Label className="text-xs font-bold text-gray-700 dark:text-gray-300 block">
-                  Duração da Oferta (em dias)
-                </Label>
-                <Input
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={durationDays}
-                  onChange={(e) => setDurationDays(e.target.value)}
-                  placeholder="Ex: 3 (deixe vazio p/ indeterminado)"
-                  className="bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 rounded-xl text-sm"
-                />
-                {validUntilPreview && (
-                  <p className="text-[11px] text-emerald-600 font-medium">
-                    Válido até: {validUntilPreview}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-3">
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showDuration}
-                    onChange={(e) => setShowDuration(e.target.checked)}
-                    className="w-4 h-4 text-primary rounded border-gray-300"
-                  />
-                  <Eye className="w-4 h-4 text-gray-500" />
-                  Mostrar Escassez para o Cliente
-                </label>
-                
-                {showDuration && (
-                  <div className="bg-gray-50 dark:bg-zinc-900/50 p-3 rounded-xl border border-gray-200 dark:border-zinc-800 space-y-2">
-                    <p className="text-xs text-muted-foreground mb-2">Formato de Exibição:</p>
-                    {[
-                      "Cronômetro Regressivo",
-                      "Data e Hora Limite Claras",
-                      "Contador de Estoque Limitado",
-                      "Destaque Visual do Desconto",
-                      "Nomeação Temática"
-                    ].map((opt) => (
-                      <label key={opt} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={durationDisplay.includes(opt)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setDurationDisplay([...durationDisplay, opt]);
-                            } else {
-                              setDurationDisplay(durationDisplay.filter((d) => d !== opt));
-                            }
-                          }}
-                          className="w-3.5 h-3.5 text-primary rounded border-gray-300"
-                        />
-                        {opt}
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          {/* Módulo Unificado de Urgência & Escassez */}
+          <UrgencyScarcityConfig
+            value={urgencyState}
+            onChange={(updates) => setUrgencyState((prev) => ({ ...prev, ...updates }))}
+            titlePrefix="Combo"
+          />
 
           {/* Botões de Ação */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-border/30">

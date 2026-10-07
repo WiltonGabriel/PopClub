@@ -58,6 +58,16 @@ export async function PUT(
       addonGroupIds,
       servesText,
       isHighlight,
+      showScarcity,
+      scarcityType,
+      scarcityUnits,
+      scarcityInitial,
+      scarcitySold,
+      showProgressBar,
+      showDuration,
+      urgencyType,
+      expiresAt,
+      sessionMinutes,
     } = (body || {}) as {
       name?: string;
       description?: string;
@@ -73,6 +83,16 @@ export async function PUT(
       isCombo?: boolean;
       comboItems?: Array<{ productId: string; quantity?: number }>;
       addonGroupIds?: string[];
+      showScarcity?: boolean;
+      scarcityType?: string;
+      scarcityUnits?: number | string;
+      scarcityInitial?: number | string;
+      scarcitySold?: number | string;
+      showProgressBar?: boolean;
+      showDuration?: boolean;
+      urgencyType?: string;
+      expiresAt?: string | null;
+      sessionMinutes?: number | string;
     };
 
     const dataToUpdate: any = {};
@@ -98,6 +118,16 @@ export async function PUT(
     if (isAvailable !== undefined) dataToUpdate.isAvailable = Boolean(isAvailable);
     if (cardBadgeId !== undefined) dataToUpdate.cardBadgeId = cardBadgeId || null;
     if (isCombo !== undefined) dataToUpdate.isCombo = Boolean(isCombo);
+    if (showScarcity !== undefined) dataToUpdate.showScarcity = Boolean(showScarcity);
+    if (scarcityType !== undefined) dataToUpdate.scarcityType = String(scarcityType);
+    if (scarcityUnits !== undefined) dataToUpdate.scarcityUnits = scarcityUnits !== null && scarcityUnits !== "" ? Number(scarcityUnits) : null;
+    if (scarcityInitial !== undefined) dataToUpdate.scarcityInitial = scarcityInitial !== null && scarcityInitial !== "" ? Number(scarcityInitial) : null;
+    if (scarcitySold !== undefined) dataToUpdate.scarcitySold = Number(scarcitySold || 0);
+    if (showProgressBar !== undefined) dataToUpdate.showProgressBar = Boolean(showProgressBar);
+    if (showDuration !== undefined) dataToUpdate.showDuration = Boolean(showDuration);
+    if (urgencyType !== undefined) dataToUpdate.urgencyType = String(urgencyType);
+    if (expiresAt !== undefined) dataToUpdate.expiresAt = expiresAt ? new Date(expiresAt) : null;
+    if (sessionMinutes !== undefined) dataToUpdate.sessionMinutes = sessionMinutes !== null && sessionMinutes !== "" ? Number(sessionMinutes) : null;
     
     if (isCombo && Array.isArray(comboItems)) {
       dataToUpdate.comboItems = {

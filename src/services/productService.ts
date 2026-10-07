@@ -10,6 +10,16 @@ export interface ProductPromotion {
   startsAt?: string | null;
   expiresAt?: string | null;
   isActive: boolean;
+  showDuration?: boolean;
+  durationDisplay?: string[];
+  showScarcity?: boolean;
+  scarcityUnits?: number | null;
+  scarcityType?: "strategic" | "real" | string;
+  scarcityInitial?: number | null;
+  scarcitySold?: number;
+  showProgressBar?: boolean;
+  urgencyType?: "date" | "day" | "session" | string;
+  sessionMinutes?: number | null;
 }
 
 export interface Product {
@@ -33,6 +43,16 @@ export interface Product {
   cardBadgeId?: string | null;
   cardBadge?: CardBadge | null;
   isCombo?: boolean;
+  showScarcity?: boolean;
+  scarcityType?: "strategic" | "real" | string;
+  scarcityUnits?: number | null;
+  scarcityInitial?: number | null;
+  scarcitySold?: number;
+  showProgressBar?: boolean;
+  showDuration?: boolean;
+  urgencyType?: "date" | "day" | "session" | string;
+  expiresAt?: string | null;
+  sessionMinutes?: number | null;
   comboItems?: {
     id?: string;
     productId: string;
@@ -42,6 +62,7 @@ export interface Product {
   addonGroupIds?: string[];
   addonGroups?: AddonGroup[];
   promotions?: ProductPromotion[];
+  promotion?: ProductPromotion | null;
 }
 
 export const productService = {
@@ -49,7 +70,7 @@ export const productService = {
    * Envia uma imagem para a rota de upload local (/api/upload)
    * e retorna a URL pública local relativa (/uploads/...)
    */
-  async uploadImage(file: File, type: "product" | "banner" = "product"): Promise<string> {
+  async uploadImage(file: File, type: "product" | "banner" | "category" = "product"): Promise<string> {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("type", type);
@@ -105,6 +126,16 @@ export const productService = {
       cardBadgeId: (item.cardBadgeId as string | null) || null,
       cardBadge: (item.cardBadge as Product["cardBadge"]) || null,
       isCombo: Boolean(item.isCombo),
+      showScarcity: Boolean(item.showScarcity),
+      scarcityType: (item.scarcityType as string) || "strategic",
+      scarcityUnits: item.scarcityUnits !== undefined && item.scarcityUnits !== null ? Number(item.scarcityUnits) : null,
+      scarcityInitial: item.scarcityInitial !== undefined && item.scarcityInitial !== null ? Number(item.scarcityInitial) : null,
+      scarcitySold: Number(item.scarcitySold || 0),
+      showProgressBar: Boolean(item.showProgressBar),
+      showDuration: Boolean(item.showDuration),
+      urgencyType: (item.urgencyType as string) || "date",
+      expiresAt: item.expiresAt ? String(item.expiresAt) : null,
+      sessionMinutes: item.sessionMinutes !== undefined && item.sessionMinutes !== null ? Number(item.sessionMinutes) : null,
       comboItems: (item.comboItems as Product["comboItems"]) || [],
       addonGroupIds: (item.addonGroupIds as string[]) || [],
       addonGroups: (item.addonGroups as Product["addonGroups"]) || [],
@@ -141,6 +172,16 @@ export const productService = {
       cardBadgeId: data.cardBadgeId || null,
       cardBadge: data.cardBadge || null,
       isCombo: data.isCombo || false,
+      showScarcity: Boolean(data.showScarcity),
+      scarcityType: data.scarcityType || "strategic",
+      scarcityUnits: data.scarcityUnits !== undefined && data.scarcityUnits !== null ? Number(data.scarcityUnits) : null,
+      scarcityInitial: data.scarcityInitial !== undefined && data.scarcityInitial !== null ? Number(data.scarcityInitial) : null,
+      scarcitySold: Number(data.scarcitySold || 0),
+      showProgressBar: Boolean(data.showProgressBar),
+      showDuration: Boolean(data.showDuration),
+      urgencyType: data.urgencyType || "date",
+      expiresAt: data.expiresAt ? String(data.expiresAt) : null,
+      sessionMinutes: data.sessionMinutes !== undefined && data.sessionMinutes !== null ? Number(data.sessionMinutes) : null,
       comboItems: data.comboItems || [],
       addonGroupIds: data.addonGroupIds || [],
       addonGroups: data.addonGroups || [],
@@ -176,6 +217,16 @@ export const productService = {
         isAvailable: product.isAvailable,
         cardBadgeId: product.cardBadgeId || null,
         isCombo: product.isCombo || false,
+        showScarcity: product.showScarcity || false,
+        scarcityType: product.scarcityType || "strategic",
+        scarcityUnits: product.scarcityUnits ?? null,
+        scarcityInitial: product.scarcityInitial ?? null,
+        scarcitySold: product.scarcitySold || 0,
+        showProgressBar: product.showProgressBar || false,
+        showDuration: product.showDuration || false,
+        urgencyType: product.urgencyType || "date",
+        expiresAt: product.expiresAt || null,
+        sessionMinutes: product.sessionMinutes ?? null,
         comboItems: product.comboItems || [],
         addonGroupIds: product.addonGroupIds || [],
       }),
@@ -204,6 +255,16 @@ export const productService = {
       cardBadgeId: data.cardBadgeId,
       cardBadge: data.cardBadge,
       isCombo: data.isCombo,
+      showScarcity: data.showScarcity,
+      scarcityType: data.scarcityType,
+      scarcityUnits: data.scarcityUnits,
+      scarcityInitial: data.scarcityInitial,
+      scarcitySold: data.scarcitySold,
+      showProgressBar: data.showProgressBar,
+      showDuration: data.showDuration,
+      urgencyType: data.urgencyType,
+      expiresAt: data.expiresAt,
+      sessionMinutes: data.sessionMinutes,
       comboItems: data.comboItems || [],
       addonGroupIds: data.addonGroupIds || [],
       addonGroups: data.addonGroups || [],
@@ -238,6 +299,16 @@ export const productService = {
         isAvailable: updates.isAvailable,
         cardBadgeId: updates.cardBadgeId,
         isCombo: updates.isCombo,
+        showScarcity: updates.showScarcity,
+        scarcityType: updates.scarcityType,
+        scarcityUnits: updates.scarcityUnits,
+        scarcityInitial: updates.scarcityInitial,
+        scarcitySold: updates.scarcitySold,
+        showProgressBar: updates.showProgressBar,
+        showDuration: updates.showDuration,
+        urgencyType: updates.urgencyType,
+        expiresAt: updates.expiresAt,
+        sessionMinutes: updates.sessionMinutes,
         comboItems: updates.comboItems,
         addonGroupIds: updates.addonGroupIds,
       }),
@@ -266,6 +337,16 @@ export const productService = {
       cardBadgeId: data.cardBadgeId,
       cardBadge: data.cardBadge,
       isCombo: data.isCombo,
+      showScarcity: data.showScarcity,
+      scarcityType: data.scarcityType,
+      scarcityUnits: data.scarcityUnits,
+      scarcityInitial: data.scarcityInitial,
+      scarcitySold: data.scarcitySold,
+      showProgressBar: data.showProgressBar,
+      showDuration: data.showDuration,
+      urgencyType: data.urgencyType,
+      expiresAt: data.expiresAt,
+      sessionMinutes: data.sessionMinutes,
       comboItems: data.comboItems || [],
       addonGroupIds: data.addonGroupIds || [],
       addonGroups: data.addonGroups || [],

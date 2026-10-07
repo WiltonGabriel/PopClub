@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   FolderTree,
   Plus,
@@ -8,17 +8,20 @@ import {
   Trash2,
   Loader2,
   Sparkles,
-  ArrowUpDown,
   CheckCircle2,
   XCircle,
   X,
   Tag,
+  Upload,
+  Image as ImageIcon,
 } from "lucide-react";
 import { categoryService, Category } from "@/services/categoryService";
+import { productService } from "@/services/productService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/ToastNotification";
+import { ImageCropperDialog } from "./ImageCropperDialog";
 
 export function CategoryManagementSection() {
   const { showToast } = useToast();
@@ -29,6 +32,13 @@ export function CategoryManagementSection() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Imagem / Ícone
+  const [imageUrl, setImageUrl] = useState<string>("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -76,6 +86,10 @@ export function CategoryManagementSection() {
       dynamicType: "HIGHLIGHTS",
       isActive: true,
     });
+    setImageUrl("");
+    setImageFile(null);
+    setCropModalOpen(false);
+    setRawImageSrc(null);
     setIsModalOpen(true);
   };
 
@@ -88,7 +102,71 @@ export function CategoryManagementSection() {
       dynamicType: cat.dynamicType || "HIGHLIGHTS",
       isActive: cat.isActive !== undefined ? Boolean(cat.isActive) : true,
     });
+    setImageUrl(cat.imageUrl || "");
+    setImageFile(null);
+    setCropModalOpen(false);
+    setRawImageSrc(null);
     setIsModalOpen(true);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+    e.target.value = "";
+
+    const allowedMime = ["image/jpeg", "image/png", "image/webp", "image/jpg", "image/svg+xml"];
+    const ext = selectedFile.name.toLowerCase();
+    const isSvg = selectedFile.type === "image/svg+xml" || ext.endsWith(".svg");
+
+    if (!allowedMime.includes(selectedFile.type.toLowerCase()) && !isSvg) {
+      showToast({
+        type: "error",
+        title: "Formato Inválido",
+        message: "Apenas imagens WebP, SVG, PNG ou JPG são aceitas.",
+      });
+      return;
+    }
+
+    if (selectedFile.size > 5 * 1024 * 1024) {
+      showToast({
+        type: "error",
+        title: "Arquivo Muito Grande",
+        message: "O ícone da categoria deve ter no máximo 5MB.",
+      });
+      return;
+    }
+
+    if (isSvg) {
+      // SVG é vetor: usa direto sem recortar
+      setImageFile(selectedFile);
+      setImageUrl(URL.createObjectURL(selectedFile));
+      return;
+    }
+
+    // Bitmap: abre recorte 1:1
+    const reader = new FileReader();
+    reader.onload = () => {
+      setRawImageSrc(reader.result as string);
+      setCropModalOpen(true);
+    };
+    reader.readAsDataURL(selectedFile);
+  };
+
+  const handleCropComplete = (croppedFile: File) => {
+    setImageFile(croppedFile);
+    setImageUrl(URL.createObjectURL(croppedFile));
+    setCropModalOpen(false);
+    setRawImageSrc(null);
+  };
+
+  const handleCropCancel = () => {
+    setCropModalOpen(false);
+    setRawImageSrc(null);
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImageUrl("");
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -100,6 +178,13 @@ export function CategoryManagementSection() {
 
     setSaving(true);
     try {
+      let finalImageUrl: string | null = imageUrl || null;
+
+      // Se houver um novo arquivo para enviar
+      if (imageFile) {
+        finalImageUrl = await productService.uploadImage(imageFile, "category");
+      }
+
       if (editingCategory) {
         await categoryService.updateCategory(editingCategory.id, {
           name: form.name.trim(),
@@ -107,6 +192,7 @@ export function CategoryManagementSection() {
           isDynamic: form.isDynamic,
           dynamicType: form.isDynamic ? form.dynamicType : null,
           isActive: form.isActive,
+          imageUrl: finalImageUrl,
         });
         showToast({
           type: "success",
@@ -119,7 +205,8 @@ export function CategoryManagementSection() {
           Number(form.order),
           form.isDynamic,
           form.isDynamic ? form.dynamicType : null,
-          form.isActive
+          form.isActive,
+          finalImageUrl
         );
         showToast({
           type: "success",
@@ -193,7 +280,7 @@ export function CategoryManagementSection() {
             Categorias do Cardápio (Estáticas e Dinâmicas)
           </h4>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Organize a ordem de exibição, crie categorias automáticas (Destaques da Casa) e gerencie a visibilidade.
+            Organize a ordem de exibição, envie ícones/imagens próprios (WebP/SVG/PNG) e gerencie a visibilidade na esteira da vitrine.
           </p>
         </div>
 
@@ -251,7 +338,21 @@ export function CategoryManagementSection() {
                   {cat.order ?? idx}
                 </span>
 
-                <div className="min-w-0">
+                {/* Miniatura do Ícone/Imagem da Categoria */}
+                <div className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700/80 overflow-hidden shrink-0 flex items-center justify-center p-1">
+                  {cat.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={cat.imageUrl}
+                      alt={cat.name}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <FolderTree className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-heading font-bold text-sm text-foreground truncate">
                       {cat.name}
@@ -283,7 +384,7 @@ export function CategoryManagementSection() {
                   type="button"
                   onClick={() => handleToggleActive(cat)}
                   title={cat.isActive !== false ? "Ocultar na vitrine" : "Tornar visível"}
-                  className={`p-2 rounded-xl transition-colors ${
+                  className={`p-2 rounded-xl transition-colors cursor-pointer ${
                     cat.isActive !== false
                       ? "text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
                       : "text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -300,7 +401,7 @@ export function CategoryManagementSection() {
                   type="button"
                   onClick={() => handleOpenEdit(cat)}
                   title="Editar categoria"
-                  className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-colors"
+                  className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-colors cursor-pointer"
                 >
                   <Pencil className="w-4 h-4" />
                 </button>
@@ -309,7 +410,7 @@ export function CategoryManagementSection() {
                   type="button"
                   onClick={() => handleDelete(cat)}
                   title="Excluir categoria"
-                  className="p-2 text-destructive hover:bg-destructive/10 rounded-xl transition-colors"
+                  className="p-2 text-destructive hover:bg-destructive/10 rounded-xl transition-colors cursor-pointer"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -322,7 +423,7 @@ export function CategoryManagementSection() {
       {/* Modal de Criação / Edição */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white dark:bg-[#181D2D] rounded-3xl w-full max-w-md border border-border p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150">
+          <div className="bg-white dark:bg-[#181D2D] rounded-3xl w-full max-w-lg border border-border p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-border/50 pb-3">
               <h3 className="font-heading text-lg font-bold text-foreground flex items-center gap-2">
                 <Tag className="w-5 h-5 text-primary" />
@@ -331,13 +432,14 @@ export function CategoryManagementSection() {
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-full text-muted-foreground hover:bg-muted"
+                className="p-1 rounded-full text-muted-foreground hover:bg-muted cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleSave} className="space-y-4">
+              {/* Nome da Categoria */}
               <div className="space-y-1.5">
                 <Label htmlFor="catName" className="text-xs font-semibold">
                   Nome da Categoria (com emoji) *
@@ -346,12 +448,82 @@ export function CategoryManagementSection() {
                   id="catName"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Ex: ⭐ Destaques da Casa, 🫐 Copos Tradicionais"
+                  placeholder="Ex: 🫐 Açaí Tradicional, 🍨 Sorvetes Especiais"
                   className="h-10 text-sm"
                   required
                 />
+                <p className="text-[11px] text-muted-foreground">
+                  Você pode usar emojis livremente no título para identificação visual rápida.
+                </p>
               </div>
 
+              {/* Upload de Ícone / Imagem da Categoria */}
+              <div className="space-y-2 p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-primary" />
+                    Ícone / Imagem da Categoria
+                  </Label>
+                  <span className="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                    1:1 Quadrado (WebP, SVG, PNG)
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 pt-1">
+                  <div className="w-14 h-14 rounded-2xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 overflow-hidden relative shrink-0 flex items-center justify-center shadow-xs p-1">
+                    {imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={imageUrl}
+                        alt="Pré-visualização do ícone"
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <ImageIcon className="w-6 h-6 text-zinc-400" />
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="h-8 text-xs rounded-xl font-bold gap-1.5 cursor-pointer"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-primary" />
+                        <span>{imageUrl ? "Alterar Ícone" : "Escolher Arquivo"}</span>
+                      </Button>
+
+                      {imageUrl && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRemoveImage}
+                          className="h-8 text-xs rounded-xl text-destructive hover:bg-destructive/10 cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5 mr-1" />
+                          Remover
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      WebP, SVG ou PNG até 5MB. Se for PNG/JPG, você poderá recortar em 1:1.
+                    </p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/webp,image/svg+xml,image/png,image/jpeg"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Ordem de Exibição */}
               <div className="space-y-1.5">
                 <Label htmlFor="catOrder" className="text-xs font-semibold">
                   Ordem de Exibição
@@ -419,14 +591,14 @@ export function CategoryManagementSection() {
                   type="button"
                   variant="outline"
                   onClick={() => setIsModalOpen(false)}
-                  className="h-10 text-xs rounded-xl"
+                  className="h-10 text-xs rounded-xl cursor-pointer"
                 >
                   Cancelar
                 </Button>
                 <Button
                   type="submit"
                   disabled={saving}
-                  className="h-10 text-xs rounded-xl bg-primary text-white font-bold"
+                  className="h-10 text-xs rounded-xl bg-primary text-white font-bold cursor-pointer"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar Categoria"}
                 </Button>
@@ -435,6 +607,16 @@ export function CategoryManagementSection() {
           </div>
         </div>
       )}
+
+      {/* Modal de Recorte 1:1 para imagens raster */}
+      <ImageCropperDialog
+        open={cropModalOpen}
+        imageSrc={rawImageSrc}
+        aspectRatio={1}
+        aspectLabel="1:1 (Quadrado)"
+        onCropComplete={handleCropComplete}
+        onCancel={handleCropCancel}
+      />
     </div>
   );
 }

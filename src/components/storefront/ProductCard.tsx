@@ -67,6 +67,36 @@ export function ProductCard({
   const badge = getCategoryBadge(product);
   const formattedPrice = formatCurrency(numPrice);
 
+  // Badges de Urgência & Escassez
+  const promo = product.promotion;
+  const showScarcity = Boolean(promo ? promo.showScarcity : product.showScarcity);
+  const scarcityUnits = promo?.scarcityUnits ?? product.scarcityUnits;
+  const showDuration = Boolean(promo ? (promo.showDuration || promo.expiresAt) : (product.showDuration || product.expiresAt));
+  const urgencyType = promo?.urgencyType || product.urgencyType || "date";
+  const expiresAt = promo?.expiresAt || product.expiresAt;
+
+  const scarcityBadgeText = showScarcity && scarcityUnits !== undefined && scarcityUnits !== null && scarcityUnits > 0
+    ? `🔥 Restam ${scarcityUnits} un`
+    : null;
+
+  let urgencyBadgeText: string | null = null;
+  if (showDuration) {
+    if (urgencyType === "day") {
+      urgencyBadgeText = "⏳ Termina hoje";
+    } else if (expiresAt) {
+      const exp = new Date(expiresAt);
+      const now = new Date();
+      const diffHours = (exp.getTime() - now.getTime()) / (1000 * 3600);
+      if (diffHours <= 24 && diffHours > 0) {
+        urgencyBadgeText = "⏳ Termina hoje";
+      } else if (diffHours > 24) {
+        urgencyBadgeText = "⏳ Tempo limitado";
+      }
+    } else {
+      urgencyBadgeText = "⏳ Termina hoje";
+    }
+  }
+
   const handleCardClick = () => {
     if (isOutOfStock) return;
     if (onOpenDetails) {
@@ -215,6 +245,22 @@ export function ProductCard({
               <span className="bg-red-600/90 text-white font-bold text-[10px] md:text-xs uppercase px-2 py-0.5 md:px-3 md:py-1 rounded-full shadow-md tracking-wider border border-red-400/30">
                 Esgotado
               </span>
+            </div>
+          )}
+
+          {/* Badge Compacto de Urgência & Escassez sobre a Foto */}
+          {!isOutOfStock && (scarcityBadgeText || urgencyBadgeText) && (
+            <div className="absolute top-1.5 left-1.5 md:top-2 md:left-2 z-10 flex flex-col gap-1 pointer-events-none max-w-[80%]">
+              {scarcityBadgeText && (
+                <span className="bg-amber-600/95 text-white font-bold text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-full shadow-xs flex items-center gap-1 backdrop-blur-xs">
+                  {scarcityBadgeText}
+                </span>
+              )}
+              {urgencyBadgeText && (
+                <span className="bg-red-600/95 text-white font-bold text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-full shadow-xs flex items-center gap-1 backdrop-blur-xs">
+                  {urgencyBadgeText}
+                </span>
+              )}
             </div>
           )}
 

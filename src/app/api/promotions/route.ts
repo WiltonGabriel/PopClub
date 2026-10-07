@@ -60,6 +60,12 @@ export async function GET(request: Request) {
         autoBanner: p.autoBanner,
         showScarcity: p.showScarcity,
         scarcityUnits: p.scarcityUnits,
+        scarcityType: p.scarcityType || "strategic",
+        scarcityInitial: p.scarcityInitial,
+        scarcitySold: p.scarcitySold ?? 0,
+        showProgressBar: p.showProgressBar ?? false,
+        urgencyType: p.urgencyType || "date",
+        sessionMinutes: p.sessionMinutes,
         productId: p.productId,
         product: p.product ? {
           id: p.product.id,
@@ -110,6 +116,12 @@ export async function POST(request: Request) {
       autoBanner,
       showScarcity,
       scarcityUnits,
+      scarcityType,
+      scarcityInitial,
+      scarcitySold,
+      showProgressBar,
+      urgencyType,
+      sessionMinutes,
     } = body || {};
 
     if (!title || !badge) {
@@ -138,7 +150,13 @@ export async function POST(request: Request) {
         productId: String(productId),
         autoBanner: Boolean(autoBanner),
         showScarcity: Boolean(showScarcity),
-        scarcityUnits: scarcityUnits !== undefined && scarcityUnits !== null ? Number(scarcityUnits) : null,
+        scarcityUnits: scarcityUnits !== undefined && scarcityUnits !== null && scarcityUnits !== "" ? Number(scarcityUnits) : null,
+        scarcityType: String(scarcityType || "strategic"),
+        scarcityInitial: scarcityInitial !== undefined && scarcityInitial !== null && scarcityInitial !== "" ? Number(scarcityInitial) : (scarcityUnits ? Number(scarcityUnits) : null),
+        scarcitySold: Number(scarcitySold || 0),
+        showProgressBar: Boolean(showProgressBar),
+        urgencyType: String(urgencyType || "date"),
+        sessionMinutes: sessionMinutes !== undefined && sessionMinutes !== null && sessionMinutes !== "" ? Number(sessionMinutes) : null,
       },
       include: {
         product: true

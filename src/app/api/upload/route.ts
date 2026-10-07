@@ -98,10 +98,10 @@ export async function POST(request: Request) {
       }
     }
 
-    // 4. Tratamento Especial para Favicon (.ico e .svg gravados diretamente; outros convertidos/redimensionados)
-    if (targetType === "favicon") {
+    // 4. Tratamento Especial para Favicon e Categorias (.ico e .svg gravados diretamente; outros convertidos/redimensionados)
+    if (targetType === "favicon" || targetType === "category") {
       if (originalExtension === ".ico" || originalExtension === ".svg") {
-        const filename = `favicon-${crypto.randomUUID()}${originalExtension}`;
+        const filename = `${targetType}-${crypto.randomUUID()}${originalExtension}`;
         const filePath = path.join(uploadDir, filename);
         await fs.writeFile(filePath, buffer);
 
@@ -112,30 +112,32 @@ export async function POST(request: Request) {
         });
       }
 
-      // Imagens raster (PNG, JPG, WebP, GIF) para favicon: redimensiona 64x64 PNG de alta qualidade
-      const filename = `favicon-${crypto.randomUUID()}.png`;
-      const filePath = path.join(uploadDir, filename);
+      if (targetType === "favicon") {
+        // Imagens raster (PNG, JPG, WebP, GIF) para favicon: redimensiona 64x64 PNG de alta qualidade
+        const filename = `favicon-${crypto.randomUUID()}.png`;
+        const filePath = path.join(uploadDir, filename);
 
-      const pngBuffer = await sharp(buffer)
-        .resize({
-          width: 64,
-          height: 64,
-          fit: "contain",
-          background: { r: 0, g: 0, b: 0, alpha: 0 },
-        })
-        .png({ quality: 95 })
-        .toBuffer();
+        const pngBuffer = await sharp(buffer)
+          .resize({
+            width: 64,
+            height: 64,
+            fit: "contain",
+            background: { r: 0, g: 0, b: 0, alpha: 0 },
+          })
+          .png({ quality: 95 })
+          .toBuffer();
 
-      await fs.writeFile(filePath, pngBuffer);
+        await fs.writeFile(filePath, pngBuffer);
 
-      return NextResponse.json({
-        url: `/uploads/${filename}`,
-        size: pngBuffer.length,
-        format: "png",
-      });
+        return NextResponse.json({
+          url: `/uploads/${filename}`,
+          size: pngBuffer.length,
+          format: "png",
+        });
+      }
     }
 
-    // 5. Otimização e Conversão Compulsória para WebP via Sharp para produtos e banners
+    // 5. Otimização e Conversão Compulsória para WebP via Sharp para produtos, categorias e banners
     const filename = `${crypto.randomUUID()}.webp`;
     const filePath = path.join(uploadDir, filename);
 
@@ -151,11 +153,11 @@ export async function POST(request: Request) {
         fit: "inside",
         withoutEnlargement: true,
       });
-    } else if (targetType === "product") {
-      // Produtos: quadrado máximo de 800x800px
+    } else if (targetType === "product" || targetType === "category") {
+      // Produtos e Categorias: quadrado máximo de 512x512px
       sharpInstance = sharpInstance.resize({
-        width: 800,
-        height: 800,
+        width: 512,
+        height: 512,
         fit: "inside",
         withoutEnlargement: true,
       });

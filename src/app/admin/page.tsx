@@ -43,6 +43,8 @@ import { subscribeToOrderEvents } from "../../lib/orderEvents";
 import { Button } from "../../components/ui/button";
 import { PromotionFormDialog } from "../../components/admin/PromotionFormDialog";
 import { ComboFormDialog } from "../../components/admin/ComboFormDialog";
+import { PromotionsBatchMonitor } from "../../components/admin/PromotionsBatchMonitor";
+import { CombosBatchMonitor } from "../../components/admin/CombosBatchMonitor";
 import { EditBannerModal } from "../../components/admin/EditBannerModal";
 import { CouponManagement } from "../../components/admin/CouponManagement";
 import { AnalyticsDashboard } from "../../components/admin/AnalyticsDashboard";
@@ -605,13 +607,17 @@ export default function AdminDashboard() {
 
               {/* CONTEÚDO DA ABA 2: COMBOS */}
               {activeTab === "combos" && (
-                <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 sm:p-7 shadow-sm space-y-6 animate-in fade-in duration-150">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-border/30">
-                    <div>
-                      <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-foreground dark:text-foreground">
-                        <Zap className="w-5 h-5 text-primary" />
-                        Combos & Kits Especiais
-                      </h3>
+                <div className="space-y-6 animate-in fade-in duration-150">
+                  {/* Seção 1: Monitoramento Dedicado de Lotes & Vigência de Combos */}
+                  <CombosBatchMonitor combos={combos} onRefresh={fetchCombos} />
+
+                  <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 sm:p-7 shadow-sm space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-border/30">
+                      <div>
+                        <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-foreground dark:text-foreground">
+                          <Zap className="w-5 h-5 text-primary" />
+                          Combos & Kits Especiais
+                        </h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         Gerencie a montagem e precificação de combos que agrupam dois ou mais produtos com desconto automático.
                       </p>
@@ -746,17 +752,22 @@ export default function AdminDashboard() {
                     </div>
                   )}
                 </section>
-              )}
+              </div>
+            )}
 
               {/* CONTEÚDO DA ABA 3: PROMOÇÕES (Descontos diretos e ofertas relâmpago) */}
               {activeTab === "promocoes" && (
-                <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 sm:p-7 shadow-sm space-y-6 animate-in fade-in duration-150">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-border/30">
-                    <div>
-                      <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-foreground dark:text-foreground">
-                        <Tag className="w-5 h-5 text-primary" />
-                        Promoções do Cardápio & Ofertas Relâmpago
-                      </h3>
+                <div className="space-y-6 animate-in fade-in duration-150">
+                  {/* Seção 1: Monitoramento Dedicado de Lotes & Vigência de Promoções */}
+                  <PromotionsBatchMonitor promotions={promotions} onRefresh={fetchPromos} />
+
+                  <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 sm:p-7 shadow-sm space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-border/30">
+                      <div>
+                        <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-foreground dark:text-foreground">
+                          <Tag className="w-5 h-5 text-primary" />
+                          Promoções do Cardápio & Ofertas Relâmpago
+                        </h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         Gerencie descontos diretos em produtos específicos do catálogo e campanhas relâmpago de vendas.
                       </p>
@@ -874,7 +885,8 @@ export default function AdminDashboard() {
                     </div>
                   )}
                 </section>
-              )}
+              </div>
+            )}
 
               {/* CONTEÚDO DA ABA 4: COMPLEMENTOS (Grupos de Adicionais Globais) */}
               {activeTab === "complementos" && <AddonsManagement />}

@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       return apiError("Formato de requisição inválido ou corpo vazio.", 400, "BAD_REQUEST");
     }
 
-    const { name, slug, order, order_index, isDynamic, dynamicType, isActive } = body || {};
+    const { name, slug, order, order_index, isDynamic, dynamicType, imageUrl, isActive } = body || {};
     if (!name) {
       return apiError("O nome da categoria é obrigatório.", 400, "MISSING_NAME");
     }
@@ -56,6 +56,7 @@ export async function POST(request: Request) {
       order: Number(order ?? order_index ?? 0),
       isDynamic: Boolean(isDynamic),
       dynamicType: dynamicType || null,
+      imageUrl: imageUrl || null,
       isActive: isActive !== undefined ? Boolean(isActive) : true,
     };
 

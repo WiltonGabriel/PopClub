@@ -11,6 +11,7 @@ import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Tag, Sparkles, Loader2, Clock, Eye } from "lucide-react";
 import { ImageCropperDialog } from "./ImageCropperDialog";
+import { UrgencyScarcityConfig, UrgencyScarcityValues } from "./UrgencyScarcityConfig";
 
 interface PromotionFormDialogProps {
   open: boolean;
@@ -50,21 +51,17 @@ export function PromotionFormDialog({
 
   const [autoBanner, setAutoBanner] = useState(false);
 
-  // Duração & Escassez
-  const [durationDays, setDurationDays] = useState<string>("");
-  const [showScarcity, setShowScarcity] = useState(false);
-  const [scarcityUnits, setScarcityUnits] = useState<string>("");
-  const [validUntilPreview, setValidUntilPreview] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (durationDays && !isNaN(parseInt(durationDays))) {
-      const d = new Date();
-      d.setDate(d.getDate() + parseInt(durationDays));
-      setValidUntilPreview(d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }));
-    } else {
-      setValidUntilPreview(null);
-    }
-  }, [durationDays]);
+  // Duração & Escassez Unificada
+  const [urgencyState, setUrgencyState] = useState<UrgencyScarcityValues>({
+    showScarcity: false,
+    scarcityType: "strategic",
+    scarcityUnits: "5",
+    showProgressBar: true,
+    showDuration: false,
+    urgencyType: "date",
+    expiresAt: "",
+    sessionMinutes: "60",
+  });
 
   // Estados do Modal de Recorte
   const [cropModalOpen, setCropModalOpen] = useState(false);
@@ -94,15 +91,20 @@ export function PromotionFormDialog({
       setSelectedProductId(promoToEdit.productId || null);
       setAutoBanner(promoToEdit.autoBanner || false);
 
-      if (promoToEdit.expiresAt) {
-        const diff = new Date(promoToEdit.expiresAt).getTime() - Date.now();
-        const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-        setDurationDays(days > 0 ? String(days) : "");
-      } else {
-        setDurationDays("");
-      }
-      setShowScarcity(promoToEdit.showScarcity || false);
-      setScarcityUnits(promoToEdit.scarcityUnits ? String(promoToEdit.scarcityUnits) : "");
+      // Hidratação Completa de Urgência & Escassez
+      setUrgencyState({
+        showScarcity: Boolean(promoToEdit.showScarcity),
+        scarcityType: (promoToEdit.scarcityType as "strategic" | "real") || "strategic",
+        scarcityUnits: promoToEdit.scarcityUnits ? String(promoToEdit.scarcityUnits) : (promoToEdit.scarcityInitial ? String(promoToEdit.scarcityInitial) : "5"),
+        scarcityInitial: promoToEdit.scarcityInitial ? String(promoToEdit.scarcityInitial) : undefined,
+        showProgressBar: promoToEdit.showProgressBar !== undefined ? Boolean(promoToEdit.showProgressBar) : true,
+        showDuration: Boolean(promoToEdit.showDuration || promoToEdit.expiresAt),
+        urgencyType: (promoToEdit.urgencyType as "date" | "day" | "session") || "date",
+        expiresAt: promoToEdit.expiresAt
+          ? new Date(new Date(promoToEdit.expiresAt).getTime() - new Date(promoToEdit.expiresAt).getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+          : "",
+        sessionMinutes: promoToEdit.sessionMinutes ? String(promoToEdit.sessionMinutes) : "60",
+      });
     } else {
       setTitle("");
       setBadge("PROMO");
@@ -117,9 +119,16 @@ export function PromotionFormDialog({
       setCropModalOpen(false);
       setSelectedProductId(null);
       setAutoBanner(false);
-      setDurationDays("");
-      setShowScarcity(false);
-      setScarcityUnits("");
+      setUrgencyState({
+        showScarcity: false,
+        scarcityType: "strategic",
+        scarcityUnits: "5",
+        showProgressBar: true,
+        showDuration: false,
+        urgencyType: "date",
+        expiresAt: "",
+        sessionMinutes: "60",
+      });
     }
   }, [promoToEdit, open]);
 
@@ -185,12 +194,16 @@ export function PromotionFormDialog({
 
     try {
       let expiresAt: string | null = null;
-      if (durationDays) {
-        const days = parseInt(durationDays, 10);
-        if (!isNaN(days) && days > 0) {
-          const target = new Date();
-          target.setDate(target.getDate() + days);
-          expiresAt = target.toISOString();
+      if (urgencyState.showDuration) {
+        if (urgencyState.urgencyType === "date" && urgencyState.expiresAt) {
+          expiresAt = new Date(urgencyState.expiresAt).toISOString();
+        } else if (urgencyState.urgencyType === "day") {
+          const endOfDay = new Date();
+          endOfDay.setHours(23, 59, 59, 999);
+          expiresAt = endOfDay.toISOString();
+        } else if (urgencyState.urgencyType === "session") {
+          const mins = parseInt(urgencyState.sessionMinutes || "60", 10);
+          expiresAt = new Date(Date.now() + mins * 60 * 1000).toISOString();
         }
       }
 
@@ -203,12 +216,18 @@ export function PromotionFormDialog({
         gradientStart,
         gradientEnd,
         bannerImageUrl: bannerUrl,
-        isActive: true,
+        isActive: promoToEdit ? promoToEdit.isActive : true,
         expiresAt,
         productId: selectedProductId,
         autoBanner,
-        showScarcity,
-        scarcityUnits: showScarcity && scarcityUnits ? parseInt(scarcityUnits) : null,
+        showScarcity: urgencyState.showScarcity,
+        scarcityUnits: urgencyState.showScarcity && urgencyState.scarcityUnits ? parseInt(urgencyState.scarcityUnits, 10) : null,
+        scarcityType: urgencyState.scarcityType,
+        scarcityInitial: urgencyState.showScarcity && urgencyState.scarcityUnits ? parseInt(urgencyState.scarcityUnits, 10) : null,
+        showProgressBar: urgencyState.showProgressBar,
+        showDuration: urgencyState.showDuration,
+        urgencyType: urgencyState.urgencyType,
+        sessionMinutes: urgencyState.sessionMinutes ? parseInt(urgencyState.sessionMinutes, 10) : null,
       };
 
       if (promoToEdit) {
@@ -526,66 +545,12 @@ export function PromotionFormDialog({
               </div>
             </div>
 
-            {/* Escassez e Prazo */}
-            <div className="pt-6 border-t border-gray-100 dark:border-border/30">
-              <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-primary" /> Regras de Escassez e Prazo
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <Label className="text-xs font-bold text-gray-700 dark:text-gray-300 block">
-                    Duração da Oferta (em dias)
-                  </Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={durationDays}
-                    onChange={(e) => setDurationDays(e.target.value)}
-                    placeholder="Ex: 3 (deixe vazio p/ indeterminado)"
-                    className="bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 rounded-xl text-sm"
-                  />
-                  {validUntilPreview && (
-                    <p className="text-[11px] text-emerald-600 font-medium">
-                      Válido até: {validUntilPreview}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={showScarcity}
-                      onChange={(e) => setShowScarcity(e.target.checked)}
-                      className="w-4 h-4 text-primary rounded border-gray-300"
-                    />
-                    <Eye className="w-4 h-4 text-gray-500" />
-                    Mostrar Escassez para o Cliente
-                  </label>
-                  
-                  {showScarcity && (
-                    <div className="bg-gray-50 dark:bg-zinc-900/50 p-3 rounded-xl border border-gray-200 dark:border-zinc-800 space-y-3 mt-2">
-                      <Label className="text-xs text-muted-foreground block">
-                        Unidades Restantes (Opcional)
-                      </Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        step="1"
-                        value={scarcityUnits}
-                        onChange={(e) => setScarcityUnits(e.target.value)}
-                        placeholder="Ex: 5"
-                        className="bg-white dark:bg-background border-gray-200 dark:border-border/40 h-10 rounded-xl text-sm"
-                      />
-                      <p className="text-[10px] text-gray-500">
-                        Se definido, exibirá &quot;Apenas {scarcityUnits || 'X'} restantes!&quot;
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            {/* Módulo Unificado de Urgência & Escassez */}
+            <UrgencyScarcityConfig
+              value={urgencyState}
+              onChange={(updates) => setUrgencyState((prev) => ({ ...prev, ...updates }))}
+              titlePrefix="Promoção"
+            />
 
             {/* Ações */}
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-border/30">

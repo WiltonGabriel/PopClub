@@ -81,9 +81,20 @@ export function CategoryChip({
         }
       `}
     >
-      <span className="text-base leading-none filter drop-shadow-xs" role="img" aria-hidden>
-        {emoji}
-      </span>
+      {category.imageUrl ? (
+        <span className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 rounded-md overflow-hidden flex items-center justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={category.imageUrl}
+            alt=""
+            className="w-full h-full object-contain"
+          />
+        </span>
+      ) : (
+        <span className="text-base leading-none filter drop-shadow-xs" role="img" aria-hidden>
+          {emoji}
+        </span>
+      )}
       <span className="text-xs font-medium whitespace-nowrap">
         {cleanName}
       </span>

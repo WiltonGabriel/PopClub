@@ -21,6 +21,7 @@ import { useCart } from "../../hooks/useCart";
 import { useToast } from "../ui/ToastNotification";
 import { formatCurrency, parseSafeNumber } from "@/lib/formatters";
 import { calculateProductPrice } from "@/lib/pricing";
+import { UrgencyScarcityBanner } from "./UrgencyScarcityBanner";
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -620,6 +621,9 @@ function ProductDetailModalContent({
                 </p>
               )}
             </div>
+
+            {/* Banner Fluido de Urgência & Escassez */}
+            <UrgencyScarcityBanner product={product} />
 
             {/* ── MODO 1: MONTAGEM INTELIGENTE DE COMBOS ── */}
             {product.isCombo ? (

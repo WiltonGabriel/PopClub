@@ -6,6 +6,7 @@ export interface Category {
   order_index?: number;
   isDynamic?: boolean;
   dynamicType?: string | null;
+  imageUrl?: string | null;
   isActive?: boolean;
 }
 
@@ -27,7 +28,8 @@ export const categoryService = {
     order: number = 0,
     isDynamic: boolean = false,
     dynamicType?: string | null,
-    isActive: boolean = true
+    isActive: boolean = true,
+    imageUrl?: string | null
   ): Promise<Category> {
     const res = await fetch("/api/categories", {
       method: "POST",
@@ -38,6 +40,7 @@ export const categoryService = {
         order_index: order,
         isDynamic,
         dynamicType: dynamicType || null,
+        imageUrl: imageUrl || null,
         isActive,
       }),
     });

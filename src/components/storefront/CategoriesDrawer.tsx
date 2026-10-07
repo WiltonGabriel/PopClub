@@ -164,8 +164,13 @@ export function CategoriesDrawer({
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/95/60 flex items-center justify-center text-xl shrink-0">
-                    {emoji}
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/95/60 flex items-center justify-center text-xl shrink-0 p-1.5 overflow-hidden">
+                    {cat.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={cat.imageUrl} alt="" className="w-full h-full object-contain" />
+                    ) : (
+                      emoji
+                    )}
                   </div>
                   <div className="min-w-0">
                     <div className="text-sm font-bold text-foreground truncate">
