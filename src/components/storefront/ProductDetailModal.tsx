@@ -10,7 +10,6 @@ import {
   ShoppingBag,
   Clock,
   ShieldCheck,
-  Tag,
   Utensils,
   Loader2,
   Users,
@@ -83,6 +82,8 @@ class ProductModalErrorBoundary extends React.Component<ErrorBoundaryProps, { ha
   }
 }
 
+type RawAddonGroup = AddonGroup & { group?: AddonGroup; addonItems?: AddonItem[] };
+
 function ProductDetailModalContent({
   product,
   isOpen,
@@ -110,9 +111,9 @@ function ProductDetailModalContent({
   const initSelections = useCallback((addonGroups: AddonGroup[]) => {
     const initial: Record<string, string[]> = {};
     (addonGroups || []).forEach((group) => {
-      const items = group.items || (group as any).addonItems || [];
+      const items = group.items || (group as RawAddonGroup).addonItems || [];
       if (group.isRequired && group.minQuantity === 1 && group.maxQuantity === 1) {
-        const firstAvail = items.find((i: any) => i.isAvailable);
+        const firstAvail = items.find((i: AddonItem) => i.isAvailable);
         if (firstAvail) {
           initial[group.id] = [firstAvail.id];
           return;
@@ -143,11 +144,11 @@ function ProductDetailModalContent({
         const title = qty > 1 ? `${childProd.name} #${i + 1}` : childProd.name;
         
         // Normalize addonGroups on child product
-        const normalizedGroups = (childProd.addonGroups || []).map((g: any) => {
+        const normalizedGroups = (childProd.addonGroups || []).map((g: RawAddonGroup) => {
           const group = g.group || g;
           return {
             ...group,
-            items: group.items || group.addonItems || []
+            items: group.items || (group as RawAddonGroup).addonItems || []
           };
         });
 
@@ -171,10 +172,10 @@ function ProductDetailModalContent({
     const initialComboSel: Record<string, Record<string, string[]>> = {};
     units.forEach((u) => {
       initialComboSel[u.key] = {};
-      (u.product.addonGroups || []).forEach((g: any) => {
+      (u.product.addonGroups || []).forEach((g: RawAddonGroup) => {
         const items = g.items || g.addonItems || [];
         if (g.isRequired && g.minQuantity === 1 && g.maxQuantity === 1) {
-          const firstAvail = items.find((it: any) => it.isAvailable);
+          const firstAvail = items.find((it: AddonItem) => it.isAvailable);
           if (firstAvail) {
             initialComboSel[u.key][g.id] = [firstAvail.id];
             return;
@@ -215,12 +216,12 @@ function ProductDetailModalContent({
             });
         }
       } else {
-        const normalizeGroups = (rawGroups: any[]): AddonGroup[] => {
+        const normalizeGroups = (rawGroups: RawAddonGroup[]): AddonGroup[] => {
           return (rawGroups || []).map((g) => {
             const group = g.group || g;
             return {
               ...group,
-              items: group.items || group.addonItems || []
+              items: group.items || (group as RawAddonGroup).addonItems || []
             };
           });
         };
