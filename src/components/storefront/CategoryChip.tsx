@@ -82,12 +82,12 @@ export function CategoryChip({
       `}
     >
       {category.imageUrl ? (
-        <span className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 rounded-md overflow-hidden flex items-center justify-center">
+        <span className="w-7 h-7 shrink-0 rounded-lg overflow-hidden flex items-center justify-center bg-white/20 dark:bg-black/20 p-0.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={category.imageUrl}
             alt=""
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain rounded-md"
           />
         </span>
       ) : (

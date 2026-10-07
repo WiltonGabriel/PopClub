@@ -29,6 +29,7 @@ import {
   IceCream,
   MessageCircle,
   Bell,
+  FolderTree,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
@@ -51,6 +52,7 @@ import { AnalyticsDashboard } from "../../components/admin/AnalyticsDashboard";
 import { CardBadgesSection } from "../../components/admin/CardBadgesSection";
 import { LoyaltyBadgesSection } from "../../components/admin/LoyaltyBadgesSection";
 import { AddonsManagement } from "../../components/admin/AddonsManagement";
+import { CategoryManagement } from "../../components/admin/CategoryManagement";
 import { OrderFlowSettings } from "../../components/admin/OrderFlowSettings";
 import { AvatarPresetManager } from "../../components/admin/AvatarPresetManager";
 import { VisualIdentitySection } from "../../components/admin/VisualIdentitySection";
@@ -62,6 +64,7 @@ import { TAB_PERMISSION_MAP, PermissionKey } from "../../lib/permissions";
 
 const TAB_DEFINITIONS = [
   { id: "metricas", label: "📊 Métricas & Desempenho", perm: "metrics_view", icon: BarChart3 },
+  { id: "categorias", label: "🗂️ Categorias", perm: "menu_manage", icon: FolderTree },
   { id: "complementos", label: "🍨 Complementos", perm: "menu_manage", icon: IceCream },
   { id: "combos", label: "⚡ Combos", perm: "menu_manage", icon: Zap },
   { id: "promocoes", label: "🏷️ Promoções", perm: "promotions_manage", icon: Tag },
@@ -888,7 +891,10 @@ export default function AdminDashboard() {
               </div>
             )}
 
-              {/* CONTEÚDO DA ABA 4: COMPLEMENTOS (Grupos de Adicionais Globais) */}
+              {/* CONTEÚDO DA ABA: CATEGORIAS DO CARDÁPIO */}
+              {activeTab === "categorias" && <CategoryManagement />}
+
+              {/* CONTEÚDO DA ABA: COMPLEMENTOS (Grupos de Adicionais Globais) */}
               {activeTab === "complementos" && <AddonsManagement />}
 
               {/* CONTEÚDO DA ABA 4: BANNERS E SELOS (Faixas e Carrossel da Vitrine) */}
@@ -937,121 +943,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  {/* SEÇÃO 2: Carrossel do Topo (Banners Rotativos) */}
-                  <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-border/30">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div>
-                        <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-foreground dark:text-foreground">
-                          <ImageIcon className="w-5 h-5 text-primary" />
-                          Carrossel do Topo (Banners Rotativos)
-                        </h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                          Cards visuais com imagens de capa, gradientes e artes promocionais exibidos no topo da loja.
-                        </p>
-                      </div>
-
-                      <Button
-                        onClick={() => {
-                          setPromoToEdit(null);
-                          setPromoDialogOpen(true);
-                        }}
-                        className="bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-10 px-4 shadow-md shadow-primary/20 cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Novo Banner
-                      </Button>
-                    </div>
-
-                    {bannerPromos.length === 0 ? (
-                      <div className="p-8 text-center border border-dashed border-gray-200 dark:border-border/40 rounded-2xl space-y-2 bg-gray-50/50 dark:bg-background/40">
-                        <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Nenhum banner visual adicionado ao carrossel do topo.
-                        </p>
-                        <p className="text-[11px] text-gray-400">
-                          Clique em &ldquo;Novo Banner&rdquo; para fazer upload de artes com proporção ideal para a vitrine.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                        {bannerPromos.map((promo) => (
-                          <div
-                            key={promo.id}
-                            className="bg-gray-50/80 dark:bg-background/80 border border-gray-200 dark:border-border/40 rounded-2xl p-5 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-primary/50 transition-all"
-                          >
-                            <div
-                              className="h-2 w-full absolute top-0 left-0"
-                              style={{
-                                background: `linear-gradient(to right, ${promo.gradientStart || "hsl(var(--primary))"}, ${promo.gradientEnd || "hsl(var(--accent))"})`,
-                              }}
-                            />
-
-                            <div>
-                              <div className="flex justify-between items-start mb-3 pt-1">
-                                <span className="bg-white dark:bg-white/10 text-foreground dark:text-foreground text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg border border-gray-200 dark:border-white/10">
-                                  {promo.badge || "DESTAQUE"}
-                                </span>
-                                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded-md">
-                                  {promo.discountType === "percentage"
-                                    ? `${promo.discountValue}% OFF`
-                                    : `R$ ${promo.discountValue.toFixed(2)} OFF`}
-                                </span>
-                              </div>
-
-                              <h4 className="font-heading font-bold text-base leading-snug text-foreground dark:text-foreground">
-                                {promo.title}
-                              </h4>
-                              <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1">
-                                {promo.description}
-                              </p>
-
-                              {promo.bannerImageUrl && (
-                                <div className="mt-3.5 h-28 rounded-xl overflow-hidden bg-gray-200 dark:bg-white/10 border border-gray-200 dark:border-border/30 shadow-xs">
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
-                                    src={promo.bannerImageUrl}
-                                    alt={promo.title}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                  />
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="flex justify-between items-center mt-5 pt-3.5 border-t border-gray-200 dark:border-border/30">
-                              <Link
-                                href={`/promo/${promo.id}`}
-                                className="text-xs font-bold text-primary dark:text-muted-foreground hover:underline flex items-center gap-1"
-                              >
-                                Ver Página <ChevronRight className="w-3.5 h-3.5" />
-                              </Link>
-
-                              <div className="flex gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setPromoToEdit(promo);
-                                    setPromoDialogOpen(true);
-                                  }}
-                                  className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-colors cursor-pointer"
-                                  title="Editar Banner"
-                                >
-                                  <Edit2 className="w-4 h-4" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeletePromo(promo.id)}
-                                  className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors cursor-pointer"
-                                  title="Excluir Banner"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* SEÇÃO 3: Gestão de Selos / Badges Flutuantes dos Cards */}
+                  {/* SEÇÃO 2: Gestão de Selos / Badges Flutuantes dos Cards */}
                   <CardBadgesSection onBadgesUpdated={fetchPromos} />
 
                   {/* SEÇÃO 4: Gestão de Selos de Fidelidade (Perfil do Cliente) */}

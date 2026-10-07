@@ -51,12 +51,19 @@ export interface DBCategory {
   id: string;
   name: string;
   slug?: string | null;
+  description?: string | null;
   order: number;
   isDynamic: boolean;
   dynamicType?: string | null;
   imageUrl?: string | null;
+  timeStart?: string | null;
+  timeEnd?: string | null;
   isActive: boolean;
   createdAt: Date;
+  updatedAt?: Date;
+  _count?: {
+    products: number;
+  };
 }
 
 export type AppPrismaClient = Omit<PrismaClient, "coupon" | "addonItem"> & {

@@ -12,7 +12,6 @@ import { useOrders } from "../contexts/OrderContext";
 import { calculateProductPrice } from "@/lib/pricing";
 
 // Storefront components
-import { PromoBanner } from "../components/storefront/PromoBanner";
 import { ProductCard } from "../components/storefront/ProductCard";
 import { CategoryChip, parseCategoryEmojiAndName } from "../components/storefront/CategoryChip";
 import { BottomNav } from "../components/storefront/BottomNav";
@@ -72,16 +71,14 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-export type HomeSectionId = "promo_banners" | "highlight_banner" | "products_catalog";
+export type HomeSectionId = "highlight_banner" | "products_catalog";
 
 const DEFAULT_SECTIONS_ORDER: HomeSectionId[] = [
-  "promo_banners",
   "highlight_banner",
   "products_catalog",
 ];
 
 const SECTION_LABELS: Record<HomeSectionId, string> = {
-  promo_banners: "Banners Promocionais",
   highlight_banner: "Faixa Comercial de Destaque",
   products_catalog: "Catálogo de Produtos & Categorias",
 };
@@ -276,23 +273,7 @@ export default function Storefront() {
       let hasData = false;
 
       if (catsRes.status === "fulfilled") {
-        let loadedCats = Array.isArray(catsRes.value) ? catsRes.value : [];
-        try {
-          const savedOrderStr = localStorage.getItem("popshake_category_order");
-          if (savedOrderStr) {
-            const savedOrder: string[] = JSON.parse(savedOrderStr);
-            if (Array.isArray(savedOrder)) {
-              loadedCats = [...loadedCats].sort((a, b) => {
-                const idxA = savedOrder.indexOf(a.id);
-                const idxB = savedOrder.indexOf(b.id);
-                if (idxA === -1 && idxB === -1) return 0;
-                if (idxA === -1) return 1;
-                if (idxB === -1) return -1;
-                return idxA - idxB;
-              });
-            }
-          }
-        } catch {}
+        const loadedCats = Array.isArray(catsRes.value) ? catsRes.value : [];
         setCategories(loadedCats);
         if (loadedCats.length > 0) hasData = true;
       } else {
@@ -410,25 +391,28 @@ export default function Storefront() {
     });
   };
 
-  // Reordenação de categorias via botões de seta
-  const handleMoveCategory = (index: number, direction: "left" | "right" | "up" | "down") => {
+  // Reordenação de categorias via botões de seta com persistência direta
+  const handleMoveCategory = async (index: number, direction: "left" | "right" | "up" | "down") => {
     const isBackward = direction === "left" || direction === "up";
     const targetIndex = isBackward ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= categories.length) return;
 
-    setCategories((prev) => {
-      const next = [...prev];
-      const temp = next[index];
-      next[index] = next[targetIndex];
-      next[targetIndex] = temp;
-      try {
-        localStorage.setItem("popshake_category_order", JSON.stringify(next.map((c) => c.id)));
-      } catch {}
-      return next;
-    });
+    const next = [...categories];
+    const temp = next[index];
+    next[index] = next[targetIndex];
+    next[targetIndex] = temp;
+
+    const payload = next.map((cat, idx) => ({ id: cat.id, order: idx }));
+    setCategories(next.map((c, idx) => ({ ...c, order: idx })));
+
+    try {
+      await categoryService.reorderCategories(payload);
+    } catch (err) {
+      console.error("Erro ao persistir ordem de categorias:", err);
+    }
   };
 
-  // Drag & drop de categorias
+  // Drag & drop de categorias com persistência direta
   const handleDragStart = (index: number) => {
     setDraggedCatIndex(index);
   };
@@ -437,18 +421,21 @@ export default function Storefront() {
     e.preventDefault();
   };
 
-  const handleDrop = (targetIndex: number) => {
+  const handleDrop = async (targetIndex: number) => {
     if (draggedCatIndex === null || draggedCatIndex === targetIndex) return;
-    setCategories((prev) => {
-      const next = [...prev];
-      const [moved] = next.splice(draggedCatIndex, 1);
-      next.splice(targetIndex, 0, moved);
-      try {
-        localStorage.setItem("popshake_category_order", JSON.stringify(next.map((c) => c.id)));
-      } catch {}
-      return next;
-    });
+    const next = [...categories];
+    const [moved] = next.splice(draggedCatIndex, 1);
+    next.splice(targetIndex, 0, moved);
+
+    const payload = next.map((cat, idx) => ({ id: cat.id, order: idx }));
+    setCategories(next.map((c, idx) => ({ ...c, order: idx })));
     setDraggedCatIndex(null);
+
+    try {
+      await categoryService.reorderCategories(payload);
+    } catch (err) {
+      console.error("Erro ao persistir ordem de categorias:", err);
+    }
   };
 
   // Admin handlers
@@ -583,27 +570,90 @@ export default function Storefront() {
 
   const scrollToCategory = handleSelectCategory;
 
-  // Helper para obter produtos de uma categoria (estática ou dinâmica)
-  const getCategoryProducts = useCallback((cat: Category, prodsList: Product[]) => {
-    const isHighlightsCat =
-      cat.isDynamic ||
-      cat.dynamicType === "HIGHLIGHTS" ||
-      (cat.name || "").toLowerCase().includes("destaque");
+  // Helper para verificar se categoria com janela de tempo está ativa
+  const isTimeWindowActive = useCallback((cat: Category) => {
+    if (cat.isDynamic && cat.dynamicType === "TIME_BASED" && cat.timeStart && cat.timeEnd) {
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const [startH, startM] = cat.timeStart.split(":").map(Number);
+      const [endH, endM] = cat.timeEnd.split(":").map(Number);
+      const startMinutes = (startH || 0) * 60 + (startM || 0);
+      const endMinutes = (endH || 0) * 60 + (endM || 0);
 
-    if (isHighlightsCat) {
-      return prodsList.filter((p) => {
-        if (
-          p.category_id === cat.id ||
-          (p as Product & { categoryId?: string }).categoryId === cat.id ||
-          p.category === cat.name
-        ) {
-          return true;
-        }
-        if (p.isHighlight) return true;
-        const pricing = calculateProductPrice(p);
-        if (pricing.isPromotional) return true;
-        return false;
-      });
+      if (startMinutes <= endMinutes) {
+        return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+      } else {
+        return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
+      }
+    }
+    return true;
+  }, []);
+
+  // Categorias ativas e válidas para a vitrine
+  const visibleCategories = useMemo(() => {
+    return categories.filter((c) => (c.isActive !== false) && isTimeWindowActive(c));
+  }, [categories, isTimeWindowActive]);
+
+  // Helper para obter produtos de uma categoria (estática ou dinâmica com 5 regras automatizadas)
+  const getCategoryProducts = useCallback((cat: Category, prodsList: Product[]) => {
+    if (cat.isDynamic) {
+      switch (cat.dynamicType) {
+        case "HIGHLIGHTS":
+          return prodsList.filter((p) => {
+            if (
+              p.category_id === cat.id ||
+              (p as Product & { categoryId?: string }).categoryId === cat.id ||
+              p.category === cat.name
+            ) {
+              return true;
+            }
+            if (p.isHighlight) return true;
+            const pricing = calculateProductPrice(p);
+            return pricing.isPromotional;
+          });
+
+        case "ACTIVE_PROMOTIONS":
+          return prodsList.filter((p) => {
+            if (p.promotion) return true;
+            const pricing = calculateProductPrice(p);
+            return pricing.isPromotional;
+          });
+
+        case "COMBOS":
+          return prodsList.filter((p) => {
+            return p.isCombo || (p.comboItems && p.comboItems.length > 0);
+          });
+
+        case "SHAREABLE":
+          return prodsList.filter((p) => {
+            const serves = p.servesText || "";
+            const isShareableRegex = /(?:[2-9]|\bdois|\bduas|\btres|\btrês|\bquatro|\bcinco|\bdupla|\btrio|\bfam[ií]lia|\bcompartilhar)/i;
+            return (
+              isShareableRegex.test(serves) ||
+              isShareableRegex.test(p.name) ||
+              isShareableRegex.test(p.description || "")
+            );
+          });
+
+        case "TIME_BASED":
+          return prodsList.filter((p) => {
+            return (
+              p.category_id === cat.id ||
+              (p as Product & { categoryId?: string }).categoryId === cat.id ||
+              p.category === cat.name
+            );
+          });
+
+        default:
+          return prodsList.filter((p) => {
+            return (
+              p.category_id === cat.id ||
+              (p as Product & { categoryId?: string }).categoryId === cat.id ||
+              p.category === cat.name ||
+              p.isHighlight
+            );
+          });
+      }
     }
 
     return prodsList.filter(
@@ -1131,7 +1181,7 @@ export default function Storefront() {
                   <span className="text-xs font-medium whitespace-nowrap">Todos</span>
                 </button>
 
-                {categories.map((cat, catIdx) => {
+                {visibleCategories.map((cat, catIdx) => {
                   const isCatSelected = activeCategory === cat.id || (cat.slug ? activeCategory === cat.slug : false);
                   return (
                     <div
@@ -1303,22 +1353,7 @@ export default function Storefront() {
           </div>
         ) : (
           sectionsOrder.map((sectionId, sectionIndex) => {
-          if (sectionId === "promo_banners") {
-            return (
-              <section key="promo_banners" className="relative group/sec">
-                {canEdit && (
-                  <SectionPositionControlBar
-                    title={SECTION_LABELS.promo_banners}
-                    index={sectionIndex}
-                    total={sectionsOrder.length}
-                    onMoveUp={() => handleMoveSection(sectionIndex, "up")}
-                    onMoveDown={() => handleMoveSection(sectionIndex, "down")}
-                  />
-                )}
-                <PromoBanner />
-              </section>
-            );
-          }
+
 
           if (sectionId === "highlight_banner") {
             return (
@@ -1410,7 +1445,7 @@ export default function Storefront() {
                       </Button>
                     </div>
                   ) : (
-                    categories.map((cat, catIndex) => {
+                    visibleCategories.map((cat, catIndex) => {
                       // Se tiver uma categoria ativa e não for essa, esconde
                       if (activeCategory && activeCategory !== cat.id) return null;
 
@@ -1434,13 +1469,26 @@ export default function Storefront() {
                           {/* Section header */}
                           <div className="flex items-center justify-between mb-4 px-1 flex-wrap gap-2">
                             <div className="flex items-center gap-3">
-                              <h2 className="font-heading text-lg sm:text-xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                                <span className="w-1 h-6 rounded-full bg-gradient-to-b from-brand-pop-shake to-brand-magenta inline-block" />
-                                {cat.name}
-                                <span className="text-sm font-normal text-muted-foreground">
-                                  ({catProducts.length})
-                                </span>
-                              </h2>
+                              {cat.imageUrl && (
+                                <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 p-0.5 border border-zinc-200 dark:border-zinc-700">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={cat.imageUrl} alt="" className="w-full h-full object-contain rounded-md" />
+                                </div>
+                              )}
+                              <div>
+                                <h2 className="font-heading text-lg sm:text-xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                                  <span className="w-1 h-6 rounded-full bg-gradient-to-b from-brand-pop-shake to-brand-magenta inline-block" />
+                                  {cat.name}
+                                  <span className="text-sm font-normal text-muted-foreground">
+                                    ({catProducts.length})
+                                  </span>
+                                </h2>
+                                {cat.description && (
+                                  <p className="text-xs text-muted-foreground mt-0.5 max-w-xl">
+                                    {cat.description}
+                                  </p>
+                                )}
+                              </div>
 
                               {/* Controles de posição da seção da categoria no Modo Edição */}
                               {canEdit && !activeCategory && (
@@ -1623,7 +1671,7 @@ export default function Storefront() {
       <CategoriesDrawer
         open={categoriesDrawerOpen}
         onClose={() => setCategoriesDrawerOpen(false)}
-        categories={categories}
+        categories={visibleCategories}
         products={products}
         activeCategory={activeCategory}
         onSelectCategory={(catId) => scrollToCategory(catId)}

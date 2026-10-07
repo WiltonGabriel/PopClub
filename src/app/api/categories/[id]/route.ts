@@ -1,11 +1,23 @@
 import { NextResponse } from "next/server";
-import { prisma, DBCategory } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getAuthUser } from "@/lib/auth";
 
-export async function PATCH(
+function slugify(text: string): string {
+  const base = text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+  return base || `cat-${Date.now().toString(36)}`;
+}
+
+async function updateCategoryHandler(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  params: Promise<{ id: string }>
 ) {
   try {
     const user = await getAuthUser(request);
@@ -15,20 +27,54 @@ export async function PATCH(
 
     const { id } = await params;
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-    const { name, slug, order, order_index, isDynamic, dynamicType, imageUrl, isActive } = body;
+    const {
+      name,
+      slug,
+      description,
+      order,
+      order_index,
+      isDynamic,
+      dynamicType,
+      imageUrl,
+      timeStart,
+      timeEnd,
+      isActive,
+    } = body;
 
-    const dataToUpdate: Partial<DBCategory> = {};
+    const dataToUpdate: Prisma.CategoryUpdateInput = {};
+
     if (name !== undefined) {
       if (typeof name !== "string" || !name.trim()) {
         return NextResponse.json({ error: "Nome da categoria inválido." }, { status: 400 });
       }
       const trimmedName = name.trim();
       dataToUpdate.name = trimmedName;
-      dataToUpdate.slug =
-        (typeof slug === "string" && slug.trim())
-          ? slug.trim()
-          : trimmedName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+
+      let finalSlug =
+        typeof slug === "string" && slug.trim()
+          ? slugify(slug.trim())
+          : slugify(trimmedName);
+
+      // Checa unicidade excluindo a própria categoria
+      const existingSlug = await prisma.category.findFirst({
+        where: {
+          slug: finalSlug,
+          NOT: { id },
+        },
+      });
+      if (existingSlug) {
+        finalSlug = `${finalSlug}-${Math.floor(1000 + Math.random() * 9000)}`;
+      }
+      dataToUpdate.slug = finalSlug;
+    } else if (slug !== undefined && typeof slug === "string" && slug.trim()) {
+      dataToUpdate.slug = slugify(slug.trim());
     }
+
+    if (description !== undefined) {
+      dataToUpdate.description =
+        typeof description === "string" ? description.trim().slice(0, 100) || null : null;
+    }
+
     if (order !== undefined || order_index !== undefined) {
       dataToUpdate.order = Number(order ?? order_index ?? 0);
     }
@@ -41,16 +87,24 @@ export async function PATCH(
     if (imageUrl !== undefined) {
       dataToUpdate.imageUrl = typeof imageUrl === "string" ? imageUrl : null;
     }
+    if (timeStart !== undefined) {
+      dataToUpdate.timeStart = typeof timeStart === "string" ? timeStart : null;
+    }
+    if (timeEnd !== undefined) {
+      dataToUpdate.timeEnd = typeof timeEnd === "string" ? timeEnd : null;
+    }
     if (isActive !== undefined) {
       dataToUpdate.isActive = Boolean(isActive);
     }
 
-    const updated = await (prisma.category.update as unknown as (args: {
-      where: { id: string };
-      data: Record<string, unknown>;
-    }) => Promise<DBCategory>)({
+    const updated = await prisma.category.update({
       where: { id },
       data: dataToUpdate,
+      include: {
+        _count: {
+          select: { products: true },
+        },
+      },
     });
 
     return NextResponse.json(updated);
@@ -61,6 +115,20 @@ export async function PATCH(
     }
     return NextResponse.json({ error: "Erro ao atualizar categoria." }, { status: 500 });
   }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return updateCategoryHandler(request, params);
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return updateCategoryHandler(request, params);
 }
 
 export async function DELETE(

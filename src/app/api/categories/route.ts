@@ -1,22 +1,37 @@
-import { prisma, DBCategory } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, apiError, apiSuccess } from "@/lib/apiResponse";
+
+function slugify(text: string): string {
+  const base = text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+  return base || `cat-${Date.now().toString(36)}`;
+}
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const includeInactive = searchParams.get("includeInactive") === "true";
 
-    const whereClause: Record<string, unknown> = includeInactive ? {} : { isActive: true };
-    const orderByClause = [{ order: "asc" }, { name: "asc" }];
+    const whereClause = includeInactive ? {} : { isActive: true };
+    const orderByClause = [{ order: "asc" as const }, { createdAt: "asc" as const }];
 
-    const categories = await (prisma.category.findMany as unknown as (args?: {
-      where?: Record<string, unknown>;
-      orderBy?: unknown;
-    }) => Promise<DBCategory[]>)({
+    const categories = await prisma.category.findMany({
       where: whereClause,
       orderBy: orderByClause,
+      include: {
+        _count: {
+          select: { products: true },
+        },
+      },
     });
+
     return apiSuccess(categories);
   } catch (error: unknown) {
     return handleApiError(error, "API:categories:GET", "Não foi possível carregar as categorias.");
@@ -26,11 +41,14 @@ export async function GET(request: Request) {
 interface CreateCategoryBody {
   name?: unknown;
   slug?: unknown;
+  description?: unknown;
   order?: unknown;
   order_index?: unknown;
   isDynamic?: unknown;
   dynamicType?: unknown;
   imageUrl?: unknown;
+  timeStart?: unknown;
+  timeEnd?: unknown;
   isActive?: unknown;
 }
 
@@ -42,8 +60,8 @@ export async function POST(request: Request) {
     }
 
     const countCategories = await prisma.category.count();
-    if (countCategories >= 30) {
-      return apiError("Limite máximo de 30 categorias atingido.", 400, "QUOTA_EXCEEDED");
+    if (countCategories >= 50) {
+      return apiError("Limite máximo de 50 categorias atingido.", 400, "QUOTA_EXCEEDED");
     }
 
     let body: CreateCategoryBody | null = null;
@@ -53,7 +71,20 @@ export async function POST(request: Request) {
       return apiError("Formato de requisição inválido ou corpo vazio.", 400, "BAD_REQUEST");
     }
 
-    const { name, slug, order, order_index, isDynamic, dynamicType, imageUrl, isActive } = body || {};
+    const {
+      name,
+      slug,
+      description,
+      order,
+      order_index,
+      isDynamic,
+      dynamicType,
+      imageUrl,
+      timeStart,
+      timeEnd,
+      isActive,
+    } = body || {};
+
     if (!name || typeof name !== "string") {
       return apiError("O nome da categoria é obrigatório.", 400, "MISSING_NAME");
     }
@@ -65,25 +96,42 @@ export async function POST(request: Request) {
       return apiError("O nome da categoria não pode exceder 100 caracteres.", 400, "VALIDATION_ERROR");
     }
 
-    const autoSlug =
+    let trimmedDesc: string | null = null;
+    if (description && typeof description === "string") {
+      trimmedDesc = description.trim().slice(0, 100) || null;
+    }
+
+    let finalSlug =
       typeof slug === "string" && slug.trim()
-        ? slug.trim()
-        : trimmedName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+        ? slugify(slug.trim())
+        : slugify(trimmedName);
 
-    const categoryData: Partial<DBCategory> & { name: string } = {
-      name: trimmedName,
-      slug: autoSlug,
-      order: Number(order ?? order_index ?? 0),
-      isDynamic: Boolean(isDynamic),
-      dynamicType: typeof dynamicType === "string" ? dynamicType : null,
-      imageUrl: typeof imageUrl === "string" ? imageUrl : null,
-      isActive: isActive !== undefined ? Boolean(isActive) : true,
-    };
+    // Garante unicidade do slug se já existir
+    const existingSlug = await prisma.category.findUnique({
+      where: { slug: finalSlug },
+    });
+    if (existingSlug) {
+      finalSlug = `${finalSlug}-${Math.floor(1000 + Math.random() * 9000)}`;
+    }
 
-    const category = await (prisma.category.create as unknown as (args: {
-      data: Record<string, unknown>;
-    }) => Promise<DBCategory>)({
-      data: categoryData,
+    const category = await prisma.category.create({
+      data: {
+        name: trimmedName,
+        slug: finalSlug,
+        description: trimmedDesc,
+        order: Number(order ?? order_index ?? 0),
+        isDynamic: Boolean(isDynamic),
+        dynamicType: typeof dynamicType === "string" ? dynamicType : null,
+        imageUrl: typeof imageUrl === "string" ? imageUrl : null,
+        timeStart: typeof timeStart === "string" ? timeStart : null,
+        timeEnd: typeof timeEnd === "string" ? timeEnd : null,
+        isActive: isActive !== undefined ? Boolean(isActive) : true,
+      },
+      include: {
+        _count: {
+          select: { products: true },
+        },
+      },
     });
 
     return apiSuccess(category, 201);

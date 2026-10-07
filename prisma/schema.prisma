@@ -126,13 +126,17 @@ model CustomAudienceList {
 model Category {
   id          String    @id @default(uuid())
   name        String
-  slug        String?   @unique
+  slug        String    @unique
+  description String?
+  imageUrl    String?   @map("image_url")
   order       Int       @default(0)
+  isActive    Boolean   @default(true) @map("is_active")
   isDynamic   Boolean   @default(false) @map("is_dynamic")
   dynamicType String?   @map("dynamic_type")
-  imageUrl    String?   @map("image_url")
-  isActive    Boolean   @default(true) @map("is_active")
+  timeStart   String?   @map("time_start")
+  timeEnd     String?   @map("time_end")
   createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @default(now()) @map("updated_at")
   products    Product[]
 
   @@map("categories")
