@@ -130,7 +130,7 @@ export function UsersManagementSection() {
 
   // Estados de modais e gavetas
   const [userModalOpen, setUserModalOpen] = useState(false);
-  const [userModalMode, setUserModalMode] = useState<"create" | "edit_permissions" | "edit_role">("create");
+  const [userModalMode, setUserModalMode] = useState<"create" | "edit" | "edit_permissions" | "edit_role">("create");
   const [selectedUser, setSelectedUser] = useState<AdminUserListItem | null>(null);
 
   // Modal de Gestão de Cargos Personalizados (RBAC)
@@ -263,6 +263,24 @@ export function UsersManagementSection() {
     setFormRole("EDITOR");
     setFormCustomRoleId(null);
     setFormPermissions([...DEFAULT_EDITOR_PERMISSIONS]);
+    setUserModalOpen(true);
+  };
+
+  // Abertura do modal de edição completa do colaborador
+  const handleOpenEditUser = (user: AdminUserListItem) => {
+    setUserModalMode("edit");
+    setSelectedUser(user);
+    setFormFullName(user.fullName || user.username || "");
+    setFormEmail(user.email || "");
+    setFormPhone(user.phone || "");
+    setFormPassword("");
+    const normalizedRole = user.role.toUpperCase() === "ADMIN" ? "ADMIN" : "EDITOR";
+    setFormRole(normalizedRole);
+    setFormCustomRoleId(user.customRoleId || null);
+    const existingPerms = Array.isArray(user.permissions) && user.permissions.length > 0
+      ? [...user.permissions]
+      : (user.customRole?.permissions ? [...user.customRole.permissions] : [...DEFAULT_EDITOR_PERMISSIONS]);
+    setFormPermissions(existingPerms);
     setUserModalOpen(true);
   };
 
@@ -434,6 +452,31 @@ export function UsersManagementSection() {
         });
 
         showFeedback("success", "Novo membro da equipe criado com sucesso!");
+        setUserModalOpen(false);
+        fetchUsers();
+        fetchCustomRoles();
+      } else if (userModalMode === "edit" && selectedUser) {
+        if (!formFullName.trim()) {
+          throw new Error("O nome completo é obrigatório.");
+        }
+        if (formPassword && formPassword.length < 6) {
+          throw new Error("A nova senha deve ter no mínimo 6 caracteres se for informada.");
+        }
+        if (formRole === "ADMIN" && selectedUser.role.toUpperCase() !== "ADMIN" && activeAdminsCount >= 2) {
+          throw new Error("Limite máximo de 2 Administradores ativos já atingido no sistema.");
+        }
+
+        await adminUserService.updateUser(selectedUser.id, {
+          fullName: formFullName.trim(),
+          email: formEmail.trim() || null,
+          phone: formPhone.trim() || null,
+          password: formPassword.trim() ? formPassword.trim() : undefined,
+          role: formRole,
+          customRoleId: formRole === "EDITOR" ? formCustomRoleId : null,
+          permissions: formRole === "EDITOR" && !formCustomRoleId ? formPermissions : undefined,
+        });
+
+        showFeedback("success", `Colaborador "${formFullName.trim()}" atualizado com sucesso!`);
         setUserModalOpen(false);
         fetchUsers();
         fetchCustomRoles();
@@ -1049,6 +1092,18 @@ interface FilterTabItem {
                             <History className="w-4 h-4" />
                           </button>
 
+                          {/* Editar Colaborador (Dados, Cargo e Permissões) */}
+                          {!isClient && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditUser(u)}
+                              className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                              title="Editar Colaborador (Dados, Cargo e Permissões)"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
+
                           {/* Se for Editor Padrão: Botão rápido para Matriz de Permissões */}
                           {isEditor && !hasCustomRole && (
                             <button
@@ -1204,12 +1259,20 @@ interface FilterTabItem {
             <div className="px-6 py-4 border-b border-border/50 flex justify-between items-center bg-gray-50/60 dark:bg-background/40">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
-                  {userModalMode === "create" ? <UserPlus className="w-5 h-5" /> : <ShieldCheck className="w-5 h-5" />}
+                  {userModalMode === "create" ? (
+                    <UserPlus className="w-5 h-5" />
+                  ) : userModalMode === "edit" ? (
+                    <Edit2 className="w-5 h-5" />
+                  ) : (
+                    <ShieldCheck className="w-5 h-5" />
+                  )}
                 </div>
                 <div>
                   <h3 className="font-heading font-bold text-base text-foreground">
                     {userModalMode === "create"
                       ? "Novo Membro da Equipe"
+                      : userModalMode === "edit"
+                      ? `Editar Colaborador: ${selectedUser?.fullName || selectedUser?.username}`
                       : userModalMode === "edit_permissions"
                       ? `Permissões de ${selectedUser?.fullName || selectedUser?.username}`
                       : `Alterar Cargo de ${selectedUser?.fullName || selectedUser?.username}`}
@@ -1217,6 +1280,8 @@ interface FilterTabItem {
                   <p className="text-xs text-muted-foreground">
                     {userModalMode === "create"
                       ? "Cadastre um novo colaborador vinculando a Administrador, Editor ou Cargo Personalizado."
+                      : userModalMode === "edit"
+                      ? "Edite os dados cadastrais, cargo e permissões modulares de acesso."
                       : userModalMode === "edit_permissions"
                       ? "Selecione individualmente quais módulos e abas o editor pode acessar."
                       : "Defina o nível de acesso ou vincule este colaborador a um cargo personalizado."}
@@ -1235,8 +1300,8 @@ interface FilterTabItem {
 
             {/* Form Body com Rolagem */}
             <form onSubmit={handleSaveUserForm} className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin">
-              {/* Se for Criação de Usuário: Exibe campos de cadastro (SEM CPF) */}
-              {userModalMode === "create" && (
+              {/* Se for Criação ou Edição de Usuário: Exibe campos de cadastro */}
+              {(userModalMode === "create" || userModalMode === "edit") && (
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
@@ -1284,15 +1349,17 @@ interface FilterTabItem {
 
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center justify-between">
-                      <span>Senha de Acesso *</span>
-                      <span className="text-[10px] text-muted-foreground font-normal">Mínimo 6 caracteres</span>
+                      <span>{userModalMode === "create" ? "Senha de Acesso *" : "Nova Senha (Opcional)"}</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        {userModalMode === "create" ? "Mínimo 6 caracteres" : "Deixe em branco para manter a atual"}
+                      </span>
                     </label>
                     <input
                       type="password"
-                      required
+                      required={userModalMode === "create"}
                       value={formPassword}
                       onChange={(e) => setFormPassword(e.target.value)}
-                      placeholder="••••••••"
+                      placeholder={userModalMode === "create" ? "••••••••" : "Manter senha inalterada"}
                       className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-xl text-xs sm:text-sm text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/40"
                     />
                   </div>
@@ -1519,8 +1586,8 @@ interface FilterTabItem {
                 </div>
               )}
 
-              {/* Bloco: Matriz de Permissões (para Editor Padrão na criação ou na edição de permissões) */}
-              {((userModalMode === "create" && formRole === "EDITOR" && !formCustomRoleId) ||
+              {/* Bloco: Matriz de Permissões (para Editor Padrão na criação, na edição completa ou na edição de permissões) */}
+              {(((userModalMode === "create" || userModalMode === "edit") && formRole === "EDITOR" && !formCustomRoleId) ||
                 userModalMode === "edit_permissions") && (
                 <div className="space-y-4 pt-3 border-t border-gray-100 dark:border-border/30">
                   <div className="flex items-center justify-between flex-wrap gap-2">

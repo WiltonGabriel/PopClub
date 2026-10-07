@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { sanitizeText } from "@/lib/sanitize";
 import { productInclude, formatProduct } from "@/lib/productHelper";
+import { hasPermission } from "@/lib/permissions";
 
 export async function GET(
   request: Request,
@@ -32,8 +33,8 @@ export async function PUT(
 ) {
   try {
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+    if (!hasPermission(user, "menu_manage")) {
+      return NextResponse.json({ error: "Acesso negado. Permissão para gerenciar cardápio necessária." }, { status: 403 });
     }
 
     const { id } = await params;
@@ -171,8 +172,8 @@ export async function DELETE(
 ) {
   try {
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+    if (!hasPermission(user, "menu_manage")) {
+      return NextResponse.json({ error: "Acesso negado. Permissão para gerenciar cardápio necessária." }, { status: 403 });
     }
 
     const { id } = await params;

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 
 export async function PATCH(
   request: Request,
@@ -8,8 +9,8 @@ export async function PATCH(
 ) {
   try {
     const user = await getAuthUser(request);
-    if (user?.role !== "admin") {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+    if (!hasPermission(user, "theme_manage")) {
+      return NextResponse.json({ error: "Acesso negado. Permissão para gerenciar identidade visual necessária." }, { status: 403 });
     }
 
     const { id } = await params;
@@ -56,8 +57,8 @@ export async function DELETE(
 ) {
   try {
     const user = await getAuthUser(request);
-    if (user?.role !== "admin") {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+    if (!hasPermission(user, "theme_manage")) {
+      return NextResponse.json({ error: "Acesso negado. Permissão para gerenciar identidade visual necessária." }, { status: 403 });
     }
 
     const { id } = await params;

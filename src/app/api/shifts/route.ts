@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
+import { hasPermission } from "@/lib/permissions";
 
 export async function GET(request: Request) {
   try {
@@ -108,8 +109,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
-      return apiError("Acesso negado. Apenas administradores podem gerenciar turnos da esteira.", 403, "FORBIDDEN");
+    if (!hasPermission(user, "ORDERS_KANBAN")) {
+      return apiError("Acesso negado. Permissão para gerenciar a esteira de pedidos necessária.", 403, "FORBIDDEN");
     }
 
     let body: any;

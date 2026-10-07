@@ -13,7 +13,9 @@ import { calculateProductPrice } from "@/lib/pricing";
 
 // Storefront components
 import { ProductCard } from "../components/storefront/ProductCard";
-import { CategoryChip, parseCategoryEmojiAndName } from "../components/storefront/CategoryChip";
+import { parseCategoryEmojiAndName } from "../components/storefront/CategoryChip";
+import { CategoryRail } from "../components/storefront/CategoryRail";
+import { PromoBanner } from "../components/storefront/PromoBanner";
 import { BottomNav } from "../components/storefront/BottomNav";
 import { CartDrawer } from "../components/storefront/CartDrawer";
 import { SearchAutocomplete } from "../components/storefront/SearchAutocomplete";
@@ -1140,155 +1142,30 @@ export default function Storefront() {
           The chips scroll container uses pb-3 so the claymorphic
           box-shadow isn’t clipped by the parent overflow-x.
       ───────────────────────────────────────── */}
-      <div
-        data-category-bar
-        className="sticky top-[55px] sm:top-[61px] z-30 bg-background/95 dark:bg-background/95 backdrop-blur-md border-b border-border/30"
-      >
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-          {/*
-            Carrossel com rolagem suave, inércia nativa touch e scroll snap
-          */}
-          <div className="flex overflow-x-auto gap-2 no-scrollbar items-center py-2.5 px-0.5 snap-x snap-mandatory scroll-smooth touch-pan-x overscroll-contain-x w-full min-w-0 [-webkit-overflow-scrolling:touch]">
-            {loading && categories.length === 0 ? (
-              <>
-                <div className="shrink-0 snap-start w-20 h-10 rounded-full skeleton-light" />
-                <div className="shrink-0 snap-start w-28 h-10 rounded-full skeleton-light" />
-                <div className="shrink-0 snap-start w-24 h-10 rounded-full skeleton-light" />
-                <div className="shrink-0 snap-start w-32 h-10 rounded-full skeleton-light" />
-                <div className="shrink-0 snap-start w-24 h-10 rounded-full skeleton-light" />
-              </>
-            ) : (
-              <>
-                {/* “Todos” chip */}
-                <button
-                  onClick={() => handleSelectCategory(null)}
-                  aria-pressed={!activeCategory || activeCategory === "all" || activeCategory === "todas"}
-                  className={`
-                    shrink-0 snap-start
-                    flex items-center justify-center gap-1.5
-                    px-3.5 py-2 rounded-full
-                    text-xs font-medium select-none
-                    border transition-all duration-150 ease-out cursor-pointer
-                    min-h-[38px] active:scale-95 transition-transform
-                    ${
-                      !activeCategory || activeCategory === "all" || activeCategory === "todas"
-                        ? "bg-primary text-white font-medium shadow-sm border-transparent"
-                        : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 border-transparent hover:text-primary"
-                    }
-                  `}
-                >
-                  <span className="text-base leading-none" role="img" aria-hidden>✨</span>
-                  <span className="text-xs font-medium whitespace-nowrap">Todos</span>
-                </button>
-
-                {visibleCategories.map((cat, catIdx) => {
-                  const isCatSelected = activeCategory === cat.id || (cat.slug ? activeCategory === cat.slug : false);
-                  return (
-                    <div
-                      key={cat.id}
-                      className={`relative group shrink-0 snap-start transition-transform ${
-                        draggedCatIndex === catIdx ? "opacity-40 scale-95" : ""
-                      }`}
-                    >
-                      <CategoryChip
-                        category={cat}
-                        isActive={isCatSelected}
-                        onClick={() => handleSelectCategory(cat.id)}
-                      onContextMenu={(e) => {
-                        if (canEdit) {
-                          e.preventDefault();
-                          setEditingCategory(cat);
-                          setCatDialogOpen(true);
-                        }
-                      }}
-                      title={canEdit ? "Clique com o botão direito ou no lápis para editar" : undefined}
-                      draggable={canEdit}
-                      onDragStart={() => handleDragStart(catIdx)}
-                      onDragOver={handleDragOver}
-                      onDrop={() => handleDrop(catIdx)}
-                    />
-                    {/* Admin controls on chip */}
-                    {canEdit && (
-                      <div className="absolute -top-3 -right-2 hidden group-hover:flex items-center gap-0.5 bg-white dark:bg-card shadow-lg border border-primary/20 dark:border-primary/80 rounded-full p-1 z-30 transition-all scale-95">
-                        {/* Mover para esquerda */}
-                        {catIdx > 0 && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMoveCategory(catIdx, "left");
-                            }}
-                            className="text-gray-500 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/90/40 p-1 rounded-full transition-colors"
-                            title="Mover para a esquerda"
-                            aria-label="Mover categoria para a esquerda"
-                          >
-                            <ChevronLeft className="w-3 h-3" />
-                          </button>
-                        )}
-                        {/* Editar */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingCategory(cat);
-                            setCatDialogOpen(true);
-                          }}
-                          className="text-primary hover:text-accent hover:bg-primary/10 dark:hover:bg-primary/90/40 p-1 rounded-full transition-colors"
-                          title="Editar emoji e nome (ou botão direito)"
-                          aria-label={`Editar categoria ${cat.name}`}
-                        >
-                          <Pencil className="w-3 h-3" />
-                        </button>
-                        {/* Mover para direita */}
-                        {catIdx < categories.length - 1 && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMoveCategory(catIdx, "right");
-                            }}
-                            className="text-gray-500 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/90/40 p-1 rounded-full transition-colors"
-                            title="Mover para a direita"
-                            aria-label="Mover categoria para a direita"
-                          >
-                            <ChevronRight className="w-3 h-3" />
-                          </button>
-                        )}
-                        {/* Deletar */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteCategory(cat.id);
-                          }}
-                          className="text-red-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-950/40 p-1 rounded-full transition-colors"
-                          title="Deletar categoria"
-                          aria-label={`Deletar categoria ${cat.name}`}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-                {/* Admin: add category */}
-                {canEdit && (
-                  <Button
-                    variant="outline"
-                    onClick={() => { setEditingCategory(null); setCatDialogOpen(true); }}
-                    className="shrink-0 rounded-full border-dashed border-brand-pop-shake/40 text-brand-pop-shake/60 hover:text-brand-pop-shake hover:border-brand-pop-shake hover:bg-brand-pop-shake/5 h-10 px-3 text-xs gap-1"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Nova
-                  </Button>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+      {/* ─────────────────────────────────────────
+          CATEGORY BAR — sticky below header with desktop navigation controls
+      ───────────────────────────────────────── */}
+      <CategoryRail
+        categories={visibleCategories}
+        activeCategory={activeCategory}
+        onSelectCategory={handleSelectCategory}
+        loading={loading}
+        canEdit={canEdit}
+        onEditCategory={(cat) => {
+          setEditingCategory(cat);
+          setCatDialogOpen(true);
+        }}
+        onDeleteCategory={handleDeleteCategory}
+        onMoveCategory={handleMoveCategory}
+        onAddCategory={() => {
+          setEditingCategory(null);
+          setCatDialogOpen(true);
+        }}
+        draggedCatIndex={draggedCatIndex}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      />
 
       {/* ─────────────────────────────────────────
           MAIN CONTENT
@@ -1352,7 +1229,11 @@ export default function Storefront() {
             )}
           </div>
         ) : (
-          sectionsOrder.map((sectionId, sectionIndex) => {
+          <>
+            {/* Esteira de Banners Promocionais (Cards com Ofertas e Promoções) */}
+            <PromoBanner />
+
+            {sectionsOrder.map((sectionId, sectionIndex) => {
 
 
           if (sectionId === "highlight_banner") {
@@ -1619,7 +1500,8 @@ export default function Storefront() {
           }
 
           return null;
-        })
+        })}
+      </>
       )}
       </main>
 

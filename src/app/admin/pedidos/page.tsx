@@ -45,6 +45,7 @@ import {
   LayoutGrid,
   Ban,
   ArrowRight,
+  ClipboardList,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -1781,7 +1782,7 @@ export default function AdminPedidosPage() {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="font-heading text-xl sm:text-2xl font-bold uppercase tracking-wide flex items-center gap-2 text-foreground dark:text-foreground">
-                <LayoutDashboard className="w-6 h-6 text-primary" /> Central Operacional da Cozinha e Despacho
+                <ClipboardList className="w-6 h-6 text-primary" /> Gerenciar Pedidos
               </h1>
               {/* Bloco 1: Badge de Status da Loja Exclusivo */}
               {shiftData?.isOpen ? (
@@ -1797,7 +1798,7 @@ export default function AdminPedidosPage() {
               )}
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Controle de montagem de copos, shakes e despacho ágil em 5 etapas integradas.
+              Fluxo de montagem, preparo e despacho em tempo real.
             </p>
           </div>
 

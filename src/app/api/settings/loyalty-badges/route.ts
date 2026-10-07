@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import { DEFAULT_LOYALTY_BADGES, LoyaltyBadgeConfig } from "@/services/loyaltyBadgeService";
 
 const TEMPLATE_CATEGORY = "loyalty_badges";
@@ -34,8 +35,8 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const user = await getAuthUser(request);
-    if (user?.role !== "admin") {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+    if (!hasPermission(user, "settings_manage") && !hasPermission(user, "promotions_manage")) {
+      return NextResponse.json({ error: "Acesso negado. Permissão para gerenciar selos de fidelidade necessária." }, { status: 403 });
     }
 
     let body: Record<string, unknown>;

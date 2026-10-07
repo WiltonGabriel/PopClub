@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import { Plus, Edit2, Trash2, ArrowRight, Clock, Timer, Sparkles } from "lucide-react";
+import { Plus, Edit2, Trash2, ArrowRight, Clock, Timer, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { promotionService, Promotion } from "../../services/promotionService";
 import { useAuth } from "../../hooks/useAuth";
 import { useEditMode } from "../../contexts/EditModeContext";
@@ -17,6 +17,55 @@ export function PromoBanner() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [promoToEdit, setPromoToEdit] = useState<Promotion | null>(null);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [hasOverflow, setHasOverflow] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    const isOverflowing = scrollWidth > clientWidth + 2;
+    setHasOverflow(isOverflowing);
+    setCanScrollLeft(isOverflowing && scrollLeft > 2);
+    setCanScrollRight(isOverflowing && scrollLeft + clientWidth < scrollWidth - 2);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    checkScroll();
+    const handleScroll = () => checkScroll();
+    el.addEventListener("scroll", handleScroll, { passive: true });
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => checkScroll());
+      resizeObserver.observe(el);
+    }
+
+    window.addEventListener("resize", checkScroll);
+    return () => {
+      el.removeEventListener("scroll", handleScroll);
+      if (resizeObserver) resizeObserver.disconnect();
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, [checkScroll, promotions]);
+
+  const handleScrollBy = (offset: number) => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: offset, behavior: "smooth" });
+    }
+  };
+
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (e.deltaY !== 0) {
+      e.currentTarget.scrollLeft += e.deltaY;
+    }
+  };
 
   const fetchPromos = useCallback(async () => {
     try {
@@ -78,8 +127,52 @@ export function PromoBanner() {
 
   return (
     <>
-      <section className="mb-6" aria-label="Promoções em destaque">
-        <div className="flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 no-scrollbar">
+      <section className="mb-6 relative" aria-label="Promoções em destaque">
+        {/* Left fade mask */}
+        {hasOverflow && canScrollLeft && (
+          <div
+            className="pointer-events-none absolute left-0 top-0 bottom-2 w-8 md:w-16 bg-gradient-to-r from-background via-background/80 to-transparent z-10 transition-opacity duration-200"
+            aria-hidden="true"
+          />
+        )}
+
+        {/* Right fade mask */}
+        {hasOverflow && canScrollRight && (
+          <div
+            className="pointer-events-none absolute right-0 top-0 bottom-2 w-8 md:w-16 bg-gradient-to-l from-background via-background/80 to-transparent z-10 transition-opacity duration-200"
+            aria-hidden="true"
+          />
+        )}
+
+        {/* Left Chevron (Desktop only) */}
+        {hasOverflow && canScrollLeft && (
+          <button
+            type="button"
+            onClick={() => handleScrollBy(-350)}
+            aria-label="Rolar promoções para a esquerda"
+            className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-20 items-center justify-center w-9 h-9 rounded-full bg-background/90 dark:bg-card/90 border border-border/60 shadow-lg text-foreground hover:text-primary transition-all hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-xs"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+        )}
+
+        {/* Right Chevron (Desktop only) */}
+        {hasOverflow && canScrollRight && (
+          <button
+            type="button"
+            onClick={() => handleScrollBy(350)}
+            aria-label="Rolar promoções para a direita"
+            className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-20 items-center justify-center w-9 h-9 rounded-full bg-background/90 dark:bg-card/90 border border-border/60 shadow-lg text-foreground hover:text-primary transition-all hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-xs"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        )}
+
+        <div
+          ref={scrollRef}
+          onWheel={handleWheel}
+          className="flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 no-scrollbar scroll-smooth"
+        >
           {promotions.map((promo) => {
             const gradStart = promo.gradientStart || "hsl(var(--primary))";
             const gradEnd   = promo.gradientEnd   || "hsl(var(--accent))";

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import { z } from "zod";
 
 const DEFAULT_LOADING = {
@@ -92,9 +93,9 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
+    if (!hasPermission(user, "theme_manage") && !hasPermission(user, "settings_manage")) {
       return NextResponse.json(
-        { error: "Acesso negado. Apenas administradores podem personalizar a identidade visual." },
+        { error: "Acesso negado. Permissão para personalizar identidade visual/configurações necessária." },
         { status: 403 }
       );
     }

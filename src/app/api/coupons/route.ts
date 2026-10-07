@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 
 export async function GET(request: Request) {
   try {
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Acesso não autorizado." }, { status: 403 });
+    if (!hasPermission(user, "coupons_manage")) {
+      return NextResponse.json({ error: "Acesso negado. Permissão para gerenciar cupons necessária." }, { status: 403 });
     }
 
     const coupons = await prisma.coupon.findMany({
@@ -41,8 +42,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Acesso não autorizado." }, { status: 403 });
+    if (!hasPermission(user, "coupons_manage")) {
+      return NextResponse.json({ error: "Acesso negado. Permissão para gerenciar cupons necessária." }, { status: 403 });
     }
 
     const countCoupons = await prisma.coupon.count({ where: { isActive: true } });

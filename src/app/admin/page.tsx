@@ -443,7 +443,7 @@ export default function AdminDashboard() {
                     href="/admin/pedidos"
                     className="text-xs font-bold text-primary dark:text-muted-foreground hover:underline inline-flex items-center gap-1"
                   >
-                    <span>Abrir Esteira Completa</span>
+                    <span>Ver Todos os Pedidos</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>

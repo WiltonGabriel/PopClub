@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { addonCrudLimiter, getIpFromRequest } from "@/lib/rateLimit";
 import { deleteAddonImageFile } from "@/lib/addonStorage";
+import { hasPermission } from "@/lib/permissions";
 
 export async function PUT(
   request: Request,
@@ -16,8 +17,8 @@ export async function PUT(
     }
 
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+    if (!hasPermission(user, "menu_manage")) {
+      return NextResponse.json({ error: "Acesso negado. Permissão para gerenciar complementos necessária." }, { status: 403 });
     }
 
     const { id } = await params;
@@ -80,8 +81,8 @@ export async function DELETE(
     }
 
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+    if (!hasPermission(user, "menu_manage")) {
+      return NextResponse.json({ error: "Acesso negado. Permissão para gerenciar complementos necessária." }, { status: 403 });
     }
 
     const { id } = await params;

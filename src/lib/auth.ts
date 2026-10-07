@@ -138,6 +138,12 @@ interface AuthDbUserRecord {
   username: string | null;
   role: string;
   permissions: unknown;
+  customRoleId?: string | null;
+  customRole?: {
+    id: string;
+    name: string;
+    permissions: unknown;
+  } | null;
   isActive: boolean;
   isBlocked: boolean;
   blockReason: string | null;
@@ -161,6 +167,12 @@ export async function getAuthUser(request?: Request): Promise<{
   username: string | null;
   role: "client" | "admin" | "editor" | string;
   permissions: string[];
+  customRoleId?: string | null;
+  customRole?: {
+    id: string;
+    name: string;
+    permissions: string[];
+  } | null;
   isActive: boolean;
   isBlocked: boolean;
   blockReason: string | null;
@@ -208,6 +220,14 @@ export async function getAuthUser(request?: Request): Promise<{
           username: true,
           role: true,
           permissions: true,
+          customRoleId: true,
+          customRole: {
+            select: {
+              id: true,
+              name: true,
+              permissions: true,
+            },
+          },
           isActive: true,
           isBlocked: true,
           blockReason: true,
@@ -292,6 +312,16 @@ export async function getAuthUser(request?: Request): Promise<{
       permissions: Array.isArray(user.permissions)
         ? (user.permissions.filter((p): p is string => typeof p === "string"))
         : [],
+      customRoleId: user.customRoleId || null,
+      customRole: user.customRole
+        ? {
+            id: user.customRole.id,
+            name: user.customRole.name,
+            permissions: Array.isArray(user.customRole.permissions)
+              ? (user.customRole.permissions.filter((p): p is string => typeof p === "string"))
+              : [],
+          }
+        : null,
       isActive: Boolean(user.isActive),
       isBlocked: Boolean(user.isBlocked),
       blockReason: user.blockReason || null,

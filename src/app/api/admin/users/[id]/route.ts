@@ -95,6 +95,12 @@ export async function PATCH(
     // O cargo de Administrador nunca pode ser rebaixado ou alterado.
     // =========================================================================
     if (targetUser.role === Role.ADMIN) {
+      if (!isAdmin) {
+        return NextResponse.json(
+          { error: "Apenas administradores podem gerenciar contas de administradores." },
+          { status: 403 }
+        );
+      }
       if (role !== undefined && role !== "ADMIN" && role !== Role.ADMIN) {
         return NextResponse.json(
           { error: "O cargo de Administrador é soberano e imutável." },
@@ -396,6 +402,12 @@ export async function DELETE(
 
     // Trava: O sistema nunca pode ter zero administradores ativos
     if (targetUser.role === Role.ADMIN) {
+      if (!isUserAdmin(authUser)) {
+        return NextResponse.json(
+          { error: "Apenas administradores podem desativar contas de administradores." },
+          { status: 403 }
+        );
+      }
       const activeAdminsCount = await prisma.user.count({
         where: {
           role: Role.ADMIN,

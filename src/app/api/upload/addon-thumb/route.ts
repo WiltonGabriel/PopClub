@@ -6,6 +6,7 @@ import sharp from "sharp";
 import { getAuthUser } from "@/lib/auth";
 import { addonUploadLimiter, getIpFromRequest } from "@/lib/rateLimit";
 import { deleteAddonImageFile } from "@/lib/addonStorage";
+import { hasPermission } from "@/lib/permissions";
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
 const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp"];
@@ -25,9 +26,9 @@ export async function POST(request: Request) {
 
     // 2. Autenticação Administrativa
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
+    if (!hasPermission(user, "menu_manage")) {
       return NextResponse.json(
-        { error: "Acesso negado. Apenas administradores podem fazer upload de miniaturas de complementos." },
+        { error: "Acesso negado. Permissão para gerenciar complementos necessária." },
         { status: 403 }
       );
     }

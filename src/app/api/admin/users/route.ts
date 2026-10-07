@@ -240,6 +240,12 @@ export async function POST(request: Request) {
 
     // Regra rígida: Administrador - limite máximo de 2 ativos em todo o sistema
     if (normalizedRole === "ADMIN") {
+      if (!isUserAdmin(authUser)) {
+        return NextResponse.json(
+          { error: "Apenas administradores podem criar outros administradores." },
+          { status: 403 }
+        );
+      }
       const activeAdminsCount = await prisma.user.count({
         where: {
           role: Role.ADMIN,

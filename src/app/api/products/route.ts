@@ -4,6 +4,7 @@ import { handleApiError, apiError, apiSuccess } from "@/lib/apiResponse";
 import { sanitizeText } from "@/lib/sanitize";
 
 import { productInclude, formatProduct } from "@/lib/productHelper";
+import { hasPermission } from "@/lib/permissions";
 
 export async function GET() {
   try {
@@ -21,8 +22,8 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await getAuthUser(request);
-    if (user?.role !== "admin") {
-      return apiError("Acesso negado. Apenas administradores podem cadastrar produtos.", 403, "FORBIDDEN");
+    if (!hasPermission(user, "menu_manage")) {
+      return apiError("Acesso negado. Permissão para gerenciar cardápio necessária.", 403, "FORBIDDEN");
     }
 
     const countProducts = await prisma.product.count({ where: { isAvailable: true } });

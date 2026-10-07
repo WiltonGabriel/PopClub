@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { getTargetClients } from "../helpers";
+import { hasPermission } from "@/lib/permissions";
 
 export async function GET(request: Request) {
   try {
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Acesso não autorizado." }, { status: 403 });
+    if (!hasPermission(user, "settings_manage")) {
+      return NextResponse.json({ error: "Acesso negado. Permissão para gerenciar notificações necessária." }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

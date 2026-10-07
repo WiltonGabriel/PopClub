@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { hasPermission } from "@/lib/permissions";
 
 interface CourierPayload {
   name?: string;
@@ -18,8 +19,8 @@ export async function PUT(
 ) {
   try {
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
-      return apiError("Acesso negado. Apenas administradores.", 403, "FORBIDDEN");
+    if (!hasPermission(user, "settings_manage") && !hasPermission(user, "ORDERS_KANBAN")) {
+      return apiError("Acesso negado. Permissão para gerenciar logística/entregadores necessária.", 403, "FORBIDDEN");
     }
 
     const { id } = await params;
@@ -58,8 +59,8 @@ export async function DELETE(
 ) {
   try {
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
-      return apiError("Acesso negado. Apenas administradores.", 403, "FORBIDDEN");
+    if (!hasPermission(user, "settings_manage") && !hasPermission(user, "ORDERS_KANBAN")) {
+      return apiError("Acesso negado. Permissão para gerenciar logística/entregadores necessária.", 403, "FORBIDDEN");
     }
 
     const { id } = await params;

@@ -3,6 +3,7 @@ import { getAuthUser } from "@/lib/auth";
 import { z } from "zod";
 import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
 import { logger } from "@/lib/logger";
+import { hasPermission } from "@/lib/permissions";
 
 const DEFAULT_SETTINGS = {
   id: "store_config",
@@ -207,8 +208,8 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
-      return apiError("Acesso negado. Apenas administradores podem alterar configurações da loja.", 403, "FORBIDDEN");
+    if (!hasPermission(user, "settings_manage")) {
+      return apiError("Acesso negado. Permissão para alterar configurações da loja necessária.", 403, "FORBIDDEN");
     }
 
     let body: unknown;

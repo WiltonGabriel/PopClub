@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { hasPermission } from "@/lib/permissions";
 
 const INITIAL_PRESET_COURIERS = [
   {
@@ -61,8 +62,8 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
-      return apiError("Acesso negado. Apenas administradores podem cadastrar entregadores.", 403, "FORBIDDEN");
+    if (!hasPermission(user, "settings_manage") && !hasPermission(user, "ORDERS_KANBAN")) {
+      return apiError("Acesso negado. Permissão para gerenciar logística/entregadores necessária.", 403, "FORBIDDEN");
     }
 
     let body: Record<string, unknown> = {};

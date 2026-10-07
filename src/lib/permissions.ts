@@ -126,12 +126,17 @@ export const ALL_PERMISSIONS: string[] = PERMISSION_DEFINITIONS.map((p) => p.id)
  */
 export const TAB_PERMISSION_MAP: Record<string, PermissionKey> = {
   metricas: "metrics_view",
+  categorias: "menu_manage",
   complementos: "menu_manage",
   combos: "menu_manage",
   promocoes: "promotions_manage",
   cupons: "coupons_manage",
   identidade_visual: "theme_manage",
+  avatares: "theme_manage",
+  banners_selos: "theme_manage",
+  logistica_entregadores: "settings_manage",
   canais_atendimento: "settings_manage",
+  disparos_notificacoes: "settings_manage",
   configuracoes: "settings_manage",
   horarios: "settings_manage",
   zonas_entrega: "settings_manage",

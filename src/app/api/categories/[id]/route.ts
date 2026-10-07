@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getAuthUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 
 function slugify(text: string): string {
   const base = text
@@ -21,8 +22,8 @@ async function updateCategoryHandler(
 ) {
   try {
     const user = await getAuthUser(request);
-    if (user?.role !== "admin") {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+    if (!hasPermission(user, "menu_manage")) {
+      return NextResponse.json({ error: "Acesso negado. Permissão de cardápio necessária." }, { status: 403 });
     }
 
     const { id } = await params;
@@ -137,8 +138,8 @@ export async function DELETE(
 ) {
   try {
     const user = await getAuthUser(request);
-    if (user?.role !== "admin") {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+    if (!hasPermission(user, "menu_manage")) {
+      return NextResponse.json({ error: "Acesso negado. Permissão de cardápio necessária." }, { status: 403 });
     }
 
     const { id } = await params;

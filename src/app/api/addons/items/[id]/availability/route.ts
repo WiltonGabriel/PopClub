@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { addonCrudLimiter, getIpFromRequest } from "@/lib/rateLimit";
+import { hasPermission } from "@/lib/permissions";
 
 export async function PATCH(
   request: Request,
@@ -15,9 +16,8 @@ export async function PATCH(
     }
 
     const user = await getAuthUser(request);
-    const role = (user as { role?: string } | null)?.role;
-    if (!user || (role !== "admin" && role !== "editor" && role !== "operator")) {
-      return NextResponse.json({ error: "Acesso negado. Apenas operadores e administradores." }, { status: 403 });
+    if (!hasPermission(user, "menu_manage") && !hasPermission(user, "STOCK_CONTROL")) {
+      return NextResponse.json({ error: "Acesso negado. Permissão para alterar disponibilidade necessária." }, { status: 403 });
     }
 
     const { id } = await params;

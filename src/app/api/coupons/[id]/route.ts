@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma, DBCoupon } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 
 export async function PUT(
   request: Request,
@@ -8,8 +9,8 @@ export async function PUT(
 ) {
   try {
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Acesso não autorizado." }, { status: 403 });
+    if (!hasPermission(user, "coupons_manage")) {
+      return NextResponse.json({ error: "Acesso negado. Permissão para gerenciar cupons necessária." }, { status: 403 });
     }
 
     interface UpdateCouponBody {
@@ -108,8 +109,8 @@ export async function PATCH(
 ) {
   try {
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Acesso não autorizado." }, { status: 403 });
+    if (!hasPermission(user, "coupons_manage")) {
+      return NextResponse.json({ error: "Acesso negado. Permissão para gerenciar cupons necessária." }, { status: 403 });
     }
 
     const { id } = await params;
@@ -147,8 +148,8 @@ export async function DELETE(
 ) {
   try {
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Acesso não autorizado." }, { status: 403 });
+    if (!hasPermission(user, "coupons_manage")) {
+      return NextResponse.json({ error: "Acesso negado. Permissão para gerenciar cupons necessária." }, { status: 403 });
     }
 
     const { id } = await params;

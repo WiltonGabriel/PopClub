@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { Prisma, DiscountType } from "@prisma/client";
+import { hasPermission } from "@/lib/permissions";
 
 export async function GET(request: Request) {
   try {
@@ -9,10 +10,10 @@ export async function GET(request: Request) {
     const all = searchParams.get("all") === "true";
 
     const user = await getAuthUser(request);
-    const isAdmin = user?.role === "admin";
+    const canManagePromos = hasPermission(user, "promotions_manage");
 
-    // Se não for admin e não pediu all explicitamente, filtra apenas as ativas e não vencidas
-    const whereClause: Prisma.PromotionWhereInput = all && isAdmin ? {} : { 
+    // Se não tiver permissão e não pediu all explicitamente, filtra apenas as ativas e não vencidas
+    const whereClause: Prisma.PromotionWhereInput = all && canManagePromos ? {} : { 
       isActive: true,
       OR: [
         { expiresAt: null },
@@ -87,8 +88,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const user = await getAuthUser(request);
-    if (user?.role !== "admin") {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+    if (!hasPermission(user, "promotions_manage")) {
+      return NextResponse.json({ error: "Acesso negado. Permissão para gerenciar promoções necessária." }, { status: 403 });
     }
 
     let body: Record<string, unknown>;

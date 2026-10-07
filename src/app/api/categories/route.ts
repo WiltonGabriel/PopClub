@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, apiError, apiSuccess } from "@/lib/apiResponse";
+import { hasPermission } from "@/lib/permissions";
 
 function slugify(text: string): string {
   const base = text
@@ -55,8 +56,8 @@ interface CreateCategoryBody {
 export async function POST(request: Request) {
   try {
     const user = await getAuthUser(request);
-    if (user?.role !== "admin") {
-      return apiError("Acesso negado. Apenas administradores podem gerenciar categorias.", 403, "FORBIDDEN");
+    if (!hasPermission(user, "menu_manage")) {
+      return apiError("Acesso negado. Permissão para gerenciar cardápio/categorias necessária.", 403, "FORBIDDEN");
     }
 
     const countCategories = await prisma.category.count();

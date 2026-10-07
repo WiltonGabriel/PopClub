@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { Prisma, DiscountType } from "@prisma/client";
+import { hasPermission } from "@/lib/permissions";
 
 export async function GET(
   request: Request,
@@ -81,8 +82,8 @@ export async function PUT(
 ) {
   try {
     const user = await getAuthUser(request);
-    if (user?.role !== "admin") {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+    if (!hasPermission(user, "promotions_manage")) {
+      return NextResponse.json({ error: "Acesso negado. Permissão para gerenciar promoções necessária." }, { status: 403 });
     }
 
     const { id } = await params;
@@ -168,8 +169,8 @@ export async function DELETE(
 ) {
   try {
     const user = await getAuthUser(request);
-    if (user?.role !== "admin") {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+    if (!hasPermission(user, "promotions_manage")) {
+      return NextResponse.json({ error: "Acesso negado. Permissão para gerenciar promoções necessária." }, { status: 403 });
     }
 
     const { id } = await params;

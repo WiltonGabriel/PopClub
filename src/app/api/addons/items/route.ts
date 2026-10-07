@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { addonCrudLimiter, getIpFromRequest } from "@/lib/rateLimit";
+import { hasPermission } from "@/lib/permissions";
 
 export async function POST(request: Request) {
   try {
@@ -12,8 +13,8 @@ export async function POST(request: Request) {
     }
 
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Acesso negado. Apenas administradores." }, { status: 403 });
+    if (!hasPermission(user, "menu_manage")) {
+      return NextResponse.json({ error: "Acesso negado. Permissão para gerenciar complementos necessária." }, { status: 403 });
     }
 
     let body: Record<string, unknown>;
