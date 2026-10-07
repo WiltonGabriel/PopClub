@@ -53,7 +53,7 @@ export function UrgencyScarcityBanner({ product }: UrgencyScarcityBannerProps) {
       } else if (urgencyType === "session") {
         modeLabel = "Oferta reservada para sua sessão:";
         const sessionKey = `pop_session_timer_${product.id}`;
-        let storedTarget = typeof window !== "undefined" ? sessionStorage.getItem(sessionKey) : null;
+        const storedTarget = typeof window !== "undefined" ? sessionStorage.getItem(sessionKey) : null;
         if (!storedTarget) {
           const newTarget = Date.now() + sessionMinutes * 60 * 1000;
           if (typeof window !== "undefined") sessionStorage.setItem(sessionKey, String(newTarget));

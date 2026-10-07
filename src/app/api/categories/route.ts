@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, apiError, apiSuccess } from "@/lib/apiResponse";
 
@@ -7,10 +8,10 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const includeInactive = searchParams.get("includeInactive") === "true";
 
-    const whereClause: any = includeInactive ? {} : { isActive: true };
-    const orderByClause: any = [{ order: "asc" }, { name: "asc" }];
+    const whereClause: Prisma.CategoryWhereInput = includeInactive ? {} : { isActive: true };
+    const orderByClause: Prisma.CategoryOrderByWithRelationInput[] = [{ order: "asc" }, { name: "asc" }];
 
-    const categories = await (prisma.category as any).findMany({
+    const categories = await prisma.category.findMany({
       where: whereClause,
       orderBy: orderByClause,
     });
@@ -18,6 +19,17 @@ export async function GET(request: Request) {
   } catch (error: unknown) {
     return handleApiError(error, "API:categories:GET", "Não foi possível carregar as categorias.");
   }
+}
+
+interface CreateCategoryBody {
+  name?: unknown;
+  slug?: unknown;
+  order?: unknown;
+  order_index?: unknown;
+  isDynamic?: unknown;
+  dynamicType?: unknown;
+  imageUrl?: unknown;
+  isActive?: unknown;
 }
 
 export async function POST(request: Request) {
@@ -32,34 +44,41 @@ export async function POST(request: Request) {
       return apiError("Limite máximo de 30 categorias atingido.", 400, "QUOTA_EXCEEDED");
     }
 
-    let body: any;
+    let body: CreateCategoryBody | null = null;
     try {
-      body = await request.json();
+      body = (await request.json()) as CreateCategoryBody;
     } catch {
       return apiError("Formato de requisição inválido ou corpo vazio.", 400, "BAD_REQUEST");
     }
 
     const { name, slug, order, order_index, isDynamic, dynamicType, imageUrl, isActive } = body || {};
-    if (!name) {
+    if (!name || typeof name !== "string") {
       return apiError("O nome da categoria é obrigatório.", 400, "MISSING_NAME");
     }
-    if (typeof name === "string" && name.length > 100) {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      return apiError("O nome da categoria é obrigatório.", 400, "MISSING_NAME");
+    }
+    if (trimmedName.length > 100) {
       return apiError("O nome da categoria não pode exceder 100 caracteres.", 400, "VALIDATION_ERROR");
     }
 
-    const autoSlug = slug || name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+    const autoSlug =
+      typeof slug === "string" && slug.trim()
+        ? slug.trim()
+        : trimmedName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 
-    const categoryData: any = {
-      name,
+    const categoryData: Prisma.CategoryCreateInput = {
+      name: trimmedName,
       slug: autoSlug,
       order: Number(order ?? order_index ?? 0),
       isDynamic: Boolean(isDynamic),
-      dynamicType: dynamicType || null,
-      imageUrl: imageUrl || null,
+      dynamicType: typeof dynamicType === "string" ? dynamicType : null,
+      imageUrl: typeof imageUrl === "string" ? imageUrl : null,
       isActive: isActive !== undefined ? Boolean(isActive) : true,
     };
 
-    const category = await (prisma.category as any).create({
+    const category = await prisma.category.create({
       data: categoryData,
     });
 

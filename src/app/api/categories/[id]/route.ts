@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { getAuthUser } from "@/lib/auth";
 
 export async function PATCH(
@@ -13,16 +14,20 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    const body = await request.json().catch(() => ({}));
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const { name, slug, order, order_index, isDynamic, dynamicType, imageUrl, isActive } = body;
 
-    const dataToUpdate: any = {};
+    const dataToUpdate: Prisma.CategoryUpdateInput = {};
     if (name !== undefined) {
       if (typeof name !== "string" || !name.trim()) {
         return NextResponse.json({ error: "Nome da categoria inválido." }, { status: 400 });
       }
-      dataToUpdate.name = name.trim();
-      dataToUpdate.slug = slug || name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      const trimmedName = name.trim();
+      dataToUpdate.name = trimmedName;
+      dataToUpdate.slug =
+        (typeof slug === "string" && slug.trim())
+          ? slug.trim()
+          : trimmedName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
     }
     if (order !== undefined || order_index !== undefined) {
       dataToUpdate.order = Number(order ?? order_index ?? 0);
@@ -31,10 +36,10 @@ export async function PATCH(
       dataToUpdate.isDynamic = Boolean(isDynamic);
     }
     if (dynamicType !== undefined) {
-      dataToUpdate.dynamicType = dynamicType || null;
+      dataToUpdate.dynamicType = typeof dynamicType === "string" ? dynamicType : null;
     }
     if (imageUrl !== undefined) {
-      dataToUpdate.imageUrl = imageUrl || null;
+      dataToUpdate.imageUrl = typeof imageUrl === "string" ? imageUrl : null;
     }
     if (isActive !== undefined) {
       dataToUpdate.isActive = Boolean(isActive);
@@ -46,9 +51,9 @@ export async function PATCH(
     });
 
     return NextResponse.json(updated);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao atualizar categoria:", error);
-    if (error.code === "P2025") {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
       return NextResponse.json({ error: "Categoria não encontrada." }, { status: 404 });
     }
     return NextResponse.json({ error: "Erro ao atualizar categoria." }, { status: 500 });
@@ -69,9 +74,9 @@ export async function DELETE(
     await prisma.category.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao deletar categoria:", error);
-    if (error.code === "P2025") {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
       return NextResponse.json({ error: "Categoria não encontrada." }, { status: 404 });
     }
     return NextResponse.json({ error: "Erro ao excluir categoria." }, { status: 500 });
