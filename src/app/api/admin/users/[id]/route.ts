@@ -210,7 +210,10 @@ export async function PATCH(
           { status: 400 }
         );
       }
+      const now = new Date();
       dataToUpdate.passwordHash = await hashPassword(password);
+      dataToUpdate.lastPasswordChangedAt = now;
+      dataToUpdate.passwordUpdatedAt = now;
       shouldInvalidateSession = true;
     }
 

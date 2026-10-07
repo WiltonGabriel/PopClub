@@ -27,6 +27,7 @@ export interface AppUser {
   lastNameChangedAt?: string | null;
   lastEmailChangedAt?: string | null;
   lastPasswordChangedAt?: string | null;
+  passwordUpdatedAt?: string | null;
   user_metadata?: {
     username?: string;
     full_name?: string;

@@ -37,6 +37,7 @@ export async function GET(request: Request) {
         lastNameChangedAt: true,
         lastEmailChangedAt: true,
         lastPasswordChangedAt: true,
+        passwordUpdatedAt: true,
         createdAt: true,
       },
     });
@@ -79,6 +80,7 @@ export async function GET(request: Request) {
       lastNameChangedAt: profile.lastNameChangedAt?.toISOString() || null,
       lastEmailChangedAt: profile.lastEmailChangedAt?.toISOString() || null,
       lastPasswordChangedAt: profile.lastPasswordChangedAt?.toISOString() || null,
+      passwordUpdatedAt: profile.passwordUpdatedAt?.toISOString() || profile.lastPasswordChangedAt?.toISOString() || null,
       created_at: profile.createdAt.toISOString(),
     });
   } catch {
@@ -146,6 +148,7 @@ async function handleUpdateProfile(request: Request) {
         lastNameChangedAt: true,
         lastEmailChangedAt: true,
         lastPasswordChangedAt: true,
+        passwordUpdatedAt: true,
       },
     });
 
@@ -234,23 +237,9 @@ async function handleUpdateProfile(request: Request) {
       }
     }
 
-    // 3. Redefinição de Senha
+    // 3. Redefinição de Senha (Livre a qualquer momento mediante verificação da senha atual)
     const requestedNewPassword = body?.new_password || body?.newPassword;
     if (requestedNewPassword !== undefined && String(requestedNewPassword).trim().length > 0) {
-      if (current?.lastPasswordChangedAt) {
-        const diff = Date.now() - new Date(current.lastPasswordChangedAt).getTime();
-        if (diff < FOURTEEN_DAYS_MS) {
-          const daysLeft = Math.ceil((FOURTEEN_DAYS_MS - diff) / (24 * 60 * 60 * 1000));
-          return NextResponse.json(
-            {
-              error: `Dado alterado recentemente. Próxima alteração permitida em ${daysLeft} ${daysLeft === 1 ? "dia" : "dias"}.`,
-              code: "COOLDOWN_ACTIVE",
-            },
-            { status: 400 }
-          );
-        }
-      }
-
       if (current?.isRegistered && current?.passwordHash) {
         const currentPassword = body?.current_password || body?.currentPassword;
         if (!currentPassword) {
@@ -273,8 +262,10 @@ async function handleUpdateProfile(request: Request) {
         );
       }
 
+      const now = new Date();
       dataToUpdate.passwordHash = await hashPassword(newPass);
-      dataToUpdate.lastPasswordChangedAt = new Date();
+      dataToUpdate.lastPasswordChangedAt = now;
+      dataToUpdate.passwordUpdatedAt = now;
     }
 
     if (body?.avatar_url !== undefined) dataToUpdate.avatarUrl = body.avatar_url;
@@ -347,6 +338,7 @@ async function handleUpdateProfile(request: Request) {
       lastNameChangedAt: updated.lastNameChangedAt?.toISOString() || null,
       lastEmailChangedAt: updated.lastEmailChangedAt?.toISOString() || null,
       lastPasswordChangedAt: updated.lastPasswordChangedAt?.toISOString() || null,
+      passwordUpdatedAt: updated.passwordUpdatedAt?.toISOString() || updated.lastPasswordChangedAt?.toISOString() || null,
       created_at: updated.createdAt.toISOString(),
     });
   } catch {

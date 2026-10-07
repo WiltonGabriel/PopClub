@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -321,10 +321,50 @@ export default function AccountPage() {
 
   const [isRescueModalOpen, setIsRescueModalOpen] = useState(false);
 
-  // Carência de 14 Dias (2 Semanas)
+  // Carência de 14 Dias (2 Semanas) para Nome e E-mail
   const nameDaysRemaining = getDaysRemaining(profile?.lastNameChangedAt || user?.lastNameChangedAt);
   const emailDaysRemaining = getDaysRemaining(profile?.lastEmailChangedAt || user?.lastEmailChangedAt);
-  const passwordDaysRemaining = getDaysRemaining(profile?.lastPasswordChangedAt || user?.lastPasswordChangedAt);
+
+  // Política de Rotação e Segurança de Senha (Ciclo Recomendado de 90 Dias)
+  const rawLastPasswordDate =
+    profile?.passwordUpdatedAt ||
+    profile?.lastPasswordChangedAt ||
+    user?.passwordUpdatedAt ||
+    user?.lastPasswordChangedAt ||
+    profile?.created_at ||
+    user?.createdAt;
+
+  const passwordRotationInfo = useMemo(() => {
+    const PASSWORD_ROTATION_DAYS = 90;
+    if (!rawLastPasswordDate) {
+      return {
+        formattedDate: "Não informada",
+        daysRemaining: PASSWORD_ROTATION_DAYS,
+        isExpired: false,
+        isWarning: false,
+      };
+    }
+    const dateObj = new Date(rawLastPasswordDate);
+    const isValidDate = !isNaN(dateObj.getTime());
+    if (!isValidDate) {
+      return {
+        formattedDate: "Não informada",
+        daysRemaining: PASSWORD_ROTATION_DAYS,
+        isExpired: false,
+        isWarning: false,
+      };
+    }
+    const formattedDate = `${dateObj.toLocaleDateString("pt-BR")} às ${dateObj.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+    const expirationTime = dateObj.getTime() + PASSWORD_ROTATION_DAYS * 24 * 60 * 60 * 1000;
+    const diffMs = expirationTime - Date.now();
+    const daysRemaining = Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000)));
+    return {
+      formattedDate,
+      daysRemaining,
+      isExpired: daysRemaining === 0,
+      isWarning: daysRemaining > 0 && daysRemaining <= 15,
+    };
+  }, [rawLastPasswordDate]);
 
   // Preferências de Pagamento na Entrega
   const [preferredPaymentMethod, setPreferredPaymentMethod] = useState<"pix_entrega" | "cartao_maquininha" | "dinheiro">("pix_entrega");
@@ -1441,35 +1481,51 @@ export default function AccountPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-2.5">
                     <div>
                       <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
-                        <Lock className="w-3.5 h-3.5 text-primary" /> Senha
+                        <Lock className="w-3.5 h-3.5 text-primary" /> Senha de Acesso
                       </Label>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Protege sua conta e valida operações sensíveis.
+                        Protege sua conta e valida operações administrativas e sensíveis.
                       </p>
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
-                      {passwordDaysRemaining > 0 ? (
+                      {passwordRotationInfo.isExpired ? (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-semibold">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          <span>Rotação recomendada (+90 dias)</span>
+                        </div>
+                      ) : passwordRotationInfo.isWarning ? (
                         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-semibold">
                           <Clock className="w-3.5 h-3.5" />
-                          <span>Próxima alteração em {passwordDaysRemaining} {passwordDaysRemaining === 1 ? "dia" : "dias"}</span>
+                          <span>
+                            Rotação recomendada em {passwordRotationInfo.daysRemaining}{" "}
+                            {passwordRotationInfo.daysRemaining === 1 ? "dia" : "dias"}
+                          </span>
                         </div>
                       ) : (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setCurrentPasswordInput("");
-                            setNewPasswordInput("");
-                            setConfirmPasswordInput("");
-                            setIsPasswordModalOpen(true);
-                          }}
-                          className="h-8 px-3 rounded-xl border-gray-200 dark:border-zinc-700 hover:border-primary text-xs font-bold text-zinc-700 dark:text-zinc-200 hover:text-primary transition-all cursor-pointer flex items-center gap-1.5"
-                        >
-                          <KeyRound className="w-3 h-3" /> Redefinir Senha
-                        </Button>
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                          <span>
+                            Senha em dia • Rotação em {passwordRotationInfo.daysRemaining}{" "}
+                            {passwordRotationInfo.daysRemaining === 1 ? "dia" : "dias"}
+                          </span>
+                        </div>
                       )}
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setCurrentPasswordInput("");
+                          setNewPasswordInput("");
+                          setConfirmPasswordInput("");
+                          setIsPasswordModalOpen(true);
+                        }}
+                        className="h-8 px-3 rounded-xl border-gray-200 dark:border-zinc-700 hover:border-primary text-xs font-bold text-zinc-700 dark:text-zinc-200 hover:text-primary transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        <KeyRound className="w-3 h-3" /> Redefinir Senha
+                      </Button>
 
                       <button
                         type="button"
@@ -1488,10 +1544,26 @@ export default function AccountPage() {
                     disabled
                     className="h-11 rounded-xl bg-gray-50/80 dark:bg-[#151A28] border-gray-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 tracking-widest font-mono cursor-default"
                   />
-                  {passwordDaysRemaining > 0 && (
-                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1.5">
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mt-2.5 text-[11px] text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      <span>
+                        Última alteração de senha:{" "}
+                        <strong className="text-zinc-800 dark:text-zinc-200 font-semibold">
+                          {passwordRotationInfo.formattedDate}
+                        </strong>
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                      Ciclo de segurança com rotação periódica de 90 dias
+                    </span>
+                  </div>
+
+                  {passwordRotationInfo.isExpired && (
+                    <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-2 flex items-center gap-1.5">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      Dado alterado recentemente. Próxima alteração permitida em {passwordDaysRemaining} {passwordDaysRemaining === 1 ? "dia" : "dias"}.
+                      Sua senha foi definida há mais de 90 dias. Para manter sua conta protegida, recomendamos redefini-la.
                     </p>
                   )}
                 </div>

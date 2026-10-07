@@ -27,6 +27,7 @@ export interface UserProfile {
   lastNameChangedAt?: string | null;
   lastEmailChangedAt?: string | null;
   lastPasswordChangedAt?: string | null;
+  passwordUpdatedAt?: string | null;
   created_at: string;
 }
 

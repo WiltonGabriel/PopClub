@@ -64,6 +64,7 @@ export async function POST(request: Request) {
         recoveryRequestCount: 0,
         recoveryBlockedUntil: null,
         lastPasswordChangedAt: new Date(),
+        passwordUpdatedAt: new Date(),
       },
     });
 

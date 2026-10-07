@@ -70,6 +70,7 @@ model User {
   lastNameChangedAt     DateTime?          @map("last_name_changed_at")
   lastEmailChangedAt    DateTime?          @map("last_email_changed_at")
   lastPasswordChangedAt DateTime?          @map("last_password_changed_at")
+  passwordUpdatedAt     DateTime?          @default(now()) @map("password_updated_at")
   recoveryRequestCount  Int                @default(0) @map("recovery_request_count")
   recoveryBlockedUntil  DateTime?          @map("recovery_blocked_until")
   customRoleId          String?            @map("custom_role_id")
