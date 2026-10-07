@@ -47,6 +47,18 @@ export interface DBCoupon {
   createdAt: Date;
 }
 
+export interface DBCategory {
+  id: string;
+  name: string;
+  slug?: string | null;
+  order: number;
+  isDynamic: boolean;
+  dynamicType?: string | null;
+  imageUrl?: string | null;
+  isActive: boolean;
+  createdAt: Date;
+}
+
 export type AppPrismaClient = Omit<PrismaClient, "coupon" | "addonItem"> & {
   addonItem: {
     findMany: (args?: QueryArgs) => Promise<DBAddonItem[]>;

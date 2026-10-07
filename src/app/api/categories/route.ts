@@ -1,5 +1,4 @@
-import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import { prisma, DBCategory } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, apiError, apiSuccess } from "@/lib/apiResponse";
 
@@ -8,10 +7,13 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const includeInactive = searchParams.get("includeInactive") === "true";
 
-    const whereClause: Prisma.CategoryWhereInput = includeInactive ? {} : { isActive: true };
-    const orderByClause: Prisma.CategoryOrderByWithRelationInput[] = [{ order: "asc" }, { name: "asc" }];
+    const whereClause: Record<string, unknown> = includeInactive ? {} : { isActive: true };
+    const orderByClause = [{ order: "asc" }, { name: "asc" }];
 
-    const categories = await prisma.category.findMany({
+    const categories = await (prisma.category.findMany as unknown as (args?: {
+      where?: Record<string, unknown>;
+      orderBy?: unknown;
+    }) => Promise<DBCategory[]>)({
       where: whereClause,
       orderBy: orderByClause,
     });
@@ -68,7 +70,7 @@ export async function POST(request: Request) {
         ? slug.trim()
         : trimmedName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 
-    const categoryData: Prisma.CategoryCreateInput = {
+    const categoryData: Partial<DBCategory> & { name: string } = {
       name: trimmedName,
       slug: autoSlug,
       order: Number(order ?? order_index ?? 0),
@@ -78,7 +80,9 @@ export async function POST(request: Request) {
       isActive: isActive !== undefined ? Boolean(isActive) : true,
     };
 
-    const category = await prisma.category.create({
+    const category = await (prisma.category.create as unknown as (args: {
+      data: Record<string, unknown>;
+    }) => Promise<DBCategory>)({
       data: categoryData,
     });
 

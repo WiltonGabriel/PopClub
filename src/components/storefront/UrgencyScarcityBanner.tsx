@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Flame, Clock, Timer, Sparkles } from "lucide-react";
+import { Flame, Timer, Sparkles } from "lucide-react";
 import { Product } from "../../services/productService";
 
 interface UrgencyScarcityBannerProps {

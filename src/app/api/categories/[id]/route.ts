@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, DBCategory } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getAuthUser } from "@/lib/auth";
 
@@ -17,7 +17,7 @@ export async function PATCH(
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const { name, slug, order, order_index, isDynamic, dynamicType, imageUrl, isActive } = body;
 
-    const dataToUpdate: Prisma.CategoryUpdateInput = {};
+    const dataToUpdate: Partial<DBCategory> = {};
     if (name !== undefined) {
       if (typeof name !== "string" || !name.trim()) {
         return NextResponse.json({ error: "Nome da categoria inválido." }, { status: 400 });
@@ -45,7 +45,10 @@ export async function PATCH(
       dataToUpdate.isActive = Boolean(isActive);
     }
 
-    const updated = await prisma.category.update({
+    const updated = await (prisma.category.update as unknown as (args: {
+      where: { id: string };
+      data: Record<string, unknown>;
+    }) => Promise<DBCategory>)({
       where: { id },
       data: dataToUpdate,
     });
