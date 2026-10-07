@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Flame,
   Clock,
@@ -10,13 +10,10 @@ import {
   Play,
   CalendarPlus,
   Layers,
-  AlertCircle,
   Tag,
-  CheckCircle2,
   RefreshCw,
 } from "lucide-react";
 import { Promotion, promotionService } from "../../services/promotionService";
-import { Button } from "../ui/button";
 import { useToast } from "../ui/ToastNotification";
 
 interface PromotionsBatchMonitorProps {
@@ -30,6 +27,13 @@ export function PromotionsBatchMonitor({
 }: PromotionsBatchMonitorProps) {
   const { showToast } = useToast();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [currentTimestamp, setCurrentTimestamp] = useState<number>(0);
+
+  useEffect(() => {
+    setCurrentTimestamp(Date.now());
+    const interval = setInterval(() => setCurrentTimestamp(Date.now()), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const activePromos = promotions.filter((p) => p.isActive);
 
@@ -122,8 +126,9 @@ export function PromotionsBatchMonitor({
   // Formatação do prazo restante
   const getExpiresRemainingText = (expiresAtStr?: string | null) => {
     if (!expiresAtStr) return "Sem data limite (Contínua)";
+    if (!currentTimestamp) return "Calculando...";
     const exp = new Date(expiresAtStr);
-    const diffMs = exp.getTime() - Date.now();
+    const diffMs = exp.getTime() - currentTimestamp;
     if (diffMs <= 0) return "Vencida";
 
     const hours = Math.floor(diffMs / (1000 * 60 * 60));
@@ -184,7 +189,7 @@ export function PromotionsBatchMonitor({
             const sold = promo.scarcitySold || 0;
             const progress = initial > 0 ? Math.min(100, Math.round(((initial - remaining) / initial) * 100)) : 0;
             const isUpdating = updatingId === promo.id;
-            const isExpired = promo.expiresAt && new Date(promo.expiresAt).getTime() < Date.now();
+            const isExpired = Boolean(promo.expiresAt && currentTimestamp && new Date(promo.expiresAt).getTime() < currentTimestamp);
 
             return (
               <div

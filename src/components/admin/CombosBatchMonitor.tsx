@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Zap,
   Clock,
@@ -27,6 +27,13 @@ export function CombosBatchMonitor({
 }: CombosBatchMonitorProps) {
   const { showToast } = useToast();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [currentTimestamp, setCurrentTimestamp] = useState<number>(0);
+
+  useEffect(() => {
+    setCurrentTimestamp(Date.now());
+    const interval = setInterval(() => setCurrentTimestamp(Date.now()), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const activeCombos = combos.filter((c) => c.isAvailable !== false);
 
@@ -119,8 +126,9 @@ export function CombosBatchMonitor({
 
   const getExpiresRemainingText = (expiresAtStr?: string | null) => {
     if (!expiresAtStr) return "Sem data limite (Oferta Contínua)";
+    if (!currentTimestamp) return "Calculando...";
     const exp = new Date(expiresAtStr);
-    const diffMs = exp.getTime() - Date.now();
+    const diffMs = exp.getTime() - currentTimestamp;
     if (diffMs <= 0) return "Vencida";
 
     const hours = Math.floor(diffMs / (1000 * 60 * 60));
@@ -182,7 +190,7 @@ export function CombosBatchMonitor({
             const progress = initial > 0 ? Math.min(100, Math.round(((initial - remaining) / initial) * 100)) : 0;
             const isUpdating = updatingId === combo.id;
             const isAvailable = combo.isAvailable !== false;
-            const isExpired = combo.expiresAt && new Date(combo.expiresAt).getTime() < Date.now();
+            const isExpired = Boolean(combo.expiresAt && currentTimestamp && new Date(combo.expiresAt).getTime() < currentTimestamp);
 
             return (
               <div
