@@ -22,10 +22,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordRecoveryRescueModal } from "@/components/auth/PasswordRecoveryRescueModal";
 
+export interface VerifiedAddressPayload {
+  street?: string;
+  number?: string;
+  neighborhood?: string;
+  city?: string;
+  complement?: string | null;
+  reference?: string | null;
+  zip?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  [key: string]: unknown;
+}
+
 interface FastAccessModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (verifiedAddress?: unknown, clientInfo?: { name: string; phone: string }) => void;
+  onSuccess: (verifiedAddress?: VerifiedAddressPayload, clientInfo?: { name: string; phone: string }) => void;
   onRequestNewAddress?: () => void;
   initialName?: string;
   initialPhone?: string;

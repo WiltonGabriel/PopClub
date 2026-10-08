@@ -64,17 +64,6 @@ export function GpsInteractiveMapModal({
   const [locationDetails, setLocationDetails] = useState<ReverseGeocodeResult | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
 
-  // Sincroniza coordenadas iniciais ao abrir o modal
-  useEffect(() => {
-    if (isOpen) {
-      setGpsError(null);
-      if (initialCoords && !isNaN(initialCoords.lat) && !isNaN(initialCoords.lng)) {
-        setCoords(initialCoords);
-        fetchReverseGeocode(initialCoords.lat, initialCoords.lng);
-      }
-    }
-  }, [isOpen, initialCoords]);
-
   const fetchReverseGeocode = useCallback(async (lat: number, lon: number) => {
     setIsGeocoding(true);
     try {
@@ -88,6 +77,17 @@ export function GpsInteractiveMapModal({
       setIsGeocoding(false);
     }
   }, []);
+
+  // Sincroniza coordenadas iniciais ao abrir o modal
+  useEffect(() => {
+    if (isOpen) {
+      setGpsError(null);
+      if (initialCoords && !isNaN(initialCoords.lat) && !isNaN(initialCoords.lng)) {
+        setCoords(initialCoords);
+        fetchReverseGeocode(initialCoords.lat, initialCoords.lng);
+      }
+    }
+  }, [isOpen, initialCoords, fetchReverseGeocode]);
 
   // Botão "Centralizar na Minha Posição" (dispara GPS do navegador)
   const handleCenterOnUserGps = () => {

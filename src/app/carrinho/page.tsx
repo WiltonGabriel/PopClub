@@ -47,7 +47,7 @@ import { NotificationPermissionBanner } from "../../components/storefront/Notifi
 import { formatCurrency, parseSafeNumber } from "@/lib/formatters";
 import { ResilientErrorAlert } from "../../components/ui/ResilientErrorAlert";
 import { AppApiError } from "@/lib/fetchClient";
-import { FastAccessModal, formatPhoneInput } from "@/components/auth/FastAccessModal";
+import { FastAccessModal, formatPhoneInput, VerifiedAddressPayload } from "@/components/auth/FastAccessModal";
 import { CompleteRegistrationModal } from "@/components/auth/CompleteRegistrationModal";
 import { PasswordRecoveryRescueModal } from "@/components/auth/PasswordRecoveryRescueModal";
 import { VALID_BRAZILIAN_DDDS } from "@/lib/validations/auth";
@@ -168,8 +168,9 @@ export default function CarrinhoPage() {
 
       setInlineFailedAttempts(0);
       await refreshUser();
-    } catch (err: any) {
-      setInlineError(err.message || "Senha incorreta. Tente novamente.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Senha incorreta. Tente novamente.";
+      setInlineError(msg);
     } finally {
       setInlinePasswordLoading(false);
     }
@@ -341,15 +342,20 @@ export default function CarrinhoPage() {
   useEffect(() => {
     if (user?.id) {
       // Pré-seleciona forma de pagamento e troco preferencial do cliente
-      const prefPayment = user.defaultPaymentMethod || user.default_payment_method || (user.accessibilitySettings as any)?.defaultPaymentMethod;
+      const accessSettings = user.accessibilitySettings as Record<string, unknown> | null;
+      const prefPayment =
+        user.defaultPaymentMethod ||
+        user.default_payment_method ||
+        (accessSettings?.defaultPaymentMethod as string | undefined);
       if (prefPayment && (prefPayment === "pix_entrega" || prefPayment === "cartao_maquininha" || prefPayment === "dinheiro")) {
         setPaymentType(prefPayment);
       }
-      const prefChange = user.defaultChangeFor !== undefined && user.defaultChangeFor !== null
-        ? user.defaultChangeFor
-        : (user.default_change_for !== undefined && user.default_change_for !== null
-            ? user.default_change_for
-            : (user.accessibilitySettings as any)?.defaultChangeFor);
+      const prefChange =
+        user.defaultChangeFor !== undefined && user.defaultChangeFor !== null
+          ? user.defaultChangeFor
+          : user.default_change_for !== undefined && user.default_change_for !== null
+          ? user.default_change_for
+          : (accessSettings?.defaultChangeFor as number | string | undefined);
       if (prefChange !== undefined && prefChange !== null && prefChange !== "") {
         setChangeFor(String(prefChange));
       }
@@ -439,7 +445,10 @@ export default function CarrinhoPage() {
     }
   };
 
-  const handleFastAccessSuccess = (verifiedAddress?: any, clientInfo?: { name: string; phone: string }) => {
+  const handleFastAccessSuccess = (
+    verifiedAddress?: VerifiedAddressPayload,
+    clientInfo?: { name: string; phone: string }
+  ) => {
     setIsFastAccessModalOpen(false);
     if (clientInfo) {
       if (clientInfo.name) setInlineName(clientInfo.name);
@@ -496,7 +505,7 @@ export default function CarrinhoPage() {
   }, [storeSettings, itemsTotal, isFreeDelivery, deliveryMode]);
 
   const couponDiscount = appliedCoupon ? appliedCoupon.discountAmount : 0;
-  const totalDiscount = Number((promoDiscount + couponDiscount).toFixed(2));
+  const _totalDiscount = Number((promoDiscount + couponDiscount).toFixed(2));
   const finalTotal = Math.max(0, Number((itemsTotal - couponDiscount + deliveryFee).toFixed(2)));
 
   // Resumo do carrinho para contingência via WhatsApp
@@ -596,8 +605,8 @@ export default function CarrinhoPage() {
         setCheckoutErrorObj(null);
         setTimeout(() => setIdentificationSuccessMsg(null), 6000);
       }
-    } catch (err: any) {
-      const errorMsg = err.message || "Erro ao conectar.";
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Erro ao conectar.";
       setInlineError(errorMsg);
       const bannerMsg = "Identificação necessária: Informe seu nome e WhatsApp antes de continuar.";
       setCheckoutError(bannerMsg);
@@ -683,8 +692,9 @@ export default function CarrinhoPage() {
       setTimeout(() => {
         numberInputRef.current?.focus();
       }, 250);
-    } catch (err: any) {
-      setGeoToast(err.message || "Erro ao consultar endereço. Digite manualmente.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro ao consultar endereço. Digite manualmente.";
+      setGeoToast(msg);
       setTimeout(() => setGeoToast(null), 5000);
     } finally {
       setIsLocating(false);
@@ -770,8 +780,9 @@ export default function CarrinhoPage() {
             setIsFastAccessModalOpen(true);
             return;
           }
-        } catch (err: any) {
-          setInlineError(err.message || "Erro ao conectar.");
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : "Erro ao conectar.";
+          setInlineError(msg);
           setIsFastAccessModalOpen(true);
           return;
         } finally {
@@ -881,9 +892,10 @@ export default function CarrinhoPage() {
       if (!user) {
         refreshUser().catch(() => {});
       }
-    } catch (err: any) {
-      setCheckoutError(err.message || "Erro ao processar pedido no servidor.");
-      setCheckoutErrorObj(err);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro ao processar pedido no servidor.";
+      setCheckoutError(msg);
+      setCheckoutErrorObj(err as AppApiError | Error);
       setTimeout(() => {
         errorAlertRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 100);
@@ -982,8 +994,8 @@ export default function CarrinhoPage() {
         }
         setIdentificationSuccessMsg("Identificação confirmada com sucesso! Você já pode concluir seu pedido.");
         setTimeout(() => setIdentificationSuccessMsg(null), 5000);
-      } catch (err: any) {
-        const msg = err.message || "Identificação necessária: Informe seu nome e WhatsApp antes de continuar.";
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Identificação necessária: Informe seu nome e WhatsApp antes de continuar.";
         setCheckoutError(msg);
         setCheckoutErrorObj(new AppApiError(msg, "IDENTIFICATION_REQUIRED", 400));
         handleReviewIdentification();

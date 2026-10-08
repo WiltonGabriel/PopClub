@@ -158,7 +158,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const result = await authService.fastAccess(name, phone);
     if (result.status === "authenticated") {
       if (result.user) {
-        const u = result.user as any;
+        const u = result.user as AppUser;
         const defaultAvatar = u.isRegistered === false ? "/avatars/avatar-guest-user.svg" : "/avatars/avatar-sorvete.svg";
         const avatar = u.avatar || u.avatarUrl || defaultAvatar;
         setUser({
