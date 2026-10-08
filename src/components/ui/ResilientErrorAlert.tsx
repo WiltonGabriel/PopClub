@@ -10,6 +10,7 @@ import {
   X,
   AlertCircle,
   ExternalLink,
+  User,
 } from "lucide-react";
 import { AppApiError } from "@/lib/fetchClient";
 
@@ -17,6 +18,7 @@ export interface ResilientErrorAlertProps {
   error: AppApiError | Error | { code?: string; message: string; details?: unknown } | string | null;
   onRetry?: () => void;
   onReviewAddress?: () => void;
+  onReviewIdentification?: () => void;
   onDismiss?: () => void;
   whatsappNumber?: string | null;
   cartSummary?: string;
@@ -28,6 +30,7 @@ export function ResilientErrorAlert({
   error,
   onRetry,
   onReviewAddress,
+  onReviewIdentification,
   onDismiss,
   whatsappNumber,
   cartSummary,
@@ -70,7 +73,14 @@ export function ResilientErrorAlert({
     message.toLowerCase().includes("banco de dados") ||
     message.toLowerCase().includes("servidor");
 
+  const isIdentification =
+    code === "IDENTIFICATION_REQUIRED" ||
+    message.toLowerCase().includes("identificação") ||
+    message.toLowerCase().includes("whatsapp") ||
+    message.toLowerCase().includes("nome completo");
+
   const isValidationOrAddress =
+    isIdentification ||
     code === "VALIDATION_ERROR" ||
     code === "PRISMA_VALIDATION_ERROR" ||
     code === "RESOURCE_NOT_FOUND_OR_RELATION_MISSING" ||
@@ -222,13 +232,13 @@ export function ResilientErrorAlert({
       >
         <div className="flex items-start gap-4">
           <div className="p-2.5 rounded-xl bg-primary/20 text-primary dark:text-[#E899FF] shrink-0 animate-bounce-subtle">
-            <MapPin className="w-5 h-5" />
+            {isIdentification ? <User className="w-5 h-5" /> : <MapPin className="w-5 h-5" />}
           </div>
 
           <div className="flex-1 space-y-1.5 min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-mono text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary/30">
-                Atenção ao Preenchimento
+                {isIdentification ? "Identificação Obrigatória" : "Atenção ao Preenchimento"}
               </span>
             </div>
             <h4 className="font-heading text-sm font-black uppercase tracking-tight text-purple-950 dark:text-purple-100">
@@ -250,7 +260,16 @@ export function ResilientErrorAlert({
             )}
 
             <div className="flex flex-wrap items-center gap-2 pt-2">
-              {onReviewAddress && (
+              {isIdentification && onReviewIdentification ? (
+                <button
+                  type="button"
+                  onClick={onReviewIdentification}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-heading font-black uppercase tracking-wider bg-gradient-to-r from-primary to-accent hover:opacity-90 active:scale-95 text-white shadow-md shadow-primary/20 transition-all cursor-pointer"
+                >
+                  <User className="w-3.5 h-3.5" />
+                  Preencher Identificação
+                </button>
+              ) : onReviewAddress ? (
                 <button
                   type="button"
                   onClick={onReviewAddress}
@@ -259,7 +278,7 @@ export function ResilientErrorAlert({
                   <MapPin className="w-3.5 h-3.5" />
                   Revisar Endereço de Entrega
                 </button>
-              )}
+              ) : null}
 
               {onRetry && (
                 <button

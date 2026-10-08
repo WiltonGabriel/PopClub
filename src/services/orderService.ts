@@ -298,11 +298,24 @@ export const orderService = {
   },
 
   async getOrderById(orderId: string, token?: string): Promise<Order> {
-    let url = `/api/orders?id=${encodeURIComponent(orderId)}`;
-    if (token) url += `&token=${encodeURIComponent(token)}`;
+    const cleanId = encodeURIComponent(orderId.trim());
+    let url = `/api/orders/${cleanId}`;
+    if (token) url += `?token=${encodeURIComponent(token)}`;
     const res = await fetch(url, {
       signal: AbortSignal.timeout(10000),
     });
+    if (!res.ok && res.status === 404) {
+      let fallbackUrl = `/api/orders?id=${cleanId}`;
+      if (token) fallbackUrl += `&token=${encodeURIComponent(token)}`;
+      const fallbackRes = await fetch(fallbackUrl, {
+        signal: AbortSignal.timeout(10000),
+      });
+      const data = await safeParseResponse<Order | { order?: Order; data?: Order }>(
+        fallbackRes,
+        "Pedido não encontrado."
+      );
+      return "data" in data && data.data ? data.data : "order" in data && data.order ? data.order : (data as Order);
+    }
     const data = await safeParseResponse<Order | { order?: Order; data?: Order }>(
       res,
       "Pedido não encontrado."

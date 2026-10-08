@@ -25,8 +25,10 @@ import { PasswordRecoveryRescueModal } from "@/components/auth/PasswordRecoveryR
 interface FastAccessModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (verifiedAddress?: unknown) => void;
+  onSuccess: (verifiedAddress?: unknown, clientInfo?: { name: string; phone: string }) => void;
   onRequestNewAddress?: () => void;
+  initialName?: string;
+  initialPhone?: string;
 }
 
 export function formatPhoneInput(value: string): string {
@@ -42,6 +44,8 @@ export function FastAccessModal({
   onClose,
   onSuccess,
   onRequestNewAddress,
+  initialName = "",
+  initialPhone = "",
 }: FastAccessModalProps) {
   const { fastAccess, verifyDevice, refreshUser } = useAuth();
 
@@ -49,10 +53,17 @@ export function FastAccessModal({
   const [step, setStep] = useState<"identify" | "verify_device">("identify");
 
   // Campos de identificação
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName] = useState(initialName);
+  const [phone, setPhone] = useState(initialPhone ? formatPhoneInput(initialPhone) : "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialName) setName(initialName);
+      if (initialPhone) setPhone(formatPhoneInput(initialPhone));
+    }
+  }, [isOpen, initialName, initialPhone]);
 
   // Reconhecimento de cliente cadastrado
   const [isRegisteredDetected, setIsRegisteredDetected] = useState(false);
@@ -142,7 +153,7 @@ export function FastAccessModal({
         setMaskedAddress(res.maskedAddress);
         setStep("verify_device");
       } else if (res.status === "authenticated") {
-        onSuccess();
+        onSuccess(undefined, { name: name.trim(), phone: rawPhone });
         onClose();
       }
     } catch (err: unknown) {
@@ -183,7 +194,7 @@ export function FastAccessModal({
 
       setFailedPasswordAttempts(0);
       await refreshUser();
-      onSuccess();
+      onSuccess(undefined, { name: name.trim(), phone: cleanPhone });
       onClose();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Senha incorreta. Tente novamente.";
@@ -221,7 +232,7 @@ export function FastAccessModal({
       });
 
       if (res.status === "authenticated") {
-        onSuccess(res.verifiedAddress);
+        onSuccess(res.verifiedAddress, { name: name.trim(), phone: rawPhone });
         onClose();
       }
     } catch (err: unknown) {

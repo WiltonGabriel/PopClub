@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
 
     const state = address.state || "";
     const postcode = address.postcode || "";
+    const houseNumber = address.house_number || "";
 
     const cityState = city && state ? `${city} - ${state}` : city || state || "Local";
 
@@ -80,6 +81,7 @@ export async function GET(request: NextRequest) {
       neighborhood,
       city: cityState,
       postcode,
+      houseNumber,
       displayName: data.display_name || "",
       latitude,
       longitude,

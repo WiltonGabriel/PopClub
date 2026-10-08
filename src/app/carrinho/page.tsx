@@ -50,6 +50,8 @@ import { AppApiError } from "@/lib/fetchClient";
 import { FastAccessModal, formatPhoneInput } from "@/components/auth/FastAccessModal";
 import { CompleteRegistrationModal } from "@/components/auth/CompleteRegistrationModal";
 import { PasswordRecoveryRescueModal } from "@/components/auth/PasswordRecoveryRescueModal";
+import { VALID_BRAZILIAN_DDDS } from "@/lib/validations/auth";
+import { GpsInteractiveMapModal, GpsLocationConfirmedData } from "@/components/storefront/GpsInteractiveMapModal";
 
 export default function CarrinhoPage() {
   const router = useRouter();
@@ -86,11 +88,18 @@ export default function CarrinhoPage() {
   const [isFastAccessModalOpen, setIsFastAccessModalOpen] = useState(false);
   const [isCompleteRegModalOpen, setIsCompleteRegModalOpen] = useState(false);
 
+  // Modal de Mapa Interativo no GPS
+  const [isGpsModalOpen, setIsGpsModalOpen] = useState(false);
+
   // Identificação Inline no Topo do Checkout (Acesso Rápido)
   const [inlineName, setInlineName] = useState("");
   const [inlinePhone, setInlinePhone] = useState("");
   const [inlineLoading, setInlineLoading] = useState(false);
   const [inlineError, setInlineError] = useState<string | null>(null);
+  const [identificationSuccessMsg, setIdentificationSuccessMsg] = useState<string | null>(null);
+  const identificationSectionRef = useRef<HTMLElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
 
   // Reconhecimento de cliente cadastrado inline
   const [inlineRegisteredDetected, setInlineRegisteredDetected] = useState(false);
@@ -430,8 +439,12 @@ export default function CarrinhoPage() {
     }
   };
 
-  const handleFastAccessSuccess = (verifiedAddress?: any) => {
-    if (user) {
+  const handleFastAccessSuccess = (verifiedAddress?: any, clientInfo?: { name: string; phone: string }) => {
+    setIsFastAccessModalOpen(false);
+    if (clientInfo) {
+      if (clientInfo.name) setInlineName(clientInfo.name);
+      if (clientInfo.phone) setInlinePhone(formatPhoneInput(clientInfo.phone));
+    } else if (user) {
       if (user.fullName) setInlineName(user.fullName);
       if (user.phone) setInlinePhone(formatPhoneInput(user.phone));
     }
@@ -446,6 +459,11 @@ export default function CarrinhoPage() {
       if (verifiedAddress.latitude !== undefined) setLatitude(verifiedAddress.latitude || null);
       if (verifiedAddress.longitude !== undefined) setLongitude(verifiedAddress.longitude || null);
     }
+    setIdentificationSuccessMsg("Identificação confirmada com sucesso! Você já pode concluir seu pedido.");
+    setCheckoutError("");
+    setCheckoutErrorObj(null);
+    setInlineError(null);
+    setTimeout(() => setIdentificationSuccessMsg(null), 6000);
   };
 
   const handleRemoveCoupon = () => {
@@ -514,6 +532,128 @@ export default function CarrinhoPage() {
         input.focus();
       }
     }
+  };
+
+  const handleReviewIdentification = () => {
+    if (identificationSectionRef.current) {
+      identificationSectionRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    setTimeout(() => {
+      const nameParts = inlineName.trim().split(/\s+/).filter(Boolean);
+      if (nameParts.length < 2) {
+        nameInputRef.current?.focus();
+      } else {
+        phoneInputRef.current?.focus();
+      }
+    }, 250);
+  };
+
+  const handleConfirmInlineIdentification = async () => {
+    setInlineError(null);
+    setIdentificationSuccessMsg(null);
+    const nameParts = inlineName.trim().split(/\s+/).filter(Boolean);
+    const cleanPhone = inlinePhone.replace(/\D/g, "");
+
+    if (nameParts.length < 2) {
+      const err = "Por favor, informe seu nome completo (mínimo 2 palavras/sobrenome).";
+      setInlineError(err);
+      const bannerMsg = "Identificação necessária: Informe seu nome e WhatsApp antes de continuar.";
+      setCheckoutError(bannerMsg);
+      setCheckoutErrorObj(new AppApiError(bannerMsg, "IDENTIFICATION_REQUIRED", 400));
+      handleReviewIdentification();
+      return;
+    }
+
+    if (cleanPhone.length < 10 || cleanPhone.length > 11) {
+      const err = "Por favor, informe um WhatsApp válido com DDD (10 ou 11 dígitos).";
+      setInlineError(err);
+      const bannerMsg = "Identificação necessária: Informe seu nome e WhatsApp antes de continuar.";
+      setCheckoutError(bannerMsg);
+      setCheckoutErrorObj(new AppApiError(bannerMsg, "IDENTIFICATION_REQUIRED", 400));
+      phoneInputRef.current?.focus();
+      return;
+    }
+
+    const ddd = parseInt(cleanPhone.slice(0, 2), 10);
+    if (cleanPhone.length >= 2 && !VALID_BRAZILIAN_DDDS.has(ddd)) {
+      const err = `O DDD (${cleanPhone.slice(0, 2)}) informado não é um DDD brasileiro válido.`;
+      setInlineError(err);
+      const bannerMsg = "Identificação necessária: Informe seu nome e WhatsApp antes de continuar.";
+      setCheckoutError(bannerMsg);
+      setCheckoutErrorObj(new AppApiError(bannerMsg, "IDENTIFICATION_REQUIRED", 400));
+      phoneInputRef.current?.focus();
+      return;
+    }
+
+    setInlineLoading(true);
+    try {
+      const res = await fastAccess(inlineName.trim(), cleanPhone);
+      if (res.status === "new_device_detected") {
+        setIsFastAccessModalOpen(true);
+      } else if (res.status === "authenticated") {
+        setIdentificationSuccessMsg("Identificação confirmada com sucesso! Você já pode concluir seu pedido.");
+        setCheckoutError("");
+        setCheckoutErrorObj(null);
+        setTimeout(() => setIdentificationSuccessMsg(null), 6000);
+      }
+    } catch (err: any) {
+      const errorMsg = err.message || "Erro ao conectar.";
+      setInlineError(errorMsg);
+      const bannerMsg = "Identificação necessária: Informe seu nome e WhatsApp antes de continuar.";
+      setCheckoutError(bannerMsg);
+      setCheckoutErrorObj(new AppApiError(bannerMsg, "IDENTIFICATION_REQUIRED", 400));
+    } finally {
+      setInlineLoading(false);
+    }
+  };
+
+  const handleOpenGpsMap = () => {
+    setIsLocating(true);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setIsLocating(false);
+          setLatitude(pos.coords.latitude);
+          setLongitude(pos.coords.longitude);
+          setIsGpsModalOpen(true);
+        },
+        () => {
+          setIsLocating(false);
+          setIsGpsModalOpen(true);
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else {
+      setIsLocating(false);
+      setIsGpsModalOpen(true);
+    }
+  };
+
+  const handleGpsLocationConfirmed = (data: GpsLocationConfirmedData) => {
+    if (data.street) setStreet(data.street);
+    if (data.neighborhood) setNeighborhood(data.neighborhood);
+    if (data.city) setCity(data.city);
+    if (data.zip) setZip(data.zip);
+    if (data.number) {
+      setNumber(data.number);
+    } else {
+      setTimeout(() => {
+        numberInputRef.current?.focus();
+      }, 300);
+    }
+    setLatitude(data.latitude);
+    setLongitude(data.longitude);
+    setGeoToast("Localização confirmada via GPS!");
+    setTimeout(() => setGeoToast(null), 5000);
+
+    updateActiveAddressFields({
+      street: data.street || street,
+      neighborhood: data.neighborhood || neighborhood,
+      city: data.city || city,
+      zip: data.zip || zip,
+      latitude: data.latitude,
+      longitude: data.longitude,
+    });
   };
 
   // Funções de Geolocalização Reversa e GPS
@@ -621,7 +761,8 @@ export default function CarrinhoPage() {
     // Bloqueio estrito de compras anônimas: exige autenticação via Acesso Rápido
     if (!user) {
       const cleanPhone = inlinePhone.replace(/\D/g, "");
-      if (inlineName.trim().length >= 3 && cleanPhone.length >= 10) {
+      const nameParts = inlineName.trim().split(/\s+/).filter(Boolean);
+      if (nameParts.length >= 2 && cleanPhone.length >= 10) {
         try {
           setInlineLoading(true);
           const res = await fastAccess(inlineName.trim(), cleanPhone);
@@ -637,7 +778,10 @@ export default function CarrinhoPage() {
           setInlineLoading(false);
         }
       } else {
-        setIsFastAccessModalOpen(true);
+        const bannerMsg = "Identificação necessária: Informe seu nome e WhatsApp antes de continuar.";
+        setCheckoutError(bannerMsg);
+        setCheckoutErrorObj(new AppApiError(bannerMsg, "IDENTIFICATION_REQUIRED", 400));
+        handleReviewIdentification();
         return;
       }
     }
@@ -803,9 +947,52 @@ export default function CarrinhoPage() {
     );
   }
 
-  const handleInitiateOrderConfirmation = () => {
+  const handleInitiateOrderConfirmation = async () => {
     setCheckoutError("");
     setCheckoutErrorObj(null);
+
+    // Validação Obrigatória de Identificação (Acesso Rápido)
+    if (!user) {
+      const cleanPhone = inlinePhone.replace(/\D/g, "");
+      const nameParts = inlineName.trim().split(/\s+/).filter(Boolean);
+      if (nameParts.length < 2 || cleanPhone.length < 10) {
+        const msg = "Identificação necessária: Informe seu nome e WhatsApp antes de continuar.";
+        setCheckoutError(msg);
+        setCheckoutErrorObj(new AppApiError(msg, "IDENTIFICATION_REQUIRED", 400));
+        handleReviewIdentification();
+        return;
+      }
+
+      const ddd = parseInt(cleanPhone.slice(0, 2), 10);
+      if (cleanPhone.length >= 2 && !VALID_BRAZILIAN_DDDS.has(ddd)) {
+        const msg = "Identificação necessária: Informe um DDD brasileiro válido no seu WhatsApp.";
+        setCheckoutError(msg);
+        setCheckoutErrorObj(new AppApiError(msg, "IDENTIFICATION_REQUIRED", 400));
+        handleReviewIdentification();
+        return;
+      }
+
+      // Sincroniza e cria/associa a conta de acesso rápido automaticamente
+      try {
+        setInlineLoading(true);
+        const res = await fastAccess(inlineName.trim(), cleanPhone);
+        if (res.status === "new_device_detected") {
+          setIsFastAccessModalOpen(true);
+          return;
+        }
+        setIdentificationSuccessMsg("Identificação confirmada com sucesso! Você já pode concluir seu pedido.");
+        setTimeout(() => setIdentificationSuccessMsg(null), 5000);
+      } catch (err: any) {
+        const msg = err.message || "Identificação necessária: Informe seu nome e WhatsApp antes de continuar.";
+        setCheckoutError(msg);
+        setCheckoutErrorObj(new AppApiError(msg, "IDENTIFICATION_REQUIRED", 400));
+        handleReviewIdentification();
+        return;
+      } finally {
+        setInlineLoading(false);
+      }
+    }
+
     if (storeSettings && !storeSettings.isOpen) {
       const msg = "A loja está fechada no momento.";
       setCheckoutError(msg);
@@ -900,6 +1087,7 @@ export default function CarrinhoPage() {
               error={checkoutErrorObj || checkoutError}
               onRetry={handleFinishOrder}
               onReviewAddress={handleReviewAddress}
+              onReviewIdentification={handleReviewIdentification}
               onDismiss={() => {
                 setCheckoutError("");
                 setCheckoutErrorObj(null);
@@ -969,7 +1157,7 @@ export default function CarrinhoPage() {
             {/* ── COLUNA ESQUERDA: Formulários e Itens ── */}
             <div className="flex-1 min-w-0 space-y-6">
             {/* 1. Identificação (Acesso Rápido) */}
-            <section className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-border/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+            <section ref={identificationSectionRef} className="bg-white/80 dark:bg-[#230E26]/90 backdrop-blur-sm border border-gray-200/80 dark:border-border/40 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
               {!user ? (
                 <>
                   <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-border/30">
@@ -985,8 +1173,15 @@ export default function CarrinhoPage() {
                   </div>
 
                   <p className="text-xs text-muted-foreground">
-                    Informe seu WhatsApp para contato direto da loja caso haja dúvidas na entrega.
+                    Informe seu nome completo e WhatsApp para prosseguir com o pedido e contato de entrega.
                   </p>
+
+                  {identificationSuccessMsg && (
+                    <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2.5 animate-in fade-in">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <span>{identificationSuccessMsg}</span>
+                    </div>
+                  )}
 
                   {inlineError && (
                     <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-300 text-xs flex items-center gap-2">
@@ -1001,6 +1196,7 @@ export default function CarrinhoPage() {
                         Nome Completo *
                       </Label>
                       <Input
+                        ref={nameInputRef}
                         value={inlineName}
                         onChange={(e) => {
                           setInlineName(e.target.value);
@@ -1017,6 +1213,7 @@ export default function CarrinhoPage() {
                         Celular / WhatsApp *
                       </Label>
                       <Input
+                        ref={phoneInputRef}
                         value={inlinePhone}
                         onChange={(e) => {
                           setInlinePhone(formatPhoneInput(e.target.value));
@@ -1112,27 +1309,13 @@ export default function CarrinhoPage() {
                       Já tem cadastro completo? <span className="font-bold underline">Entrar com senha</span>
                     </Link>
 
-                    {!inlineRegisteredDetected && inlineName.trim().length >= 3 && inlinePhone.replace(/\D/g, "").length >= 10 && (
+                    {!inlineRegisteredDetected && (
                       <Button
                         type="button"
                         size="sm"
-                        onClick={async () => {
-                          setInlineError(null);
-                          setInlineLoading(true);
-                          try {
-                            const clean = inlinePhone.replace(/\D/g, "");
-                            const res = await fastAccess(inlineName.trim(), clean);
-                            if (res.status === "new_device_detected") {
-                              setIsFastAccessModalOpen(true);
-                            }
-                          } catch (err: any) {
-                            setInlineError(err.message || "Erro ao conectar.");
-                          } finally {
-                            setInlineLoading(false);
-                          }
-                        }}
+                        onClick={handleConfirmInlineIdentification}
                         disabled={inlineLoading}
-                        className="rounded-xl bg-gradient-to-r from-primary to-accent text-white text-xs font-bold px-4 h-9 shadow-sm cursor-pointer"
+                        className="rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white text-xs font-bold px-4 h-9 shadow-sm cursor-pointer"
                       >
                         {inlineLoading ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1144,14 +1327,14 @@ export default function CarrinhoPage() {
                   </div>
                 </>
               ) : (
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-3 bg-emerald-500/5 dark:bg-emerald-950/20 border border-emerald-500/20 rounded-2xl p-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
                       <CheckCircle2 className="w-5 h-5" />
                     </div>
                     <div>
                       <span className="font-heading font-bold text-xs sm:text-sm text-foreground block">
-                        Identificado como: {user.fullName || user.username || "Cliente"}
+                        ✓ Identificado como: {user.fullName || user.username || "Cliente"}
                       </span>
                       <span className="font-mono text-xs text-muted-foreground">
                         {user.phone ? formatPhoneInput(user.phone) : (user.email || "WhatsApp cadastrado")}
@@ -1164,9 +1347,9 @@ export default function CarrinhoPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => signOut()}
-                    className="rounded-xl text-xs font-bold h-8 px-3 border-gray-200 dark:border-border/40 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 cursor-pointer"
+                    className="rounded-xl text-xs font-bold h-8 px-3 border-emerald-200 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
                   >
-                    Trocar
+                    Alterar
                   </Button>
                 </div>
               )}
@@ -1413,10 +1596,10 @@ export default function CarrinhoPage() {
                       <span>Selecionar / Alterar</span>
                     </button>
 
-                    {/* Botão de Ação Rápida: Usar Minha Localização Atual */}
+                    {/* Botão de Ação Rápida: Usar Minha Localização Atual com Mapa Interativo */}
                     <button
                       type="button"
-                      onClick={handleGetLocation}
+                      onClick={handleOpenGpsMap}
                       disabled={isLocating}
                       className="inline-flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-primary to-accent hover:opacity-95 px-3.5 py-2 rounded-xl shadow-xs shadow-primary/20 transition-all cursor-pointer disabled:opacity-60 shrink-0"
                     >
@@ -2292,6 +2475,20 @@ export default function CarrinhoPage() {
         onClose={() => setIsFastAccessModalOpen(false)}
         onSuccess={handleFastAccessSuccess}
         onRequestNewAddress={openAddressModal}
+        initialName={inlineName}
+        initialPhone={inlinePhone}
+      />
+
+      <GpsInteractiveMapModal
+        isOpen={isGpsModalOpen}
+        onClose={() => setIsGpsModalOpen(false)}
+        onConfirmLocation={handleGpsLocationConfirmed}
+        initialCoords={latitude && longitude ? { lat: latitude, lng: longitude } : null}
+        defaultStoreCoords={
+          storeSettings?.storeLatitude && storeSettings?.storeLongitude
+            ? { lat: storeSettings.storeLatitude, lng: storeSettings.storeLongitude }
+            : undefined
+        }
       />
 
       <CompleteRegistrationModal

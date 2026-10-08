@@ -157,6 +157,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fastAccess = useCallback(async (name: string, phone: string) => {
     const result = await authService.fastAccess(name, phone);
     if (result.status === "authenticated") {
+      if (result.user) {
+        const u = result.user as any;
+        const defaultAvatar = u.isRegistered === false ? "/avatars/avatar-guest-user.svg" : "/avatars/avatar-sorvete.svg";
+        const avatar = u.avatar || u.avatarUrl || defaultAvatar;
+        setUser({
+          id: u.id,
+          email: u.email || null,
+          username: u.username || null,
+          phone: u.phone || null,
+          cpf: u.cpf || null,
+          role: u.role || "client",
+          permissions: u.permissions || [],
+          fullName: u.fullName || name,
+          avatarUrl: avatar,
+          avatar: avatar,
+          isRegistered: Boolean(u.isRegistered),
+          isActive: u.isActive !== false,
+          isBlocked: Boolean(u.isBlocked),
+          accessibilitySettings: u.accessibilitySettings || null,
+          defaultPaymentMethod: u.defaultPaymentMethod || null,
+          defaultChangeFor: u.defaultChangeFor !== undefined ? u.defaultChangeFor : null,
+          user_metadata: {
+            username: u.username || "",
+            full_name: u.fullName || name,
+          },
+        });
+      }
       await refreshUser();
     }
     return result;

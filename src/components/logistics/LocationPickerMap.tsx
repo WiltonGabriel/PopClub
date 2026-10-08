@@ -23,6 +23,7 @@ export interface ReverseGeocodeResult {
   neighborhood?: string;
   city?: string;
   postcode?: string;
+  houseNumber?: string;
   displayName?: string;
   latitude: number;
   longitude: number;
