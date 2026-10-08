@@ -149,17 +149,24 @@ export default function LocationPickerMap({
     }
   }, [autoFitRadius, mapInstance, radiusInMeters, handleFitCoverageBounds]);
 
+  const initLat = initialCoords?.lat;
+  const initLng = initialCoords?.lng;
+  const lastSyncedCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
+
   // Sincroniza se a prop inicial mudar externamente (ex: usuário digitou nos campos manuais, selecionou busca ou GPS)
   useEffect(() => {
     if (
-      initialCoords &&
-      !isNaN(initialCoords.lat) &&
-      !isNaN(initialCoords.lng)
+      initLat !== undefined &&
+      initLng !== undefined &&
+      !isNaN(initLat) &&
+      !isNaN(initLng)
     ) {
-      const latDiff = Math.abs(initialCoords.lat - currentCoords.lat);
-      const lngDiff = Math.abs(initialCoords.lng - currentCoords.lng);
+      const last = lastSyncedCoordsRef.current;
+      const latDiff = last ? Math.abs(initLat - last.lat) : 1;
+      const lngDiff = last ? Math.abs(initLng - last.lng) : 1;
       if (latDiff > 0.000001 || lngDiff > 0.000001) {
-        const next = { lat: initialCoords.lat, lng: initialCoords.lng };
+        lastSyncedCoordsRef.current = { lat: initLat, lng: initLng };
+        const next = { lat: initLat, lng: initLng };
         setCurrentCoords(next);
         if (mapInstance) {
           mapInstance.flyTo([next.lat, next.lng], mapInstance.getZoom() || zoom, {
@@ -169,7 +176,7 @@ export default function LocationPickerMap({
         }
       }
     }
-  }, [initialCoords?.lat, initialCoords?.lng, mapInstance, zoom]);
+  }, [initLat, initLng, mapInstance, zoom]);
 
   // Sincroniza o endereço de exibição quando alterado externamente
   useEffect(() => {

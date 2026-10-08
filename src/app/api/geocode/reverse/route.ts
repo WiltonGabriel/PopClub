@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
       latitude,
       longitude,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro na geocodificação reversa:", error);
     return NextResponse.json(
       { error: "Erro ao consultar serviço de localização." },
