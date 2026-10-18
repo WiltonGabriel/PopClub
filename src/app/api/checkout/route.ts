@@ -18,6 +18,7 @@ import {
 
 import { calculateDistanceKm } from "@/lib/geo";
 import { calculateProductPrice } from "@/lib/pricing";
+import { evaluateStoreSchedule, DEFAULT_STORE_SCHEDULE, BusinessHourDay } from "@/lib/storeSchedule";
 
 const checkoutSchema = z.object({
   deliveryType: z.enum(["delivery", "retirada"]).optional().default("delivery"),
@@ -128,7 +129,7 @@ export async function POST(request: Request) {
     const cleanReference = deliveryAddress.reference ? sanitizeText(deliveryAddress.reference) : null;
     const cleanZip = deliveryAddress.zip ? sanitizeText(deliveryAddress.zip) : null;
 
-    // 0. Validação de Loja Aberta (Turno Operacional)
+    // 0. Validação de Loja Aberta (Turno Operacional e Horários Cuiabá)
     let storeSettings = null;
     try {
       storeSettings = await prisma.storeSettings.findUnique({
@@ -138,13 +139,27 @@ export async function POST(request: Request) {
       console.warn("Aviso ao buscar storeSettings no checkout:", err);
     }
 
-    if (storeSettings && storeSettings.isOpen === false) {
+    const operationalStatus = evaluateStoreSchedule(
+      (storeSettings?.businessHours as unknown as BusinessHourDay[]) || DEFAULT_STORE_SCHEDULE,
+      storeSettings ? Boolean(storeSettings.isOpen) : true
+    );
+
+    if (!operationalStatus.canAcceptOrders) {
+      const errorMsg =
+        operationalStatus.status === "CONVEYOR_PAUSED"
+          ? `Finalizando os preparativos da cozinha. Nossa equipe está organizando a esteira para atender você. Nosso horário hoje é das ${operationalStatus.openingTime} às ${operationalStatus.closingTime}. Em instantes o recebimento de pedidos estará liberado!`
+          : `Estamos fechados no momento. Hoje nosso horário de atendimento é das ${operationalStatus.openingTime} às ${operationalStatus.closingTime}. Você já pode ir escolhendo seus itens e montando sua sacola!`;
+
       return NextResponse.json(
         {
-          error: "A loja está fechada no momento e não está aceitando novos pedidos. Nosso atendimento abrirá em breve!",
-          code: "STORE_CLOSED",
+          error: errorMsg,
+          code: operationalStatus.status,
+          status: operationalStatus.status,
+          canAcceptOrders: false,
+          openingTime: operationalStatus.openingTime,
+          closingTime: operationalStatus.closingTime,
         },
-        { status: 403 }
+        { status: 422 }
       );
     }
 

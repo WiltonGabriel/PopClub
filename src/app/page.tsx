@@ -41,6 +41,8 @@ import { AdminEditModeToggle } from "../components/admin/AdminEditModeToggle";
 import { bannerService, HighlightBannerData } from "../services/bannerService";
 import { useEditMode } from "../contexts/EditModeContext";
 import { storeSettingsService, StoreSettings } from "../services/storeSettingsService";
+import { useStoreStatus } from "../hooks/useStoreStatus";
+import { StoreStatusBanner, StoreStatusBadge } from "../components/storefront/StoreStatusBanner";
 
 // UI + Icons
 import { Button } from "../components/ui/button";
@@ -175,6 +177,7 @@ export default function Storefront() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
+  const storeStatus = useStoreStatus();
 
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -758,6 +761,7 @@ export default function Storefront() {
                 <span className="text-primary dark:text-violet-400 transition-colors">Shake</span>
               </span>
             </Link>
+            <StoreStatusBadge status={storeStatus.status} closingTime={storeStatus.closingTime} />
           </div>
 
           {/* ── CENTRO: Endereço + Busca com Autocomplete ── */}
@@ -1098,15 +1102,12 @@ export default function Storefront() {
         </div>
       </header>
 
-      {/* Banner Informativo de Loja Fechada */}
-      {storeSettings && !storeSettings.isOpen && (
-        <div className="bg-gradient-to-r from-red-600 via-rose-600 to-accent text-white px-4 py-2.5 text-center text-xs sm:text-sm font-semibold shadow-md sticky top-[65px] z-30 flex items-center justify-center gap-2">
-          <Clock className="w-4 h-4 shrink-0 animate-pulse" />
-          <span>
-            Estamos fechados no momento. Nosso atendimento abrirá em breve! Você pode explorar o cardápio e montar seu pedido.
-          </span>
-        </div>
-      )}
+      {/* Banner Informativo Superior (Não Bloqueante) */}
+      <StoreStatusBanner
+        status={storeStatus.status}
+        openingTime={storeStatus.openingTime}
+        closingTime={storeStatus.closingTime}
+      />
 
       {/* Mobile search overlay */}
       {mobileSearchOpen && (

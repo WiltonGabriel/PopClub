@@ -60,6 +60,7 @@ import { CommunicationSection } from "../../components/admin/CommunicationSectio
 import { MobileOrientationBanner } from "../../components/admin/MobileOrientationBanner";
 import { LogisticsAndCouriersSection } from "../../components/admin/LogisticsAndCouriersSection";
 import { ChannelsAndSupportSection } from "../../components/admin/ChannelsAndSupportSection";
+import { StoreStatusTopWidget } from "../../components/admin/StoreStatusTopWidget";
 import { TAB_PERMISSION_MAP, PermissionKey } from "../../lib/permissions";
 
 const TAB_DEFINITIONS = [
@@ -387,6 +388,9 @@ export default function AdminDashboard() {
       </header>
 
       <main className="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full max-w-full min-w-0 space-y-8">
+        {/* Widget de Status da Loja em Tempo Real */}
+        <StoreStatusTopWidget />
+
         {/* Mini Esteira Live (Monitor Compacto no Topo) */}
         {(() => {
           const activeOrders = orders.filter((o) => !["completed", "cancelled"].includes(o.status));

@@ -37,6 +37,7 @@ import { couponService, ValidatedCoupon } from "../../services/couponService";
 import { orderService } from "../../services/orderService";
 import { userService, UserLocation } from "../../services/userService";
 import { storeSettingsService, StoreSettings } from "../../services/storeSettingsService";
+import { useStoreStatus } from "@/hooks/useStoreStatus";
 import { useAddress } from "@/contexts/AddressContext";
 import { useOrders } from "@/contexts/OrderContext";
 import { Button } from "../../components/ui/button";
@@ -178,6 +179,7 @@ export default function CarrinhoPage() {
 
   // Configuração de entrega da loja
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
+  const storeStatus = useStoreStatus();
 
   // Endereço estruturado (pronto para Google Maps / Entrega)
   const [street, setStreet] = useState("");
@@ -797,10 +799,13 @@ export default function CarrinhoPage() {
       }
     }
 
-    if (storeSettings && !storeSettings.isOpen) {
-      const msg = "A loja está fechada no momento e não está aceitando novos pedidos. Nosso atendimento abrirá em breve!";
+    if (!storeStatus.canAcceptOrders) {
+      const msg =
+        storeStatus.status === "CONVEYOR_PAUSED"
+          ? `Finalizando os preparativos da cozinha. Nossa equipe está organizando a esteira para atender você. Nosso horário hoje é das ${storeStatus.openingTime} às ${storeStatus.closingTime}. Em instantes o recebimento de pedidos estará liberado!`
+          : `Estamos fechados no momento. Hoje nosso horário de atendimento é das ${storeStatus.openingTime} às ${storeStatus.closingTime}. Você já pode ir escolhendo seus itens e montando sua sacola!`;
       setCheckoutError(msg);
-      setCheckoutErrorObj(new AppApiError(msg, "STORE_CLOSED", 400));
+      setCheckoutErrorObj(new AppApiError(msg, storeStatus.status, 422));
       return;
     }
 
@@ -1005,10 +1010,13 @@ export default function CarrinhoPage() {
       }
     }
 
-    if (storeSettings && !storeSettings.isOpen) {
-      const msg = "A loja está fechada no momento.";
+    if (!storeStatus.canAcceptOrders) {
+      const msg =
+        storeStatus.status === "CONVEYOR_PAUSED"
+          ? `Finalizando os preparativos da cozinha. Nosso horário hoje é das ${storeStatus.openingTime} às ${storeStatus.closingTime}.`
+          : `A loja está fechada no momento. Nosso horário hoje é das ${storeStatus.openingTime} às ${storeStatus.closingTime}.`;
       setCheckoutError(msg);
-      setCheckoutErrorObj(new AppApiError(msg, "STORE_CLOSED", 400));
+      setCheckoutErrorObj(new AppApiError(msg, storeStatus.status, 422));
       return;
     }
     if (deliveryMode === "delivery") {
@@ -2210,10 +2218,20 @@ export default function CarrinhoPage() {
 
             {/* Card de Ação Desktop */}
             <div className="hidden lg:block bg-card/90 backdrop-blur-md border border-border/40 rounded-3xl p-5 shadow-lg space-y-3">
-              {storeSettings && !storeSettings.isOpen && (
-                <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/40 rounded-2xl p-3 text-xs text-red-700 dark:text-red-300 flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
-                  <span>Nossa esteira de pedidos está fechada neste momento.</span>
+              {!storeStatus.canAcceptOrders && (
+                <div
+                  className={`border rounded-2xl p-3 text-xs flex items-center gap-2 ${
+                    storeStatus.status === "CONVEYOR_PAUSED"
+                      ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900/40 text-amber-800 dark:text-amber-200"
+                      : "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300"
+                  }`}
+                >
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                  <span>
+                    {storeStatus.status === "CONVEYOR_PAUSED"
+                      ? `Finalizando preparativos da cozinha. Atendimento hoje das ${storeStatus.openingTime} às ${storeStatus.closingTime}.`
+                      : `Estamos fechados no momento. Atendimento hoje das ${storeStatus.openingTime} às ${storeStatus.closingTime}.`}
+                  </span>
                 </div>
               )}
               {deliveryMode === "delivery" && deliveryQuote && !deliveryQuote.isDeliverable && (
@@ -2225,9 +2243,9 @@ export default function CarrinhoPage() {
               <Button
                 type="button"
                 onClick={handleInitiateOrderConfirmation}
-                disabled={submitting || (storeSettings ? !storeSettings.isOpen : false) || (deliveryMode === "delivery" && deliveryQuote !== null && !deliveryQuote.isDeliverable)}
+                disabled={submitting || !storeStatus.canAcceptOrders || (deliveryMode === "delivery" && deliveryQuote !== null && !deliveryQuote.isDeliverable)}
                 className={`w-full h-14 rounded-2xl font-heading text-sm uppercase tracking-wider font-black shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all ${
-                  (storeSettings && !storeSettings.isOpen) || (deliveryMode === "delivery" && deliveryQuote !== null && !deliveryQuote.isDeliverable)
+                  !storeStatus.canAcceptOrders || (deliveryMode === "delivery" && deliveryQuote !== null && !deliveryQuote.isDeliverable)
                     ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed text-white dark:bg-gray-700"
                     : "bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] hover:bg-right text-white shadow-primary/25 border border-white/20"
                 }`}
@@ -2237,8 +2255,12 @@ export default function CarrinhoPage() {
                     <Loader2 className="w-5 h-5 animate-spin" />
                     Processando Pedido...
                   </>
-                ) : storeSettings && !storeSettings.isOpen ? (
-                  <>Loja Fechada no Momento</>
+                ) : !storeStatus.canAcceptOrders ? (
+                  storeStatus.status === "CONVEYOR_PAUSED" ? (
+                    <>Cozinha em Preparo (Aguarde)</>
+                  ) : (
+                    <>Loja Fechada no Momento</>
+                  )
                 ) : deliveryMode === "delivery" && deliveryQuote && !deliveryQuote.isDeliverable ? (
                   <>
                     <AlertTriangle className="w-5 h-5 text-amber-300" />
@@ -2269,10 +2291,20 @@ export default function CarrinhoPage() {
       {items.length > 0 && (
         <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white/95 dark:bg-background/95 backdrop-blur-md border-t border-border/40 p-4 z-40 shadow-2xl pb-safe">
           <div className="max-w-4xl mx-auto space-y-2">
-            {storeSettings && !storeSettings.isOpen && (
-              <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/40 rounded-2xl p-3 text-xs text-red-700 dark:text-red-300 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
-                <span>Nossa esteira de pedidos está fechada neste momento. Você pode montar seu carrinho e finalizar assim que o atendimento abrir!</span>
+            {!storeStatus.canAcceptOrders && (
+              <div
+                className={`border rounded-2xl p-3 text-xs flex items-center gap-2 ${
+                  storeStatus.status === "CONVEYOR_PAUSED"
+                    ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900/40 text-amber-800 dark:text-amber-200"
+                    : "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300"
+                }`}
+              >
+                <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <span>
+                  {storeStatus.status === "CONVEYOR_PAUSED"
+                    ? `Finalizando preparativos da cozinha. Atendimento hoje das ${storeStatus.openingTime} às ${storeStatus.closingTime}.`
+                    : `Estamos fechados no momento. Atendimento hoje das ${storeStatus.openingTime} às ${storeStatus.closingTime}. Você já pode montar sua sacola!`}
+                </span>
               </div>
             )}
             {deliveryMode === "delivery" && deliveryQuote && !deliveryQuote.isDeliverable && (
@@ -2294,9 +2326,9 @@ export default function CarrinhoPage() {
               <Button
                 type="button"
                 onClick={handleInitiateOrderConfirmation}
-                disabled={submitting || (storeSettings ? !storeSettings.isOpen : false) || (deliveryMode === "delivery" && deliveryQuote !== null && !deliveryQuote.isDeliverable)}
+                disabled={submitting || !storeStatus.canAcceptOrders || (deliveryMode === "delivery" && deliveryQuote !== null && !deliveryQuote.isDeliverable)}
                 className={`h-12 px-5 sm:px-8 rounded-2xl font-heading text-sm uppercase tracking-wider font-black shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 transition-all ${
-                  (storeSettings && !storeSettings.isOpen) || (deliveryMode === "delivery" && deliveryQuote !== null && !deliveryQuote.isDeliverable)
+                  !storeStatus.canAcceptOrders || (deliveryMode === "delivery" && deliveryQuote !== null && !deliveryQuote.isDeliverable)
                     ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed text-white dark:bg-gray-700"
                     : "bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] hover:bg-right text-white shadow-primary/25 border border-white/20"
                 }`}
@@ -2306,8 +2338,12 @@ export default function CarrinhoPage() {
                     <Loader2 className="w-5 h-5 animate-spin" />
                     Processando...
                   </>
-                ) : storeSettings && !storeSettings.isOpen ? (
-                  <>Loja Fechada</>
+                ) : !storeStatus.canAcceptOrders ? (
+                  storeStatus.status === "CONVEYOR_PAUSED" ? (
+                    <>Cozinha em Preparo</>
+                  ) : (
+                    <>Loja Fechada</>
+                  )
                 ) : deliveryMode === "delivery" && deliveryQuote && !deliveryQuote.isDeliverable ? (
                   <>
                     <AlertTriangle className="w-4 h-4 text-amber-300" />

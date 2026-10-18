@@ -10,6 +10,9 @@
     "build": "next build --webpack",
     "start": "next start -H 0.0.0.0",
     "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "db:backup": "node scripts/backup-db.mjs",
     "db:restore": "node scripts/restore-db.mjs",
     "db:diagnose": "node scripts/diagnose-db.mjs",
@@ -49,6 +52,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^5.0.5",
     "autoprefixer": "^10.5.4",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
@@ -58,6 +62,8 @@
     "tailwindcss": "^3.4.19",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.15",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
   }
 }

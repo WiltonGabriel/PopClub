@@ -57,13 +57,13 @@ const LocationPickerMap = dynamic(
 );
 
 const DEFAULT_DAYS: BusinessHourDay[] = [
-  { day: "monday", label: "Segunda-feira", isOpen: true, openTime: "13:00", closeTime: "22:00" },
-  { day: "tuesday", label: "Terça-feira", isOpen: true, openTime: "13:00", closeTime: "22:00" },
-  { day: "wednesday", label: "Quarta-feira", isOpen: true, openTime: "13:00", closeTime: "22:00" },
-  { day: "thursday", label: "Quinta-feira", isOpen: true, openTime: "13:00", closeTime: "22:00" },
-  { day: "friday", label: "Sexta-feira", isOpen: true, openTime: "13:00", closeTime: "23:00" },
+  { day: "monday", label: "Segunda-feira", isOpen: true, openTime: "13:00", closeTime: "23:30" },
+  { day: "tuesday", label: "Terça-feira", isOpen: true, openTime: "13:00", closeTime: "23:30" },
+  { day: "wednesday", label: "Quarta-feira", isOpen: true, openTime: "13:00", closeTime: "23:30" },
+  { day: "thursday", label: "Quinta-feira", isOpen: true, openTime: "13:00", closeTime: "23:30" },
+  { day: "friday", label: "Sexta-feira", isOpen: true, openTime: "13:00", closeTime: "23:30" },
   { day: "saturday", label: "Sábado", isOpen: true, openTime: "13:00", closeTime: "23:30" },
-  { day: "sunday", label: "Domingo", isOpen: true, openTime: "13:00", closeTime: "23:00" },
+  { day: "sunday", label: "Domingo", isOpen: true, openTime: "14:00", closeTime: "23:00" },
 ];
 
 interface AddressSearchResult {

@@ -74,6 +74,7 @@ import { OrderDispatchDialog } from "../../../components/admin/OrderDispatchDial
 import { OrderDeliveryInbox } from "../../../components/admin/OrderDeliveryInbox";
 import { OrderDeliveryIssueDialog } from "../../../components/admin/OrderDeliveryIssueDialog";
 import { MobileOrientationBanner } from "@/components/admin/MobileOrientationBanner";
+import { StoreStatusTopWidget } from "../../../components/admin/StoreStatusTopWidget";
 
 export default function AdminPedidosPage() {
   const { theme, toggleTheme, resolvedTheme } = useTheme();
@@ -1777,6 +1778,9 @@ export default function AdminPedidosPage() {
       </header>
 
       <main className="flex-1 p-4 sm:p-6 max-w-[1600px] mx-auto w-full max-w-full min-w-0 space-y-6">
+        {/* Widget de Status e Switch da Esteira */}
+        <StoreStatusTopWidget onStatusChange={() => fetchOrders(false)} />
+
         {/* Barra de Ações do Board */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
