@@ -25,7 +25,6 @@ flowchart TD
     subgraph Host ["☁️ Servidor de Produção (Grein Cloud 01)"]
         subgraph ProxyNet ["Rede Docker: proxy_network (External)"]
             Traefik["🚦 Traefik v3 (Reverse Proxy)\nCertificados Let's Encrypt (leresolver)"]
-            Authelia["🔒 Authelia (SSO / 2FA Gate)"]
         end
 
         subgraph PopshakeStack ["Stack Docker Compose (popclub)"]
@@ -44,9 +43,7 @@ flowchart TD
     User -->|"HTTPS :443"| CF_WAF
     CF_WAF --> CF_SSL
     CF_SSL -->|"HTTPS :443"| Traefik
-    Traefik -->|"Roteador Público (Prioridade 100)"| App
-    Traefik -->|"Roteador Privado (Authelia - Prioridade 1)"| Authelia
-    Authelia -->|"Sessão Validada"| App
+    Traefik -->|"HTTPS Direto (Sem Gate Externo)"| App
 
     %% Conexões Internas
     App -->|"pg_isready e Queries"| DB
@@ -104,30 +101,26 @@ Isso permite que qualquer dispositivo instale o aplicativo instantaneamente, enq
 
 ---
 
-## 3. Isolamento e Roteamento do Traefik com Authelia
+## 3. Roteamento Traefik v3 & Soberania de Segurança Nativa (Zero Trust)
 
-O proxy reverso **Traefik v3** gerencia a ingress da aplicação utilizando dois roteadores com prioridades distintas:
+Com a consolidação do controle de acesso baseado em papéis (**RBAC**) e autenticação nativa via JWT em cookies `HttpOnly`, a camada externa de autenticação de borda (**Authelia**) foi integralmente desacoplada da rota pública.
 
-### Roteador 1: `popshake-public` (Prioridade 100 — Sem Authelia)
-Garante entrega imediata e sem atrito dos recursos estáticos e do manifesto PWA:
+O domínio oficial `https://popshake.wnzk.dev.br/` agora roteia o tráfego HTTPS diretamente ao container standalone do PopClub, garantindo acesso público sem fricção à vitrine, cardápio, carrinho e busca, enquanto todas as rotas administrativas e endpoints mutacionais são resguardados pelo próprio sistema (*Zero Trust*):
+
 ```yaml
-- "traefik.http.routers.popshake-public.rule=Host(`${APP_DOMAIN}`) && (Path(`/manifest.webmanifest`) || PathPrefix(`/_next/static/`) || Path(`/favicon.ico`))"
-- "traefik.http.routers.popshake-public.entrypoints=websecure"
-- "traefik.http.routers.popshake-public.tls.certresolver=leresolver"
-- "traefik.http.routers.popshake-public.priority=100"
-- "traefik.http.routers.popshake-public.service=popshake-dev"
+# Roteador HTTPS Seguro direto ao PopClub (Segurança Nativa Next.js RBAC / JWT)
+- "traefik.http.routers.popshake.rule=Host(`${APP_DOMAIN}`)"
+- "traefik.http.routers.popshake.entrypoints=websecure"
+- "traefik.http.routers.popshake.tls=true"
+- "traefik.http.routers.popshake.tls.certresolver=leresolver"
+- "traefik.http.services.popshake.loadbalancer.server.port=3000"
 ```
 
-### Roteador 2: `popshake-dev` (Prioridade 1 — Protegido por Authelia)
-Intercepta todo o tráfego da aplicação e exige validação de sessão corporativa via middleware Authelia (`authelia@docker`):
-```yaml
-- "traefik.http.routers.popshake-dev.rule=Host(`${APP_DOMAIN}`)"
-- "traefik.http.routers.popshake-dev.entrypoints=websecure"
-- "traefik.http.routers.popshake-dev.tls.certresolver=leresolver"
-- "traefik.http.routers.popshake-dev.middlewares=authelia@docker"
-- "traefik.http.routers.popshake-dev.priority=1"
-- "traefik.http.routers.popshake-dev.service=popshake-dev"
-```
+### Mecanismos de Autoproteção Nativa:
+1. **Middleware de Borda Server-Side (`src/proxy.ts`):** Intercepta todas as requisições destinadas a `/admin` e `/admin/*`. Requisições anônimas ou com perfil de cliente comum (`client`) são barradas antes da renderização e redirecionadas para `/login?redirect=...`. A rota `/admin/usuarios` é restrita exclusivamente a administradores (`ADMIN`).
+2. **Proteção em Route Handlers (`src/app/api/*`):** Endpoints de mutação de dados (produtos, categorias, cupons, configurações e turnos) invocam `getAuthUser(request)` e avaliam a matriz granular via `hasPermission()`, retornando estritamente `HTTP 401 Unauthorized` ou `HTTP 403 Forbidden` em acessos indevidos.
+3. **Revogação Dinâmica de Sessões (`tokenVersion`):** Cada usuário possui um contador de versão no banco de dados relacional. Em caso de troca de senha, alteração de permissões ou desativação de conta, o `tokenVersion` é incrementado, invalidando imediatamente todos os tokens JWT ativos.
+4. **Rate Limiting em Camadas:** Limitadores em memória por IP previnem ataques de força bruta no checkout, validação de cupons, autenticação e upload de imagens.
 
 ---
 

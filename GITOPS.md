@@ -15,7 +15,7 @@ graph LR
     GitHub -->|Webhook / Polling| Portainer[🐳 Portainer Stack Grein Cloud 01]
     Portainer -->|Docker Compose| App[📦 Pop Shake App Container]
     Portainer -->|Internal Network| RemoteDB
-    Traefik[🚦 Traefik Reverse Proxy] -->|Authelia / SSL Let's Encrypt| App
+    Traefik[🚦 Traefik Reverse Proxy] -->|SSL Let's Encrypt / Roteamento Direto| App
 ```
 
 ---
@@ -53,7 +53,7 @@ Antes de qualquer envio para o repositório remoto, o desenvolvedor ou agente de
   1. O Portainer na **Grein Cloud 01** detecta a atualização da stack.
   2. A nova imagem Docker é construída em multi-stage (`node:20-bookworm-slim` em modo standalone).
   3. O script `entrypoint.sh` aguarda a prontidão do banco e aplica as migrations pendentes (`prisma migrate deploy`).
-  4. O Traefik aplica os roteadores SSL automáticos (`leresolver`) com integração ao Authelia.
+  4. O Traefik aplica os roteadores SSL automáticos (`leresolver`) com roteamento direto para a aplicação.
 
 ---
 

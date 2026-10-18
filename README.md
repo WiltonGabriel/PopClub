@@ -10,7 +10,7 @@
 ![Traefik](https://img.shields.io/badge/Traefik-v3-24A1C1?style=for-the-badge&logo=traefik&logoColor=white)
 ![Tailscale](https://img.shields.io/badge/Tailscale-Mesh%20VPN-49647C?style=for-the-badge&logo=tailscale&logoColor=white)
 ![Projeto Extensionista](https://img.shields.io/badge/Projeto%20Extensionista-UNIVAG%20TADS-8A2BE2?style=for-the-badge)
-![Vitest](https://img.shields.io/badge/Vitest-120%20Passed-449C44?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-136%20Passed-449C44?style=for-the-badge&logo=vitest&logoColor=white)
 ![LGPD](https://img.shields.io/badge/LGPD-Compliant-00B4D8?style=for-the-badge&logo=privatedivision&logoColor=white)
 [![Google Drive](https://img.shields.io/badge/Google%20Drive-Documentos%20Oficiais-4285F4?style=for-the-badge&logo=googledrive&logoColor=white)](https://drive.google.com/drive/folders/1iw4oxwSWsKvCcCP9YZipzOM0B2B7JmdR?usp=sharing)
 
@@ -65,7 +65,6 @@ flowchart TD
     subgraph VPS ["☁️ Servidor de Produção (Grein Cloud 01)"]
         subgraph Ingress ["Proxy Reverso"]
             Traefik["🚦 Traefik v3\n(SSL Automático Let's Encrypt)"]
-            Authelia["🔒 Authelia SSO\n(Proteção da Área de Gestão)"]
         end
 
         subgraph ContainerStack ["Stack Docker Compose"]
@@ -81,9 +80,7 @@ flowchart TD
     %% Roteamento de Produção
     Client -->|"HTTPS :443"| CF
     CF -->|"Proxy Seguro"| Traefik
-    Traefik -->|"Roteador Público (Prioridade 100 - Estáticos/Manifest)"| App
-    Traefik -->|"Roteador Protegido (Authelia - Prioridade 1)"| Authelia
-    Authelia -->|"Sessão Validada"| App
+    Traefik -->|"HTTPS Direto (Sem Gate Externo)"| App
     App -->|"Rede Interna Bridge"| DB
 
     %% Desenvolvimento Conectado Diretamente
@@ -158,7 +155,7 @@ O PopClub adota conformidade rigorosa com a **Lei Geral de Proteção de Dados (
 | **Banco de Dados & ORM** | [PostgreSQL 16](https://www.postgresql.org/) (Alpine), [Prisma ORM 6](https://www.prisma.io/) com modelagem relacional estrita |
 | **Segurança & Auth** | JWT (`jsonwebtoken`), Criptografia com `bcryptjs`, Cookies `HttpOnly` com validação de papéis (`admin` vs `client`) |
 | **Geolocalização & Mapas** | [Leaflet](https://leafletjs.com/) (`leaflet` + `react-leaflet`), [OpenStreetMap](https://www.openstreetmap.org/), [OSRM Routing](https://project-osrm.org/) e Nominatim Geocoding (100% Soberano & Gratuito) |
-| **Infraestrutura & GitOps** | Docker (Multi-stage Debian bookworm-slim), Docker Compose, Portainer CE, Traefik v3, Authelia, Cloudflare, Tailscale |
+| **Infraestrutura & GitOps** | Docker (Multi-stage Debian bookworm-slim), Docker Compose, Portainer CE, Traefik v3, Cloudflare, Tailscale |
 
 ---
 
