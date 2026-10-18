@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   WifiOff,
   Database,
@@ -11,11 +11,13 @@ import {
   AlertCircle,
   ExternalLink,
   User,
+  Clock,
+  Sparkles,
 } from "lucide-react";
 import { AppApiError } from "@/lib/fetchClient";
 
 export interface ResilientErrorAlertProps {
-  error: AppApiError | Error | { code?: string; message: string; details?: unknown } | string | null;
+  error: AppApiError | Error | { code?: string; message: string; details?: unknown; retryAfter?: number } | string | null;
   onRetry?: () => void;
   onReviewAddress?: () => void;
   onReviewIdentification?: () => void;
@@ -37,13 +39,12 @@ export function ResilientErrorAlert({
   className = "",
   isRetrying = false,
 }: ResilientErrorAlertProps) {
-  if (!error) return null;
-
   // Normalização do erro
   let code = "REQUEST_FAILED";
-  const message = typeof error === "string" ? error : error.message || "Ocorreu um erro inesperado.";
+  const message = typeof error === "string" ? error : error?.message || "Ocorreu um erro inesperado.";
   let details: unknown = null;
   let status: number | undefined = undefined;
+  let initialRetryAfter: number | undefined = undefined;
 
   if (typeof error !== "string" && error) {
     if ("code" in error && typeof error.code === "string") {
@@ -55,7 +56,28 @@ export function ResilientErrorAlert({
     if ("details" in error) {
       details = error.details;
     }
+    if ("retryAfter" in error && typeof error.retryAfter === "number") {
+      initialRetryAfter = error.retryAfter;
+    }
   }
+
+  const [countdown, setCountdown] = useState<number>(initialRetryAfter || 0);
+
+  useEffect(() => {
+    if (initialRetryAfter && initialRetryAfter > 0) {
+      setCountdown(initialRetryAfter);
+    }
+  }, [initialRetryAfter]);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const interval = setInterval(() => {
+      setCountdown((prev) => (prev > 1 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [countdown]);
+
+  if (!error) return null;
 
   // Classificação dos Cenários
   const isOffline =
@@ -89,6 +111,15 @@ export function ResilientErrorAlert({
     message.toLowerCase().includes("rua") ||
     message.toLowerCase().includes("obrigatório");
 
+  const isRateLimit =
+    code === "RATE_LIMIT_EXCEEDED" ||
+    status === 429 ||
+    (message.toLowerCase().includes("aguarde") &&
+      (message.toLowerCase().includes("segundo") ||
+        message.toLowerCase().includes("minuto") ||
+        message.toLowerCase().includes("pedidos rápido") ||
+        message.toLowerCase().includes("processando um pedido")));
+
   // Formatação de WhatsApp
   const cleanPhone = whatsappNumber ? whatsappNumber.replace(/\D/g, "") : null;
   const defaultWhatsappMsg = cartSummary
@@ -97,6 +128,81 @@ export function ResilientErrorAlert({
   const whatsappUrl = cleanPhone
     ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(defaultWhatsappMsg)}`
     : null;
+
+  // Renderização Cenário 0: Rate Limiting / Proteção de Frequência (429)
+  if (isRateLimit) {
+    return (
+      <div
+        className={`relative overflow-hidden rounded-2xl border border-sky-500/30 dark:border-sky-500/40 bg-sky-500/10 dark:bg-sky-950/40 p-5 backdrop-blur-md shadow-lg shadow-sky-500/5 transition-all animate-in fade-in slide-in-from-top-2 ${className}`}
+        role="alert"
+      >
+        <div className="flex items-start gap-4">
+          <div className="p-2.5 rounded-xl bg-sky-500/20 text-sky-600 dark:text-sky-400 shrink-0">
+            <Clock className="w-5 h-5 animate-pulse" />
+          </div>
+
+          <div className="flex-1 space-y-1.5 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full bg-sky-500/20 dark:bg-sky-500/30 text-sky-700 dark:text-sky-300">
+                Aguarde um Instante
+              </span>
+              {countdown > 0 && (
+                <span className="font-mono text-[10px] font-bold text-sky-600 dark:text-sky-400">
+                  • Liberando em {countdown}s
+                </span>
+              )}
+            </div>
+            <h4 className="font-heading text-sm font-black uppercase tracking-tight text-sky-950 dark:text-sky-100">
+              Estamos cuidando do seu pedido
+            </h4>
+            <p className="text-xs text-sky-900/90 dark:text-sky-200/90 leading-relaxed font-sans">
+              {message}
+            </p>
+            <p className="text-[11px] text-sky-800/80 dark:text-sky-300/80 font-medium">
+              ✨ Seus itens e configurações continuam 100% salvos e seguros na sua sacola.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              {onRetry && (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  disabled={isRetrying || countdown > 0}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-heading font-black uppercase tracking-wider bg-sky-600 hover:bg-sky-700 active:scale-95 text-white shadow-md shadow-sky-600/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <RotateCcw className={`w-3.5 h-3.5 ${isRetrying ? "animate-spin" : ""}`} />
+                  {countdown > 0 ? `Aguarde ${countdown}s...` : isRetrying ? "Processando..." : "Tentar Novamente"}
+                </button>
+              )}
+
+              {whatsappUrl && (
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-sans font-semibold text-sky-900 dark:text-sky-200 hover:bg-sky-500/10 border border-sky-500/20 transition-colors"
+                >
+                  <MessageCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  Enviar no WhatsApp
+                </a>
+              )}
+            </div>
+          </div>
+
+          {onDismiss && (
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="p-1 rounded-lg text-sky-700/60 hover:text-sky-900 dark:text-sky-300/60 dark:hover:text-sky-100 hover:bg-sky-500/10 transition-colors"
+              aria-label="Fechar alerta"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // Renderização Cenário 1: Falha de Banco / Servidor (503 / 502 / 504)
   if (isDbOrServerDown && !isOffline) {

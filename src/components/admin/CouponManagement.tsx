@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { couponService, Coupon } from "../../services/couponService";
 import { CouponFormDialog } from "./CouponFormDialog";
 import { Button } from "../ui/button";
@@ -22,12 +22,16 @@ import {
   Clock,
   XCircle,
   ShieldCheck,
+  Archive,
+  RotateCcw,
 } from "lucide-react";
 
 export function CouponManagement() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeSubTab, setActiveSubTab] = useState<"ativos" | "arquivados">("ativos");
+  const [purging, setPurging] = useState(false);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [couponToEdit, setCouponToEdit] = useState<Coupon | null>(null);
@@ -50,6 +54,31 @@ export function CouponManagement() {
   useEffect(() => {
     fetchCoupons();
   }, [fetchCoupons]);
+
+  const handlePurgeInactive = async () => {
+    if (!confirm("Deseja expurgar cupons e dados inativos há mais de 60 dias? Essa ação é definitiva e não afeta o histórico de pedidos passados.")) {
+      return;
+    }
+    setPurging(true);
+    try {
+      const res = await fetch("/api/admin/maintenance/purge-inactive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cutoffDays: 60 }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || "Expurgo realizado com sucesso.");
+        fetchCoupons();
+      } else {
+        alert(data.error || "Erro ao expurgar dados.");
+      }
+    } catch {
+      alert("Falha de conexão ao executar expurgo.");
+    } finally {
+      setPurging(false);
+    }
+  };
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -83,10 +112,28 @@ export function CouponManagement() {
     }
   };
 
-  // Métricas
+  // Métricas e separação de ativos vs arquivados
   const totalCoupons = coupons.length;
-  const activeCoupons = coupons.filter((c) => c.isActive).length;
   const totalUses = coupons.reduce((sum, c) => sum + (c.uses || 0), 0);
+
+  const { activeCouponsList, archivedCouponsList } = useMemo(() => {
+    const now = new Date();
+    const active: Coupon[] = [];
+    const archived: Coupon[] = [];
+    coupons.forEach((c) => {
+      const isExpired = c.expiresAt ? now > new Date(c.expiresAt) : false;
+      const isExhausted = Boolean(c.maxUses && c.uses >= c.maxUses);
+      if (c.isActive && !isExpired && !isExhausted) {
+        active.push(c);
+      } else {
+        archived.push(c);
+      }
+    });
+    return { activeCouponsList: active, archivedCouponsList: archived };
+  }, [coupons]);
+
+  const activeCoupons = activeCouponsList.length;
+  const displayedCoupons = activeSubTab === "ativos" ? activeCouponsList : archivedCouponsList;
 
   // Status helper
   const getCouponStatus = (coupon: Coupon) => {
@@ -189,6 +236,59 @@ export function CouponManagement() {
         </div>
       </div>
 
+      {/* Sub-abas de Separação: Ativos vs Arquivados / Inativos */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 dark:border-border/30 pb-3">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveSubTab("ativos")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-heading uppercase font-bold tracking-wider transition-all cursor-pointer ${
+              activeSubTab === "ativos"
+                ? "bg-primary text-white shadow-sm"
+                : "text-gray-500 hover:text-foreground hover:bg-gray-100 dark:hover:bg-white/5"
+            }`}
+          >
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            Ativos & Rodando ({activeCouponsList.length})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab("arquivados")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-heading uppercase font-bold tracking-wider transition-all cursor-pointer ${
+              activeSubTab === "arquivados"
+                ? "bg-amber-600 text-white shadow-sm"
+                : "text-gray-500 hover:text-foreground hover:bg-gray-100 dark:hover:bg-white/5"
+            }`}
+          >
+            <Archive className="w-3.5 h-3.5" />
+            Arquivados / Inativos ({archivedCouponsList.length})
+          </button>
+        </div>
+      </div>
+
+      {/* Aviso Educativo de Retenção e Expurgos (TTL: 60 Dias) */}
+      {activeSubTab === "arquivados" && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+          <div className="space-y-0.5">
+            <span className="font-bold block">📦 Gestão do Ciclo de Vida e Expurgos (TTL: 60 dias)</span>
+            <span className="text-[11px] opacity-90 block">
+              Itens inativos há mais de 60 dias são expurgados automaticamente para manter o sistema ágil. Você pode reativar cupons a qualquer momento.
+            </span>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            onClick={handlePurgeInactive}
+            disabled={purging}
+            className="rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white shrink-0 text-xs h-8 px-3 cursor-pointer"
+          >
+            <Trash2 className="w-3.5 h-3.5 mr-1" />
+            {purging ? "Limpando..." : "Limpar Expirados (TTL)"}
+          </Button>
+        </div>
+      )}
+
       {/* Lista de Cupons */}
       {loading ? (
         <div className="py-12 flex flex-col items-center justify-center gap-2">
@@ -199,18 +299,20 @@ export function CouponManagement() {
         <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 rounded-2xl text-red-600 text-xs">
           {error}
         </div>
-      ) : coupons.length === 0 ? (
+      ) : displayedCoupons.length === 0 ? (
         <div className="p-8 text-center border border-dashed border-gray-200 dark:border-border/40 rounded-2xl space-y-3">
           <div className="w-12 h-12 rounded-full bg-primary/5 dark:bg-primary/95/40 text-primary flex items-center justify-center mx-auto text-xl">
-            🎟️
+            {activeSubTab === "ativos" ? "🎟️" : "📦"}
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-            Nenhum cupom de desconto cadastrado no momento. Clique em &ldquo;Novo Cupom&rdquo; para criar o primeiro.
+            {activeSubTab === "ativos"
+              ? "Nenhum cupom ativo no momento. Clique em «Novo Cupom» para criar ou reative um cupom na aba de arquivados."
+              : "Nenhum cupom arquivado ou inativo. Cupons desativados ou expirados aparecerão aqui."}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {coupons.map((coupon) => {
+          {displayedCoupons.map((coupon) => {
             const status = getCouponStatus(coupon);
             const StatusIcon = status.icon;
             const isCopied = copiedCode === coupon.code;
@@ -349,8 +451,20 @@ export function CouponManagement() {
                   </div>
                 </div>
 
-                {/* Ações de Edição e Exclusão */}
+                {/* Ações de Edição, Reativação e Exclusão */}
                 <div className="flex items-center justify-end gap-1.5 mt-4 pt-3 border-t border-gray-200 dark:border-border/30">
+                  {!coupon.isActive && (
+                    <button
+                      type="button"
+                      onClick={() => handleToggleStatus(coupon)}
+                      className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold cursor-pointer"
+                      title="Reativar cupom"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Reativar</span>
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => {

@@ -94,6 +94,32 @@ export class RateLimiter {
   }
 
   /**
+   * Verifica se a chave está bloqueada SEM consumir tokens
+   */
+  isBlocked(key: string): RateLimitCheckResult | null {
+    const now = Date.now();
+    const windowStart = now - this.windowMs;
+    const timestamps = this.store.get(key) || [];
+    const validTimestamps = timestamps.filter((t) => t > windowStart);
+
+    if (validTimestamps.length >= this.maxRequests) {
+      const oldestValid = validTimestamps[0];
+      const resetTime = oldestValid + this.windowMs;
+      const retryAfterSec = Math.max(1, Math.ceil((resetTime - now) / 1000));
+
+      return {
+        success: false,
+        limit: this.maxRequests,
+        remaining: 0,
+        reset: resetTime,
+        retryAfter: retryAfterSec,
+      };
+    }
+
+    return null;
+  }
+
+  /**
    * Reseta o contador para uma chave específica (útil em testes ou desbloqueios manuais)
    */
   reset(key: string): void {
@@ -122,26 +148,33 @@ export const phoneCheckLimiter = new RateLimiter(60 * 1000, 10);
 export const forgotPasswordLimiter = new RateLimiter(15 * 60 * 1000, 5);
 export const passwordResetLimiter = new RateLimiter(15 * 60 * 1000, 5);
 
-// Validação de Cupons de Desconto (Anti Brute-Force Dictionary): 15 tentativas por minuto
-export const couponLimiter = new RateLimiter(60 * 1000, 15);
+// Validação Geral de Cupons de Desconto (Navegação/Digitação): 30 consultas por minuto
+export const couponLimiter = new RateLimiter(60 * 1000, 30);
+
+// Falhas Consecutivas em Cupons (Anti Brute-Force Dictionary): 5 tentativas inválidas em 2 minutos
+export const couponFailedAttemptsLimiter = new RateLimiter(2 * 60 * 1000, 5);
 
 // Finalização de Pedidos / Checkout (Anti Denial of Inventory / Flooding): 10 pedidos por minuto
 export const checkoutLimiter = new RateLimiter(60 * 1000, 10);
 
-// Geocodificação Externa (Nominatim / OpenStreetMap): 15 consultas por minuto
-export const geocodeLimiter = new RateLimiter(60 * 1000, 15);
+// Geocodificação e Mapas (Nominatim / OSRM): 40 consultas por minuto (elástico para movimentação de pin no mapa)
+export const geocodeLimiter = new RateLimiter(60 * 1000, 40);
 
-// Cálculo de Frete e Logística: 30 requisições por minuto
-export const deliveryCalculateLimiter = new RateLimiter(60 * 1000, 30);
+// Busca e Catálogo de Produtos: 120 requisições por minuto
+export const productLookupLimiter = new RateLimiter(60 * 1000, 120);
 
-// Consulta e Rastreamento de Pedidos (Anti Scraping / IDOR Enumeration): 30 consultas por minuto
-export const orderLookupLimiter = new RateLimiter(60 * 1000, 30);
+// Cálculo de Frete e Logística: 40 requisições por minuto
+export const deliveryCalculateLimiter = new RateLimiter(60 * 1000, 40);
+
+// Consulta e Rastreamento de Pedidos (Anti Scraping / IDOR): 40 consultas por minuto
+export const orderLookupLimiter = new RateLimiter(60 * 1000, 40);
 
 // Uploads de Mídia / Arquivos: 20 uploads por minuto
 export const addonUploadLimiter = new RateLimiter(60 * 1000, 20);
 
-// Operações Administrativas / CRUD de Complementos: 120 requisições por minuto
-export const addonCrudLimiter = new RateLimiter(60 * 1000, 120);
+// Operações Administrativas / CRUD do Lojista: 240 requisições por minuto (alta elasticidade para edições em lote)
+export const adminOperationsLimiter = new RateLimiter(60 * 1000, 240);
+export const addonCrudLimiter = adminOperationsLimiter;
 
 // -------------------------------------------------------------
 // UTILITÁRIOS DE IDENTIFICAÇÃO SEGURA E RFC 6585
@@ -215,23 +248,38 @@ export function addRateLimitHeaders(
 }
 
 /**
+ * Formata um tempo em segundos para uma descrição amigável e acolhedora
+ */
+export function formatFriendlyWait(seconds: number): string {
+  if (seconds >= 60) {
+    const mins = Math.ceil(seconds / 60);
+    return mins === 1 ? "1 minutinho" : `${mins} minutinhos`;
+  }
+  return seconds === 1 ? "1 segundinho" : `${seconds} segundinhos`;
+}
+
+/**
  * Gera a resposta HTTP 429 Too Many Requests padronizada com cabeçalhos RFC 6585
+ * e mensagem humanizada e construtiva
  */
 export function createRateLimitResponse(
   result: RateLimitCheckResult,
   customMessage?: string
 ): NextResponse {
   const retryAfterSec = result.retryAfter > 0 ? result.retryAfter : Math.max(1, Math.ceil((result.reset - Date.now()) / 1000));
+  const friendlyWait = formatFriendlyWait(retryAfterSec);
   const message =
     customMessage ||
-    `Limite de requisições excedido. Por favor, aguarde ${retryAfterSec} segundo(s) antes de tentar novamente.`;
+    `Aguarde ${friendlyWait} antes de tentar novamente.`;
 
   const payload = {
     success: false,
     code: "RATE_LIMIT_EXCEEDED",
     message,
+    friendlyMessage: message,
     error: message,
     retryAfter: retryAfterSec,
+    retryAfterFormatted: friendlyWait,
     timestamp: new Date().toISOString(),
   };
 

@@ -18,6 +18,7 @@ export type ApiErrorCode =
   | "FORBIDDEN"
   | "UNAUTHORIZED"
   | "STORE_CLOSED"
+  | "RATE_LIMIT_EXCEEDED"
   | "INTERNAL_SERVER_ERROR"
   | "REQUEST_FAILED";
 
@@ -25,18 +26,25 @@ export class AppApiError extends Error {
   public readonly code: ApiErrorCode | string;
   public readonly status?: number;
   public readonly details?: unknown;
+  public readonly retryAfter?: number;
 
   constructor(
     message: string,
     code: ApiErrorCode | string = "REQUEST_FAILED",
     status?: number,
-    details?: unknown
+    details?: unknown,
+    retryAfter?: number
   ) {
     super(message);
     this.name = "AppApiError";
     this.code = code;
     this.status = status;
     this.details = details;
+    this.retryAfter = retryAfter;
+  }
+
+  get isRateLimit(): boolean {
+    return this.code === "RATE_LIMIT_EXCEEDED" || this.status === 429;
   }
 
   get isOffline(): boolean {
@@ -152,7 +160,13 @@ export async function fetchClient<T = any>(
     let message: string =
       data.message || data.error || response.statusText || "Ocorreu um erro ao processar a solicitação.";
 
-    if (status === 403) {
+    if (status === 429) {
+      code = "RATE_LIMIT_EXCEEDED";
+      const headerRetry = response.headers.get("Retry-After");
+      const retryAfterSec = data.retryAfter || (headerRetry ? parseInt(headerRetry, 10) : 60);
+      message = data.friendlyMessage || data.message || "Aguarde alguns instantes antes de enviar novamente.";
+      throw new AppApiError(message, code, status, data.details, retryAfterSec);
+    } else if (status === 403) {
       code = "FORBIDDEN";
       message = "Acesso negado. Por favor, verifique se você não foi bloqueado pelo nosso sistema de segurança (Cloudflare). Se o problema persistir, recarregue a página.";
     } else if (status === 503 || code === "DATABASE_UNAVAILABLE") {

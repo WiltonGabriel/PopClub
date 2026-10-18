@@ -4,7 +4,7 @@ import fs from "fs/promises";
 import crypto from "crypto";
 import sharp from "sharp";
 import { getAuthUser } from "@/lib/auth";
-import { addonUploadLimiter, getIpFromRequest } from "@/lib/rateLimit";
+import { addonUploadLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
 import { deleteAddonImageFile } from "@/lib/addonStorage";
 import { hasPermission } from "@/lib/permissions";
 
@@ -18,9 +18,9 @@ export async function POST(request: Request) {
     const ip = getIpFromRequest(request);
     const limitCheck = addonUploadLimiter.check(ip);
     if (!limitCheck.success) {
-      return NextResponse.json(
-        { error: "Limite de uploads de miniaturas excedido (máximo 20 por minuto). Aguarde um instante." },
-        { status: 429 }
+      return createRateLimitResponse(
+        limitCheck,
+        "Muitos uploads de miniaturas em sequência. Aguarde um instante para enviar novamente."
       );
     }
 

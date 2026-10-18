@@ -74,6 +74,7 @@ export type AppPrismaClient = Omit<PrismaClient, "coupon" | "addonItem"> & {
     create: (args: QueryArgs) => Promise<DBAddonItem>;
     update: (args: QueryArgs) => Promise<DBAddonItem>;
     delete: (args: QueryArgs) => Promise<DBAddonItem>;
+    deleteMany: (args?: QueryArgs) => Promise<{ count: number }>;
     count: (args?: QueryArgs) => Promise<number>;
   };
   coupon: {
@@ -83,6 +84,7 @@ export type AppPrismaClient = Omit<PrismaClient, "coupon" | "addonItem"> & {
     create: (args: QueryArgs) => Promise<DBCoupon>;
     update: (args: QueryArgs) => Promise<DBCoupon>;
     delete: (args: QueryArgs) => Promise<DBCoupon>;
+    deleteMany: (args?: QueryArgs) => Promise<{ count: number }>;
     count: (args?: QueryArgs) => Promise<number>;
   };
 };

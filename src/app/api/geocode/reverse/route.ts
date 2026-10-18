@@ -6,7 +6,10 @@ export async function GET(request: NextRequest) {
     const ip = getIpFromRequest(request);
     const limitCheck = geocodeLimiter.check(ip);
     if (!limitCheck.success) {
-      return createRateLimitResponse(limitCheck, "Limite de consultas de coordenadas geográficas excedido.");
+      return createRateLimitResponse(
+        limitCheck,
+        "Muitas consultas de coordenadas em sequência. Aguarde alguns instantes para mover o mapa novamente."
+      );
     }
 
     const { searchParams } = new URL(request.url);

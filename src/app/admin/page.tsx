@@ -30,6 +30,9 @@ import {
   MessageCircle,
   Bell,
   FolderTree,
+  Archive,
+  RotateCcw,
+  CheckCircle2,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
@@ -106,6 +109,9 @@ export default function AdminDashboard() {
   const [comboToEdit, setComboToEdit] = useState<Product | null>(null);
   const [editBannerModalOpen, setEditBannerModalOpen] = useState(false);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
+  const [combosSubTab, setCombosSubTab] = useState<"ativos" | "arquivados">("ativos");
+  const [promosSubTab, setPromosSubTab] = useState<"ativos" | "arquivados">("ativos");
+  const [purgingData, setPurgingData] = useState(false);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const previousOrderCountRef = useRef(0);
   const [advanceModal, setAdvanceModal] = useState<{
@@ -305,6 +311,49 @@ export default function AdminDashboard() {
       fetchCombos();
     } catch (error) {
       console.error("Erro ao excluir combo:", error);
+    }
+  };
+
+  const handleToggleComboAvailability = async (combo: Product) => {
+    try {
+      const nextAvailable = combo.isAvailable === false ? true : false;
+      await productService.updateProduct(combo.id, { isAvailable: nextAvailable });
+      fetchCombos();
+    } catch (error) {
+      console.error("Erro ao alterar status do combo:", error);
+    }
+  };
+
+  const handleTogglePromoActive = async (promo: Promotion) => {
+    try {
+      await promotionService.updatePromotion(promo.id, { isActive: !promo.isActive });
+      fetchPromos();
+    } catch (error) {
+      console.error("Erro ao alterar status da promoção:", error);
+    }
+  };
+
+  const handlePurgeInactive = async () => {
+    if (!confirm("Deseja expurgar itens inativos e expirados há mais de 60 dias (cupons, promoções e combos obsoletos)?")) return;
+    setPurgingData(true);
+    try {
+      const res = await fetch("/api/admin/maintenance/purge-inactive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cutoffDays: 60 }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || "Expurgo de dados inativos concluído com sucesso!");
+        fetchCombos();
+        fetchPromos();
+      } else {
+        alert(data.error || "Erro ao executar expurgo.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Falha na requisição de expurgo.");
+    } finally {
+      setPurgingData(false);
     }
   };
 
@@ -613,287 +662,449 @@ export default function AdminDashboard() {
               )}
 
               {/* CONTEÚDO DA ABA 2: COMBOS */}
-              {activeTab === "combos" && (
-                <div className="space-y-6 animate-in fade-in duration-150">
-                  {/* Seção 1: Monitoramento Dedicado de Lotes & Vigência de Combos */}
-                  <CombosBatchMonitor combos={combos} onRefresh={fetchCombos} />
+              {activeTab === "combos" && (() => {
+                const activeCombosList = combos.filter((c) => c.isAvailable !== false);
+                const archivedCombosList = combos.filter((c) => c.isAvailable === false);
+                const displayedCombos = combosSubTab === "ativos" ? activeCombosList : archivedCombosList;
 
-                  <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 sm:p-7 shadow-sm space-y-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-border/30">
-                      <div>
-                        <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-foreground dark:text-foreground">
-                          <Zap className="w-5 h-5 text-primary" />
-                          Combos & Kits Especiais
-                        </h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Gerencie a montagem e precificação de combos que agrupam dois ou mais produtos com desconto automático.
-                      </p>
-                    </div>
+                return (
+                  <div className="space-y-6 animate-in fade-in duration-150">
+                    {/* Seção 1: Monitoramento Dedicado de Lotes & Vigência de Combos */}
+                    <CombosBatchMonitor combos={combos} onRefresh={fetchCombos} />
 
-                    <Button
-                      onClick={() => {
-                        setComboToEdit(null);
-                        setComboDialogOpen(true);
-                      }}
-                      className="bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-5 shadow-md shadow-primary/20 cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" /> Novo Combo
-                    </Button>
-                  </div>
-
-                  {combos.length === 0 ? (
-                    <div className="p-10 text-center border border-dashed border-gray-200 dark:border-border/40 rounded-2xl space-y-3 bg-gray-50/50 dark:bg-background/40">
-                      <div className="w-14 h-14 rounded-2xl bg-primary/5 dark:bg-primary/95/40 text-primary flex items-center justify-center mx-auto text-2xl">
-                        ⚡
+                    <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 sm:p-7 shadow-sm space-y-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-border/30">
+                        <div>
+                          <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-foreground dark:text-foreground">
+                            <Zap className="w-5 h-5 text-primary" />
+                            Combos & Kits Especiais
+                          </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Gerencie a montagem e precificação de combos que agrupam dois ou mais produtos com desconto automático.
+                        </p>
                       </div>
-                      <h4 className="font-heading font-bold text-sm text-foreground dark:text-foreground">
-                        Nenhum combo cadastrado ainda
-                      </h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-                        Clique em &ldquo;Novo Combo&rdquo; para criar kits promocionais (ex: Açaí + Pop Shake) com precificação especial para seus clientes.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                      {combos.map((combo) => {
-                        const finalPrice = Number(combo.price) || 0;
-                        const originalTotal = combo.comboItems?.reduce((s, it) => s + Number(it.product?.price || 0) * it.quantity, 0) || finalPrice;
-                        const savings = Math.max(0, originalTotal - finalPrice);
 
-                        return (
+                      <Button
+                        onClick={() => {
+                          setComboToEdit(null);
+                          setComboDialogOpen(true);
+                        }}
+                        className="bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-5 shadow-md shadow-primary/20 cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" /> Novo Combo
+                      </Button>
+                    </div>
+
+                    {/* Sub-abas de Separação de Combos: Ativos vs Arquivados */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 dark:border-border/30 pb-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setCombosSubTab("ativos")}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-heading uppercase font-bold tracking-wider transition-all cursor-pointer ${
+                            combosSubTab === "ativos"
+                              ? "bg-primary text-white shadow-sm"
+                              : "text-gray-500 hover:text-foreground hover:bg-gray-100 dark:hover:bg-white/5"
+                          }`}
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Ativos & Rodando ({activeCombosList.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCombosSubTab("arquivados")}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-heading uppercase font-bold tracking-wider transition-all cursor-pointer ${
+                            combosSubTab === "arquivados"
+                              ? "bg-amber-600 text-white shadow-sm"
+                              : "text-gray-500 hover:text-foreground hover:bg-gray-100 dark:hover:bg-white/5"
+                          }`}
+                        >
+                          <Archive className="w-3.5 h-3.5" />
+                          Arquivados / Inativos ({archivedCombosList.length})
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Aviso Educativo de Retenção e Expurgos (TTL: 60 Dias) */}
+                    {combosSubTab === "arquivados" && (
+                      <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+                        <div className="space-y-0.5">
+                          <span className="font-bold block">📦 Gestão do Ciclo de Vida e Expurgos (TTL: 60 dias)</span>
+                          <span className="text-[11px] opacity-90 block">
+                            Itens inativos há mais de 60 dias são expurgados automaticamente para manter o sistema ágil. Você pode reativar combos a qualquer momento.
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handlePurgeInactive}
+                          disabled={purgingData}
+                          className="rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white shrink-0 text-xs h-8 px-3 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-1" />
+                          {purgingData ? "Limpando..." : "Limpar Expirados (TTL)"}
+                        </Button>
+                      </div>
+                    )}
+
+                    {displayedCombos.length === 0 ? (
+                      <div className="p-10 text-center border border-dashed border-gray-200 dark:border-border/40 rounded-2xl space-y-3 bg-gray-50/50 dark:bg-background/40">
+                        <div className="w-14 h-14 rounded-2xl bg-primary/5 dark:bg-primary/95/40 text-primary flex items-center justify-center mx-auto text-2xl">
+                          {combosSubTab === "ativos" ? "⚡" : "📦"}
+                        </div>
+                        <h4 className="font-heading font-bold text-sm text-foreground dark:text-foreground">
+                          {combosSubTab === "ativos" ? "Nenhum combo ativo no momento" : "Nenhum combo arquivado ou pausado"}
+                        </h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+                          {combosSubTab === "ativos"
+                            ? "Clique em «Novo Combo» para criar kits promocionais ou reative um combo na aba de arquivados."
+                            : "Combos pausados ou inativos aparecerão aqui."}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {displayedCombos.map((combo) => {
+                          const finalPrice = Number(combo.price) || 0;
+                          const originalTotal = combo.comboItems?.reduce((s, it) => s + Number(it.product?.price || 0) * it.quantity, 0) || finalPrice;
+                          const savings = Math.max(0, originalTotal - finalPrice);
+
+                          return (
+                            <div
+                              key={combo.id}
+                              className="bg-white dark:bg-background border border-gray-200 dark:border-border/40 rounded-2xl flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-primary/50 transition-all"
+                            >
+                              <div
+                                className={`h-1.5 w-full absolute top-0 left-0 ${
+                                  combo.isAvailable !== false ? "bg-gradient-to-r from-primary to-accent" : "bg-gray-300 dark:bg-gray-700"
+                                }`}
+                              />
+                              <div className="p-5 flex flex-col h-full">
+                                <div className="flex justify-between items-start mb-3 pt-1">
+                                  <span className="bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-gray-200 text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg border border-gray-200 dark:border-white/10">
+                                    {combo.cardBadge?.text || "COMBO ESPECIAL"}
+                                  </span>
+                                  {combo.isAvailable === false && (
+                                    <span className="text-[10px] font-bold uppercase bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800/40">
+                                      Pausado
+                                    </span>
+                                  )}
+                                </div>
+
+                                <h4 className="font-heading font-bold text-base leading-snug text-foreground dark:text-foreground line-clamp-2">
+                                  {combo.name}
+                                </h4>
+                                {combo.description && (
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1">
+                                    {combo.description}
+                                  </p>
+                                )}
+
+                                {/* Itens do Combo */}
+                                <div className="mt-4 space-y-2 bg-gray-50 dark:bg-[#200B22] rounded-xl p-3 border border-gray-100 dark:border-border/30">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block">
+                                    Itens Inclusos ({combo.comboItems?.length || 0}):
+                                  </span>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {combo.comboItems?.map((it) => (
+                                      <span
+                                        key={it.id}
+                                        className="text-[11px] font-semibold bg-white dark:bg-white/10 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-lg shadow-xs"
+                                      >
+                                        {it.quantity}x {it.product?.name || "Produto Removido"}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* Precificação */}
+                                <div className="flex items-baseline gap-2 pt-1">
+                                  {originalTotal > finalPrice && (
+                                    <span className="text-xs text-gray-400 font-mono line-through">
+                                      R$ {originalTotal.toFixed(2).replace(".", ",")}
+                                    </span>
+                                  )}
+                                  <span className="font-heading font-black text-xl text-emerald-600 dark:text-emerald-400 font-mono">
+                                    R$ {finalPrice.toFixed(2).replace(".", ",")}
+                                  </span>
+                                  {savings > 0 && (
+                                    <span className="text-[11px] font-bold text-primary dark:text-primary/40">
+                                      (-R$ {savings.toFixed(2).replace(".", ",")})
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Ações */}
+                              <div className="flex justify-between items-center mt-5 pt-3.5 border-t border-gray-200 dark:border-border/30">
+                                <Link
+                                  href={`/promo/${combo.id}`}
+                                  className="text-xs font-bold text-primary dark:text-muted-foreground hover:underline flex items-center gap-1"
+                                >
+                                  Ver Página <ChevronRight className="w-3.5 h-3.5" />
+                                </Link>
+
+                                <div className="flex gap-1.5">
+                                  {combo.isAvailable === false && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleComboAvailability(combo)}
+                                      className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl transition-colors cursor-pointer flex items-center gap-1 text-xs font-semibold"
+                                      title="Reativar Combo"
+                                    >
+                                      <RotateCcw className="w-3.5 h-3.5" />
+                                      <span>Reativar</span>
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setComboToEdit(combo);
+                                      setComboDialogOpen(true);
+                                    }}
+                                    className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-colors cursor-pointer"
+                                    title="Editar Combo"
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteCombo(combo.id)}
+                                    className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors cursor-pointer"
+                                    title="Excluir Combo"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
+                </div>
+              );
+            })()}
+
+              {/* CONTEÚDO DA ABA 3: PROMOÇÕES (Descontos diretos e ofertas relâmpago) */}
+              {activeTab === "promocoes" && (() => {
+                const nowMs = currentTime;
+                const activePromosList = directPromos.filter((p) => {
+                  const isExpired = p.expiresAt && nowMs > 0 ? new Date(p.expiresAt).getTime() <= nowMs : false;
+                  return p.isActive && !isExpired;
+                });
+                const archivedPromosList = directPromos.filter((p) => {
+                  const isExpired = p.expiresAt ? new Date(p.expiresAt).getTime() <= nowMs : false;
+                  return !p.isActive || isExpired;
+                });
+                const displayedPromos = promosSubTab === "ativos" ? activePromosList : archivedPromosList;
+
+                return (
+                  <div className="space-y-6 animate-in fade-in duration-150">
+                    {/* Seção 1: Monitoramento Dedicado de Lotes & Vigência de Promoções */}
+                    <PromotionsBatchMonitor promotions={promotions} onRefresh={fetchPromos} />
+
+                    <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 sm:p-7 shadow-sm space-y-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-border/30">
+                        <div>
+                          <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-foreground dark:text-foreground">
+                            <Tag className="w-5 h-5 text-primary" />
+                            Promoções do Cardápio & Ofertas Relâmpago
+                          </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Gerencie descontos diretos em produtos específicos do catálogo e campanhas relâmpago de vendas.
+                        </p>
+                      </div>
+
+                      <Button
+                        onClick={() => {
+                          setPromoToEdit(null);
+                          setPromoDialogOpen(true);
+                        }}
+                        className="bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-5 shadow-md shadow-primary/20 cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" /> Nova Promoção
+                      </Button>
+                    </div>
+
+                    {/* Sub-abas de Separação de Promoções: Ativas vs Arquivadas */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 dark:border-border/30 pb-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPromosSubTab("ativos")}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-heading uppercase font-bold tracking-wider transition-all cursor-pointer ${
+                            promosSubTab === "ativos"
+                              ? "bg-primary text-white shadow-sm"
+                              : "text-gray-500 hover:text-foreground hover:bg-gray-100 dark:hover:bg-white/5"
+                          }`}
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Ativas & Rodando ({activePromosList.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPromosSubTab("arquivados")}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-heading uppercase font-bold tracking-wider transition-all cursor-pointer ${
+                            promosSubTab === "arquivados"
+                              ? "bg-amber-600 text-white shadow-sm"
+                              : "text-gray-500 hover:text-foreground hover:bg-gray-100 dark:hover:bg-white/5"
+                          }`}
+                        >
+                          <Archive className="w-3.5 h-3.5" />
+                          Arquivadas / Inativas ({archivedPromosList.length})
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Aviso Educativo de Retenção e Expurgos (TTL: 60 Dias) */}
+                    {promosSubTab === "arquivados" && (
+                      <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+                        <div className="space-y-0.5">
+                          <span className="font-bold block">📦 Gestão do Ciclo de Vida e Expurgos (TTL: 60 dias)</span>
+                          <span className="text-[11px] opacity-90 block">
+                            Itens inativos há mais de 60 dias são expurgados automaticamente para manter o sistema ágil. Você pode reativar ofertas a qualquer momento.
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handlePurgeInactive}
+                          disabled={purgingData}
+                          className="rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white shrink-0 text-xs h-8 px-3 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-1" />
+                          {purgingData ? "Limpando..." : "Limpar Expirados (TTL)"}
+                        </Button>
+                      </div>
+                    )}
+
+                    {displayedPromos.length === 0 ? (
+                      <div className="p-10 text-center border border-dashed border-gray-200 dark:border-border/40 rounded-2xl space-y-3 bg-gray-50/50 dark:bg-background/40">
+                        <div className="w-14 h-14 rounded-2xl bg-primary/5 dark:bg-primary/95/40 text-primary flex items-center justify-center mx-auto text-2xl">
+                          {promosSubTab === "ativos" ? "🏷️" : "📦"}
+                        </div>
+                        <h4 className="font-heading font-bold text-sm text-foreground dark:text-foreground">
+                          {promosSubTab === "ativos" ? "Nenhuma promoção ativa no momento" : "Nenhuma promoção arquivada ou inativa"}
+                        </h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+                          {promosSubTab === "ativos"
+                            ? "Crie descontos direcionados para itens do cardápio ou reative ofertas na aba de arquivados."
+                            : "Promoções pausadas ou vencidas aparecerão aqui."}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {displayedPromos.map((promo) => (
                           <div
-                            key={combo.id}
-                            className="bg-white dark:bg-background border border-gray-200 dark:border-border/40 rounded-2xl flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-primary/50 transition-all"
+                            key={promo.id}
+                            className="bg-gray-50/80 dark:bg-background/80 border border-gray-200 dark:border-border/40 rounded-2xl p-5 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-primary/50 transition-all"
                           >
                             <div
                               className="h-1.5 w-full absolute top-0 left-0"
                               style={{
-                                background: `linear-gradient(to right, hsl(var(--primary)), hsl(var(--accent)))`,
+                                background: promo.isActive
+                                  ? `linear-gradient(to right, ${promo.gradientStart || "hsl(var(--primary))"}, ${promo.gradientEnd || "hsl(var(--accent))"})`
+                                  : "#9CA3AF",
                               }}
                             />
-                            <div className="p-5 flex flex-col h-full">
-                              <div className="flex justify-between items-start mb-3 pt-1">
-                                <span className="bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-gray-200 text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg border border-gray-200 dark:border-white/10">
-                                  {combo.cardBadge?.text || "COMBO ESPECIAL"}
-                                </span>
-                              </div>
 
-                              <h4 className="font-heading font-bold text-base leading-snug text-foreground dark:text-foreground line-clamp-2">
-                                {combo.name}
-                              </h4>
-                              {combo.description && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1">
-                                  {combo.description}
-                                </p>
-                              )}
-
-                              {/* Itens do Combo */}
-                              <div className="mt-4 space-y-2 bg-gray-50 dark:bg-[#200B22] rounded-xl p-3 border border-gray-100 dark:border-border/30">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block">
-                                  Itens Inclusos ({combo.comboItems?.length || 0}):
+                            <div className="space-y-3 pt-1">
+                              <div className="flex justify-between items-start gap-2">
+                                <span className="bg-primary/10 dark:bg-primary/95/60 text-primary dark:text-muted-foreground text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg border border-primary/20/60 shadow-xs">
+                                  {promo.badge || "OFERTA"}
                                 </span>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {combo.comboItems?.map((it) => (
-                                    <span
-                                      key={it.id}
-                                      className="text-[11px] font-semibold bg-white dark:bg-white/10 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-lg shadow-xs"
-                                    >
-                                      {it.quantity}x {it.product?.name || "Produto Removido"}
+                                <div className="flex items-center gap-1.5">
+                                  {!promo.isActive && (
+                                    <span className="text-[10px] font-bold uppercase bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800/40">
+                                      Inativo
                                     </span>
-                                  ))}
+                                  )}
+                                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-lg border border-emerald-200/50">
+                                    {promo.discountType === "percentage"
+                                      ? `${promo.discountValue}% OFF`
+                                      : `R$ ${promo.discountValue.toFixed(2)} OFF`}
+                                  </span>
                                 </div>
                               </div>
 
-                              {/* Precificação */}
-                              <div className="flex items-baseline gap-2 pt-1">
-                                {originalTotal > finalPrice && (
-                                  <span className="text-xs text-gray-400 font-mono line-through">
-                                    R$ {originalTotal.toFixed(2).replace(".", ",")}
-                                  </span>
-                                )}
-                                <span className="font-heading font-black text-xl text-emerald-600 dark:text-emerald-400 font-mono">
-                                  R$ {finalPrice.toFixed(2).replace(".", ",")}
-                                </span>
-                                {savings > 0 && (
-                                  <span className="text-[11px] font-bold text-primary dark:text-primary/40">
-                                    (-R$ {savings.toFixed(2).replace(".", ",")})
-                                  </span>
+                              <div>
+                                <h4 className="font-heading font-bold text-base leading-snug text-foreground dark:text-foreground">
+                                  {promo.title}
+                                </h4>
+                                {promo.description && (
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1">
+                                    {promo.description}
+                                  </p>
                                 )}
                               </div>
+
+                              {promo.product && (
+                                <div className="space-y-1.5 bg-white dark:bg-[#200B22] rounded-xl p-3 border border-gray-200 dark:border-border/30">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
+                                    Produto Vinculado:
+                                  </span>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    <span
+                                      key={promo.product.id}
+                                      className="text-[11px] font-semibold bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-lg"
+                                    >
+                                      {promo.product.name}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
 
-                            {/* Ações */}
                             <div className="flex justify-between items-center mt-5 pt-3.5 border-t border-gray-200 dark:border-border/30">
                               <Link
-                                href={`/promo/${combo.id}`}
+                                href={`/promo/${promo.id}`}
                                 className="text-xs font-bold text-primary dark:text-muted-foreground hover:underline flex items-center gap-1"
                               >
-                                Ver Página <ChevronRight className="w-3.5 h-3.5" />
+                                Ver Detalhes <ChevronRight className="w-3.5 h-3.5" />
                               </Link>
 
                               <div className="flex gap-1.5">
+                                {!promo.isActive && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleTogglePromoActive(promo)}
+                                    className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl transition-colors cursor-pointer flex items-center gap-1 text-xs font-semibold"
+                                    title="Reativar Promoção"
+                                  >
+                                    <RotateCcw className="w-3.5 h-3.5" />
+                                    <span>Reativar</span>
+                                  </button>
+                                )}
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    setComboToEdit(combo);
-                                    setComboDialogOpen(true);
+                                    setPromoToEdit(promo);
+                                    setPromoDialogOpen(true);
                                   }}
                                   className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-colors cursor-pointer"
-                                  title="Editar Combo"
+                                  title="Editar Promoção"
                                 >
                                   <Edit2 className="w-4 h-4" />
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => handleDeleteCombo(combo.id)}
+                                  onClick={() => handleDeletePromo(promo.id)}
                                   className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors cursor-pointer"
-                                  title="Excluir Combo"
+                                  title="Excluir Promoção"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>
                               </div>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </section>
-              </div>
-            )}
-
-              {/* CONTEÚDO DA ABA 3: PROMOÇÕES (Descontos diretos e ofertas relâmpago) */}
-              {activeTab === "promocoes" && (
-                <div className="space-y-6 animate-in fade-in duration-150">
-                  {/* Seção 1: Monitoramento Dedicado de Lotes & Vigência de Promoções */}
-                  <PromotionsBatchMonitor promotions={promotions} onRefresh={fetchPromos} />
-
-                  <section className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 sm:p-7 shadow-sm space-y-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-border/30">
-                      <div>
-                        <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2 text-foreground dark:text-foreground">
-                          <Tag className="w-5 h-5 text-primary" />
-                          Promoções do Cardápio & Ofertas Relâmpago
-                        </h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Gerencie descontos diretos em produtos específicos do catálogo e campanhas relâmpago de vendas.
-                      </p>
-                    </div>
-
-                    <Button
-                      onClick={() => {
-                        setPromoToEdit(null);
-                        setPromoDialogOpen(true);
-                      }}
-                      className="bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-5 shadow-md shadow-primary/20 cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" /> Nova Promoção
-                    </Button>
-                  </div>
-
-                  {directPromos.length === 0 ? (
-                    <div className="p-10 text-center border border-dashed border-gray-200 dark:border-border/40 rounded-2xl space-y-3 bg-gray-50/50 dark:bg-background/40">
-                      <div className="w-14 h-14 rounded-2xl bg-primary/5 dark:bg-primary/95/40 text-primary flex items-center justify-center mx-auto text-2xl">
-                        🏷️
+                        ))}
                       </div>
-                      <h4 className="font-heading font-bold text-sm text-foreground dark:text-foreground">
-                        Nenhuma promoção de item ativa
-                      </h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-                        Crie descontos direcionados para itens do cardápio e ofertas relâmpago para estimular as vendas na vitrine.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                      {directPromos.map((promo) => (
-                        <div
-                          key={promo.id}
-                          className="bg-gray-50/80 dark:bg-background/80 border border-gray-200 dark:border-border/40 rounded-2xl p-5 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-primary/50 transition-all"
-                        >
-                          <div
-                            className="h-1.5 w-full absolute top-0 left-0"
-                            style={{
-                              background: `linear-gradient(to right, ${promo.gradientStart || "hsl(var(--primary))"}, ${promo.gradientEnd || "hsl(var(--accent))"})`,
-                            }}
-                          />
-
-                          <div className="space-y-3 pt-1">
-                            <div className="flex justify-between items-start gap-2">
-                              <span className="bg-primary/10 dark:bg-primary/95/60 text-primary dark:text-muted-foreground text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg border border-primary/20/60 shadow-xs">
-                                {promo.badge || "OFERTA"}
-                              </span>
-                              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-lg border border-emerald-200/50">
-                                {promo.discountType === "percentage"
-                                  ? `${promo.discountValue}% OFF`
-                                  : `R$ ${promo.discountValue.toFixed(2)} OFF`}
-                              </span>
-                            </div>
-
-                            <div>
-                              <h4 className="font-heading font-bold text-base leading-snug text-foreground dark:text-foreground">
-                                {promo.title}
-                              </h4>
-                              {promo.description && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1">
-                                  {promo.description}
-                                </p>
-                              )}
-                            </div>
-
-                            {promo.product && (
-                              <div className="space-y-1.5 bg-white dark:bg-[#200B22] rounded-xl p-3 border border-gray-200 dark:border-border/30">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
-                                  Produto Vinculado:
-                                </span>
-                                <div className="flex flex-wrap gap-1.5">
-                                  <span
-                                    key={promo.product.id}
-                                    className="text-[11px] font-semibold bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-lg"
-                                  >
-                                    {promo.product.name}
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex justify-between items-center mt-5 pt-3.5 border-t border-gray-200 dark:border-border/30">
-                            <Link
-                              href={`/promo/${promo.id}`}
-                              className="text-xs font-bold text-primary dark:text-muted-foreground hover:underline flex items-center gap-1"
-                            >
-                              Ver Detalhes <ChevronRight className="w-3.5 h-3.5" />
-                            </Link>
-
-                            <div className="flex gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setPromoToEdit(promo);
-                                  setPromoDialogOpen(true);
-                                }}
-                                className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-colors cursor-pointer"
-                                title="Editar Promoção"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeletePromo(promo.id)}
-                                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors cursor-pointer"
-                                title="Excluir Promoção"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </section>
-              </div>
-            )}
+                    )}
+                  </section>
+                </div>
+              );
+            })()}
 
               {/* CONTEÚDO DA ABA: CATEGORIAS DO CARDÁPIO */}
               {activeTab === "categorias" && <CategoryManagement />}

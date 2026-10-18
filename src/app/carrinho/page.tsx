@@ -29,6 +29,7 @@ import {
   EyeOff,
   Store,
   Truck,
+  Clock,
 } from "lucide-react";
 import { calculateDistanceKm } from "@/lib/geo";
 import { useCart } from "../../hooks/useCart";
@@ -1583,7 +1584,20 @@ export default function CarrinhoPage() {
               )}
 
               {couponError && (
-                <p className="text-destructive font-mono text-xs">{couponError}</p>
+                <div
+                  className={`p-3 rounded-2xl text-xs flex items-center gap-2.5 transition-all ${
+                    couponError.toLowerCase().includes("respire fundo") ||
+                    couponError.toLowerCase().includes("aguarde")
+                      ? "bg-sky-500/10 border border-sky-500/20 text-sky-900 dark:text-sky-200"
+                      : "text-destructive font-mono"
+                  }`}
+                >
+                  {(couponError.toLowerCase().includes("respire fundo") ||
+                    couponError.toLowerCase().includes("aguarde")) && (
+                    <Clock className="w-4 h-4 shrink-0 text-sky-600 dark:text-sky-400 animate-pulse" />
+                  )}
+                  <span className="leading-relaxed">{couponError}</span>
+                </div>
               )}
             </section>
 

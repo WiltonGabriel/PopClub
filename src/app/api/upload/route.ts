@@ -4,7 +4,7 @@ import fs from "fs/promises";
 import crypto from "crypto";
 import sharp from "sharp";
 import { getAuthUser } from "@/lib/auth";
-import { addonUploadLimiter, getIpFromRequest } from "@/lib/rateLimit";
+import { addonUploadLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
 
 const ALLOWED_MIME_TYPES = [
   "image/jpeg",
@@ -23,9 +23,9 @@ export async function POST(request: Request) {
     const ip = getIpFromRequest(request);
     const limitCheck = addonUploadLimiter.check(ip);
     if (!limitCheck.success) {
-      return NextResponse.json(
-        { error: "Limite de uploads excedido (máximo 20 uploads por minuto). Aguarde um instante." },
-        { status: 429 }
+      return createRateLimitResponse(
+        limitCheck,
+        "Muitos uploads em sequência. Aguarde um instante para processarmos suas imagens."
       );
     }
 

@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma, DBCoupon } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getAuthUser } from "@/lib/auth";
-import { couponLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
+import {
+  couponLimiter,
+  couponFailedAttemptsLimiter,
+  getIpFromRequest,
+  createRateLimitResponse,
+} from "@/lib/rateLimit";
 import {
   DEFAULT_LOYALTY_BADGES,
   LoyaltyBadgeConfig,
@@ -14,10 +19,24 @@ import { InvalidCouponException } from "@/domain/errors";
 export async function POST(request: Request) {
   try {
     const ip = getIpFromRequest(request);
-    const limitCheck = couponLimiter.check(ip);
 
+    // 1. Verificação se o IP já está bloqueado por tentativas consecutivas inválidas (Anti Brute-Force)
+    const failedKey = `failed_coupon:${ip}`;
+    const blockedCheck = couponFailedAttemptsLimiter.isBlocked(failedKey);
+    if (blockedCheck) {
+      return createRateLimitResponse(
+        blockedCheck,
+        "Você testou alguns cupons seguidos. Respire fundo e aguarde 2 minutinhos para tentar outro código."
+      );
+    }
+
+    // 2. Verificação de teto geral de requisições
+    const limitCheck = couponLimiter.check(ip);
     if (!limitCheck.success) {
-      return createRateLimitResponse(limitCheck, "Muitas tentativas de validação de cupom. Por favor, aguarde antes de tentar novamente.");
+      return createRateLimitResponse(
+        limitCheck,
+        "Você testou alguns cupons seguidos. Respire fundo e aguarde alguns instantes para tentar outro código."
+      );
     }
 
     interface ValidateCouponBody {
@@ -128,6 +147,9 @@ export async function POST(request: Request) {
 
     const discountAmount = CouponDomainService.calculateDiscount(coupon!, numSubtotal);
 
+    // Em caso de validação bem-sucedida, reseta o contador de falhas para tolerar erros pontuais futuros
+    couponFailedAttemptsLimiter.reset(failedKey);
+
     return NextResponse.json({
       valid: true,
       coupon: {
@@ -141,6 +163,18 @@ export async function POST(request: Request) {
     });
   } catch (error: unknown) {
     if (error instanceof InvalidCouponException) {
+      // Registra a tentativa inválida
+      const reqIp = getIpFromRequest(request);
+      const failedKey = `failed_coupon:${reqIp}`;
+      const failedCheck = couponFailedAttemptsLimiter.check(failedKey);
+
+      if (!failedCheck.success) {
+        return createRateLimitResponse(
+          failedCheck,
+          "Você testou alguns cupons seguidos. Respire fundo e aguarde 2 minutinhos para tentar outro código."
+        );
+      }
+
       return NextResponse.json(
         {
           valid: false,

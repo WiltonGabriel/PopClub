@@ -6,7 +6,10 @@ export async function GET(request: NextRequest) {
     const ip = getIpFromRequest(request);
     const limitCheck = geocodeLimiter.check(ip);
     if (!limitCheck.success) {
-      return createRateLimitResponse(limitCheck, "Limite de consultas de endereço excedido. Por favor, aguarde.");
+      return createRateLimitResponse(
+        limitCheck,
+        "Muitas consultas de endereço em sequência. Aguarde alguns instantes para pesquisar novamente."
+      );
     }
 
     const { searchParams } = new URL(request.url);

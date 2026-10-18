@@ -82,7 +82,10 @@ export async function POST(request: Request) {
     const ip = getIpFromRequest(request);
     const limitCheck = checkoutLimiter.check(ip);
     if (!limitCheck.success) {
-      return createRateLimitResponse(limitCheck, "Você está criando pedidos rápido demais. Aguarde um momento.");
+      return createRateLimitResponse(
+        limitCheck,
+        "Já estamos processando um pedido seu. Aguarde alguns instantes antes de enviar novamente."
+      );
     }
 
     let json: unknown;
