@@ -64,18 +64,18 @@ import { StoreStatusTopWidget } from "../../components/admin/StoreStatusTopWidge
 import { TAB_PERMISSION_MAP, PermissionKey } from "../../lib/permissions";
 
 const TAB_DEFINITIONS = [
-  { id: "metricas", label: "📊 Métricas & Desempenho", perm: "metrics_view", icon: BarChart3 },
-  { id: "categorias", label: "🗂️ Categorias", perm: "menu_manage", icon: FolderTree },
-  { id: "complementos", label: "🍨 Complementos", perm: "menu_manage", icon: IceCream },
-  { id: "combos", label: "⚡ Combos", perm: "menu_manage", icon: Zap },
-  { id: "promocoes", label: "🏷️ Promoções", perm: "promotions_manage", icon: Tag },
-  { id: "cupons", label: "🎟️ Cupons", perm: "coupons_manage", icon: Ticket },
-  { id: "identidade_visual", label: "🎨 Identidade Visual", perm: "theme_manage", icon: Palette },
-  { id: "avatares", label: "✨ Avatares Oficiais", perm: "theme_manage", icon: User },
-  { id: "banners_selos", label: "🖼️ Banners & Selos", perm: "theme_manage", icon: ImageIcon },
-  { id: "logistica_entregadores", label: "🛵 Logística & Entregadores", perm: "settings_manage", icon: Truck },
-  { id: "canais_atendimento", label: "💬 Canais & Atendimento", perm: "settings_manage", icon: MessageCircle },
-  { id: "disparos_notificacoes", label: "📢 Disparos & Notificações", perm: "settings_manage", icon: Bell },
+  { id: "metricas", label: "Métricas & Desempenho", perm: "metrics_view", icon: BarChart3 },
+  { id: "categorias", label: "Categorias", perm: "menu_manage", icon: FolderTree },
+  { id: "complementos", label: "Complementos", perm: "menu_manage", icon: IceCream },
+  { id: "combos", label: "Combos", perm: "menu_manage", icon: Zap },
+  { id: "promocoes", label: "Promoções", perm: "promotions_manage", icon: Tag },
+  { id: "cupons", label: "Cupons", perm: "coupons_manage", icon: Ticket },
+  { id: "identidade_visual", label: "Identidade Visual", perm: "theme_manage", icon: Palette },
+  { id: "avatares", label: "Avatares Oficiais", perm: "theme_manage", icon: User },
+  { id: "banners_selos", label: "Banners & Selos", perm: "theme_manage", icon: ImageIcon },
+  { id: "logistica_entregadores", label: "Logística & Entregadores", perm: "settings_manage", icon: Truck },
+  { id: "canais_atendimento", label: "Canais & Atendimento", perm: "settings_manage", icon: MessageCircle },
+  { id: "disparos_notificacoes", label: "Disparos & Notificações", perm: "settings_manage", icon: Bell },
 ] as const;
 
 export type AdminTab = typeof TAB_DEFINITIONS[number]["id"];
