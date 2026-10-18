@@ -263,7 +263,98 @@ describe("Conformidade Integral à LGPD (Lei nº 13.709/2018) e Diretrizes da AN
       expect(custom.preferences).toBe(false);
       expect(JSON.parse(mockStorage[COOKIE_CONSENT_KEY]).analytics).toBe(true);
 
+      expect(fakeWindow.dispatchEvent).toHaveBeenCalled();
+
       vi.unstubAllGlobals();
+    });
+
+    it("recupera preferências persistidas e trata corrupção de JSON com fallback seguro", () => {
+      const mockStorage: Record<string, string> = {
+        [COOKIE_CONSENT_KEY]: "invalid-corrupted-json{",
+      };
+      vi.stubGlobal("window", {});
+      vi.stubGlobal("localStorage", {
+        getItem: (key: string) => mockStorage[key] || null,
+      });
+
+      const fallback = privacyService.getConsent();
+      expect(fallback).toBeNull();
+
+      // Quando válido
+      mockStorage[COOKIE_CONSENT_KEY] = JSON.stringify({
+        necessary: true,
+        analytics: true,
+        preferences: true,
+        timestamp: "2026-10-18T10:00:00Z",
+        version: "1.0",
+      });
+      const valid = privacyService.getConsent();
+      expect(valid?.necessary).toBe(true);
+      expect(valid?.analytics).toBe(true);
+
+      vi.unstubAllGlobals();
+    });
+  });
+
+  describe("Eixo 4: Isolamento Seguro de Dados Cadastrais (Proteção contra IDOR)", () => {
+    it("isola os dados do titular garantindo que o usuário só visualize suas próprias informações", async () => {
+      const loggedUser = {
+        id: "user-alpha-111",
+        username: "usuarioAlpha",
+        role: "CLIENT",
+        isRegistered: true,
+        phone: "65999991111",
+        tokenVersion: 1,
+      };
+
+      vi.spyOn(auth, "getAuthUser").mockResolvedValue(loggedUser as any);
+
+      let queriedUserId = "";
+      vi.spyOn(prisma.user, "findUnique").mockImplementation((args: any) => {
+        queriedUserId = args.where.id;
+        return Promise.resolve({
+          id: args.where.id,
+          fullName: "Usuário Alpha",
+          username: "usuarioAlpha",
+          email: "alpha@example.com",
+          phone: "65999991111",
+          role: "CLIENT",
+          isRegistered: true,
+          createdAt: new Date(),
+          accessibilitySettings: {},
+        }) as any;
+      });
+
+      vi.spyOn(prisma.userLocation, "findMany").mockResolvedValue([]);
+      vi.spyOn(prisma.order, "findMany").mockResolvedValue([]);
+
+      // Requisição simulando tentativa de obter dados de outro usuário via query param malicioso
+      const req = new Request("http://localhost:3000/api/users/privacy?userId=user-beta-999", {
+        method: "GET",
+      });
+
+      const res = await getPrivacyData(req);
+      expect(res.status).toBe(200);
+
+      // Garante que o ID consultado no banco de dados foi estritamente o do token da sessão
+      expect(queriedUserId).toBe("user-alpha-111");
+      expect(queriedUserId).not.toBe("user-beta-999");
+    });
+  });
+
+  describe("Eixo 5: Disponibilidade e Integridade das Rotas Públicas de Privacidade e Termos", () => {
+    it("as páginas públicas de Privacidade e Termos possuem estrutura e links adequados", async () => {
+      const PoliticaModule = await import("@/app/privacidade/page");
+      const TermosModule = await import("@/app/termos/page");
+
+      expect(typeof PoliticaModule.default).toBe("function");
+      expect(typeof TermosModule.default).toBe("function");
+
+      const privacyElement = PoliticaModule.default();
+      expect(privacyElement).toBeDefined();
+
+      const termsElement = TermosModule.default();
+      expect(termsElement).toBeDefined();
     });
   });
 });

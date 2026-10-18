@@ -2,6 +2,11 @@
 
 Este documento detalha as decisões arquiteturais, topologia de rede, segurança e estratégias de infraestrutura adotadas para a plataforma **Pop Shake Delivery PWA** hospedada na infraestrutura **Grein Cloud 01**.
 
+> [!NOTE]
+> **Central de Documentos Extensionistas & Relatórios Oficiais (Google Drive):**  
+> Os relatórios consolidados, atas de reuniões, levantamento de requisitos canônicos e evidências formais do Projeto Integrador Extensionista (UNIVAG TADS) estão disponíveis na pasta compartilhada oficial:  
+> 🔗 [https://drive.google.com/drive/folders/1iw4oxwSWsKvCcCP9YZipzOM0B2B7JmdR?usp=sharing](https://drive.google.com/drive/folders/1iw4oxwSWsKvCcCP9YZipzOM0B2B7JmdR?usp=sharing)
+
 ---
 
 ## 🗺️ Visão Geral da Topologia de Rede
@@ -198,6 +203,86 @@ sequenceDiagram
 
 O **PopClub** é fruto do **Projeto Extensionista Integrador** do curso de **Tecnologia em Análise e Desenvolvimento de Sistemas (TADS)** do **Centro Universitário de Várzea Grande (UNIVAG)**:
 - **Beneficiário Parceiro:** Pop Shake Sorveteria & Açaí Artesanal (Várzea Grande – MT).
-- **Impacto Comunitário e Econômico:** Substituição de plataformas de marketplace predatórias por um canal de vendas direto, fortalecendo a economia local e garantindo margens sustentáveis ao pequeno empreendedor.
+- **Impacto Comunitário e Econômico:** Substituição de plataformas de marketplace predatórias (com taxas abusivas de 12% a 27%) por um canal de vendas direto (take-rate de 0%), fortalecendo a economia local e garantindo margens sustentáveis ao pequeno empreendedor.
 - **Engenharia sob Medida:** Resolução do desafio regional do clima quente de Mato Grosso (perecibilidade do açaí artesanal em ~4 minutos) através da esteira Kanban sincronizada com despacho imediato via WhatsApp e acompanhamento por mapa.
+
+---
+
+## 8. Topologia de Produção Oficial (`https://popshake.wnzk.dev.br/`)
+
+A infraestrutura de produção é operada de forma robusta e automatizada na VPS **Grein Cloud 01**:
+
+```mermaid
+flowchart LR
+    A["Internet / Clientes"] -->|"HTTPS / DNS"| B["Cloudflare Edge\n(WAF + SSL + DDoS Protection)"]
+    B -->|"HTTPS :443"| C["Traefik v3\n(Host Ingress Proxy)"]
+    C -->|"Rede: proxy_network"| D["PopClub Container\n(Next.js 16 Standalone :3000)"]
+    D -->|"Rede: popshake_internal"| E[("PostgreSQL 16 Alpine\n(Sem exposição pública)")]
+    
+    F["GitHub Actions CI/CD"] -->|"Build & Push"| G["GHCR (ghcr.io)"]
+    G -.->|"Re-pull Image"| H["Portainer CE\n(Orquestração da Stack)"]
+    H -.->|"Atualiza"| D
+```
+
+1. **Borda, WAF & DNS:** O [Cloudflare](https://www.cloudflare.com/) atua como primeira linha de defesa, realizando terminação SSL pública, mitigação automática de ataques DDoS e aplicação de regras de WAF com bypass cirúrgico para os arquivos do manifesto PWA (`/manifest.webmanifest`, `/_next/static/*`).
+2. **Proxy Reverso do Host:** O **Traefik v3** escuta nas portas `80` e `443`, renova automaticamente os certificados TLS com Let's Encrypt (`leresolver`) e roteia o tráfego da rede Docker `proxy_network` para o container do PopClub.
+3. **Orquestração de Containers:** O **Portainer CE** gerencia o ciclo de vida dos containers através da stack declarativa `popshake-stack.yml`.
+4. **Pipeline CI/CD e Registro:** A cada `git push origin main`, o GitHub Actions executa a suíte de validação e compila a imagem Docker multi-stage, publicando-a no **GitHub Container Registry (GHCR)** sob a tag `ghcr.io/wiltongabriel/popclub:latest`. A stack do Portainer é atualizada de forma ágil via "Re-pull image and redeploy".
+5. **Banco de Dados em Produção:** Instância PostgreSQL 16 isolada na rede privada bridge `popshake_internal`, inacessível a partir da internet pública. O acesso administrativo de desenvolvimento é viabilizado estritamente pela rede mesh segura **Tailscale**.
+
+---
+
+## 9. Ambientes de Desenvolvimento Local
+
+O projeto foi projetado com máxima flexibilidade para desenvolvedores e avaliadores:
+
+### Opção A: Execução 100% Autônoma e Isolada (Docker Local)
+Ideal para avaliação acadêmica, bancas examinadoras ou desenvolvedores sem acesso à VPN Tailscale:
+```bash
+# 1. Subir container PostgreSQL isolado na porta 5432
+docker compose -f docker-compose.dev.yml up -d
+
+# 2. Configurar o arquivo de variáveis de ambiente
+cp .env.example .env
+
+# 3. Sincronizar o schema relacional e popular dados de teste
+npx prisma db push
+npx prisma db seed
+
+# 4. Iniciar a aplicação localmente
+npm run dev
+```
+
+### Opção B: Centralização com Paridade Absoluta (Tailscale VPN)
+Utilizada no ciclo oficial de desenvolvimento da equipe para evitar desvio de ambiente (*environment drift*):
+- Conectar à malha Tailscale.
+- Apontar o `DATABASE_URL` no `.env` para `100.127.79.49:5432`.
+- Executar `npx prisma generate && npm run dev`.
+
+---
+
+## 10. Arquitetura de Conformidade LGPD & Governança de Cookies
+
+Em cumprimento à **Lei Geral de Proteção de Dados (Lei nº 13.709/2018)** e aos **Guias da ANPD**:
+
+1. **Minimização da Coleta (Art. 6º, III):** Coleta estritamente necessária no Acesso Rápido (Nome e WhatsApp para entrega) e GPS para estimativa de frete, com avisos contextuais no ponto de coleta (**Art. 9º**).
+2. **Governança de Cookies (Guia Oficial da ANPD):**
+   - Cookies essenciais (carrinho, sessão e CSRF) operam sob o Art. 7º, V da LGPD.
+   - Cookies opcionais (analíticos e personalização) são desativados por padrão (*Privacy by Default*).
+   - Componente flutuante não-bloqueante (`CookieConsentBanner`) com modal de reconfiguração reabrível a qualquer momento a partir do rodapé.
+3. **Direitos do Titular (Art. 18):**
+   - **Portabilidade (Art. 18, V):** Endpoint `GET /api/users/privacy` exportando JSON padronizado com identificação do Controlador e DPO.
+   - **Anonimização com Preservação Fiscal (Art. 18, VI e Art. 16, I):** Endpoint `DELETE /api/users/privacy` que expurga PII irreversivelmente e anonimiza endereços de pedidos, mantendo registros contábeis desidentificados para fechamento de caixa e cumprimento tributário.
+4. **Canal do Encarregado (DPO — Art. 41):** `privacidade@popshake.com.br`, com políticas públicas transparentes em `/privacidade` e `/termos`.
+
+---
+
+## 11. Equipe e Governança do Projeto
+
+- **Wilton Gabriel Albuquerque Pereira — Arquiteto de Software & Mantenedor Principal**  
+  Responsável pela arquitetura de software, desenvolvimento full-stack, segurança de aplicação (AppSec), governança de infraestrutura e gestão técnica do repositório.
+- **Adriel Felipe — Analista de Documentação**  
+  Responsável pela elaboração e estruturação da documentação técnica, atas e materiais das entregas extensionistas.
+- **João Lucas — Analista de Qualidade & Relacionamento**  
+  Responsável pelos testes funcionais, validação da esteira operacional e interface com a empresa parceira.
 

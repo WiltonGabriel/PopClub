@@ -29,6 +29,7 @@
 **Orientação Acadêmica:** Coordenação do Curso de Análise e Desenvolvimento de Sistemas  
 **Entidade Parceira / Cliente Beneficiário:** Pop Shake Sorveteria & Açaí Artesanal  
 **Área de Aplicação:** Gastronomia Comercial, Logística Urbana de Delivery e Engenharia de Software  
+**Central de Anexos Oficiais (Google Drive):** [Pasta Compartilhada de Relatórios e Atas Extensionistas](https://drive.google.com/drive/folders/1iw4oxwSWsKvCcCP9YZipzOM0B2B7JmdR?usp=sharing)  
 **Local e Ano:** Várzea Grande – MT, 2026  
 
 ---

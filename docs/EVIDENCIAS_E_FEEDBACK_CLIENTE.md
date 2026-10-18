@@ -19,6 +19,7 @@
 **Responsável no Estabelecimento:** Gerência Operacional e de Atendimento  
 **Localização:** Várzea Grande – MT  
 **Período de Execução:** Agosto a Setembro de 2026  
+**Central de Anexos e Atas Originais (Google Drive):** [Pasta Compartilhada Oficial](https://drive.google.com/drive/folders/1iw4oxwSWsKvCcCP9YZipzOM0B2B7JmdR?usp=sharing)  
 
 ---
 

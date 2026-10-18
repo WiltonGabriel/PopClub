@@ -10,8 +10,9 @@
 ![Traefik](https://img.shields.io/badge/Traefik-v3-24A1C1?style=for-the-badge&logo=traefik&logoColor=white)
 ![Tailscale](https://img.shields.io/badge/Tailscale-Mesh%20VPN-49647C?style=for-the-badge&logo=tailscale&logoColor=white)
 ![Projeto Extensionista](https://img.shields.io/badge/Projeto%20Extensionista-UNIVAG%20TADS-8A2BE2?style=for-the-badge)
-![Vitest](https://img.shields.io/badge/Vitest-117%20Passed-449C44?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-120%20Passed-449C44?style=for-the-badge&logo=vitest&logoColor=white)
 ![LGPD](https://img.shields.io/badge/LGPD-Compliant-00B4D8?style=for-the-badge&logo=privatedivision&logoColor=white)
+[![Google Drive](https://img.shields.io/badge/Google%20Drive-Documentos%20Oficiais-4285F4?style=for-the-badge&logo=googledrive&logoColor=white)](https://drive.google.com/drive/folders/1iw4oxwSWsKvCcCP9YZipzOM0B2B7JmdR?usp=sharing)
 
 <br/>
 
@@ -43,6 +44,7 @@ Este ecossistema foi concebido e implementado como entrega formal do **Projeto E
 - **Empresa Parceira Beneficiária:** Pop Shake Sorveteria & Açaí Artesanal (Várzea Grande – MT).
 - **Problema de Campo Solucionado:** Eliminação da dependência de marketplaces predatórios de delivery (com taxas de 23% a 27%), proporcionando soberania comercial, redução de custos e um canal proprietário direto para a comunidade local.
 - **Engenharia Térmica e Operacional:** Adequação estrita da esteira Kanban para o açaí artesanal da região de Cuiabá/Várzea Grande, que sofre com perda acelerada de consistência térmica sob calor extremo (~4 minutos), integrando a triagem de pedidos ao despacho instantâneo via WhatsApp dos entregadores cadastrados.
+- **Central de Documentação & Relatórios Oficiais (Google Drive):** Acesse a pasta compartilhada com relatórios consolidados, atas, documentos de requisitos canônicos e evidências formais do projeto em: [📁 Pasta Oficial no Google Drive](https://drive.google.com/drive/folders/1iw4oxwSWsKvCcCP9YZipzOM0B2B7JmdR?usp=sharing).
 
 ---
 
@@ -88,7 +90,15 @@ flowchart TD
     Dev -->|"Tailscale 100.127.79.49:5432"| DB
 ```
 
-Para uma análise aprofundada dos roteadores, regras de WAF e isolamento de rede, consulte o documento técnico [docs/ARCHITECTURE.md](file:///home/wiltongx/Projetos/PastePopClub/PopClub/docs/ARCHITECTURE.md).
+### 🌐 Infraestrutura de Produção Ativa (`https://popshake.wnzk.dev.br/`)
+A plataforma é executada em regime ininterrupto na VPS **Grein Cloud 01** através de uma cadeia resiliente:
+1. **Borda, WAF & DNS:** O [Cloudflare](https://www.cloudflare.com/) realiza terminação SSL pública, mitigação anti-DDoS e roteamento com bypass para recursos críticos de PWA (`/manifest.webmanifest`, `/_next/static/*`).
+2. **Proxy Reverso do Host:** O **Traefik v3** intercepta as requisições HTTPS e balanceia o tráfego na rede Docker interna `proxy_network`.
+3. **Orquestração:** O **Portainer CE** gerencia a stack declarativa do PopClub (`popshake-stack.yml`), controlando volumes e variáveis de ambiente.
+4. **Pipeline CI/CD Contínuo:** A cada commit na branch `main`, o GitHub Actions compila a imagem Docker multi-stage com cache e a publica no **GitHub Container Registry (GHCR)** sob a tag `ghcr.io/wiltongabriel/popclub:latest`. O Portainer atualiza a aplicação via *Re-pull image and redeploy*.
+5. **Banco de Dados Isolado:** Instância PostgreSQL 16 Alpine protegida em rede privada bridge, inacessível diretamente pela internet pública. O acesso administrativo seguro ocorre exclusivamente através da VPN **Tailscale**.
+
+Para aprofundamento das decisões arquiteturais e fluxos de rede, consulte o documento técnico [docs/ARCHITECTURE.md](file:///home/wiltongx/Projetos/PastePopClub/PopClub/docs/ARCHITECTURE.md).
 
 ---
 
@@ -154,36 +164,57 @@ O PopClub adota conformidade rigorosa com a **Lei Geral de Proteção de Dados (
 
 ## 🚀 Setup de Desenvolvimento Local
 
-O desenvolvimento local adota o princípio de **Paridade Absoluta**: a estação local consome diretamente a instância centralizada do PostgreSQL na VPS através da rede segura **Tailscale**. Não é necessário rodar containers locais de banco de dados.
+O projeto foi arquitetado para permitir execução imediata tanto de forma **100% local e autônoma** (sem qualquer dependência de rede externa para avaliadores e bancas) quanto com **paridade absoluta** consumindo a VPS da equipe:
 
 ### 1. Pré-requisitos
 - [Node.js](https://nodejs.org/) versão 20 LTS ou superior.
-- [Tailscale](https://tailscale.com/) instalado, logado e conectado à malha da VPS.
+- [Docker](https://www.docker.com/) e Docker Compose instalados.
+- [Git](https://git-scm.com/) para clonagem do repositório.
 
-### 2. Configuração do `.env`
-Crie ou ajuste o arquivo `.env` na raiz do projeto conforme o modelo abaixo:
+---
 
-```env
-# Conexão com o PostgreSQL Remoto Centralizado (via Tailscale)
-DATABASE_URL="postgresql://postgres:SUA_SENHA_AQUI@100.127.79.49:5432/popclub?schema=public"
+### Opção A: Execução Local 100% Autônoma e Isolada (Recomendado para Avaliação)
+Permite subir um container isolado do PostgreSQL, aplicar o schema e rodar o sistema localmente em qualquer computador:
 
-# Chave Secreta para Sessões e Assinatura de Tokens JWT (mínimo 32 caracteres)
-JWT_SECRET="sua_chave_secreta_jwt_aqui"
-```
-
-### 3. Instalação e Execução
 ```bash
-# 1. Instalar as dependências do projeto
+# 1. Clonar o repositório e entrar no diretório
+git clone https://github.com/WiltonGabriel/PopClub.git
+cd PopClub
+
+# 2. Instalar as dependências do projeto
 npm install
 
-# 2. Sincronizar o cliente Prisma com o banco remoto
-npx prisma generate
+# 3. Subir o container local isolado do PostgreSQL 16
+docker compose -f docker-compose.dev.yml up -d
 
-# 3. Iniciar o servidor de desenvolvimento
+# 4. Copiar o arquivo de variáveis de ambiente de exemplo
+cp .env.example .env
+
+# 5. Sincronizar o schema relacional e popular o banco com dados de teste (seed)
+npx prisma db push
+npx prisma db seed
+
+# 6. Iniciar a aplicação em modo desenvolvimento
 npm run dev
 ```
 
-Acesse a aplicação no navegador em [http://localhost:3000](http://localhost:3000).
+Acesse a vitrine em [http://localhost:3000](http://localhost:3000) e a área de gestão em [http://localhost:3000/admin](http://localhost:3000/admin).
+
+---
+
+### Opção B: Centralização com Paridade Absoluta (Tailscale VPN)
+Utilizada no fluxo de engenharia da equipe para consumir os dados reais da sorveteria sem divergência de ambiente (*environment drift*):
+```bash
+# 1. Conectar à malha privada segura da VPS
+tailscale up
+
+# 2. Configurar o .env apontando para o IP da VPS
+# DATABASE_URL="postgresql://postgres:SUA_SENHA@100.127.79.49:5432/popclub?schema=public"
+
+# 3. Gerar os tipos do Prisma e iniciar
+npx prisma generate
+npm run dev
+```
 
 ---
 
@@ -195,8 +226,8 @@ O projeto conta com ferramentas integradas de verificação, teste e manutençã
 | :--- | :--- |
 | `npm run dev` | Inicia o servidor local Next.js com live reload em todas as interfaces de rede. |
 | `npm run build` | Compilação estrita de produção (TypeScript check, bundler SWC e modo standalone). |
-| `npm run lint` | Executa a análise estática com o ESLint configurado para Next.js. |
-| `npm test` | **Suíte de Testes Automatizados (Vitest)**: executa 100 testes unitários e de integração (horários, RBAC, AppSec, estoque, esteira e financeiro). |
+| `npm run lint` | Executa a análise estática com o ESLint configurado para Next.js (0 erros). |
+| `npm test` | **Suíte de Testes Automatizados (Vitest)**: executa 120 testes unitários e de integração (LGPD, cookies, isolamento IDOR, horários, RBAC, AppSec, estoque, esteira e financeiro). |
 | `npm run test:watch` | Executa a suíte Vitest em modo interativo contínuo (TDD). |
 | `npm run test:coverage` | Gera o relatório de cobertura de código automatizado (`@vitest/coverage-v8`). |
 | `npx tsc --noEmit` | **Typecheck Estrito**: valida 100% da tipagem estática sem emitir artefatos. |
@@ -291,7 +322,7 @@ O repositório opera estritamente sob as diretrizes documentadas em [GITOPS.md](
 - **Identidade Visual & Personalização:** Customização do tema do splash screen/loading, avatares oficiais, banners rotativos e gestão de zonas de entrega.
 
 ### 6. Engenharia de Qualidade, AppSec & Exceções de Domínio
-- **Suíte de Testes Automatizados (Vitest):** Cobertura rigorosa com 100 testes unitários e de integração validando horários, estoques, regras de precificação, RBAC e esteira.
+- **Suíte de Testes Automatizados (Vitest):** Cobertura rigorosa com 120 testes unitários e de integração validando conformidade LGPD, governança de cookies, isolamento IDOR, horários, estoques, regras de precificação, RBAC e esteira.
 - **Sistema Granular de Exceções de Domínio:** Tratamento padronizado de erros (`DomainException`, `handleApiError`) com códigos de erro rastreáveis e sanitização de logs para evitar vazamento de segredos.
 - **Segurança Defensiva Zero Trust:** Rate limiting por IP/identificador em rotas sensíveis (Auth, Fast Access, Cupons, Checkout e Notificações) e validação estrita com Zod.
 
@@ -303,7 +334,7 @@ O projeto **PopClub** é desenvolvido no âmbito da **Equipe ADP**, com responsa
 
 ### Funções Atuais
 
-- **Wilton Gabriel — Arquiteto de Software & Mantenedor Principal**
+- **Wilton Gabriel Albuquerque Pereira — Arquiteto de Software & Mantenedor Principal**
   Responsável pela arquitetura da solução, desenvolvimento e implementação do sistema, decisões técnicas, manutenção e evolução do código-fonte. Atua também como referência responsável pela coordenação técnica, administração e manutenção do repositório, organização do código, integração de contribuições e continuidade da plataforma, bem como pela gestão das autorizações relacionadas ao software, seu uso e sua evolução.
 
 - **Adriel Felipe — Analista de Documentação**

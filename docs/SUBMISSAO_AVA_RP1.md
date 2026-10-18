@@ -49,7 +49,7 @@ Para avaliação completa do código-fonte e dos artefatos documentais formais, 
   👉 Arquivo: `docs/EVIDENCIAS_E_FEEDBACK_CLIENTE.md` no repositório.
 
 - 📁 **Pasta Oficial do Google Drive (Documentação em PDF/DOCX, Atas Assinadas e Evidências Fotográficas):**  
-  👉 https://drive.google.com/drive/folders/170wZ460Zc6QnK5tS-jVqI-2f0jH8X-Yx?usp=sharing  
+  👉 https://drive.google.com/drive/folders/1iw4oxwSWsKvCcCP9YZipzOM0B2B7JmdR?usp=sharing  
   *(Nota: Todos os relatórios, capturas das telas operacionais no balcão e documentos comprobatórios encontram-se organizados e com permissão pública de visualização).*
 
 ---
