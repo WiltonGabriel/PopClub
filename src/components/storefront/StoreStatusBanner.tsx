@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Clock, ChefHat, Sparkles } from "lucide-react";
+import { Clock, ChefHat } from "lucide-react";
 import { StoreStatusCode } from "@/lib/storeSchedule";
 
 interface StoreStatusBannerProps {

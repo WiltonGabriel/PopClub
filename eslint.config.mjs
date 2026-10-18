@@ -19,6 +19,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "coverage/**",
+    "public/**",
+    "scratch/**",
+    "rewrite_admin.js",
   ]),
 ]);
 

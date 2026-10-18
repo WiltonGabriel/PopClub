@@ -451,7 +451,7 @@ export function ProductFormDialog({
                       className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-1.5"
                     >
                       <Users className="w-3.5 h-3.5 text-primary" />
-                      Rendimento / "Serve X Pessoas"
+                      Rendimento / &quot;Serve X Pessoas&quot;
                     </Label>
                     <span className="text-[10px] text-muted-foreground font-normal">
                       opcional

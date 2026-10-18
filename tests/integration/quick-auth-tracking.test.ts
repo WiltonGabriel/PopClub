@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
 import { fullNameSchema, phoneSchema, sanitizeAndNormalizePhone } from "@/lib/validations/auth";
-import { formatOrder } from "@/lib/orderFormat";
 import { GET as getOrderById } from "@/app/api/orders/[id]/route";
 import { prisma } from "@/lib/prisma";
 

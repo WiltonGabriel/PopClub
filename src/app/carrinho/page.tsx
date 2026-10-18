@@ -38,6 +38,7 @@ import { orderService } from "../../services/orderService";
 import { userService, UserLocation } from "../../services/userService";
 import { storeSettingsService, StoreSettings } from "../../services/storeSettingsService";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
+import { useCartFinancials } from "@/hooks/useCartFinancials";
 import { useAddress } from "@/contexts/AddressContext";
 import { useOrders } from "@/contexts/OrderContext";
 import { Button } from "../../components/ui/button";
@@ -500,40 +501,32 @@ export default function CarrinhoPage() {
     return storeSettings.deliveryFee;
   }, [storeSettings, isFreeDelivery, deliveryMode]);
 
-  const amountToFreeShipping = useMemo(() => {
-    if (deliveryMode === "retirada") return 0;
-    if (!storeSettings || storeSettings.freeDeliveryThreshold === null || isFreeDelivery) return 0;
-    return Math.max(0, Number((storeSettings.freeDeliveryThreshold - itemsTotal).toFixed(2)));
-  }, [storeSettings, itemsTotal, isFreeDelivery, deliveryMode]);
+  const addressSummary = useMemo(() => {
+    if (deliveryMode === "retirada") {
+      return `Retirada no Balcão da Loja (${storeSettings?.storeAddress || "Sede Pop Shake"})`;
+    }
+    return street
+      ? `${street}, ${number || "S/N"} - ${neighborhood || ""}${city ? `, ${city}` : ""}${complement ? ` (${complement})` : ""}`
+      : "A combinar";
+  }, [deliveryMode, storeSettings, street, number, neighborhood, city, complement]);
 
-  const couponDiscount = appliedCoupon ? appliedCoupon.discountAmount : 0;
-  const _totalDiscount = Number((promoDiscount + couponDiscount).toFixed(2));
-  const finalTotal = Math.max(0, Number((itemsTotal - couponDiscount + deliveryFee).toFixed(2)));
-
-  // Resumo do carrinho para contingência via WhatsApp
-  const cartSummary = useMemo(() => {
-    if (!items.length) return "";
-    const itemsList = items
-      .map(
-        (item) =>
-          `• ${item.quantity}x ${item.name} - R$ ${(item.price * item.quantity).toFixed(2).replace(".", ",")}`
-      )
-      .join("\n");
-    const addressStr =
-      deliveryMode === "retirada"
-        ? `Retirada no Balcão da Loja (${storeSettings?.storeAddress || "Sede Pop Shake"})`
-        : street
-        ? `${street}, ${number || "S/N"} - ${neighborhood || ""}${city ? `, ${city}` : ""}${complement ? ` (${complement})` : ""}`
-        : "A combinar";
-    const paymentStr =
-      paymentType === "dinheiro"
-        ? `Dinheiro${changeFor ? ` (Troco para R$ ${parseFloat(changeFor).toFixed(2).replace(".", ",")})` : ""}`
-        : paymentType === "cartao_maquininha"
-        ? "Cartão na Maquininha"
-        : "Pix na Entrega";
-    const modalidadeStr = deliveryMode === "retirada" ? "*Modalidade:* Retirada no Balcão (Frete Grátis)" : "*Modalidade:* Entrega em Domicílio";
-    return `*Novo Pedido PopClub*\n\n*Itens:*\n${itemsList}\n\n${modalidadeStr}\n*Endereço/Local:* ${addressStr}\n*Forma de Pagamento:* ${paymentStr}\n*Total:* R$ ${finalTotal.toFixed(2).replace(".", ",")}`;
-  }, [items, deliveryMode, street, number, neighborhood, city, complement, paymentType, changeFor, finalTotal, storeSettings]);
+  const {
+    couponDiscount,
+    finalTotal,
+    amountToFreeShipping,
+    cartSummaryText: cartSummary,
+  } = useCartFinancials({
+    items,
+    itemsTotal,
+    promoDiscount,
+    appliedCoupon,
+    storeSettings,
+    deliveryMode,
+    deliveryFee,
+    paymentType,
+    changeFor,
+    addressSummary,
+  });
 
   const handleReviewAddress = () => {
     if (addressSectionRef.current) {

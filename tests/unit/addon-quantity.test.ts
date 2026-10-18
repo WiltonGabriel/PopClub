@@ -102,6 +102,7 @@ describe("Modal de Produto & Complementos (Cálculos de Adicionais e Layout)", (
       expect(desktopContainerClasses).toContain("hidden md:flex");
       expect(desktopContainerClasses).toContain("flex-row");
       expect(desktopLeftColumn).toContain("w-1/2");
+      expect(desktopRightColumn).toContain("flex-1");
 
       // Classes do container Mobile (< md)
       const mobileContainerClasses = "flex flex-col md:hidden flex-1 min-h-0 overflow-y-auto";

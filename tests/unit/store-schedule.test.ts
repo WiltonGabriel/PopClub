@@ -5,8 +5,6 @@ import {
   getCuiabaNow,
   isTimeWithinRange,
   timeStringToMinutes,
-  CUIABA_TIMEZONE,
-  StoreOperationalStatus,
 } from "@/lib/storeSchedule";
 
 describe("Store Schedule & Operational Status (America/Cuiaba)", () => {

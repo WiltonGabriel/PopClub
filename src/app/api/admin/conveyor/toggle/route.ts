@@ -3,15 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { hasPermission, isUserAdmin } from "@/lib/permissions";
 import { getStoreOperationalStatus } from "@/lib/storeSchedule";
+import { UnauthorizedException, ForbiddenActionException } from "@/domain/errors";
+import { handleApiError } from "@/lib/apiResponse";
 
 export async function PATCH(request: Request) {
   try {
     const user = await getAuthUser(request);
     if (!user) {
-      return NextResponse.json(
-        { error: "Autenticação obrigatória." },
-        { status: 401 }
-      );
+      throw new UnauthorizedException("Autenticação obrigatória.");
     }
 
     const canManageConveyor =
@@ -20,9 +19,9 @@ export async function PATCH(request: Request) {
       hasPermission(user, "settings_manage");
 
     if (!canManageConveyor) {
-      return NextResponse.json(
-        { error: "Acesso negado. Permissão para gerenciar a esteira da loja necessária." },
-        { status: 403 }
+      throw new ForbiddenActionException(
+        "ORDERS_KANBAN",
+        "Acesso negado. Permissão para gerenciar a esteira da loja necessária."
       );
     }
 
@@ -96,11 +95,7 @@ export async function PATCH(request: Request) {
         : "Esteira operacional pausada com sucesso.",
     });
   } catch (error: unknown) {
-    console.error("Erro ao alternar esteira da loja:", error);
-    return NextResponse.json(
-      { error: "Erro interno ao atualizar status da esteira." },
-      { status: 500 }
-    );
+    return handleApiError(error, "PATCH /api/admin/conveyor/toggle", "Erro interno ao atualizar status da esteira.");
   }
 }
 

@@ -18,7 +18,17 @@ import {
 
 import { calculateDistanceKm } from "@/lib/geo";
 import { calculateProductPrice } from "@/lib/pricing";
-import { evaluateStoreSchedule, DEFAULT_STORE_SCHEDULE, BusinessHourDay } from "@/lib/storeSchedule";
+import { DEFAULT_STORE_SCHEDULE, BusinessHourDay } from "@/lib/storeSchedule";
+import {
+  StoreScheduleDomainService,
+  CouponDomainService,
+  StockDomainService,
+  AddonDomainService,
+} from "@/domain/services";
+import {
+  ResourceNotFoundException,
+  InvalidCouponException,
+} from "@/domain/errors";
 
 const checkoutSchema = z.object({
   deliveryType: z.enum(["delivery", "retirada"]).optional().default("delivery"),
@@ -139,29 +149,10 @@ export async function POST(request: Request) {
       console.warn("Aviso ao buscar storeSettings no checkout:", err);
     }
 
-    const operationalStatus = evaluateStoreSchedule(
+    const operationalStatus = StoreScheduleDomainService.assertCanAcceptOrders(
       (storeSettings?.businessHours as unknown as BusinessHourDay[]) || DEFAULT_STORE_SCHEDULE,
       storeSettings ? Boolean(storeSettings.isOpen) : true
     );
-
-    if (!operationalStatus.canAcceptOrders) {
-      const errorMsg =
-        operationalStatus.status === "CONVEYOR_PAUSED"
-          ? `Finalizando os preparativos da cozinha. Nossa equipe está organizando a esteira para atender você. Nosso horário hoje é das ${operationalStatus.openingTime} às ${operationalStatus.closingTime}. Em instantes o recebimento de pedidos estará liberado!`
-          : `Estamos fechados no momento. Hoje nosso horário de atendimento é das ${operationalStatus.openingTime} às ${operationalStatus.closingTime}. Você já pode ir escolhendo seus itens e montando sua sacola!`;
-
-      return NextResponse.json(
-        {
-          error: errorMsg,
-          code: operationalStatus.status,
-          status: operationalStatus.status,
-          canAcceptOrders: false,
-          openingTime: operationalStatus.openingTime,
-          closingTime: operationalStatus.closingTime,
-        },
-        { status: 422 }
-      );
-    }
 
     // Identificação de Turno Operacional Ativo
     let targetShiftId: string | null = storeSettings?.currentShiftId || null;
@@ -291,30 +282,23 @@ export async function POST(request: Request) {
 
     const productsMap = new Map(dbProducts.map((p) => [p.id, p]));
 
-    // Validação estrita de existência, disponibilidade e estoque dos produtos
+    // Validação estrita de existência, disponibilidade e estoque dos produtos via StockDomainService
     for (const [prodId, totalQty] of productQtyMap.entries()) {
       const product = productsMap.get(prodId);
       if (!product) {
-        return NextResponse.json(
-          { error: `Produto não encontrado no cardápio: ${prodId}` },
-          { status: 400 }
-        );
+        throw new ResourceNotFoundException("Produto", prodId, `Produto não encontrado no cardápio: ${prodId}`);
       }
-      if (!product.isAvailable) {
-        return NextResponse.json(
-          { error: `O produto "${product.name}" está temporariamente indisponível ou esgotado.` },
-          { status: 400 }
-        );
-      }
-      if (product.stock !== null && product.stock < totalQty) {
-        return NextResponse.json(
-          {
-            error: `Estoque insuficiente para "${product.name}". Quantidade disponível: ${product.stock}, solicitada: ${totalQty}.`,
-            code: "INSUFFICIENT_STOCK",
-          },
-          { status: 400 }
-        );
-      }
+      StockDomainService.verifyProductStock(
+        {
+          id: product.id,
+          name: product.name,
+          isAvailable: product.isAvailable,
+          manageStock: product.stock !== null,
+          stockQuantity: product.stock,
+          isCombo: product.isCombo,
+        },
+        totalQty
+      );
     }
 
     // Busca promoções vinculadas caso algum item venha de promoção
@@ -441,39 +425,23 @@ export async function POST(request: Request) {
 
         for (const [, groupSelections] of selectionsByGroup.entries()) {
           const group = groupSelections[0]?.dbAddon.group;
-          const totalGroupQuantity = groupSelections.reduce((sum, s) => sum + s.quantity, 0);
-          const maxAllowed = (group?.maxQuantity ?? 99) * comboMultiplier;
-          if (group && totalGroupQuantity > maxAllowed) {
-            return NextResponse.json(
-              { error: `O grupo "${group.name}" permite no máximo ${maxAllowed} item(ns). Você selecionou ${totalGroupQuantity}.` },
-              { status: 400 }
-            );
-          }
+          if (!group) continue;
 
-          let freeSlotsLeft = (group?.freeQuantity ?? 0) * comboMultiplier;
+          const validation = AddonDomainService.validateGroupSelections({
+            group,
+            dbItems: dbAddonsMap as any,
+            selections: groupSelections.map((s) => ({
+              id: s.dbAddon.id,
+              name: s.originalName || s.dbAddon.name,
+              groupName: s.originalGroupName || group.name,
+              price: Number(s.dbAddon.price),
+              quantity: s.quantity,
+            })),
+            comboMultiplier,
+          });
 
-          for (const sel of groupSelections) {
-            const rawPrice = Number(sel.dbAddon.price);
-            for (let q = 0; q < sel.quantity; q++) {
-              let chargedPrice = rawPrice;
-              if (freeSlotsLeft > 0) {
-                chargedPrice = 0;
-                freeSlotsLeft--;
-              } else if (rawPrice === 0) {
-                chargedPrice = 0;
-              }
-
-              addonsTotalPerUnit += chargedPrice;
-
-              finalSelectedAddons.push({
-                id: sel.dbAddon.id,
-                name: sel.originalName || sel.dbAddon.name,
-                groupName: sel.originalGroupName || group?.name || "Complementos",
-                price: chargedPrice,
-                quantity: 1,
-              });
-            }
-          }
+          addonsTotalPerUnit += validation.addonsSubtotal;
+          finalSelectedAddons.push(...validation.processedAddons);
         }
       }
 
@@ -498,6 +466,18 @@ export async function POST(request: Request) {
         const promo = promotionsMap.get(item.promotionId);
         const isInPromo = promo?.productId === item.productId;
         if (promo && isInPromo) {
+          StockDomainService.verifyPromotionBatch(
+            {
+              id: promo.id,
+              title: promo.title,
+              isActive: promo.isActive,
+              scarcityUnits: promo.scarcityUnits,
+              scarcityType: promo.scarcityType,
+              productId: promo.productId,
+            },
+            item.quantity
+          );
+
           let discountOnBase = 0;
           if (promo.discountType === "percentage") {
             const pct = Number(promo.discountValue);
@@ -545,28 +525,19 @@ export async function POST(request: Request) {
         where: { code: cleanCode },
       });
 
-      if (!coupon || !coupon.isActive) {
-        return NextResponse.json({ error: "Cupom de desconto inválido ou inativo." }, { status: 400 });
-      }
-
       // Regra de Double-Dipping: Proibir cupons globais em carrinhos que já contenham Combos Promocionais
-      // Exceção: Cupons de valor fixo direcionados a produtos específicos que não são combos (tratado adiante)
-      if (hasCombosInCart && coupon.discountType === "percentage" && (!coupon.productIds || coupon.productIds.length === 0)) {
-        return NextResponse.json({
-          error: "Este cupom não pode ser acumulado com pedidos que contenham Combos Promocionais."
-        }, { status: 400 });
+      if (hasCombosInCart && coupon?.discountType === "percentage" && (!coupon.productIds || coupon.productIds.length === 0)) {
+        throw new InvalidCouponException(
+          cleanCode,
+          "Este cupom não pode ser acumulado com pedidos que contenham Combos Promocionais.",
+          { code: "COUPON_NOT_ALLOWED_WITH_COMBOS" }
+        );
       }
 
-      if (coupon.expiresAt && new Date() > new Date(coupon.expiresAt)) {
-        return NextResponse.json({ error: "Este cupom de desconto já expirou." }, { status: 400 });
-      }
-
-      if (coupon.maxUses && coupon.uses >= coupon.maxUses) {
-        return NextResponse.json({ error: "O limite de utilizações deste cupom foi atingido." }, { status: 400 });
-      }
-
-      // Exigência de Nível Mínimo de Fidelidade
-      if (coupon.minLoyaltyLevel || coupon.loyaltyBadgeId) {
+      // Identificação de fidelidade
+      let userMonths = 0;
+      let requiredBadgeName = "VIP";
+      if (coupon?.minLoyaltyLevel || coupon?.loyaltyBadgeId) {
         const record = await prisma.notificationTemplate.findFirst({
           where: { category: "loyalty_badges" },
           orderBy: { updatedAt: "desc" },
@@ -584,39 +555,20 @@ export async function POST(request: Request) {
             (coupon.loyaltyBadgeId && b.id === coupon.loyaltyBadgeId) ||
             (coupon.minLoyaltyLevel && b.level === coupon.minLoyaltyLevel)
         );
-
-        const requiredMonths = requiredBadge?.minMonths ?? 0;
-        const requiredName = requiredBadge?.name || "VIP";
+        requiredBadgeName = requiredBadge?.name || "VIP";
 
         const dbUser = await prisma.user.findUnique({
           where: { id: targetUserId },
           select: { createdAt: true, isRegistered: true },
         });
-
-        if (!dbUser || !dbUser.isRegistered) {
-          return NextResponse.json(
-            {
-              error: `Este cupom é exclusivo para clientes com selo ${requiredName} ou superior.`,
-              code: "COUPON_REQUIRES_LOYALTY_BADGE",
-            },
-            { status: 400 }
-          );
-        }
-
-        const userMonths = calculateAccountAgeMonths(dbUser.createdAt);
-        if (userMonths < requiredMonths) {
-          return NextResponse.json(
-            {
-              error: `Este cupom é exclusivo para clientes com selo ${requiredName} ou superior.`,
-              code: "COUPON_REQUIRES_LOYALTY_BADGE",
-            },
-            { status: 400 }
-          );
+        if (dbUser?.createdAt) {
+          userMonths = calculateAccountAgeMonths(dbUser.createdAt);
         }
       }
 
-      // Regra de Uso Único por Cliente
-      if (coupon.oncePerUser) {
+      // Identificação de uso prévio
+      let hasPriorUsage = false;
+      if (coupon?.oncePerUser) {
         const rawBody = typeof json === "object" && json !== null ? (json as Record<string, unknown>) : {};
         const clientUserId = targetUserId || (typeof rawBody.userId === "string" ? rawBody.userId : undefined);
         const clientPhone =
@@ -640,41 +592,27 @@ export async function POST(request: Request) {
               OR: conditions,
             },
           });
-
           if (previousOrder) {
-            return NextResponse.json(
-              { error: "Este cupom é de uso único por cliente e já foi utilizado anteriormente." },
-              { status: 400 }
-            );
+            hasPriorUsage = true;
           }
         }
       }
 
-      const minVal = Number(coupon.minOrderValue);
-      if (calculatedSubtotal < minVal) {
-        return NextResponse.json({
-          error: `Este cupom exige um pedido mínimo de R$ ${minVal.toFixed(2).replace(".", ",")}.`,
-        }, { status: 400 });
-      }
+      const cartProductIds = items.map((it) => it.productId);
 
-      // Validação de restrição de escopo de produtos do cupom
-      if (coupon.productIds && coupon.productIds.length > 0) {
-        const hasMatchingProduct = items.some((it) => coupon.productIds.includes(it.productId));
-        if (!hasMatchingProduct) {
-          return NextResponse.json({
-            error: "Este cupom é exclusivo para produtos específicos que não estão no seu pedido.",
-          }, { status: 400 });
-        }
-      }
+      CouponDomainService.validateEligibility({
+        coupon,
+        subtotal: calculatedSubtotal,
+        isRegisteredUser: targetIsRegistered,
+        userMonths,
+        requiredBadgeName,
+        hasPriorUsage,
+        cartProductIds,
+      });
 
-      validCouponId = coupon.id;
-      validCouponCode = coupon.code;
-      const val = Number(coupon.discountValue);
-      if (coupon.discountType === "percentage") {
-        couponDiscount = Number(((calculatedSubtotal * val) / 100).toFixed(2));
-      } else {
-        couponDiscount = Math.min(val, calculatedSubtotal);
-      }
+      validCouponId = coupon!.id;
+      validCouponCode = coupon!.code;
+      couponDiscount = CouponDomainService.calculateDiscount(coupon!, calculatedSubtotal);
     }
 
     // Validação de Raio Geográfico (Haversine) para pedidos de Entrega

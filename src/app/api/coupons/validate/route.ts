@@ -8,6 +8,8 @@ import {
   LoyaltyBadgeConfig,
   calculateAccountAgeMonths,
 } from "@/services/loyaltyBadgeService";
+import { CouponDomainService } from "@/domain/services/CouponDomainService";
+import { InvalidCouponException } from "@/domain/errors";
 
 export async function POST(request: Request) {
   try {
@@ -43,37 +45,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ valid: false, message: "Código do cupom é obrigatório." }, { status: 400 });
     }
 
-    const authUser = await getAuthUser(request);
-    if (!authUser || !authUser.isRegistered) {
-      return NextResponse.json(
-        {
-          valid: false,
-          code: "REQUIRES_REGISTRATION",
-          message: "🏷️ Cupom indisponível: Descontos e cupons são exclusivos para clientes com cadastro completo.",
-        },
-        { status: 403 }
-      );
-    }
-
     const cleanCode = code.trim().toUpperCase();
     const coupon: DBCoupon | null = await prisma.coupon.findUnique({
       where: { code: cleanCode },
     });
 
-    if (!coupon || !coupon.isActive) {
-      return NextResponse.json({ valid: false, message: "Cupom inválido ou expirado." }, { status: 404 });
-    }
+    const authUser = await getAuthUser(request);
+    const isRegisteredUser = Boolean(authUser?.isRegistered);
 
-    if (coupon.expiresAt && new Date() > new Date(coupon.expiresAt)) {
-      return NextResponse.json({ valid: false, message: "Este cupom já expirou." }, { status: 400 });
-    }
-
-    if (coupon.maxUses && coupon.uses >= coupon.maxUses) {
-      return NextResponse.json({ valid: false, message: "Limite de utilizações deste cupom atingido." }, { status: 400 });
-    }
-
-    // Exigência de Nível Mínimo de Fidelidade
-    if (coupon.minLoyaltyLevel || coupon.loyaltyBadgeId) {
+    // Identificação de fidelidade caso o cupom exija selo
+    let userMonths = 0;
+    let requiredBadgeName = "VIP";
+    if (coupon?.minLoyaltyLevel || coupon?.loyaltyBadgeId) {
       const record = await prisma.notificationTemplate.findFirst({
         where: { category: "loyalty_badges" },
         orderBy: { updatedAt: "desc" },
@@ -92,35 +75,22 @@ export async function POST(request: Request) {
           (coupon.minLoyaltyLevel && b.level === coupon.minLoyaltyLevel)
       );
 
-      const requiredMonths = requiredBadge?.minMonths ?? 0;
-      const requiredName = requiredBadge?.name || "VIP";
+      requiredBadgeName = requiredBadge?.name || "VIP";
 
-      const dbUser = await prisma.user.findUnique({
-        where: { id: authUser.id },
-        select: { createdAt: true, isRegistered: true },
-      });
-
-      if (!dbUser || !dbUser.isRegistered) {
-        return NextResponse.json({
-          valid: false,
-          code: "COUPON_REQUIRES_LOYALTY_BADGE",
-          message: `Este cupom é exclusivo para clientes com selo ${requiredName} ou superior.`,
-        }, { status: 400 });
-      }
-
-      const userMonths = calculateAccountAgeMonths(dbUser.createdAt);
-      if (userMonths < requiredMonths) {
-        return NextResponse.json({
-          valid: false,
-          code: "COUPON_REQUIRES_LOYALTY_BADGE",
-          message: `Este cupom é exclusivo para clientes com selo ${requiredName} ou superior.`,
-        }, { status: 400 });
+      if (authUser?.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: authUser.id },
+          select: { createdAt: true, isRegistered: true },
+        });
+        if (dbUser?.createdAt) {
+          userMonths = calculateAccountAgeMonths(dbUser.createdAt);
+        }
       }
     }
 
-    // Regra de Uso Único por Cliente
-    if (coupon.oncePerUser) {
-      const authUser = await getAuthUser(request);
+    // Identificação de uso prévio caso seja oncePerUser
+    let hasPriorUsage = false;
+    if (coupon?.oncePerUser) {
       const targetUserId = authUser?.id || (typeof body.userId === "string" ? body.userId : undefined);
       const targetPhone =
         (typeof body.phone === "string" ? body.phone : undefined) ||
@@ -139,63 +109,52 @@ export async function POST(request: Request) {
             OR: conditions,
           },
         });
-
         if (priorOrder) {
-          return NextResponse.json({
-            valid: false,
-            message: "Este cupom é de uso único por cliente e já foi utilizado anteriormente.",
-          }, { status: 400 });
+          hasPriorUsage = true;
         }
       }
     }
 
     const numSubtotal = Number(subtotal || 0);
-    const minVal = Number(coupon.minOrderValue);
-    if (numSubtotal < minVal) {
-      return NextResponse.json({
-        valid: false,
-        message: `Este cupom exige pedido mínimo de R$ ${minVal.toFixed(2).replace(".", ",")}.`,
-      }, { status: 400 });
-    }
-
-    // Validação de Escopo de Produtos Específicos
     const cartProductIds: string[] = Array.isArray(body.productIds) ? body.productIds : [];
-    if (coupon.productIds && coupon.productIds.length > 0) {
-      if (cartProductIds.length === 0) {
-        return NextResponse.json({
-          valid: false,
-          message: "Este cupom é exclusivo para produtos específicos. Adicione itens ao carrinho.",
-        }, { status: 400 });
-      }
-      const hasMatchingProduct = cartProductIds.some((pId: string) => coupon.productIds.includes(pId));
-      if (!hasMatchingProduct) {
-        return NextResponse.json({
-          valid: false,
-          message: "Este cupom é exclusivo para produtos específicos que não estão no seu carrinho.",
-        }, { status: 400 });
-      }
-    }
 
-    let discountAmount = 0;
-    const discountVal = Number(coupon.discountValue);
-    if (coupon.discountType === "percentage") {
-      discountAmount = (numSubtotal * discountVal) / 100;
-    } else {
-      discountAmount = Math.min(discountVal, numSubtotal);
-    }
+    // Delegação da validação ao Domain Service
+    CouponDomainService.validateEligibility({
+      coupon,
+      subtotal: numSubtotal,
+      isRegisteredUser,
+      userMonths,
+      requiredBadgeName,
+      hasPriorUsage,
+      cartProductIds,
+    });
+
+    const discountAmount = CouponDomainService.calculateDiscount(coupon!, numSubtotal);
 
     return NextResponse.json({
       valid: true,
       coupon: {
-        id: coupon.id,
-        code: coupon.code,
-        discountType: coupon.discountType,
-        discountValue: discountVal,
-        discountAmount: Number(discountAmount.toFixed(2)),
-        productIds: coupon.productIds || [],
+        id: coupon!.id,
+        code: coupon!.code,
+        discountType: coupon!.discountType,
+        discountValue: Number(coupon!.discountValue),
+        discountAmount,
+        productIds: coupon!.productIds || [],
       },
     });
   } catch (error: unknown) {
+    if (error instanceof InvalidCouponException) {
+      return NextResponse.json(
+        {
+          valid: false,
+          code: error.code,
+          message: error.message,
+          error: error.message,
+        },
+        { status: error.statusCode }
+      );
+    }
+
     console.error("Erro na validação do cupom:", error);
     return NextResponse.json({ valid: false, message: "Erro ao validar cupom." }, { status: 500 });
   }

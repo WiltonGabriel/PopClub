@@ -334,6 +334,11 @@ export default function AccountPage() {
     profile?.created_at ||
     user?.createdAt;
 
+  const [currentTimestamp, setCurrentTimestamp] = useState<number>(0);
+  useEffect(() => {
+    setCurrentTimestamp(Date.now());
+  }, []);
+
   const passwordRotationInfo = useMemo(() => {
     const PASSWORD_ROTATION_DAYS = 90;
     if (!rawLastPasswordDate) {
@@ -356,7 +361,8 @@ export default function AccountPage() {
     }
     const formattedDate = `${dateObj.toLocaleDateString("pt-BR")} às ${dateObj.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
     const expirationTime = dateObj.getTime() + PASSWORD_ROTATION_DAYS * 24 * 60 * 60 * 1000;
-    const diffMs = expirationTime - Date.now();
+    const now = currentTimestamp > 0 ? currentTimestamp : dateObj.getTime();
+    const diffMs = expirationTime - now;
     const daysRemaining = Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000)));
     return {
       formattedDate,
@@ -364,7 +370,7 @@ export default function AccountPage() {
       isExpired: daysRemaining === 0,
       isWarning: daysRemaining > 0 && daysRemaining <= 15,
     };
-  }, [rawLastPasswordDate]);
+  }, [rawLastPasswordDate, currentTimestamp]);
 
   // Preferências de Pagamento na Entrega
   const [preferredPaymentMethod, setPreferredPaymentMethod] = useState<"pix_entrega" | "cartao_maquininha" | "dinheiro">("pix_entrega");

@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { logger } from "./logger";
+import {
+  DomainException,
+  StoreClosedException,
+  ConveyorPausedException,
+} from "@/domain/errors";
 
 export interface StandardApiResponse<T = unknown> {
   success: boolean;
@@ -7,7 +12,15 @@ export interface StandardApiResponse<T = unknown> {
   error?: string;
   message?: string;
   code?: string;
+  layer?: string;
+  module?: string;
+  action?: string;
   details?: unknown;
+  timestamp?: string;
+  canAcceptOrders?: boolean;
+  openingTime?: string;
+  closingTime?: string;
+  status?: string;
 }
 
 export interface ErrorFieldDetail {
@@ -36,6 +49,7 @@ export function apiError(
     error: message,
     message,
     code: code || "BAD_REQUEST",
+    timestamp: new Date().toISOString(),
   };
   if (details !== undefined) {
     payload.details = details;
@@ -46,6 +60,7 @@ export function apiError(
 /**
  * Tratador Centralizado de Erros para Rotas de API
  * 
+ * - Intercepta e formata Exceções de Domínio (DomainException)
  * - Classifica exceções de banco (Prisma), validações (Zod) e erros HTTP
  * - Emite logs estruturados e legíveis no terminal: [API_ERROR] [METODO_E_ROTA] [CODIGO]
  * - Retorna respostas semânticas com códigos padronizados para o front-end
@@ -55,7 +70,57 @@ export function handleApiError(
   context: string,
   fallbackMessage?: string
 ): NextResponse {
-  const err = error as any;
+  // 0. Interceptação Especial de Exceções de Domínio do PopClub
+  if (error instanceof DomainException) {
+    const status = error.statusCode;
+    const code = error.code;
+    const message = error.message;
+    const details = error.details;
+    const errorLayer = error.layer;
+    const businessModule = error.module;
+    const action = error.action;
+    const timestamp = error.timestamp;
+
+    const detailsStr = details ? ` | Detalhes: ${JSON.stringify(details)}` : "";
+    console.error(`[API_ERROR] [${context}] [${code}] [${errorLayer}/${businessModule}] (HTTP ${status}): ${message}${detailsStr}`);
+    logger.error(context, `${message} [Code: ${code}]`, error);
+
+    const isStoreScheduleException =
+      error instanceof StoreClosedException || error instanceof ConveyorPausedException;
+
+    const payload: StandardApiResponse = {
+      success: false,
+      code,
+      message,
+      error: message,
+      layer: errorLayer,
+      module: businessModule,
+      action,
+      timestamp,
+      ...(details !== undefined ? { details } : {}),
+      ...(isStoreScheduleException
+        ? {
+            canAcceptOrders: false,
+            openingTime: error.openingTime,
+            closingTime: error.closingTime,
+            status: code,
+          }
+        : {}),
+    };
+
+    return NextResponse.json(payload, { status });
+  }
+
+  const err = error as {
+    name?: string;
+    code?: string;
+    message?: string;
+    status?: number;
+    stack?: string;
+    meta?: Record<string, unknown>;
+    details?: unknown;
+    issues?: Array<{ path?: unknown[]; message: string }>;
+  } | null | undefined;
   let status = 500;
   let code = "INTERNAL_SERVER_ERROR";
   let message = fallbackMessage || "Ocorreu um erro interno ao processar a solicitação.";
@@ -130,7 +195,7 @@ export function handleApiError(
   else if (err?.name === "ZodError" && Array.isArray(err?.issues)) {
     status = 400;
     code = "VALIDATION_ERROR";
-    const issues: ErrorFieldDetail[] = err.issues.map((i: any) => ({
+    const issues: ErrorFieldDetail[] = err.issues.map((i: { path?: unknown[]; message: string }) => ({
       field: Array.isArray(i.path) ? i.path.join(".") || "root" : "field",
       message: i.message,
     }));
@@ -163,6 +228,7 @@ export function handleApiError(
       code,
       message,
       error: message,
+      timestamp: new Date().toISOString(),
       ...(details !== undefined ? { details } : {}),
     },
     { status }

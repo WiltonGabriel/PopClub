@@ -116,6 +116,7 @@ describe("Categorias & Navegação", () => {
 
     it("resolve categoria dinâmica de Destaques (HIGHLIGHTS)", () => {
       const dynamicCat = { id: "cat-highlights", isDynamic: true, dynamicType: "HIGHLIGHTS" };
+      expect(dynamicCat.dynamicType).toBe("HIGHLIGHTS");
       const resolved = productsCatalog.filter((p) => {
         if (p.isHighlight) return true;
         if (p.promotion) return true;
@@ -129,6 +130,7 @@ describe("Categorias & Navegação", () => {
 
     it("resolve categoria dinâmica de Ofertas Ativas (ACTIVE_PROMOTIONS)", () => {
       const dynamicCat = { id: "cat-promos", isDynamic: true, dynamicType: "ACTIVE_PROMOTIONS" };
+      expect(dynamicCat.dynamicType).toBe("ACTIVE_PROMOTIONS");
       const resolved = productsCatalog.filter((p) => Boolean(p.promotion || p.promotions.length > 0));
 
       expect(resolved.length).toBe(1);
@@ -137,6 +139,7 @@ describe("Categorias & Navegação", () => {
 
     it("resolve categoria dinâmica de Combos (COMBOS)", () => {
       const dynamicCat = { id: "cat-combos", isDynamic: true, dynamicType: "COMBOS" };
+      expect(dynamicCat.dynamicType).toBe("COMBOS");
       const resolved = productsCatalog.filter((p) => p.isCombo || (p.comboItems && p.comboItems.length > 0));
 
       expect(resolved.length).toBe(1);

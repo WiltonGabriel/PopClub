@@ -2,7 +2,7 @@
 
 import { Edit2, Trash2, Plus, IceCream, Coffee, Zap, Users } from "lucide-react";
 import { Product } from "../../services/productService";
-import { formatCurrency, parseSafeNumber } from "@/lib/formatters";
+import { formatCurrency } from "@/lib/formatters";
 import { calculateProductPrice } from "@/lib/pricing";
 
 interface ProductCardProps {

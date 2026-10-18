@@ -5,12 +5,8 @@ import {
   Power,
   Play,
   Clock,
-  AlertTriangle,
   Bell,
-  CheckCircle2,
-  ChefHat,
   Loader2,
-  Calendar,
 } from "lucide-react";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
 import { Button } from "@/components/ui/button";
@@ -25,13 +21,10 @@ interface StoreStatusTopWidgetProps {
 export function StoreStatusTopWidget({ onStatusChange, className = "" }: StoreStatusTopWidgetProps) {
   const {
     status,
-    statusLabel,
     isWithinSchedule,
     isConveyorOpen,
-    canAcceptOrders,
     openingTime,
     closingTime,
-    refresh,
     toggleConveyor,
     loading,
   } = useStoreStatus(15000);
