@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { calculateDistanceKm } from "@/lib/geo";
+import { deliveryCalculateLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getIpFromRequest(request);
+    const limitCheck = deliveryCalculateLimiter.check(ip);
+    if (!limitCheck.success) {
+      return createRateLimitResponse(limitCheck, "Muitas consultas de cálculo de frete. Por favor, aguarde.");
+    }
+
     const body = await request.json().catch(() => ({}));
     const { latitude, longitude, subtotal, isPickup, address } = body;
 

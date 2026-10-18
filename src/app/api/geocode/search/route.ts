@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { geocodeLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
 
 export async function GET(request: NextRequest) {
   try {
+    const ip = getIpFromRequest(request);
+    const limitCheck = geocodeLimiter.check(ip);
+    if (!limitCheck.success) {
+      return createRateLimitResponse(limitCheck, "Limite de consultas de endereço excedido. Por favor, aguarde.");
+    }
+
     const { searchParams } = new URL(request.url);
     const query = searchParams.get("q") || searchParams.get("query");
 

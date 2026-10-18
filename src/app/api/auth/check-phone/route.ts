@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sanitizeAndNormalizePhone } from "@/lib/validations/auth";
+import { phoneCheckLimiter, getRateLimitKey, createRateLimitResponse } from "@/lib/rateLimit";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const rawPhone = searchParams.get("phone") || "";
     const cleanPhone = sanitizeAndNormalizePhone(rawPhone) || rawPhone.replace(/\D/g, "");
+
+    const limitKey = getRateLimitKey(request, "check-phone", cleanPhone || "empty");
+    const limitCheck = phoneCheckLimiter.check(limitKey);
+    if (!limitCheck.success) {
+      return createRateLimitResponse(limitCheck, "Muitas consultas de telefone. Aguarde antes de tentar novamente.");
+    }
 
     if (cleanPhone.length < 10 || cleanPhone.length > 11) {
       return NextResponse.json({

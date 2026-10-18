@@ -4,17 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { verifyPassword, signToken, setSessionCookies, isRequestHttps, type CookieResponseTarget } from "@/lib/auth";
 import { sanitizeAndNormalizePhone } from "@/lib/validations/auth";
 import { cookies } from "next/headers";
-import { authLimiter, getIpFromRequest } from "@/lib/rateLimit";
+import { authLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
 
 export async function POST(request: Request) {
   try {
     const ip = getIpFromRequest(request);
     const limitCheck = authLimiter.check(ip);
     if (!limitCheck.success) {
-      return NextResponse.json(
-        { error: "Muitas tentativas. Por favor, aguarde um momento antes de tentar novamente.", code: "RATE_LIMIT_EXCEEDED" },
-        { status: 429 }
-      );
+      return createRateLimitResponse(limitCheck, "Muitas tentativas de login. Por favor, aguarde antes de tentar novamente.");
     }
 
     let body: { identifier?: string; email?: string; username?: string; password?: string };

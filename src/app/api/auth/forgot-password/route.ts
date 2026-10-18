@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { forgotPasswordLimiter, getIpFromRequest } from "@/lib/rateLimit";
+import { forgotPasswordLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
 import { emailService } from "@/lib/emailService";
 
 export async function POST(request: Request) {
@@ -8,10 +8,7 @@ export async function POST(request: Request) {
     const ip = getIpFromRequest(request);
     const limitCheck = forgotPasswordLimiter.check(ip);
     if (!limitCheck.success) {
-      return NextResponse.json(
-        { error: "Muitas tentativas. Por favor, aguarde um momento antes de tentar novamente.", code: "RATE_LIMIT_EXCEEDED" },
-        { status: 429 }
-      );
+      return createRateLimitResponse(limitCheck, "Muitas tentativas de recuperação de senha. Por favor, aguarde antes de tentar novamente.");
     }
 
     let body: { email?: string };

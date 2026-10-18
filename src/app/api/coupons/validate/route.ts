@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma, DBCoupon } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getAuthUser } from "@/lib/auth";
-import { couponLimiter, getIpFromRequest } from "@/lib/rateLimit";
+import { couponLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
 import {
   DEFAULT_LOYALTY_BADGES,
   LoyaltyBadgeConfig,
@@ -17,10 +17,7 @@ export async function POST(request: Request) {
     const limitCheck = couponLimiter.check(ip);
 
     if (!limitCheck.success) {
-      return NextResponse.json(
-        { error: "Muitas tentativas. Por favor, aguarde um momento antes de tentar novamente.", code: "RATE_LIMIT_EXCEEDED" },
-        { status: 429 }
-      );
+      return createRateLimitResponse(limitCheck, "Muitas tentativas de validação de cupom. Por favor, aguarde antes de tentar novamente.");
     }
 
     interface ValidateCouponBody {

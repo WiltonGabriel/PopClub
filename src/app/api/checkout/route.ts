@@ -6,7 +6,7 @@ import { getAuthUser, signToken, setSessionCookies } from "@/lib/auth";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { handleApiError } from "@/lib/apiResponse";
-import { checkoutLimiter, getIpFromRequest } from "@/lib/rateLimit";
+import { checkoutLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
 import { sanitizeText } from "@/lib/sanitize";
 import { sanitizeAndNormalizePhone } from "@/lib/validations/auth";
 import crypto from "crypto";
@@ -82,10 +82,7 @@ export async function POST(request: Request) {
     const ip = getIpFromRequest(request);
     const limitCheck = checkoutLimiter.check(ip);
     if (!limitCheck.success) {
-      return NextResponse.json(
-        { error: "Você está criando pedidos rápido demais. Aguarde um minuto." },
-        { status: 429 }
-      );
+      return createRateLimitResponse(limitCheck, "Você está criando pedidos rápido demais. Aguarde um momento.");
     }
 
     let json: unknown;
@@ -371,8 +368,9 @@ export async function POST(request: Request) {
         // Separa itens virtuais (ex: talheres ou complementos de combo virtuais) de adicionais de tabela
         const realAddons = item.selectedAddons.filter((addon) => {
           if (addon.id.startsWith("combo-") || addon.id.startsWith("cutlery")) {
-            const virtualPrice = Number(addon.price) || 0;
-            const virtualQty = addon.quantity || 1;
+            const rawPrice = Number(addon.price) || 0;
+            const virtualPrice = Math.max(0, isNaN(rawPrice) ? 0 : rawPrice);
+            const virtualQty = Math.max(1, Math.min(20, addon.quantity || 1));
             addonsTotalPerUnit += virtualPrice * virtualQty;
             finalSelectedAddons!.push({
               id: addon.id,

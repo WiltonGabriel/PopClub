@@ -199,9 +199,25 @@ export async function getAuthUser(request?: Request): Promise<{
       }
     }
 
+    if (!token && request) {
+      const cookieHeader = request.headers.get("cookie");
+      if (cookieHeader) {
+        const match =
+          cookieHeader.match(new RegExp(`(?:^|;\\s*)${SESSION_COOKIE_NAME}=([^;]*)`)) ||
+          cookieHeader.match(new RegExp(`(?:^|;\\s*)${LEGACY_COOKIE_NAME}=([^;]*)`));
+        if (match) {
+          token = decodeURIComponent(match[1]);
+        }
+      }
+    }
+
     if (!token) {
-      const cookieStore = await cookies();
-      token = cookieStore.get(SESSION_COOKIE_NAME)?.value || cookieStore.get(LEGACY_COOKIE_NAME)?.value;
+      try {
+        const cookieStore = await cookies();
+        token = cookieStore.get(SESSION_COOKIE_NAME)?.value || cookieStore.get(LEGACY_COOKIE_NAME)?.value;
+      } catch {
+        // Execução fora do request store do Next.js (ex: suítes de testes unitários ou workers isolados)
+      }
     }
 
     if (!token) return null;

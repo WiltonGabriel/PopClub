@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
+import { passwordResetLimiter, getRateLimitKey, createRateLimitResponse } from "@/lib/rateLimit";
 
 export async function POST(request: Request) {
   try {
@@ -21,6 +22,12 @@ export async function POST(request: Request) {
     }
 
     const cleanEmail = email.toLowerCase().trim();
+
+    const limitKey = getRateLimitKey(request, "reset-password", cleanEmail);
+    const limitCheck = passwordResetLimiter.check(limitKey);
+    if (!limitCheck.success) {
+      return createRateLimitResponse(limitCheck, "Muitas tentativas de redefinição de senha. Aguarde antes de tentar novamente.");
+    }
 
     const user = await prisma.user.findUnique({
       where: { email: cleanEmail },

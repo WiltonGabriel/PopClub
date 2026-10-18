@@ -4,7 +4,7 @@ import { Role, type User } from "@prisma/client";
 import { hashPassword, signToken, setSessionCookies, type CookieResponseTarget } from "@/lib/auth";
 import { cleanCpf, validateCpf } from "@/lib/cpf";
 import { cookies } from "next/headers";
-import { authLimiter, getIpFromRequest } from "@/lib/rateLimit";
+import { authLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
 
 interface RegisteredUser {
   id: string;
@@ -22,10 +22,7 @@ export async function POST(request: Request) {
     const ip = getIpFromRequest(request);
     const limitCheck = authLimiter.check(ip);
     if (!limitCheck.success) {
-      return NextResponse.json(
-        { error: "Muitas tentativas. Por favor, aguarde um momento antes de tentar novamente.", code: "RATE_LIMIT_EXCEEDED" },
-        { status: 429 }
-      );
+      return createRateLimitResponse(limitCheck, "Muitas tentativas de cadastro. Por favor, aguarde antes de tentar novamente.");
     }
 
     let body: Record<string, unknown> | null = null;

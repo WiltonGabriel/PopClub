@@ -6,15 +6,22 @@ import { sanitizeText } from "@/lib/sanitize";
 import { hasPermission } from "@/lib/permissions";
 
 import { formatOrder } from "@/lib/orderFormat";
+import { orderLookupLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
 
 export async function GET(request: Request) {
   try {
     const authUser = await getAuthUser(request);
     const { searchParams } = new URL(request.url);
 
-    // Consulta individual por ID (utilizada para rastreamento logístico público em tempo real)
+    // Consulta individual por ID (utilizada para rastreamento logístico em tempo real)
     const singleOrderId = searchParams.get("id")?.trim();
     if (singleOrderId) {
+      const ip = getIpFromRequest(request);
+      const limitCheck = orderLookupLimiter.check(ip);
+      if (!limitCheck.success) {
+        return createRateLimitResponse(limitCheck, "Muitas consultas de pedidos. Por favor, aguarde.");
+      }
+
       const order = await prisma.order.findUnique({
         where: { id: singleOrderId },
         include: {
@@ -27,6 +34,35 @@ export async function GET(request: Request) {
         return apiError("Pedido não encontrado.", 404, "NOT_FOUND");
       }
 
+      // Blindagem de Autorização em Nível de Objeto (BOLA / IDOR)
+      const trackingToken = searchParams.get("token")?.trim() || null;
+      const isStaff =
+        hasPermission(authUser, "ORDERS_READ") ||
+        hasPermission(authUser, "ORDERS_KANBAN") ||
+        hasPermission(authUser, "ORDERS_HISTORY");
+
+      const isOwner = Boolean(authUser?.id && order.userId && authUser.id === order.userId);
+      const hasValidTrackingToken = Boolean(
+        trackingToken && order.trackingToken && trackingToken === order.trackingToken
+      );
+      const isGuestOrder = order.user ? !order.user.isRegistered : true;
+
+      if (authUser && !isOwner && !isStaff && !hasValidTrackingToken) {
+        return apiError(
+          "Acesso negado. Você não possui permissão para visualizar os dados deste pedido.",
+          403,
+          "FORBIDDEN"
+        );
+      }
+
+      if (!authUser && !isGuestOrder && !hasValidTrackingToken) {
+        return apiError(
+          "Este pedido pertence a um cliente cadastrado. Faça login para acessá-lo.",
+          401,
+          "UNAUTHORIZED"
+        );
+      }
+
       let shiftCode: string | null = null;
       if (order.shiftId) {
         const sh = await prisma.shift.findUnique({
@@ -36,8 +72,12 @@ export async function GET(request: Request) {
         shiftCode = sh?.code || null;
       }
 
-      // Rastreamento público liberado com segurança via ID criptográfico do pedido
-      return apiSuccess(formatOrder(order, shiftCode));
+      const formatted = formatOrder(order, shiftCode);
+      if (!authUser && !hasValidTrackingToken) {
+        formatted.order_pin = null;
+      }
+
+      return apiSuccess(formatted);
     }
 
     const all = searchParams.get("all") === "true";
