@@ -10,6 +10,11 @@
 
 # Testing & Coverage
 /coverage
+coverage
+
+# Scratch & Temporary Drafts
+/scratch/
+scratch/
 
 # Next.js Build & Outputs
 /.next/

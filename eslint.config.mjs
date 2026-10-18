@@ -22,7 +22,6 @@ const eslintConfig = defineConfig([
     "coverage/**",
     "public/**",
     "scratch/**",
-    "rewrite_admin.js",
   ]),
 ]);
 

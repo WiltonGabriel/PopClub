@@ -133,3 +133,71 @@ O container de produção executa em modo **Next.js Standalone**, minimizando o 
 1. **Healthcheck de Rede:** O script aguarda a porta 5432 do PostgreSQL responder ativamente (via `nc` com fallback nativo em Node.js).
 2. **Migrações Automáticas:** Executa `./node_modules/.bin/prisma migrate deploy` utilizando a CLI do Prisma pré-instalada no container, garantindo sincronia antes de abrir portas HTTP.
 3. **Execução do Runtime:** Inicia `exec node server.js` sob usuário não-privilegiado `nextjs:nodejs` (UID 1001).
+
+---
+
+## 5. Modelo de Domínio e Principais Entidades
+
+O modelo relacional do PopClub foi projetado no **Prisma ORM** priorizando integridade referencial estrita, rastreabilidade de pedidos e conformidade contábil de caixa:
+
+```mermaid
+erDiagram
+    User ||--o{ Order : "realiza"
+    User ||--o{ UserLocation : "possui"
+    User ||--o| Role : "possui permissões"
+    Category ||--o{ Product : "agrupa"
+    Product ||--o{ ProductAddonGroup : "vincula"
+    AddonGroup ||--o{ ProductAddonGroup : "possui"
+    AddonGroup ||--o{ AddonItem : "contém"
+    Order ||--|{ OrderItem : "contém"
+    OrderItem ||--o{ OrderItemAddon : "personaliza com"
+    Order ||--o| OrderTracking : "rastreia telemetria"
+    Shift ||--o{ Order : "consolida em turno"
+    Promotion ||--o{ Product : "aplica desconto"
+    Coupon ||--o{ Order : "abate valor"
+```
+
+### Principais Entidades & Responsabilidades
+- **`User` & `Role`:** Autenticação unificada para clientes (modo normal ou Acesso Rápido) e funcionários administrativos. Controle de acesso baseado em papéis (RBAC granular) para operações de cozinha, entregadores e gerência.
+- **`Product`, `Category`, `AddonGroup`, `AddonItem`:** Núcleo do cardápio digital. Suporta personalização hierárquica (ex.: Açaí no Copo -> Grupo de Frutas -> Morango, Banana), com cotas de adicionais gratuitos e itens pagos.
+- **`Order`, `OrderItem`, `OrderItemAddon`:** Representa a comanda de produção. Todos os cálculos de subtotais, complementos e frete são recalculados e congelados no backend na criação do pedido (*anti-tampering*).
+- **`OrderTracking` & `Courier`:** Módulo de logística de última milha (*last-mile*). Permite despacho com rota automática no WhatsApp do motoboy e telemetria GPS aberta para o cliente via token único (`/entrega/[token]`).
+- **`Shift`:** Controle de turno operacional e auditoria cega de caixa. Exige fechamento financeiro segregado (Dinheiro, Cartão e PIX) e proíbe encerramento com pedidos pendentes na esteira (`PENDING_ORDERS_ACTIVE`).
+- **`StoreSettings`:** Governança operacional em tempo real: status da esteira (`conveyorActive`), horários semanais configuráveis com verificação de fuso horário, raio de entrega e taxas de deslocamento.
+
+---
+
+## 6. Pipeline de Integração e Entrega Contínua (CI/CD & GitOps)
+
+A governança do projeto utiliza **GitHub Actions** e **Portainer CE** com arquitetura de container multi-stage e registro de imagens no **GitHub Container Registry (GHCR)**:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Dev as Desenvolvedor
+    participant GH as GitHub (Branch main)
+    participant GHA as GitHub Actions (CI/CD)
+    participant GHCR as GitHub Container Registry (ghcr.io)
+    participant Portainer as Portainer CE (Produção)
+    participant App as Container PopClub
+
+    Dev->>GH: git push origin main
+    GH->>GHA: Dispara Workflow (push event)
+    Note over GHA: Checkout -> Set up Buildx -> Login GHCR
+    GHA->>GHA: Executa build Docker Multi-stage (RUN npm ci --legacy-peer-deps)
+    GHA->>GHCR: Push da imagem com tags :latest e :sha
+    Note over Portainer: Webhook ou Atualização na Stack
+    Portainer->>GHCR: Re-pull da imagem mais recente
+    Portainer->>App: Recriação do container com migrações automáticas via entrypoint.sh
+    App-->>Portainer: Container em execução saudável (Healthcheck OK)
+```
+
+---
+
+## 7. Contexto Extensionista e Impacto Social (UNIVAG / TADS)
+
+O **PopClub** é fruto do **Projeto Extensionista Integrador** do curso de **Tecnologia em Análise e Desenvolvimento de Sistemas (TADS)** do **Centro Universitário de Várzea Grande (UNIVAG)**:
+- **Beneficiário Parceiro:** Pop Shake Sorveteria & Açaí Artesanal (Várzea Grande – MT).
+- **Impacto Comunitário e Econômico:** Substituição de plataformas de marketplace predatórias por um canal de vendas direto, fortalecendo a economia local e garantindo margens sustentáveis ao pequeno empreendedor.
+- **Engenharia sob Medida:** Resolução do desafio regional do clima quente de Mato Grosso (perecibilidade do açaí artesanal em ~4 minutos) através da esteira Kanban sincronizada com despacho imediato via WhatsApp e acompanhamento por mapa.
+
