@@ -450,6 +450,10 @@ export function FastAccessModal({
                         required
                       />
                     </div>
+                    <p className="text-[10px] text-muted-foreground/80 flex items-center gap-1 mt-1">
+                      <Lock className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span>Usado exclusivamente para envio e entrega do seu pedido (Art. 9º da LGPD).</span>
+                    </p>
                   </div>
 
                   <div className="pt-2">

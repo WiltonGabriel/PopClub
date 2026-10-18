@@ -47,7 +47,12 @@ import {
   AtSign,
   KeyRound,
   EyeOff,
+  Download,
+  Cookie,
+  ShieldAlert,
+  Trash2,
 } from "lucide-react";
+import { privacyService } from "@/services/privacyService";
 import { notificationService, AppNotification } from "../../services/notificationService";
 import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -254,7 +259,7 @@ export default function AccountPage() {
   const { showToast } = useToast();
   const router = useRouter();
   
-  type AccountView = "menu" | "perfil" | "notificacoes" | "enderecos" | "preferencias" | "acessibilidade";
+  type AccountView = "menu" | "perfil" | "notificacoes" | "enderecos" | "preferencias" | "acessibilidade" | "privacidade";
 
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -320,6 +325,65 @@ export default function AccountPage() {
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
 
   const [isRescueModalOpen, setIsRescueModalOpen] = useState(false);
+  
+  // Estados de Privacidade e LGPD (Art. 18)
+  const [isExportingData, setIsExportingData] = useState(false);
+  const [isAnonymizeModalOpen, setIsAnonymizeModalOpen] = useState(false);
+  const [anonymizePassword, setAnonymizePassword] = useState("");
+  const [isAnonymizing, setIsAnonymizing] = useState(false);
+  const [anonymizeError, setAnonymizeError] = useState<string | null>(null);
+
+  const handleExportLgpdData = async () => {
+    try {
+      setIsExportingData(true);
+      const data = await privacyService.exportData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `popclub-dados-pessoais-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast({
+        type: "success",
+        title: "Exportação Concluída",
+        message: "O arquivo JSON com seus dados pessoais foi baixado com sucesso (Art. 18, V da LGPD).",
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Não foi possível exportar seus dados no momento.";
+      showToast({
+        type: "error",
+        title: "Falha na Exportação",
+        message: msg,
+      });
+    } finally {
+      setIsExportingData(false);
+    }
+  };
+
+  const handleConfirmAnonymization = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAnonymizeError(null);
+    setIsAnonymizing(true);
+    try {
+      const res = await privacyService.requestAnonymization(anonymizePassword);
+      showToast({
+        type: "success",
+        title: "Conta Anonimizada",
+        message: res.message,
+      });
+      setIsAnonymizeModalOpen(false);
+      await signOut();
+      router.push("/");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro ao processar anonimização.";
+      setAnonymizeError(msg);
+    } finally {
+      setIsAnonymizing(false);
+    }
+  };
 
   // Carência de 14 Dias (2 Semanas) para Nome e E-mail
   const nameDaysRemaining = getDaysRemaining(profile?.lastNameChangedAt || user?.lastNameChangedAt);
@@ -822,6 +886,12 @@ export default function AccountPage() {
       label: "Acessibilidade", 
       desc: "Tamanho de fontes, cores e contraste",
       icon: <Accessibility className="w-4 h-4" /> 
+    },
+    { 
+      id: "privacidade", 
+      label: "Privacidade & LGPD", 
+      desc: "Portabilidade de dados, cookies e anonimização",
+      icon: <ShieldCheck className="w-4 h-4" /> 
     },
   ];
 
@@ -2514,6 +2584,148 @@ export default function AccountPage() {
               </div>
             </div>
           )}
+
+          {/* ================= SEÇÃO: PRIVACIDADE & LGPD ================= */}
+          {activeSection === "privacidade" && (
+            <div className="bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 rounded-3xl p-5 sm:p-8 space-y-6 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-200 dark:border-zinc-800">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 text-xs font-semibold mb-2">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    LGPD (Lei nº 13.709/2018) • Art. 18
+                  </div>
+                  <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-tight text-gray-900 dark:text-white">
+                    Privacidade & Seus Direitos
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Consulte, exporte seus dados ou solicite a anonimização e exclusão da sua conta com transparência.
+                  </p>
+                </div>
+
+                <Link
+                  href="/privacidade"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-pink-600 dark:text-pink-400 hover:underline shrink-0"
+                >
+                  Ler Política Completa →
+                </Link>
+              </div>
+
+              {/* Bloco 1: Portabilidade de Dados (Art. 18, V) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <h4 className="font-heading font-bold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                      <Download className="w-4 h-4 text-primary dark:text-violet-400" />
+                      Portabilidade de Dados Pessoais (JSON)
+                    </h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Faça o download de todos os seus dados cadastrais, histórico de locais e resumo de pedidos em formato estruturado e legível por máquina, em conformidade com o Art. 18, inciso V da LGPD.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <Button
+                    type="button"
+                    onClick={handleExportLgpdData}
+                    disabled={isExportingData}
+                    variant="outline"
+                    className="h-10 px-4 text-xs font-semibold rounded-xl border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 cursor-pointer flex items-center gap-2"
+                  >
+                    {isExportingData ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-pink-600" />
+                        <span>Gerando Arquivo...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 text-pink-600" />
+                        <span>Exportar Meus Dados (JSON)</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Bloco 2: Governança de Cookies e Armazenamento (Guia da ANPD) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <h4 className="font-heading font-bold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                      <Cookie className="w-4 h-4 text-amber-500" />
+                      Preferências de Cookies e Rastreamento
+                    </h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Controle a ativação de telemetria analítica e preferências locais no seu dispositivo conforme as diretrizes da ANPD. Cookies estritamente essenciais permanecem protegendo sua sacola.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <Button
+                    type="button"
+                    onClick={() => privacyService.openPreferencesModal()}
+                    variant="outline"
+                    className="h-10 px-4 text-xs font-semibold rounded-xl border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 cursor-pointer flex items-center gap-2"
+                  >
+                    <Cookie className="w-4 h-4 text-amber-500" />
+                    <span>Personalizar Cookies</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Bloco 3: Canal Oficial do Encarregado (DPO - Art. 41) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 space-y-2">
+                <h4 className="font-heading font-bold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  Canal de Atendimento do Encarregado de Dados (DPO)
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Para dúvidas, revogação expressa de consentimento ou solicitações formais sobre o tratamento de seus dados pessoais, você pode contatar diretamente nosso encarregado de privacidade pelo e-mail:
+                </p>
+                <div className="pt-1">
+                  <a
+                    href="mailto:privacidade@popshake.com.br"
+                    className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-pink-600 dark:text-pink-400 hover:underline"
+                  >
+                    privacidade@popshake.com.br
+                  </a>
+                </div>
+              </div>
+
+              {/* Bloco 4: Zona de Exclusão / Anonimização de Dados (Art. 18, VI) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-red-50/50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-300 rounded-xl shrink-0 mt-0.5">
+                    <ShieldAlert className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="font-heading font-bold text-sm text-red-700 dark:text-red-300">
+                      Anonimização e Exclusão de Conta (Art. 18, VI)
+                    </h4>
+                    <p className="text-xs text-red-600/80 dark:text-red-400/80 leading-relaxed">
+                      Ao solicitar a anonimização, seu nome, telefone, e-mail, senhas, locais salvos e dados de entrega serão destruídos de forma irreversível. Seus registros financeiros de pedidos serão preservados desidentificados para cumprimento de obrigação legal e fiscal (Art. 16, I da LGPD).
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setAnonymizePassword("");
+                      setAnonymizeError(null);
+                      setIsAnonymizeModalOpen(true);
+                    }}
+                    className="h-10 px-4 text-xs font-semibold rounded-xl bg-red-600 hover:bg-red-700 text-white cursor-pointer flex items-center gap-2 shadow-xs"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Solicitar Anonimização da Conta</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
           </div>
         </div>
       </main>
@@ -2944,6 +3156,96 @@ export default function AccountPage() {
         clientName={profile?.full_name || user?.fullName || fullName || ""}
         clientEmail={user?.email || profile?.email || ""}
       />
+
+      {/* ================= MODAL DE ANONIMIZAÇÃO / EXCLUSÃO LGPD ================= */}
+      {isAnonymizeModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => !isAnonymizing && setIsAnonymizeModalOpen(false)}
+        >
+          <div 
+            className="w-full max-w-md bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-2xl p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-2xl bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 shrink-0">
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-heading text-lg font-bold text-gray-900 dark:text-white">
+                  Confirmar Anonimização
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Esta ação é irreversível e desvinculará todos os seus dados pessoais (Art. 18, VI da LGPD).
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 text-xs text-red-700 dark:text-red-300 space-y-1">
+              <p className="font-semibold">O que acontecerá:</p>
+              <ul className="list-disc list-inside space-y-0.5 text-[11px] text-red-600 dark:text-red-400">
+                <li>Nome, telefone, e-mail e endereços serão removidos;</li>
+                <li>Você será desconectado de todos os dispositivos;</li>
+                <li>Registros de vendas anteriores serão mantidos anonimizados para obrigação contábil/fiscal (Art. 16, I).</li>
+              </ul>
+            </div>
+
+            {anonymizeError && (
+              <div className="p-3 rounded-xl bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs">
+                {anonymizeError}
+              </div>
+            )}
+
+            <form onSubmit={handleConfirmAnonymization} className="space-y-4">
+              {user?.isRegistered && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    Confirme sua senha de acesso *
+                  </Label>
+                  <Input
+                    type="password"
+                    placeholder="Digite sua senha atual"
+                    value={anonymizePassword}
+                    onChange={(e) => setAnonymizePassword(e.target.value)}
+                    required
+                    className="h-10 text-xs rounded-xl"
+                    disabled={isAnonymizing}
+                  />
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsAnonymizeModalOpen(false)}
+                  disabled={isAnonymizing}
+                  className="h-10 px-4 text-xs font-semibold rounded-xl"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isAnonymizing}
+                  className="h-10 px-4 text-xs font-semibold rounded-xl bg-red-600 hover:bg-red-700 text-white flex items-center gap-1.5"
+                >
+                  {isAnonymizing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Anonimizando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      <span>Confirmar Exclusão</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ─────────────────────────────────────────
           BOTTOM NAV (mobile only - Padrão iFood)

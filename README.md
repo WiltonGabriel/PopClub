@@ -10,13 +10,14 @@
 ![Traefik](https://img.shields.io/badge/Traefik-v3-24A1C1?style=for-the-badge&logo=traefik&logoColor=white)
 ![Tailscale](https://img.shields.io/badge/Tailscale-Mesh%20VPN-49647C?style=for-the-badge&logo=tailscale&logoColor=white)
 ![Projeto Extensionista](https://img.shields.io/badge/Projeto%20Extensionista-UNIVAG%20TADS-8A2BE2?style=for-the-badge)
-![Vitest](https://img.shields.io/badge/Vitest-100%25%20Passed-449C44?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-117%20Passed-449C44?style=for-the-badge&logo=vitest&logoColor=white)
+![LGPD](https://img.shields.io/badge/LGPD-Compliant-00B4D8?style=for-the-badge&logo=privatedivision&logoColor=white)
 
 <br/>
 
 **Plataforma proprietária de delivery, esteira de produção Kanban e gestão operacional para açaís e sorvetes artesanais.**
 
-[Visão Geral](#-visão-geral) • [Topologia](#-topologia-de-arquitetura) • [Stack](#-stack-tecnológica) • [Setup Local](#-setup-de-desenvolvimento-local) • [Scripts](#-scripts-operacionais) • [GitOps](#-governança-gitops) • [Módulos](#-módulos-da-aplicação) • [Equipe e Governança](#-equipe-e-governança)
+[Visão Geral](#-visão-geral) • [Topologia](#-topologia-de-arquitetura) • [Segurança & AppSec](#-segurança-blindagem-e-políticas-de-acesso-appsec) • [LGPD & Cookies](#-conformidade-lgpd-governança-de-cookies-e-privacy-by-design) • [Stack](#-stack-tecnológica) • [Setup Local](#-setup-de-desenvolvimento-local) • [Scripts](#-scripts-operacionais) • [GitOps](#-governança-gitops) • [Módulos](#-módulos-da-aplicação) • [Equipe e Governança](#-equipe-e-governança)
 
 </div>
 
@@ -108,6 +109,34 @@ O sistema conta com uma **Arquitetura Zero Trust nativa** (o próprio sistema de
 - **Limites de Payload (Zod):** Injeção de textos estourados (String/Json sem limite do PostgreSQL) bloqueados por `schema validations`. Nomes limitados a 100 caracteres e descrições limitadas a 1000 caracteres.
 - **Cotas de Criação (Painel Admin):** Limites lógicos de volume aplicados (Máximo de 300 produtos, 100 cupons, 30 categorias e 30 avatares presets) para evitar que contas de administrador comprometidas lotem o banco.
 - **Gating de Uploads:** Somente administradores efetuam upload, travado em `5MB`, extensões/MIME restritas e conversão compulsória de imagens (WebP) pelo lado servidor (`sharp`).
+
+---
+
+## 🛡️ Conformidade LGPD, Governança de Cookies e Privacy by Design
+
+O PopClub adota conformidade rigorosa com a **Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018)**, o **Marco Civil da Internet (Lei nº 12.965/2014)** e os **Guias Orientativos da ANPD (Autoridade Nacional de Proteção de Dados)**, assegurando uma experiência minimalista, amigável e não invasiva para o cliente final.
+
+### 1. Princípios Operacionais e Minimização (Art. 6º e 7º)
+- **Minimização da Coleta (Art. 6º, III):** No Acesso Rápido (*Fast Access*), são coletados estritamente Nome Completo e WhatsApp válido com DDD, com aviso contextual no ponto de coleta (Art. 9º) de que o número é utilizado unicamente para confirmação e contato de entrega.
+- **Geolocalização Estrita:** Coordenadas de GPS são solicitadas exclusivamente para cálculo dinâmico da rota e valor do frete, sem rastreamento contínuo em segundo plano da vida privada do usuário.
+- **Bases Legais Claras:** Tratamento alicerçado em *Execução de Contrato (Art. 7º, V)*, *Obrigação Legal e Fiscal (Art. 7º, II)* e *Legítimo Interesse com Salvaguardas (Art. 7º, IX)*.
+
+### 2. Governança de Cookies e Storage (Guia Oficial ANPD)
+- **Classificação Técnica:**
+  - **Estritamente Necessários (Essenciais):** Sessão de autenticação, itens da sacola/carrinho, tokens CSRF e identificador de entrega. Operam sob base legal do Art. 7º, V, sem dependência de consentimento prévio nos termos da ANPD.
+  - **Opcionais (Analíticos e Preferências):** Desativados por padrão (*Privacy by Default*). Telemetria e personalizações visuais só são persistidas mediante escolha livre do usuário.
+- **Banner Flutuante Minimalista:** Componente discreto (`CookieConsentBanner`), em formato de dock/pílula flutuante que nunca bloqueia a tela inteira nem impede o toque nos produtos do cardápio em celulares.
+- **Autonomia Contínua:** Preferência gravada em chave local (`popclub_lgpd_consent`) com modal de reconfiguração reabrível a qualquer momento a partir do rodapé da loja (`privacyService.openPreferencesModal()`).
+
+### 3. Direitos do Titular (Art. 18) e Retenção Fiscal (Art. 16, I)
+- **Portabilidade de Dados (Art. 18, V):** Endpoint estruturado (`GET /api/users/privacy`) que gera um arquivo JSON legível por máquina contendo dados cadastrais, locais salvos, pedidos e identificação formal do Encarregado (DPO).
+- **Anonimização Irreversível com 1 Clique (Art. 18, VI):** Na aba *Privacidade & LGPD* da conta do usuário (`/conta`), o titular pode solicitar a anonimização imediata da conta.
+  - O sistema limpa irreversivelmente Nome, WhatsApp, E-mail, CPF, senha criptografada e remove locais salvos e notificações.
+  - Os registros contábeis e fiscais dos pedidos são preservados de forma desidentificada, assegurando o cumprimento da obrigação legal tributária de fechamento de caixa da loja (**Art. 16, inciso I da LGPD**).
+- **Marco Civil da Internet (Art. 15):** Guarda de registros de conexão e acesso pelo prazo legal estrito de 6 (seis) meses.
+- **Canal Oficial do Encarregado (DPO — Art. 41):** `privacidade@popshake.com.br` com página pública informativa detalhada em [`/privacidade`](https://popshake.wnzk.dev.br/privacidade) e [`/termos`](https://popshake.wnzk.dev.br/termos).
+
+---
 
 ## 💻 Stack Tecnológica
 

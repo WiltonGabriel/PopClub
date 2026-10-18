@@ -17,6 +17,7 @@ import {
   AlertCircle,
   ArrowLeft,
   Crosshair,
+  ShieldCheck,
 } from "lucide-react";
 import { useAddress, Address } from "@/contexts/AddressContext";
 
@@ -529,6 +530,13 @@ export function AddressModal() {
                   Digitar →
                 </span>
               </button>
+
+              <div className="pt-1 px-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>
+                  Sua localização é utilizada exclusivamente para estimar a rota e o frete de entrega (Art. 9º da LGPD).
+                </span>
+              </div>
             </div>
           )}
 

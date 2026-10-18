@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import Link from "next/link";
+import { privacyService } from "@/services/privacyService";
 import {
   MapPin,
   Clock,
@@ -393,11 +395,30 @@ export function Footer() {
           </div>
         )}
 
-        {/* Linha Divisória e Rodapé Discreto */}
-        <div className="border-t border-zinc-200 dark:border-zinc-800/80 mt-6 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left text-xs text-zinc-500 dark:text-zinc-400">
+        {/* Linha Divisória e Rodapé Discreto com Governança e LGPD */}
+        <div className="border-t border-zinc-200 dark:border-zinc-800/80 mt-6 pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left text-xs text-zinc-500 dark:text-zinc-400">
           <p>
             © {new Date().getFullYear()} Pop Shake Sorveteria. Todos os direitos reservados.
           </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-3.5 text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+            <Link href="/privacidade" className="hover:text-pink-600 dark:hover:text-pink-400 transition-colors">
+              Privacidade & LGPD
+            </Link>
+            <span className="opacity-40">•</span>
+            <Link href="/termos" className="hover:text-pink-600 dark:hover:text-pink-400 transition-colors">
+              Termos de Uso
+            </Link>
+            <span className="opacity-40">•</span>
+            <button
+              type="button"
+              onClick={() => privacyService.openPreferencesModal()}
+              className="hover:text-pink-600 dark:hover:text-pink-400 transition-colors cursor-pointer"
+            >
+              Preferências de Cookies
+            </button>
+          </div>
+
           <p className="text-[11px]">
             Plataforma PopClub • Delivery Oficial em Várzea Grande – MT
           </p>

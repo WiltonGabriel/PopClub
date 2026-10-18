@@ -12,6 +12,7 @@ import { AddressProvider } from "@/contexts/AddressContext";
 import { OrderProvider } from "@/contexts/OrderContext";
 import { ToastProvider } from "@/components/ui/ToastNotification";
 import { AddressModal } from "@/components/storefront/AddressModal";
+import { CookieConsentBanner } from "@/components/ui/CookieConsentBanner";
 import { GlobalBackgroundSync } from "@/components/ui/GlobalBackgroundSync";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk", display: "swap" });
@@ -87,6 +88,7 @@ export default function RootLayout({
                       <OrderProvider>
                         {children}
                         <AddressModal />
+                        <CookieConsentBanner />
                       </OrderProvider>
                     </AddressProvider>
                   </CartProvider>

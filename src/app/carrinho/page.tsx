@@ -1240,6 +1240,10 @@ export default function CarrinhoPage() {
                       <span className="text-[10px] text-muted-foreground block">
                         Inclua o DDD com 2 dígitos antes do número (ex: 65, 11).
                       </span>
+                      <p className="text-[10px] text-muted-foreground/90 flex items-center gap-1 mt-1">
+                        <Lock className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span>Seu WhatsApp é utilizado exclusivamente para confirmação e contato sobre a entrega deste pedido (Art. 9º da LGPD).</span>
+                      </p>
                     </div>
                   </div>
 
