@@ -261,7 +261,12 @@ export const orderService = {
   },
 
   async createCheckoutOrder(payload: CheckoutPayload): Promise<{ success: boolean; order: Order }> {
+    const headers: Record<string, string> = {};
+    if (payload.idempotencyKey) {
+      headers["Idempotency-Key"] = payload.idempotencyKey;
+    }
     const data = await fetchClient.post<{ success: boolean; order: Order }>("/api/checkout", payload, {
+      headers,
       timeoutMs: 15000,
     });
 

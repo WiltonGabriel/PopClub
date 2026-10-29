@@ -80,6 +80,8 @@ const checkoutSchema = z.object({
 
 export async function POST(request: Request) {
   let receivedIdempotencyKey: string | null = null;
+  let targetUserId: string | null = null;
+  let calculatedFinalTotal: number | null = null;
   try {
     const ip = getIpFromRequest(request);
     const limitCheck = checkoutLimiter.check(ip);
@@ -104,7 +106,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: errorMsg }, { status: 400 });
     }
 
-    receivedIdempotencyKey = parsed.data.idempotencyKey || null;
+    const headerKey = request.headers.get("idempotency-key") || request.headers.get("x-idempotency-key");
+    receivedIdempotencyKey = (parsed.data.idempotencyKey || headerKey || "").trim() || null;
     const { items, deliveryAddress, paymentMethod, couponCode } = parsed.data;
 
     const rawPhone = parsed.data.customerPhone || parsed.data.phone || null;
@@ -172,7 +175,7 @@ export async function POST(request: Request) {
 
     // Identificação e Autenticação (Cliente Logado ou Acesso Rápido)
     const authUser = await getAuthUser(request);
-    let targetUserId: string;
+    targetUserId = null;
     let targetIsRegistered = false;
     let targetUserPhone: string | null = null;
     let sessionTokenToSet: string | null = null;
@@ -684,6 +687,7 @@ export async function POST(request: Request) {
     const totalDiscount = Number((promoDiscountTotal + couponDiscount).toFixed(2));
     const itemsTotalAfterDiscount = Math.max(0, Number((calculatedSubtotal - totalDiscount).toFixed(2)));
     const finalTotal = Number((itemsTotalAfterDiscount + calculatedDeliveryFee).toFixed(2));
+    calculatedFinalTotal = finalTotal;
 
     // 2.2. Validação estrita de troco para pagamento em dinheiro
     let changeToReturn: number | null = null;
@@ -700,6 +704,53 @@ export async function POST(request: Request) {
       changeToReturn = Number((paymentMethod.changeFor - finalTotal).toFixed(2));
     }
 
+    // 2.3. Fast-Path de Idempotência: se a chave já existe, valida o payload e retorna o pedido existente
+    if (receivedIdempotencyKey) {
+      const existingOrder = await prisma.order.findUnique({
+        where: { idempotencyKey: receivedIdempotencyKey },
+        include: {
+          items: { include: { product: true } },
+          user: { select: { fullName: true, phone: true, email: true } },
+        },
+      });
+
+      if (existingOrder) {
+        // Validação estrita de compatibilidade de payload
+        const isOwnerMatch = existingOrder.userId === targetUserId;
+        const isAmountMatch = Math.abs(Number(existingOrder.totalAmount) - finalTotal) <= 0.05;
+
+        if (!isOwnerMatch || !isAmountMatch) {
+          return NextResponse.json(
+            {
+              error: "Chave de idempotência já utilizada com dados de pedido divergentes.",
+              code: "IDEMPOTENCY_KEY_PAYLOAD_MISMATCH",
+            },
+            { status: 409 }
+          );
+        }
+
+        return NextResponse.json(
+          {
+            success: true,
+            idempotent: true,
+            order: {
+              id: existingOrder.id,
+              trackingToken: existingOrder.trackingToken,
+              tracking_token: existingOrder.trackingToken,
+              trackingUrl: `/entrega/${existingOrder.trackingToken}`,
+              status: existingOrder.status,
+              subtotal: Number(existingOrder.subtotal),
+              discountAmount: Number(existingOrder.discountAmount),
+              deliveryFee: Number(existingOrder.deliveryFee),
+              totalAmount: Number(existingOrder.totalAmount),
+              createdAt: existingOrder.createdAt.toISOString(),
+            },
+          },
+          { status: 200 }
+        );
+      }
+    }
+
     // 3. Persistência Transacional do Pedido
     const trackingToken = crypto.randomUUID().replace(/-/g, "");
 
@@ -707,10 +758,10 @@ export async function POST(request: Request) {
       // Criação do pedido vinculado atomicamente ao usuário e ao turno
       const newOrder = await tx.order.create({
         data: {
-          user: { connect: { id: targetUserId } },
+          user: { connect: { id: targetUserId! } },
           shiftId: targetShiftId,
           trackingToken: trackingToken,
-          idempotencyKey: parsed.data.idempotencyKey || null,
+          idempotencyKey: receivedIdempotencyKey,
           isArchived: false,
           status: "pending",
           subtotal: calculatedSubtotal,
@@ -824,7 +875,7 @@ export async function POST(request: Request) {
             await tx.couponRedemption.create({
               data: {
                 couponId: validCouponId,
-                userId: targetUserId,
+                userId: targetUserId!,
                 orderId: newOrder.id,
               },
             });
@@ -891,6 +942,24 @@ export async function POST(request: Request) {
         },
       });
       if (existingOrder) {
+        if (targetUserId && existingOrder.userId !== targetUserId) {
+          return NextResponse.json(
+            {
+              error: "Chave de idempotência já utilizada com dados de pedido divergentes.",
+              code: "IDEMPOTENCY_KEY_PAYLOAD_MISMATCH",
+            },
+            { status: 409 }
+          );
+        }
+        if (calculatedFinalTotal !== null && Math.abs(Number(existingOrder.totalAmount) - calculatedFinalTotal) > 0.05) {
+          return NextResponse.json(
+            {
+              error: "Chave de idempotência já utilizada com dados de pedido divergentes.",
+              code: "IDEMPOTENCY_KEY_PAYLOAD_MISMATCH",
+            },
+            { status: 409 }
+          );
+        }
         return NextResponse.json(
           {
             success: true,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -103,6 +103,24 @@ export default function CarrinhoPage() {
   const identificationSectionRef = useRef<HTMLElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const phoneInputRef = useRef<HTMLInputElement>(null);
+
+  // Idempotência estrita de checkout: chave preservada entre retentativas da mesma tentativa
+  const checkoutIdempotencyKeyRef = useRef<string | null>(null);
+
+  const getOrCreateCheckoutIdempotencyKey = useCallback(() => {
+    if (!checkoutIdempotencyKeyRef.current) {
+      checkoutIdempotencyKeyRef.current =
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    }
+    return checkoutIdempotencyKeyRef.current;
+  }, []);
+
+  // Se os itens do carrinho mudarem, invalida a chave para que a nova composição gere sua própria chave
+  useEffect(() => {
+    checkoutIdempotencyKeyRef.current = null;
+  }, [items]);
 
   // Reconhecimento de cliente cadastrado inline
   const [inlineRegisteredDetected, setInlineRegisteredDetected] = useState(false);
@@ -846,9 +864,7 @@ export default function CarrinhoPage() {
 
     try {
       const isPickup = deliveryMode === "retirada";
-      const idempotencyKey = typeof crypto !== "undefined" && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      const idempotencyKey = getOrCreateCheckoutIdempotencyKey();
 
       const payload = {
         idempotencyKey,
@@ -893,6 +909,7 @@ export default function CarrinhoPage() {
         trackGuestOrder(result.order.id);
       }
       setOrderSuccessId(result.order.id);
+      checkoutIdempotencyKeyRef.current = null;
       clearCart();
       if (!user) {
         refreshUser().catch(() => {});

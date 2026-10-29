@@ -11,6 +11,7 @@ export interface EmailMessage {
   subject: string;
   text?: string;
   html?: string;
+  idempotencyKey?: string | null;
 }
 
 export interface EmailSendResult {
@@ -18,6 +19,7 @@ export interface EmailSendResult {
   messageId?: string;
   error?: string;
   mode: "simulation" | "production";
+  cached?: boolean;
 }
 
 export interface EmailProvider {
@@ -121,16 +123,79 @@ function getEmailProvider(): EmailProvider {
   return new ConsoleSimulationEmailProvider();
 }
 
+interface DeduplicationEntry {
+  result: EmailSendResult;
+  expiresAt: number;
+}
+
+/**
+ * Rastreador de Idempotência e Deduplicação de Mensageria (TTL de 15 minutos)
+ * Impede que retentativas de rede, duplo clique ou reenvios concorrentes
+ * gerem múltiplos disparos de e-mail ao mesmo destinatário.
+ */
+class EmailDeduplicationTracker {
+  private cache = new Map<string, DeduplicationEntry>();
+  private readonly defaultTtlMs = 15 * 60 * 1000; // 15 minutos
+
+  get(key: string): EmailSendResult | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      return null;
+    }
+    return { ...entry.result, cached: true };
+  }
+
+  set(key: string, result: EmailSendResult, ttlMs = this.defaultTtlMs): void {
+    if (!result.success) return;
+    this.cleanup();
+    this.cache.set(key, {
+      result,
+      expiresAt: Date.now() + ttlMs,
+    });
+  }
+
+  private cleanup(): void {
+    if (this.cache.size < 500) return;
+    const now = Date.now();
+    for (const [k, v] of this.cache.entries()) {
+      if (now > v.expiresAt) {
+        this.cache.delete(k);
+      }
+    }
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+}
+
+export const emailDeduplicationTracker = new EmailDeduplicationTracker();
+
 /**
  * Serviço de E-mail Principal do PopClub
  */
 export const emailService = {
   /**
-   * Envia uma mensagem genérica de e-mail através do provedor ativo.
+   * Envia uma mensagem genérica de e-mail através do provedor ativo com deduplicação.
    */
   async send(message: EmailMessage): Promise<EmailSendResult> {
+    if (message.idempotencyKey) {
+      const cached = emailDeduplicationTracker.get(message.idempotencyKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
     const provider = getEmailProvider();
-    return provider.sendEmail(message);
+    const result = await provider.sendEmail(message);
+
+    if (message.idempotencyKey && result.success) {
+      emailDeduplicationTracker.set(message.idempotencyKey, result);
+    }
+
+    return result;
   },
 
   /**
@@ -141,11 +206,13 @@ export const emailService = {
     name,
     code,
     expiresMinutes = 15,
+    idempotencyKey,
   }: {
     to: string;
     name?: string | null;
     code: string;
     expiresMinutes?: number;
+    idempotencyKey?: string | null;
   }): Promise<EmailSendResult> {
     const recipientName = name ? name.split(" ")[0] : "Cliente";
     const subject = `Seu código de recuperação PopClub: ${code}`;
@@ -197,6 +264,12 @@ export const emailService = {
       </html>
     `;
 
-    return this.send({ to, subject, text, html });
+    return this.send({
+      to,
+      subject,
+      text,
+      html,
+      idempotencyKey: idempotencyKey || `pwd_reset_${to.toLowerCase().trim()}_${code}`,
+    });
   },
 };

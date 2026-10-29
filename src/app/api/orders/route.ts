@@ -271,12 +271,49 @@ export async function PATCH(request: Request) {
       return apiError("Pedido não encontrado.", 404, "NOT_FOUND");
     }
 
+    // Idempotência: se já estiver no status solicitado, retorna com sucesso sem reprocessar timestamps
+    if (existingOrder.status === status) {
+      const currentOrder = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: {
+          items: { include: { product: true } },
+          user: { select: { fullName: true, username: true, email: true, phone: true } },
+        },
+      });
+      return apiSuccess(formatOrder(currentOrder!));
+    }
+
+    // Estado terminal imutável: pedido cancelado nunca pode sofrer nova transição
+    if (existingOrder.status === "cancelled") {
+      return apiError("Pedidos cancelados não podem ter seu status alterado.", 422, "ORDER_ALREADY_CANCELLED");
+    }
+
     const isAdmin = authUser?.role === "admin";
     const canManageOrders = hasPermission(authUser, "ORDERS_KANBAN");
     const isOwner = Boolean(authUser?.id && existingOrder.userId === authUser.id);
 
-    // Se não tiver permissão para gerenciar a esteira, só tem permissão para cancelar caso seja o dono E o pedido ainda esteja "pending"
-    if (!canManageOrders) {
+    // Validação de Máquina de Estados Operacional (FSM)
+    const ALLOWED_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+      pending: ["accepted", "cancelled"],
+      accepted: ["preparing", "pending", "cancelled"],
+      preparing: ["ready", "accepted", "cancelled"],
+      ready: ["delivering", "completed", "preparing", "cancelled"],
+      delivering: ["completed", "ready", "cancelled"],
+      completed: ["delivering"], // Reabrir entrega (staff recovery)
+      cancelled: [], // Terminal
+    };
+
+    if (canManageOrders) {
+      const allowedNext = ALLOWED_STATUS_TRANSITIONS[existingOrder.status] || [];
+      if (!allowedNext.includes(status as OrderStatus)) {
+        return apiError(
+          `Transição de status inválida de "${existingOrder.status}" para "${status}".`,
+          422,
+          "INVALID_STATUS_TRANSITION"
+        );
+      }
+    } else {
+      // Cliente não-operador: só pode cancelar se for o dono E o pedido ainda estiver "pending"
       if (!isOwner || status !== "cancelled" || existingOrder.status !== "pending") {
         return apiError("Você não tem permissão para alterar o status deste pedido.", 403, "FORBIDDEN");
       }
@@ -309,16 +346,43 @@ export async function PATCH(request: Request) {
       dataToUpdate.orderPin = sanitizeText(String(body.orderPin));
     }
 
-    const updated = await prisma.order.update({
-      where: { id: orderId },
+    // Atualização com verificação atômica de concorrência (evita conflitos e race conditions)
+    const updateResult = await prisma.order.updateMany({
+      where: {
+        id: orderId,
+        status: existingOrder.status,
+      },
       data: dataToUpdate,
+    });
+
+    if (updateResult.count === 0) {
+      // Outro operador ou chamada paralela alterou o status no mesmo instante
+      const freshOrder = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: {
+          items: { include: { product: true } },
+          user: { select: { fullName: true, username: true, email: true, phone: true } },
+        },
+      });
+      if (freshOrder?.status === status) {
+        return apiSuccess(formatOrder(freshOrder));
+      }
+      return apiError(
+        "O pedido foi atualizado concorrentemente por outro operador.",
+        409,
+        "CONCURRENT_STATUS_UPDATE"
+      );
+    }
+
+    const updated = await prisma.order.findUnique({
+      where: { id: orderId },
       include: {
         items: { include: { product: true } },
         user: { select: { fullName: true, username: true, email: true, phone: true } },
       },
     });
 
-    return apiSuccess(formatOrder(updated));
+    return apiSuccess(formatOrder(updated!));
   } catch (error: unknown) {
     return handleApiError(error, "PATCH /api/orders", "Erro ao atualizar pedido.");
   }

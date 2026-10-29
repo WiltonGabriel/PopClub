@@ -87,6 +87,7 @@ export async function POST(request: Request) {
         name: user.fullName || user.username,
         code: resetCode,
         expiresMinutes: 15,
+        idempotencyKey: `pwd_reset_${user.id}_${resetCode}`,
       });
 
       // Modo de simulação ativo quando não há credenciais de provedor externo configuradas

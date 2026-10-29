@@ -21,6 +21,10 @@ export async function POST(
       return apiError("Entrega não encontrada ou token inválido.", 404, "NOT_FOUND");
     }
 
+    if (existingOrder.status === "cancelled") {
+      return apiError("Este pedido foi cancelado e não pode ser finalizado.", 422, "ORDER_ALREADY_CANCELLED");
+    }
+
     if (existingOrder.status === "completed") {
       return apiSuccess({
         success: true,
@@ -31,7 +35,7 @@ export async function POST(
     const updateResult = await prisma.order.updateMany({
       where: {
         id: existingOrder.id,
-        status: { not: "completed" },
+        status: { notIn: ["completed", "cancelled"] },
       },
       data: {
         status: "completed",
@@ -41,6 +45,13 @@ export async function POST(
     });
 
     if (updateResult.count === 0) {
+      const fresh = await prisma.order.findUnique({
+        where: { id: existingOrder.id },
+        select: { status: true },
+      });
+      if (fresh?.status === "cancelled") {
+        return apiError("Este pedido foi cancelado e não pode ser finalizado.", 422, "ORDER_ALREADY_CANCELLED");
+      }
       return apiSuccess({
         success: true,
         message: "Este pedido já foi finalizado anteriormente.",
