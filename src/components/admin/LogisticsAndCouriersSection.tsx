@@ -77,6 +77,7 @@ export function LogisticsAndCouriersSection() {
 
   const [loading, setLoading] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [savingRadius, setSavingRadius] = useState(false);
 
   // Regras de Frete
   const [deliveryFee, setDeliveryFee] = useState("5.00");
@@ -292,6 +293,40 @@ export function LogisticsAndCouriersSection() {
   };
 
   const isConfirmed = confirmInputText.trim().toLowerCase() === "sim";
+
+  // Salvar Rápido do Raio de Entrega
+  const handleQuickSaveRadius = async () => {
+    const radiusNum = parseFloat(maxDeliveryRadiusKm);
+    if (isNaN(radiusNum) || radiusNum <= 0) {
+      showToast({
+        type: "error",
+        title: "Raio Inválido",
+        message: "Por favor, informe um raio de entrega maior que zero.",
+      });
+      return;
+    }
+
+    setSavingRadius(true);
+    try {
+      await storeSettingsService.updateSettings({
+        maxDeliveryRadiusKm: radiusNum,
+      });
+      showToast({
+        type: "success",
+        title: "Raio Atualizado!",
+        message: `Raio de atendimento configurado para ${radiusNum} km com sucesso.`,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Falha ao gravar raio de entrega.";
+      showToast({
+        type: "error",
+        title: "Erro ao Salvar Raio",
+        message: msg,
+      });
+    } finally {
+      setSavingRadius(false);
+    }
+  };
 
   // Salvar Configurações da Operação
   const handleExecuteSaveSettings = async () => {
@@ -559,22 +594,45 @@ export function LogisticsAndCouriersSection() {
                 </div>
               </div>
 
-              <div className="relative pt-1">
-                <Input
-                  id="input-max-delivery-radius"
-                  type="number"
-                  step="0.5"
-                  min="1"
-                  max="100"
-                  value={maxDeliveryRadiusKm}
-                  onChange={(e) => setMaxDeliveryRadiusKm(e.target.value)}
-                  placeholder="10"
-                  className="pr-12 font-mono font-bold text-base h-11 bg-white dark:bg-[#181D2D] rounded-xl"
-                  required
-                />
-                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 font-mono font-bold text-xs text-muted-foreground">
-                  km
-                </span>
+              <div className="flex items-center gap-2 pt-1">
+                <div className="relative flex-1">
+                  <Input
+                    id="input-max-delivery-radius"
+                    type="number"
+                    step="0.5"
+                    min="1"
+                    max="100"
+                    value={maxDeliveryRadiusKm}
+                    onChange={(e) => setMaxDeliveryRadiusKm(e.target.value)}
+                    placeholder="10"
+                    className="pr-12 font-mono font-bold text-base h-11 bg-white dark:bg-[#181D2D] rounded-xl"
+                    required
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 font-mono font-bold text-xs text-muted-foreground">
+                    km
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  id="btn-save-delivery-radius"
+                  size="sm"
+                  onClick={handleQuickSaveRadius}
+                  disabled={savingRadius}
+                  className="h-11 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center gap-1.5 shrink-0 shadow-sm shadow-blue-500/20 cursor-pointer"
+                  title="Salvar apenas o raio de atendimento"
+                >
+                  {savingRadius ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="hidden sm:inline">Salvando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Salvar</span>
+                    </>
+                  )}
+                </Button>
               </div>
               <span className="text-[10px] text-muted-foreground block">
                 Endereços além deste raio serão alertados como fora da área de entrega.
