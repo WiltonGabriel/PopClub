@@ -84,7 +84,7 @@ flowchart TD
     App -->|"Rede Interna Bridge"| DB
 
     %% Desenvolvimento Conectado Diretamente
-    Dev -->|"Tailscale SEU_IP_VPN:5432"| DB
+    Dev -->|"Tailscale 100.127.79.49:5432"| DB
 ```
 
 ### 🌐 Infraestrutura de Produção Ativa (`https://popshake.wnzk.dev.br/`)
