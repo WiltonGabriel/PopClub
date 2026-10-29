@@ -54,7 +54,14 @@ var CLIENT_PROFILES = [
   { name: "Amanda Rocha Albuquerque", email: "amanda.rocha@gmail.com", phone: "65992003388" }
 ];
 async function main() {
-  console.log("\u{1F368} [Pop Shake Sorveteria] Iniciando seed oficial completo...");
+  console.log("\u{1F368} [Pop Shake Sorveteria] Iniciando seed...");
+  if (process.env.NODE_ENV === "production" || process.env.ALLOW_DESTRUCTIVE_SEED !== "true") {
+    const cnt = await prisma.product.count();
+    if (cnt > 0) {
+      console.log("🛡️ [PROTEÇÃO] Banco já possui produtos. Seed destrutivo cancelado.");
+      return;
+    }
+  }
   console.log("\u{1F9F9} Limpando dados fict\xEDcios anteriores...");
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
@@ -67,7 +74,7 @@ async function main() {
   await prisma.user.deleteMany({
     where: { email: { not: "admin@popclub.com" } }
   });
-  const adminPasswordHash = await import_bcryptjs.default.hash("@64844048", 10);
+  const adminPasswordHash = await import_bcryptjs.default.hash("AdminDevPass@2026", 10);
   const admin = await prisma.user.upsert({
     where: { email: "admin@popclub.com" },
     update: {

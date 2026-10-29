@@ -104,6 +104,7 @@ export async function POST(request: Request) {
           name: createdUser.fullName,
           role: createdUser.role,
           isRegistered: false,
+          tokenVersion: (createdUser as any).tokenVersion ?? 1,
         });
 
         const response = NextResponse.json({
@@ -136,6 +137,21 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Erro ao inicializar usuário de acesso rápido." },
         { status: 500 }
+      );
+    }
+
+    // 1. Blindagem Anti-Account Takeover:
+    // Usuários com cadastro formal, senha configurada ou cargos administrativos/equipe
+    // NUNCA podem ser autenticados via Acesso Rápido desatendido. Devem entrar com senha.
+    if (existingUser.role !== Role.CLIENT || existingUser.passwordHash || existingUser.isRegistered) {
+      return NextResponse.json(
+        {
+          status: "password_required",
+          error: "Esta conta possui cadastro formal com senha. Por favor, faça login com sua senha.",
+          requiresPassword: true,
+          phone: existingUser.phone,
+        },
+        { status: 403 }
       );
     }
 
@@ -195,6 +211,7 @@ export async function POST(request: Request) {
       username: existingUser.username,
       role: existingUser.role,
       isRegistered: Boolean(existingUser.isRegistered),
+      tokenVersion: existingUser.tokenVersion ?? 1,
     });
 
     const response = NextResponse.json({

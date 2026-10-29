@@ -81,6 +81,7 @@ export async function POST(request: Request) {
       name: updatedUser.fullName,
       role: updatedUser.role,
       isRegistered: true,
+      tokenVersion: (updatedUser as any).tokenVersion ?? 1,
     });
 
     const response = NextResponse.json({

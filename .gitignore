@@ -75,3 +75,18 @@ screenshots/
 /screenshots/
 *.screenshot.*
 
+
+# Patches e Diff Temporarios
+*.patch
+*.diff
+
+# Scratch e Scripts Temporarios Locais
+scratch/
+scratch*
+scripts/test-*
+scripts/audit-*
+scripts/capture-*
+
+# Relatorios Temporarios de Auditoria
+docs/*_AUDIT.md
+docs/SUBMISSAO_*.md

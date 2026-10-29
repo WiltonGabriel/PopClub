@@ -3,6 +3,19 @@ import { prisma } from "@/lib/prisma";
 import { sanitizeAndNormalizePhone } from "@/lib/validations/auth";
 import { phoneCheckLimiter, getRateLimitKey, createRateLimitResponse } from "@/lib/rateLimit";
 
+function maskFullName(name: string | null | undefined): string {
+  if (!name || name.trim().length === 0) return "";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) {
+    const first = parts[0];
+    if (first.length <= 2) return first;
+    return `${first.slice(0, 2)}${"*".repeat(Math.min(first.length - 2, 4))}`;
+  }
+  const firstName = parts[0];
+  const lastInitial = parts[parts.length - 1][0];
+  return `${firstName} ${lastInitial}.***`;
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -55,7 +68,7 @@ export async function GET(request: Request) {
       exists: true,
       isRegistered,
       hasPassword,
-      fullName: user.fullName || user.username || "",
+      fullName: maskFullName(user.fullName || user.username),
       maskedEmail: user.email
         ? user.email.replace(/(.{2})(.*)(?=@)/, (_gp, a, b) => a + "*".repeat(b.length))
         : null,

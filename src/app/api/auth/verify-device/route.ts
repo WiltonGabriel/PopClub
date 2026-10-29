@@ -85,27 +85,24 @@ export async function POST(request: Request) {
       );
     }
 
+    // Blindagem Anti-Account Takeover: contas com senha/registradas não podem usar verify-device
+    if ((user.role !== "CLIENT" && (user.role as string) !== "client") || user.passwordHash || user.isRegistered) {
+      return NextResponse.json(
+        {
+          error: "Esta conta possui cadastro formal com senha. Por favor, autentique-se informando sua senha.",
+          requiresPassword: true,
+        },
+        { status: 403 }
+      );
+    }
+
     let verifiedAddress: any = null;
 
-    if (newAddress) {
-      // O cliente optou por cadastrar um novo endereço
-      verifiedAddress = await prisma.userLocation.create({
-        data: {
-          userId: user.id,
-          street: newAddress.street,
-          number: newAddress.number,
-          neighborhood: newAddress.neighborhood,
-          city: newAddress.city,
-          complement: newAddress.complement || null,
-          reference: newAddress.reference || null,
-          zip: newAddress.zip || null,
-          latitude: newAddress.latitude || null,
-          longitude: newAddress.longitude || null,
-          addressLine: `${newAddress.street}, ${newAddress.number} - ${newAddress.neighborhood}, ${newAddress.city}`,
-          isDefault: true,
-        },
-      });
-    } else if (addressId && (houseNumber || isNoNumber)) {
+    const existingLocationsCount = await prisma.userLocation.count({
+      where: { userId: user.id },
+    });
+
+    if (addressId && (houseNumber || isNoNumber)) {
       // Trava Anti-Brute Force (5 tentativas consecutivas)
       const attemptKey = `${phone}:${addressId}`;
       const now = Date.now();
@@ -176,6 +173,44 @@ export async function POST(request: Request) {
       // Sucesso na validação: limpa o contador de erros
       attemptsMap.delete(attemptKey);
       verifiedAddress = existingLocation;
+
+      // Se o cliente autenticado também enviou um novo endereço após validar o anterior:
+      if (newAddress) {
+        verifiedAddress = await prisma.userLocation.create({
+          data: {
+            userId: user.id,
+            street: newAddress.street,
+            number: newAddress.number,
+            neighborhood: newAddress.neighborhood,
+            city: newAddress.city,
+            complement: newAddress.complement || null,
+            reference: newAddress.reference || null,
+            zip: newAddress.zip || null,
+            latitude: newAddress.latitude || null,
+            longitude: newAddress.longitude || null,
+            addressLine: `${newAddress.street}, ${newAddress.number} - ${newAddress.neighborhood}, ${newAddress.city}`,
+            isDefault: true,
+          },
+        });
+      }
+    } else if (newAddress && existingLocationsCount === 0) {
+      // Se a conta não tem qualquer endereço anterior, cadastra o primeiro endereço
+      verifiedAddress = await prisma.userLocation.create({
+        data: {
+          userId: user.id,
+          street: newAddress.street,
+          number: newAddress.number,
+          neighborhood: newAddress.neighborhood,
+          city: newAddress.city,
+          complement: newAddress.complement || null,
+          reference: newAddress.reference || null,
+          zip: newAddress.zip || null,
+          latitude: newAddress.latitude || null,
+          longitude: newAddress.longitude || null,
+          addressLine: `${newAddress.street}, ${newAddress.number} - ${newAddress.neighborhood}, ${newAddress.city}`,
+          isDefault: true,
+        },
+      });
     } else {
       return NextResponse.json(
         { error: "Informe o número da residência ou cadastre um novo endereço de entrega." },
@@ -202,6 +237,7 @@ export async function POST(request: Request) {
       username: user.username,
       role: user.role,
       isRegistered: Boolean(user.isRegistered),
+      tokenVersion: user.tokenVersion ?? 1,
     });
 
     const response = NextResponse.json({

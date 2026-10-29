@@ -46,7 +46,8 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
-  const targetPassword = process.argv[2] || "@64844048";
+  const crypto = await import('crypto');
+  const targetPassword = process.argv[2] || crypto.randomBytes(10).toString('base64url');
   const targetEmail = "admin@popclub.com";
   const targetUsername = "admin";
 

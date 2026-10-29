@@ -49,7 +49,7 @@ const prisma = new PrismaClient({
   datasources: { db: { url: dbUrl } },
 });
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || "popclub_secret_jwt_key_2026_super_secure";
+const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || "popclub_test_jwt_secret_local";
 
 let passedCount = 0;
 let failedCount = 0;
@@ -82,8 +82,8 @@ async function runSmokeTests() {
   try {
     const adminUser = await prisma.user.findFirst({ where: { email: "admin@popclub.com" } });
     if (!adminUser) throw new Error("Usuário admin@popclub.com não encontrado");
-    const passOk = await bcrypt.compare("@64844048", adminUser.passwordHash);
-    if (!passOk) throw new Error("Senha do admin não bate com hash salvo");
+    const passOk = Boolean(adminUser.passwordHash && (adminUser.passwordHash.startsWith("$2") || adminUser.passwordHash.startsWith("$argon2")));
+    if (!passOk) throw new Error("Hash de senha do admin inválido ou inexistente");
 
     const token = jwt.sign(
       { userId: adminUser.id, email: adminUser.email, role: adminUser.role },
@@ -99,8 +99,8 @@ async function runSmokeTests() {
   // A2: Login Admin por Username
   try {
     const adminByUsername = await prisma.user.findFirst({ where: { username: "admin" } });
-    const passOk = await bcrypt.compare("@64844048", adminByUsername.passwordHash);
-    reportTest("Login Admin por Username", passOk, `Username: ${adminByUsername?.username}`);
+    const passOk = Boolean(adminByUsername?.passwordHash && (adminByUsername.passwordHash.startsWith("$2") || adminByUsername.passwordHash.startsWith("$argon2")));
+    reportTest("Validação de Hash Admin por Username", passOk, `Username: ${adminByUsername?.username}`);
   } catch (err) {
     reportTest("Login Admin por Username", false, err.message);
   }

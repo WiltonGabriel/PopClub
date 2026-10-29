@@ -150,6 +150,7 @@ export async function POST(request: Request) {
             cpf: true,
             role: true,
             isRegistered: true,
+            tokenVersion: true,
           },
         });
       }
@@ -177,6 +178,7 @@ export async function POST(request: Request) {
             cpf: true,
             role: true,
             isRegistered: true,
+            tokenVersion: true,
           },
         });
       } catch (createErr: any) {
@@ -202,6 +204,7 @@ export async function POST(request: Request) {
       name: user.fullName,
       role: user.role,
       isRegistered: true,
+      tokenVersion: (user as any).tokenVersion ?? 1,
     });
 
     let isHttps = false;

@@ -38,3 +38,7 @@ database_schema.sql
 # Uploads persistentes locais
 public/uploads/*
 !public/uploads/.gitkeep
+
+# Scripts e Documentacao Auxiliar fora da Imagem Final
+scripts
+docs

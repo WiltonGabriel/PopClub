@@ -1,6 +1,6 @@
 # Arquitetura e Topologia de Infraestrutura — Pop Shake (PopClub)
 
-Este documento detalha as decisões arquiteturais, topologia de rede, segurança e estratégias de infraestrutura adotadas para a plataforma **Pop Shake Delivery PWA** hospedada na infraestrutura **Grein Cloud 01**.
+Este documento detalha as decisões arquiteturais, topologia de rede, segurança e estratégias de infraestrutura adotadas para a plataforma **Pop Shake Delivery PWA** hospedada na infraestrutura **Servidor de Produção**.
 
 > [!NOTE]
 > **Central de Documentos Extensionistas & Relatórios Oficiais (Google Drive):**  
@@ -22,7 +22,7 @@ flowchart TD
         CF_SSL["Bypass SSL / Proxy"]
     end
 
-    subgraph Host ["☁️ Servidor de Produção (Grein Cloud 01)"]
+    subgraph Host ["☁️ Servidor de Produção (Servidor de Produção)"]
         subgraph ProxyNet ["Rede Docker: proxy_network (External)"]
             Traefik["🚦 Traefik v3 (Reverse Proxy)\nCertificados Let's Encrypt (leresolver)"]
         end
@@ -49,7 +49,7 @@ flowchart TD
     App -->|"pg_isready e Queries"| DB
 
     %% Conexão de Desenvolvimento via Tailscale
-    Dev -->|"Tailscale 100.127.79.49:5432"| DB
+    Dev -->|"Tailscale SEU_IP_VPN:5432"| DB
 ```
 
 ---
@@ -61,10 +61,10 @@ Historicamente, projetos web sofrem com divergência de ambientes (*drift*): des
 
 ### A Decisão Arquitetural
 - O banco de dados PostgreSQL 16 em produção na VPS expõe a porta `5432` de forma controlada.
-- O acesso externo é restrito à malha VPN privada **Tailscale** através do IP da máquina virtual (`100.127.79.49`).
+- O acesso externo é restrito à malha VPN privada **Tailscale** através do IP da máquina virtual (`SEU_IP_VPN`).
 - O ambiente local de desenvolvimento consome diretamente o endpoint seguro da VPS:
   ```env
-  DATABASE_URL="postgresql://postgres:SENHA_DO_BANCO@100.127.79.49:5432/popclub?schema=public"
+  DATABASE_URL="postgresql://postgres:SENHA_DO_BANCO@SEU_IP_VPN:5432/popclub?schema=public"
   ```
 
 ### Vantagens Alcançadas
@@ -203,7 +203,7 @@ O **PopClub** é fruto do **Projeto Extensionista Integrador** do curso de **Tec
 
 ## 8. Topologia de Produção Oficial (`https://popshake.wnzk.dev.br/`)
 
-A infraestrutura de produção é operada de forma robusta e automatizada na VPS **Grein Cloud 01**:
+A infraestrutura de produção é operada de forma robusta e automatizada na VPS **Servidor de Produção**:
 
 ```mermaid
 flowchart LR
@@ -249,7 +249,7 @@ npm run dev
 ### Opção B: Centralização com Paridade Absoluta (Tailscale VPN)
 Utilizada no ciclo oficial de desenvolvimento da equipe para evitar desvio de ambiente (*environment drift*):
 - Conectar à malha Tailscale.
-- Apontar o `DATABASE_URL` no `.env` para `100.127.79.49:5432`.
+- Apontar o `DATABASE_URL` no `.env` para `SEU_IP_VPN:5432`.
 - Executar `npx prisma generate && npm run dev`.
 
 ---

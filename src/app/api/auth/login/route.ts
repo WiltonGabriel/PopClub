@@ -108,6 +108,7 @@ export async function POST(request: Request) {
         name: user.fullName,
         role: user.role,
         isRegistered: Boolean(user.isRegistered),
+        tokenVersion: user.tokenVersion ?? 1,
       });
     } catch (tokenErr: unknown) {
       console.error("❌ [API /api/auth/login] Falha ao assinar token JWT:", tokenErr);

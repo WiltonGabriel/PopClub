@@ -4,7 +4,16 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🍧 [Pop Shake] Iniciando limpeza controlada (Clean Slate) e novo catálogo oficial...");
+  console.log("🍧 [Pop Shake] Iniciando inicialização de catálogo...");
+
+  if (process.env.NODE_ENV === "production" || process.env.ALLOW_DESTRUCTIVE_SEED !== "true") {
+    const existingProducts = await prisma.product.count();
+    if (existingProducts > 0) {
+      console.log("🛡️ [PROTEÇÃO] Banco de dados já possui catálogo cadastrado. Operação destrutiva bloqueada.");
+      console.log("   Para redefinir em ambiente de teste local, execute com ALLOW_DESTRUCTIVE_SEED=true.");
+      return;
+    }
+  }
 
   // ── FASE 1: LIMPEZA CONTROLADA DO BANCO DE DADOS (CLEAN SLATE)
   console.log("🧹 1/6: Purgando histórico transacional e catálogo legado...");
@@ -43,7 +52,8 @@ async function main() {
   console.log(`✅ ${deletedClients.count} usuários de teste removidos. Administradores e Operadores preservados.`);
 
   // Assegura conta do administrador principal
-  const adminPasswordHash = await bcrypt.hash("@64844048", 10);
+  const rawPass = process.env.INITIAL_ADMIN_PASSWORD || "AdminDevPass@2026";
+  const adminPasswordHash = await bcrypt.hash(rawPass, 10);
   const admin = await prisma.user.upsert({
     where: { email: "admin@popclub.com" },
     update: {

@@ -8,7 +8,18 @@ export function getJwtSecret(): string {
   if (secret && typeof secret === "string" && secret.trim().length > 0) {
     return secret.trim();
   }
-  return "popclub_secret_jwt_key_2026_super_secure";
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("FATAL: JWT_SECRET ou NEXTAUTH_SECRET não configurado em ambiente de produção.");
+  }
+  return "popclub_dev_jwt_secret_only_for_local_testing_2026";
+}
+
+export function getJwtPreviousSecret(): string | null {
+  const previous = process.env.JWT_SECRET_PREVIOUS;
+  if (previous && typeof previous === "string" && previous.trim().length > 0) {
+    return previous.trim();
+  }
+  return null;
 }
 
 export const SESSION_COOKIE_NAME = "popshake_session";
@@ -48,6 +59,14 @@ export function verifyToken(token: string): TokenPayload | null {
   try {
     return jwt.verify(token, getJwtSecret()) as TokenPayload;
   } catch {
+    const prevSecret = getJwtPreviousSecret();
+    if (prevSecret) {
+      try {
+        return jwt.verify(token, prevSecret) as TokenPayload;
+      } catch {
+        return null;
+      }
+    }
     return null;
   }
 }
@@ -291,13 +310,11 @@ export async function getAuthUser(request?: Request): Promise<{
       return null;
     }
 
-    // Invalidação imediata de sessão se o tokenVersion for incompatível (redefinição de cargo/senha)
-    if (
-      payload.tokenVersion !== undefined &&
-      user.tokenVersion !== undefined &&
-      payload.tokenVersion !== user.tokenVersion
-    ) {
-      return null;
+    // Invalidação imediata de sessão se o tokenVersion for incompatível ou ausente em usuário versionado
+    if (user.tokenVersion !== undefined && user.tokenVersion !== null) {
+      if (payload.tokenVersion === undefined || payload.tokenVersion !== user.tokenVersion) {
+        return null;
+      }
     }
 
     const defaultAvatar = user.isRegistered === false ? "/avatars/avatar-guest-user.svg" : "/avatars/avatar-sorvete.svg";

@@ -84,7 +84,7 @@ flowchart TD
     App -->|"Rede Interna Bridge"| DB
 
     %% Desenvolvimento Conectado Diretamente
-    Dev -->|"Tailscale 100.127.79.49:5432"| DB
+    Dev -->|"Tailscale SEU_IP_VPN:5432"| DB
 ```
 
 ### 🌐 Infraestrutura de Produção Ativa (`https://popshake.wnzk.dev.br/`)
@@ -95,7 +95,7 @@ A plataforma é executada em regime ininterrupto na VPS **Grein Cloud 01** atrav
 4. **Pipeline CI/CD Contínuo:** A cada commit na branch `main`, o GitHub Actions compila a imagem Docker multi-stage com cache e a publica no **GitHub Container Registry (GHCR)** sob a tag `ghcr.io/wiltongabriel/popclub:latest`. O Portainer atualiza a aplicação via *Re-pull image and redeploy*.
 5. **Banco de Dados Isolado:** Instância PostgreSQL 16 Alpine protegida em rede privada bridge, inacessível diretamente pela internet pública. O acesso administrativo seguro ocorre exclusivamente através da VPN **Tailscale**.
 
-Para aprofundamento das decisões arquiteturais e fluxos de rede, consulte o documento técnico [docs/ARCHITECTURE.md](file:///home/wiltongx/Projetos/PastePopClub/PopClub/docs/ARCHITECTURE.md).
+Para aprofundamento das decisões arquiteturais e fluxos de rede, consulte o documento técnico [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
@@ -206,7 +206,7 @@ Utilizada no fluxo de engenharia da equipe para consumir os dados reais da sorve
 tailscale up
 
 # 2. Configurar o .env apontando para o IP da VPS
-# DATABASE_URL="postgresql://postgres:SUA_SENHA@100.127.79.49:5432/popclub?schema=public"
+# DATABASE_URL="postgresql://postgres:SUA_SENHA@SEU_IP_VPN:5432/popclub?schema=public"
 
 # 3. Gerar os tipos do Prisma e iniciar
 npx prisma generate
@@ -258,13 +258,13 @@ O projeto conta com ferramentas integradas de verificação, teste e manutençã
   node scripts/restore-db.mjs 2
   ```
 
-> Detalhes adicionais sobre os utilitários estão disponíveis em [scripts/README.md](file:///home/wiltongx/Projetos/PastePopClub/PopClub/scripts/README.md).
+> Detalhes adicionais sobre os utilitários estão disponíveis em [scripts/README.md](scripts/README.md).
 
 ---
 
 ## 🔄 Governança GitOps & Ciclo de Deploy
 
-O repositório opera estritamente sob as diretrizes documentadas em [GITOPS.md](file:///home/wiltongx/Projetos/PastePopClub/PopClub/GITOPS.md):
+O repositório opera estritamente sob as diretrizes documentadas em [GITOPS.md](GITOPS.md):
 
 1. **Single Source of Truth:** A branch **`main`** no GitHub é a única fonte da verdade. É expressamente proibido fazer alterações manuais de arquivos, schemas ou código diretamente nos containers ou no servidor de produção.
 2. **Ciclo Obrigatório de Alteração (Quality Gate Pré-Push):**

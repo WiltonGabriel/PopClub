@@ -115,8 +115,14 @@ export async function GET(request: Request) {
       }
 
       // Visitantes consultando pedidos rastreados na sua sessão local
+      // Proteção BOLA / IDOR: Visitantes anônimos NUNCA podem consultar pedidos de usuários cadastrados
       whereClause = {
         id: { in: cleanIds },
+        OR: [
+          { user: { isRegistered: false } },
+          { user: null },
+          { userId: null },
+        ],
       };
     } else {
       // Retorna vazio para usuário não autenticado sem pedidos de visitante informados
@@ -237,7 +243,13 @@ export async function GET(request: Request) {
     }
 
     return apiSuccess(
-      orders.map((o) => formatOrder(o, o.shiftId ? shiftCodeMap.get(o.shiftId) || null : null))
+      orders.map((o) => {
+        const formatted = formatOrder(o, o.shiftId ? shiftCodeMap.get(o.shiftId) || null : null);
+        if (!authUser && !canViewAll) {
+          formatted.order_pin = null;
+        }
+        return formatted;
+      })
     );
   } catch (error: unknown) {
     return handleApiError(error, "GET /api/orders", "Erro ao listar pedidos.");

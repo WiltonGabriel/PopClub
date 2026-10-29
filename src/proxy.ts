@@ -1,7 +1,23 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const JWT_SECRET = process.env.JWT_SECRET || "popclub_secret_jwt_key_2026_super_secure";
+function getProxyJwtSecrets(): string[] {
+  const secrets: string[] = [];
+  const primary = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+  if (primary && primary.trim().length > 0) {
+    secrets.push(primary.trim());
+  }
+  const previous = process.env.JWT_SECRET_PREVIOUS;
+  if (previous && previous.trim().length > 0) {
+    secrets.push(previous.trim());
+  }
+  if (secrets.length === 0) {
+    if (process.env.NODE_ENV !== "production") {
+      secrets.push("popclub_dev_jwt_secret_only_for_local_testing_2026");
+    }
+  }
+  return secrets;
+}
 
 /**
  * Validação criptográfica de token JWT via Web Crypto API nativa (compatível com Edge e Node.js).
@@ -63,7 +79,12 @@ export async function proxy(request: NextRequest) {
 
     let isAuthorized = false;
     if (token) {
-      const payload = await verifyJwtEdge(token, JWT_SECRET);
+      const secrets = getProxyJwtSecrets();
+      let payload = null;
+      for (const secret of secrets) {
+        payload = await verifyJwtEdge(token, secret);
+        if (payload) break;
+      }
       if (payload && (payload as any).isRegistered !== false) {
         const role = payload.role?.toLowerCase();
         

@@ -228,6 +228,19 @@ export async function POST(request: Request) {
       });
 
       if (existingUser) {
+        // Blindagem Anti-Account Takeover:
+        // Contas cadastradas com senha ou equipe exigem login formal para gerar novos pedidos
+        if (existingUser.role !== Role.CLIENT || existingUser.passwordHash || existingUser.isRegistered) {
+          return NextResponse.json(
+            {
+              error: "Este WhatsApp pertence a um cliente cadastrado no sistema. Por favor, faça login com sua senha para prosseguir com o pedido.",
+              code: "REGISTERED_USER_LOGIN_REQUIRED",
+              requiresLogin: true,
+            },
+            { status: 403 }
+          );
+        }
+
         targetUserId = existingUser.id;
         targetIsRegistered = Boolean(existingUser.isRegistered);
         targetUserPhone = existingUser.phone;
@@ -280,6 +293,7 @@ export async function POST(request: Request) {
         name: existingUser.fullName,
         role: existingUser.role,
         isRegistered: targetIsRegistered,
+        tokenVersion: existingUser.tokenVersion ?? 1,
       });
     }
 
@@ -641,7 +655,23 @@ export async function POST(request: Request) {
     }
 
     // Validação de Raio Geográfico (Haversine) para pedidos de Entrega
-    if (!isPickup && deliveryAddress.latitude && deliveryAddress.longitude) {
+    if (!isPickup) {
+      const hasCoordinates =
+        typeof deliveryAddress.latitude === "number" &&
+        typeof deliveryAddress.longitude === "number" &&
+        !isNaN(deliveryAddress.latitude) &&
+        !isNaN(deliveryAddress.longitude);
+
+      if (!hasCoordinates) {
+        return NextResponse.json(
+          {
+            error: "Coordenadas geográficas (latitude e longitude) são obrigatórias para pedidos com entrega em domicílio.",
+            code: "COORDINATES_REQUIRED",
+          },
+          { status: 400 }
+        );
+      }
+
       const storeLat = storeSettings?.storeLatitude ?? -15.6536;
       const storeLng = storeSettings?.storeLongitude ?? -56.1322;
       const maxRadius = storeSettings?.maxDeliveryRadiusKm ?? 12;
@@ -649,8 +679,8 @@ export async function POST(request: Request) {
       const distanceKm = calculateDistanceKm(
         storeLat,
         storeLng,
-        deliveryAddress.latitude,
-        deliveryAddress.longitude
+        deliveryAddress.latitude!,
+        deliveryAddress.longitude!
       );
 
       if (distanceKm > maxRadius) {
