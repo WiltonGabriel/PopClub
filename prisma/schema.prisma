@@ -62,7 +62,7 @@ model User {
   fullName              String?            @map("full_name")
   avatarUrl             String?            @default("/avatars/avatar-sorvete.svg") @map("avatar_url")
   accessibilitySettings Json?              @map("accessibility_settings")
-  phone                 String?
+  phone                 String?            @unique
   isRegistered          Boolean            @default(false) @map("is_registered")
   resetCode             String?            @map("reset_code")
   resetCodeExpires      DateTime?          @map("reset_code_expires")
@@ -83,6 +83,7 @@ model User {
   locations             UserLocation[]
   orders                Order[]
   userNotifications     UserNotification[]
+  couponRedemptions     CouponRedemption[]
 
   @@index([phone])
   @@index([cpf])
@@ -294,6 +295,7 @@ model Coupon {
   createdAt     DateTime       @default(now()) @map("created_at")
   orders        Order[]
   notifications Notification[]
+  redemptions   CouponRedemption[]
 
   @@map("coupons")
 }
@@ -328,6 +330,7 @@ model Order {
   cancellationReason   String?           @map("cancellation_reason")
   cancelledAt          DateTime?         @map("cancelled_at")
   shiftId              String?           @map("shift_id")
+  idempotencyKey       String?           @unique @map("idempotency_key")
   isArchived           Boolean           @default(false) @map("is_archived")
   trackingToken        String?           @unique @map("tracking_token")
   isGpsTrackingActive  Boolean           @default(false) @map("is_gps_tracking_active")
@@ -348,6 +351,7 @@ model Order {
   user                 User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
   coupon               Coupon?           @relation(fields: [couponId], references: [id], onDelete: SetNull)
   items                OrderItem[]
+  couponRedemptions    CouponRedemption[]
 
   @@map("orders")
 }
@@ -558,3 +562,18 @@ model BackupMetadata {
   @@map("_backup_metadata")
 }
 
+
+model CouponRedemption {
+  id        String   @id @default(uuid())
+  couponId  String   @map("coupon_id")
+  userId    String   @map("user_id")
+  orderId   String?  @map("order_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order     Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@unique([couponId, userId])
+  @@index([couponId, userId])
+  @@map("coupon_redemptions")
+}

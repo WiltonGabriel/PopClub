@@ -761,6 +761,7 @@ export default function CarrinhoPage() {
   };
 
   const handleFinishOrder = async () => {
+    if (submitting) return;
     setCheckoutError("");
     setCheckoutErrorObj(null);
 
@@ -845,7 +846,12 @@ export default function CarrinhoPage() {
 
     try {
       const isPickup = deliveryMode === "retirada";
+      const idempotencyKey = typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
       const payload = {
+        idempotencyKey,
         deliveryType: deliveryMode,
         isPickup: isPickup,
         items: items.map((i) => ({
@@ -959,6 +965,7 @@ export default function CarrinhoPage() {
   }
 
   const handleInitiateOrderConfirmation = async () => {
+    if (submitting) return;
     setCheckoutError("");
     setCheckoutErrorObj(null);
 
@@ -2512,6 +2519,7 @@ export default function CarrinhoPage() {
               </button>
               <Button
                 onClick={async () => {
+                  if (submitting) return;
                   setShowReviewModal(false);
                   await handleFinishOrder();
                 }}

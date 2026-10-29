@@ -138,6 +138,7 @@ export interface CheckoutPayload {
   customerPhone?: string | null;
   phone?: string | null;
   userId?: string | null;
+  idempotencyKey?: string | null;
 }
 
 async function safeParseResponse<T>(res: Response, fallbackErrorMessage: string): Promise<T> {

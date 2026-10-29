@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     }
 
     // Busca cliente existente no banco pelo telefone
-    const existingUser = await prisma.user.findFirst({
+    let existingUser = await prisma.user.findFirst({
       where: { phone },
       include: {
         locations: {
@@ -70,48 +70,73 @@ export async function POST(request: Request) {
     const GUEST_DEFAULT_AVATAR = "/avatars/avatar-guest-user.svg";
 
     if (!existingUser) {
-      // 1. Cliente novo: cria conta em Acesso Rápido (isRegistered = false) com avatar neutro
-      const newUser = await prisma.user.create({
-        data: {
-          fullName,
-          phone,
-          isRegistered: false,
-          role: Role.CLIENT,
-          avatarUrl: GUEST_DEFAULT_AVATAR,
-        },
-      });
-
-      const token = signToken({
-        userId: newUser.id,
-        phone: newUser.phone,
-        name: newUser.fullName,
-        role: newUser.role,
-        isRegistered: false,
-      });
-
-      const response = NextResponse.json({
-        status: "authenticated",
-        user: {
-          id: newUser.id,
-          fullName: newUser.fullName,
-          phone: newUser.phone,
-          email: null,
-          role: newUser.role,
-          avatarUrl: GUEST_DEFAULT_AVATAR,
-          avatar: GUEST_DEFAULT_AVATAR,
-          isRegistered: false,
-        },
-        token,
-        isNewUser: true,
-      });
-
-      setSessionCookies(response, token, isHttps);
+      let createdUser = null;
       try {
-        const cookieStore = await cookies();
-        setSessionCookies({ cookies: cookieStore } as any, token, isHttps);
-      } catch {}
+        createdUser = await prisma.user.create({
+          data: {
+            fullName,
+            phone,
+            isRegistered: false,
+            role: Role.CLIENT,
+            avatarUrl: GUEST_DEFAULT_AVATAR,
+          },
+        });
+      } catch (createErr: any) {
+        if (createErr?.code === "P2002") {
+          existingUser = await prisma.user.findFirst({
+            where: { phone },
+            include: {
+              locations: {
+                orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
+                take: 1,
+              },
+            },
+          });
+        } else {
+          throw createErr;
+        }
+      }
 
-      return response;
+      if (createdUser) {
+        const token = signToken({
+          userId: createdUser.id,
+          phone: createdUser.phone,
+          name: createdUser.fullName,
+          role: createdUser.role,
+          isRegistered: false,
+        });
+
+        const response = NextResponse.json({
+          status: "authenticated",
+          user: {
+            id: createdUser.id,
+            fullName: createdUser.fullName,
+            phone: createdUser.phone,
+            email: null,
+            role: createdUser.role,
+            avatarUrl: GUEST_DEFAULT_AVATAR,
+            avatar: GUEST_DEFAULT_AVATAR,
+            isRegistered: false,
+          },
+          token,
+          isNewUser: true,
+        });
+
+        setSessionCookies(response, token, isHttps);
+        try {
+          const cookieStore = await cookies();
+          setSessionCookies({ cookies: cookieStore } as any, token, isHttps);
+        } catch {}
+
+        return response;
+      }
+    }
+
+    if (!existingUser) {
+      return NextResponse.json(
+        { error: "Erro ao inicializar usuário de acesso rápido." },
+        { status: 500 }
+      );
     }
 
     // Se o cliente for de Acesso Rápido e não tiver avatar configurado ou tiver o sorvete antigo, sincroniza para avatar neutro

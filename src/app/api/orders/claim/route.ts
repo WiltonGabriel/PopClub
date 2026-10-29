@@ -50,7 +50,7 @@ export async function POST(request: Request) {
 
     const validIdsToClaim = unclaimedOrders.map((o) => o.id);
 
-    await prisma.order.updateMany({
+    const claimResult = await prisma.order.updateMany({
       where: {
         id: { in: validIdsToClaim },
         userId: null,
@@ -60,10 +60,14 @@ export async function POST(request: Request) {
       },
     });
 
+    if (claimResult.count === 0) {
+      return apiError("Os pedidos informados já foram vinculados a outra conta simultaneamente.", 409, "CONFLICT");
+    }
+
     return apiSuccess({
-      claimedCount: validIdsToClaim.length,
+      claimedCount: claimResult.count,
       claimedOrderIds: validIdsToClaim,
-      message: `${validIdsToClaim.length} pedido(s) vinculado(s) com sucesso à sua conta!`,
+      message: `${claimResult.count} pedido(s) vinculado(s) com sucesso à sua conta!`,
     });
   } catch (error: unknown) {
     return handleApiError(error, "POST /api/orders/claim", "Erro ao vincular pedidos à conta.");

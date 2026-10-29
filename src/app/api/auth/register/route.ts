@@ -156,28 +156,38 @@ export async function POST(request: Request) {
     }
 
     if (!user) {
-      user = await prisma.user.create({
-        data: {
-          username: cleanUsername,
-          email: cleanEmail,
-          phone: cleanPhone,
-          cpf: cleanedCpf,
-          passwordHash,
-          fullName: cleanName,
-          role: Role.CLIENT,
-          isRegistered: true,
-        },
-        select: {
-          id: true,
-          email: true,
-          username: true,
-          fullName: true,
-          phone: true,
-          cpf: true,
-          role: true,
-          isRegistered: true,
-        },
-      });
+      try {
+        user = await prisma.user.create({
+          data: {
+            username: cleanUsername,
+            email: cleanEmail,
+            phone: cleanPhone,
+            cpf: cleanedCpf,
+            passwordHash,
+            fullName: cleanName,
+            role: Role.CLIENT,
+            isRegistered: true,
+          },
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            fullName: true,
+            phone: true,
+            cpf: true,
+            role: true,
+            isRegistered: true,
+          },
+        });
+      } catch (createErr: any) {
+        if (createErr?.code === "P2002") {
+          return NextResponse.json(
+            { error: "Este número de WhatsApp ou e-mail já possui uma conta cadastrada. Faça login." },
+            { status: 409 }
+          );
+        }
+        throw createErr;
+      }
     }
 
     if (!user) {

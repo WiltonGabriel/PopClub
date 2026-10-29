@@ -12,30 +12,40 @@ export async function POST(
       return apiError("Token de entrega não informado.", 400);
     }
 
-    const order = await prisma.order.findUnique({
+    const existingOrder = await prisma.order.findUnique({
       where: { trackingToken: token },
       select: { id: true, status: true },
     });
 
-    if (!order) {
+    if (!existingOrder) {
       return apiError("Entrega não encontrada ou token inválido.", 404, "NOT_FOUND");
     }
 
-    if (order.status === "completed") {
+    if (existingOrder.status === "completed") {
       return apiSuccess({
         success: true,
         message: "Este pedido já foi finalizado anteriormente.",
       });
     }
 
-    await prisma.order.update({
-      where: { id: order.id },
+    const updateResult = await prisma.order.updateMany({
+      where: {
+        id: existingOrder.id,
+        status: { not: "completed" },
+      },
       data: {
         status: "completed",
         deliveredAt: new Date(),
         isGpsTrackingActive: false,
       },
     });
+
+    if (updateResult.count === 0) {
+      return apiSuccess({
+        success: true,
+        message: "Este pedido já foi finalizado anteriormente.",
+      });
+    }
 
     return apiSuccess({
       success: true,

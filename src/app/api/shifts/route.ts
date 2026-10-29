@@ -130,15 +130,28 @@ export async function POST(request: Request) {
       const shiftCode = `TURNO-${dateStr}-${randomSuffix}`;
       const deliveryTime = estimatedDeliveryTime || "30-50 min";
 
-      const shift = await prisma.shift.create({
-        data: {
-          code: shiftCode,
-          openedAt: now,
-          isOpen: true,
-          estimatedDeliveryTime: deliveryTime,
-          notes: notes || null,
-        },
-      });
+      let shift: any = null;
+      try {
+        shift = await prisma.shift.create({
+          data: {
+            code: shiftCode,
+            openedAt: now,
+            isOpen: true,
+            estimatedDeliveryTime: deliveryTime,
+            notes: notes || null,
+          },
+        });
+      } catch (shiftErr: any) {
+        if (shiftErr?.code === "P2002" || String(shiftErr?.message).includes("unique_active_shift")) {
+          shift = await prisma.shift.findFirst({
+            where: { isOpen: true, closedAt: null },
+            orderBy: { openedAt: "desc" },
+          });
+          if (!shift) throw shiftErr;
+        } else {
+          throw shiftErr;
+        }
+      }
 
       const updatedSettings = await prisma.storeSettings.upsert({
         where: { id: "store_config" },

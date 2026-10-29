@@ -75,9 +75,11 @@ const checkoutSchema = z.object({
   customerPhone: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
   userId: z.string().optional().nullable(),
+  idempotencyKey: z.string().trim().max(255).optional().nullable(),
 });
 
 export async function POST(request: Request) {
+  let receivedIdempotencyKey: string | null = null;
   try {
     const ip = getIpFromRequest(request);
     const limitCheck = checkoutLimiter.check(ip);
@@ -102,6 +104,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: errorMsg }, { status: 400 });
     }
 
+    receivedIdempotencyKey = parsed.data.idempotencyKey || null;
     const { items, deliveryAddress, paymentMethod, couponCode } = parsed.data;
 
     const rawPhone = parsed.data.customerPhone || parsed.data.phone || null;
@@ -235,19 +238,37 @@ export async function POST(request: Request) {
           } catch {}
         }
       } else {
-        const newUser = await prisma.user.create({
-          data: {
-            fullName: cleanName,
-            phone: cleanPhone,
-            isRegistered: false,
-            role: Role.CLIENT,
-            avatarUrl: GUEST_DEFAULT_AVATAR,
-          },
-        });
-        targetUserId = newUser.id;
-        targetIsRegistered = false;
-        targetUserPhone = newUser.phone;
-        existingUser = newUser;
+        try {
+          const newUser = await prisma.user.create({
+            data: {
+              fullName: cleanName,
+              phone: cleanPhone,
+              isRegistered: false,
+              role: Role.CLIENT,
+              avatarUrl: GUEST_DEFAULT_AVATAR,
+            },
+          });
+          targetUserId = newUser.id;
+          targetIsRegistered = false;
+          targetUserPhone = newUser.phone;
+          existingUser = newUser;
+        } catch (createErr: any) {
+          if (createErr?.code === "P2002") {
+            const raceUser = await prisma.user.findFirst({
+              where: { phone: cleanPhone },
+            });
+            if (raceUser) {
+              targetUserId = raceUser.id;
+              targetIsRegistered = Boolean(raceUser.isRegistered);
+              targetUserPhone = raceUser.phone;
+              existingUser = raceUser;
+            } else {
+              throw createErr;
+            }
+          } else {
+            throw createErr;
+          }
+        }
       }
 
       sessionTokenToSet = signToken({
@@ -689,6 +710,7 @@ export async function POST(request: Request) {
           user: { connect: { id: targetUserId } },
           shiftId: targetShiftId,
           trackingToken: trackingToken,
+          idempotencyKey: parsed.data.idempotencyKey || null,
           isArchived: false,
           status: "pending",
           subtotal: calculatedSubtotal,
@@ -752,12 +774,71 @@ export async function POST(request: Request) {
         }
       }
 
-      // Se utilizou cupom, incrementa o contador de usos
+      // Baixa atômica de lotes promocionais de escassez real
+      for (const item of items) {
+        if (item.promotionId) {
+          const promo = promotionsMap.get(item.promotionId);
+          const isRealBatch =
+            promo &&
+            (promo.scarcityType === "real" ||
+              promo.scarcityType === "real_batch" ||
+              (promo.scarcityUnits !== null && promo.scarcityUnits !== undefined && promo.scarcityType !== "strategic"));
+
+          if (promo && isRealBatch && promo.scarcityUnits !== null && promo.scarcityUnits !== undefined) {
+            const affectedPromo = await tx.$executeRaw`
+              UPDATE promotions
+              SET scarcity_sold = scarcity_sold + ${item.quantity},
+                  scarcity_units = scarcity_units - ${item.quantity}
+              WHERE id = ${promo.id} AND scarcity_units >= ${item.quantity}
+            `;
+            if (affectedPromo === 0) {
+              throw new Error(`LOTE_PROMOCIONAL_ESGOTADO:${promo.title}`);
+            }
+          }
+        }
+      }
+
+      // Se utilizou cupom, incrementa atomicamente conferindo o teto máximo (max_uses)
       if (validCouponId) {
-        await tx.coupon.update({
+        const affectedCouponRows = await tx.$executeRaw`
+          UPDATE coupons
+          SET uses = uses + 1
+          WHERE id = ${validCouponId} AND (max_uses IS NULL OR uses < max_uses)
+        `;
+        if (affectedCouponRows === 0) {
+          throw new InvalidCouponException(
+            validCouponCode || "CUPOM",
+            "Limite de utilizações deste cupom atingido simultaneamente.",
+            { code: "COUPON_MAX_USES_REACHED" }
+          );
+        }
+
+        // Se o cupom for de uso único por cliente (oncePerUser), registra na tabela coupon_redemptions
+        // A constraint única composta (coupon_id, user_id) impede corrida de forma absoluta
+        const dbCoupon = await tx.coupon.findUnique({
           where: { id: validCouponId },
-          data: { uses: { increment: 1 } },
+          select: { oncePerUser: true },
         });
+        if (dbCoupon?.oncePerUser) {
+          try {
+            await tx.couponRedemption.create({
+              data: {
+                couponId: validCouponId,
+                userId: targetUserId,
+                orderId: newOrder.id,
+              },
+            });
+          } catch (redemptionErr: any) {
+            if (redemptionErr?.code === "P2002") {
+              throw new InvalidCouponException(
+                validCouponCode || "CUPOM",
+                "Você já utilizou este cupom de uso único anteriormente.",
+                { code: "COUPON_ALREADY_USED_BY_USER" }
+              );
+            }
+            throw redemptionErr;
+          }
+        }
       }
 
       return newOrder;
@@ -799,7 +880,50 @@ export async function POST(request: Request) {
     }
 
     return response;
-  } catch (error: unknown) {
+  } catch (error: any) {
+    // Idempotência: se bateu na constraint única de idempotencyKey, retorna o pedido original
+    if (error?.code === "P2002" && receivedIdempotencyKey) {
+      const existingOrder = await prisma.order.findUnique({
+        where: { idempotencyKey: receivedIdempotencyKey },
+        include: {
+          items: { include: { product: true } },
+          user: { select: { fullName: true, phone: true, email: true } },
+        },
+      });
+      if (existingOrder) {
+        return NextResponse.json(
+          {
+            success: true,
+            idempotent: true,
+            order: {
+              id: existingOrder.id,
+              trackingToken: existingOrder.trackingToken,
+              tracking_token: existingOrder.trackingToken,
+              trackingUrl: `/entrega/${existingOrder.trackingToken}`,
+              status: existingOrder.status,
+              subtotal: Number(existingOrder.subtotal),
+              discountAmount: Number(existingOrder.discountAmount),
+              deliveryFee: Number(existingOrder.deliveryFee),
+              totalAmount: Number(existingOrder.totalAmount),
+              createdAt: existingOrder.createdAt.toISOString(),
+            },
+          },
+          { status: 200 }
+        );
+      }
+    }
+
+    if (error instanceof Error && error.message.startsWith("LOTE_PROMOCIONAL_ESGOTADO:")) {
+      const promoTitle = error.message.replace("LOTE_PROMOCIONAL_ESGOTADO:", "");
+      return NextResponse.json(
+        {
+          error: `O lote promocional para "${promoTitle}" esgotou no momento. Por favor, revise sua sacola.`,
+          code: "BATCH_DEPLETED",
+        },
+        { status: 400 }
+      );
+    }
+
     if (error instanceof Error && error.message.startsWith("ESTOQUE_ESGOTADO:")) {
       const prodName = error.message.replace("ESTOQUE_ESGOTADO:", "");
       return NextResponse.json(
