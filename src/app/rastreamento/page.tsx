@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState, useMemo } from "react";
+import { Suspense, useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -21,10 +21,17 @@ import {
 import { Order, orderService } from "@/services/orderService";
 import { storeSettingsService, StoreSettings } from "@/services/storeSettingsService";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/ToastNotification";
 import {
   DeliveryMetrics,
   calculateHaversineDistanceKm,
 } from "@/lib/geo";
+import {
+  subscribeToOrderEvents,
+  setupTabVisibilityRevalidation,
+  startOrderPollingHeartbeat,
+} from "@/lib/orderEvents";
+import { notifyOrderStatusChange } from "@/lib/notifications";
 
 // Carregamento dinâmico estritamente no cliente para evitar erros de SSR do Leaflet
 const LeafletDeliveryMap = dynamic(
@@ -62,6 +69,7 @@ const POP_SHAKE_DEFAULT_COORDS = {
 function TrackingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { showToast } = useToast();
   const orderId = searchParams.get("id");
 
   const handleBack = () => {
@@ -80,6 +88,25 @@ function TrackingContent() {
   const [deliveryMetrics, setDeliveryMetrics] = useState<DeliveryMetrics | null>(null);
   const [bottomSheetExpanded, setBottomSheetExpanded] = useState(false);
   const [showPreviewMap, setShowPreviewMap] = useState(false);
+
+  // Rastreamento de status anterior para notificação imediata
+  const previousStatusRef = useRef<string | null>(null);
+
+  const updateOrderData = useCallback(
+    (refreshed: Order) => {
+      const oldStatus = previousStatusRef.current;
+      if (oldStatus && oldStatus !== refreshed.status) {
+        notifyOrderStatusChange({
+          order: refreshed,
+          previousStatus: oldStatus,
+          showToast,
+        });
+      }
+      previousStatusRef.current = refreshed.status;
+      setOrder(refreshed);
+    },
+    [showToast]
+  );
 
   // Busca configurações da loja (coordenadas e WhatsApp comercial)
   useEffect(() => {
@@ -117,6 +144,7 @@ function TrackingContent() {
 
           if (activeOrder && isMounted) {
             router.replace(`/rastreamento?id=${activeOrder.id}`);
+            previousStatusRef.current = activeOrder.status;
             setOrder(activeOrder);
             setError(null);
             setLoading(false);
@@ -125,6 +153,7 @@ function TrackingContent() {
         } else {
           const data = await orderService.getOrderById(targetId);
           if (isMounted) {
+            previousStatusRef.current = data.status;
             setOrder(data);
             setError(null);
           }
@@ -146,26 +175,69 @@ function TrackingContent() {
     };
   }, [orderId, router]);
 
-  // Polling saudável a cada 15s para atualizar status e posição de pedidos ativos, pausando em abas ocultas
+  // 1. Revalidação instantânea ao ganhar foco ou visibilidade da aba (visibilitychange e window focus)
   useEffect(() => {
-    if (!orderId || !order || ["completed", "cancelled"].includes(order.status)) return;
+    if (!orderId) return;
 
-    const interval = setInterval(async () => {
-      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
-        return; // Pausa se a aba estiver em segundo plano para evitar sobrecarga de rede
-      }
+    const unsubscribe = setupTabVisibilityRevalidation(async () => {
       try {
         const refreshed = await orderService.getOrderById(orderId);
         if (refreshed) {
-          setOrder(refreshed);
+          updateOrderData(refreshed);
         }
-      } catch {
-        // Silencioso em caso de oscilação momentânea de rede
-      }
-    }, 15000);
+      } catch {}
+    });
 
-    return () => clearInterval(interval);
-  }, [orderId, order]);
+    return unsubscribe;
+  }, [orderId, updateOrderData]);
+
+  // 2. Polling inteligente resiliente (heartbeat a cada 5 segundos enquanto houver pedido ativo)
+  useEffect(() => {
+    if (!orderId) return;
+
+    const unsubscribe = startOrderPollingHeartbeat({
+      getHasActiveOrders: () => {
+        if (!order) return true;
+        return ["pending", "accepted", "preparing", "ready", "delivering"].includes(order.status);
+      },
+      onPoll: async () => {
+        try {
+          const refreshed = await orderService.getOrderById(orderId);
+          if (refreshed) {
+            updateOrderData(refreshed);
+          }
+        } catch {}
+      },
+      intervalMs: 5000,
+    });
+
+    return unsubscribe;
+  }, [orderId, order?.status, updateOrderData]);
+
+  // 3. Inscrição em eventos locais e SSE
+  useEffect(() => {
+    if (!orderId) return;
+
+    const unsubscribe = subscribeToOrderEvents((payload) => {
+      if (payload.orderId === orderId || payload.order?.id === orderId) {
+        if (payload.order) {
+          updateOrderData(payload.order);
+        } else if (payload.courierLocation) {
+          setOrder((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              courier_latitude: payload.courierLocation!.lat,
+              courier_longitude: payload.courierLocation!.lng,
+              is_gps_tracking_active: true,
+            };
+          });
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, [orderId, updateOrderData]);
 
   // Origem do despacho: prioriza a origem gravada no próprio pedido (multilojas/filiais)
   const originCoords = useMemo(() => ({

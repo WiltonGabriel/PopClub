@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
 import { hasPermission } from "@/lib/permissions";
+import { serverOrderEventManager } from "@/lib/serverOrderEvents";
 import crypto from "crypto";
 
 export async function POST(
@@ -25,6 +26,7 @@ export async function POST(
       courierName?: string;
       courierPhone?: string;
       courierCode?: string;
+      mode?: "assign" | "dispatch";
     }
 
     let body: DispatchBody = {};
@@ -38,6 +40,8 @@ export async function POST(
     const courierName = body.courierName?.trim() || null;
     const courierPhone = body.courierPhone?.trim() || null;
     const courierCode = body.courierCode?.trim() || null;
+    const mode = body.mode || "dispatch";
+    const isAssignOnly = mode === "assign";
 
     const existingOrder = await prisma.order.findUnique({
       where: { id },
@@ -54,17 +58,21 @@ export async function POST(
 
     const orderPin = existingOrder.orderPin || id.slice(-4).toUpperCase();
 
+    const targetStatus = isAssignOnly
+      ? (existingOrder.status === "pending" || existingOrder.status === "accepted" ? "ready" : existingOrder.status)
+      : "delivering";
+
     const updated = await prisma.order.update({
       where: { id },
       data: {
-        status: "delivering",
+        status: targetStatus,
         trackingToken,
-        isGpsTrackingActive: enableGps,
+        isGpsTrackingActive: isAssignOnly ? false : enableGps,
         courierName,
         courierPhone,
         courierCode,
         orderPin,
-        dispatchedAt: new Date(),
+        ...(isAssignOnly ? {} : { dispatchedAt: new Date() }),
         deliveryIssue: null,
         deliveryIssueNotes: null,
         deliveryIssueAt: null,
@@ -78,6 +86,22 @@ export async function POST(
     const host = request.headers.get("host") || "localhost:3000";
     const protocol = request.headers.get("x-forwarded-proto") || "http";
     const trackingUrl = `${protocol}://${host}/entrega/${trackingToken}`;
+
+    serverOrderEventManager.emit({
+      type: "order_updated",
+      orderId: updated.id,
+      userId: updated.userId,
+      status: updated.status,
+      order: {
+        id: updated.id,
+        status: updated.status,
+        courier_name: updated.courierName,
+        courier_phone: updated.courierPhone,
+        tracking_token: updated.trackingToken,
+        is_gps_tracking_active: updated.isGpsTrackingActive,
+      },
+      timestamp: Date.now(),
+    });
 
     return apiSuccess({
       success: true,

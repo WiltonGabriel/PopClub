@@ -166,8 +166,8 @@ export const productLookupLimiter = new RateLimiter(60 * 1000, 120);
 // Cálculo de Frete e Logística: 40 requisições por minuto
 export const deliveryCalculateLimiter = new RateLimiter(60 * 1000, 40);
 
-// Consulta e Rastreamento de Pedidos (Anti Scraping / IDOR): 40 consultas por minuto
-export const orderLookupLimiter = new RateLimiter(60 * 1000, 40);
+// Consulta e Rastreamento de Pedidos (Anti Scraping / IDOR): 90 consultas por minuto (elástico para heartbeat e foco de abas)
+export const orderLookupLimiter = new RateLimiter(60 * 1000, 90);
 
 // Uploads de Mídia / Arquivos: 20 uploads por minuto
 export const addonUploadLimiter = new RateLimiter(60 * 1000, 20);

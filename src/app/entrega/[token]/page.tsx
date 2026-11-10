@@ -170,6 +170,18 @@ export default function CourierDeliveryPage({
     setGpsError(null);
     setIsTracking(true);
 
+    // Se o pedido ainda está na bancada (status 'ready'), ativa a transição oficial para 'delivering' na esteira
+    if (delivery && delivery.status !== "delivering" && delivery.status !== "completed") {
+      fetch(`/api/delivery/${token}/start`, { method: "POST" })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.success) {
+            setDelivery((prev) => (prev ? { ...prev, status: "delivering" } : prev));
+          }
+        })
+        .catch((err) => console.warn("Aviso ao iniciar rota na API:", err));
+    }
+
     // Envia a primeira coordenada imediatamente
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -567,7 +579,11 @@ export default function CourierDeliveryPage({
                   className="w-full h-12 rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:opacity-95 text-white font-heading text-xs font-black uppercase tracking-wider shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all"
                 >
                   <Navigation className="w-4 h-4" />
-                  <span>Iniciar Entrega e Compartilhar GPS</span>
+                  <span>
+                    {delivery.status !== "delivering"
+                      ? "🚀 Iniciar Rota & Ligar GPS"
+                      : "Iniciar Entrega e Compartilhar GPS"}
+                  </span>
                 </Button>
               ) : (
                 <Button

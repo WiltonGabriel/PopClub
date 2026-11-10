@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma, DBAddonItem, DBCoupon } from "@/lib/prisma";
 import { Prisma, Role } from "@prisma/client";
 import { getAuthUser, signToken, setSessionCookies } from "@/lib/auth";
+import { serverOrderEventManager } from "@/lib/serverOrderEvents";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { handleApiError } from "@/lib/apiResponse";
@@ -936,6 +937,20 @@ export async function POST(request: Request) {
     } catch {
       isHttps = false;
     }
+
+    serverOrderEventManager.emit({
+      type: "order_created",
+      orderId: order.id,
+      userId: order.userId,
+      status: order.status,
+      order: {
+        id: order.id,
+        trackingToken: order.trackingToken,
+        status: order.status,
+        totalAmount: Number(order.totalAmount),
+      },
+      timestamp: Date.now(),
+    });
 
     const response = NextResponse.json(
       {

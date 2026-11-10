@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
 import { getAuthUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { serverOrderEventManager } from "@/lib/serverOrderEvents";
 
 export async function POST(
   request: Request,
@@ -23,7 +24,7 @@ export async function POST(
 
     const existingOrder = await prisma.order.findUnique({
       where: { trackingToken: token },
-      select: { id: true, status: true, orderPin: true },
+      select: { id: true, status: true, orderPin: true, userId: true },
     });
 
     if (!existingOrder) {
@@ -86,6 +87,18 @@ export async function POST(
         message: "Este pedido já foi finalizado anteriormente.",
       });
     }
+
+    serverOrderEventManager.emit({
+      type: "order_updated",
+      orderId: existingOrder.id,
+      userId: existingOrder.userId,
+      status: "completed",
+      order: {
+        id: existingOrder.id,
+        status: "completed",
+      },
+      timestamp: Date.now(),
+    });
 
     return apiSuccess({
       success: true,

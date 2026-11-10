@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
+import { serverOrderEventManager } from "@/lib/serverOrderEvents";
 
 export async function POST(
   request: Request,
@@ -34,28 +35,45 @@ export async function POST(
 
     const order = await prisma.order.findUnique({
       where: { trackingToken: token },
-      select: { id: true, status: true },
+      select: { id: true, status: true, userId: true },
     });
 
     if (!order) {
       return apiError("Entrega não encontrada ou token inválido.", 404, "NOT_FOUND");
     }
 
-    if (order.status !== "delivering") {
+    if (order.status !== "delivering" && order.status !== "ready") {
       return apiError(
         `Rastreamento inativo. O status atual do pedido é "${order.status}".`,
         400
       );
     }
 
+    const now = new Date();
     await prisma.order.update({
       where: { id: order.id },
       data: {
         courierLatitude: lat,
         courierLongitude: lng,
-        courierUpdatedAt: new Date(),
+        courierUpdatedAt: now,
         isGpsTrackingActive: true,
+        // Se ainda estava em 'ready' na bancada e começou a movimentar GPS, ativa automaticamente 'delivering'
+        ...(order.status === "ready"
+          ? {
+              status: "delivering",
+              dispatchedAt: now,
+            }
+          : {}),
       },
+    });
+
+    serverOrderEventManager.emit({
+      type: "courier_location",
+      orderId: order.id,
+      userId: order.userId,
+      status: "delivering",
+      courierLocation: { lat, lng },
+      timestamp: Date.now(),
     });
 
     return apiSuccess({

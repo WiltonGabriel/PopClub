@@ -154,6 +154,11 @@ export default function PedidosPage() {
     initAudioUnlock();
   }, []);
 
+  // Revalida dados imediatamente ao montar a tela de Meus Pedidos
+  useEffect(() => {
+    refreshOrders(true);
+  }, [refreshOrders]);
+
   // Redireciona caso não haja sessão nem pedidos anônimos
   useEffect(() => {
     if (!authLoading && !user && guestOrderIds.length === 0) {

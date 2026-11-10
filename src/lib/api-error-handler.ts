@@ -31,8 +31,20 @@ export interface ErrorFieldDetail {
 /**
  * Resposta de Sucesso Padronizada
  */
-export function apiSuccess<T>(data: T, status = 200): NextResponse {
-  return NextResponse.json(data, { status });
+export function apiSuccess<T>(
+  data: T,
+  status = 200,
+  headers?: HeadersInit
+): NextResponse {
+  const defaultHeaders: Record<string, string> = {
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+  };
+  return NextResponse.json(data, {
+    status,
+    headers: { ...defaultHeaders, ...(headers as Record<string, string>) },
+  });
 }
 
 /**

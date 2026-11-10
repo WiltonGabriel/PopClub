@@ -101,6 +101,7 @@ export function OrderDeliveryInbox({
           const currentCourierCode = courierCodes[order.id] !== undefined ? courierCodes[order.id] : defaultCourierCode;
           const currentOrderPin = orderPins[order.id] !== undefined ? orderPins[order.id] : defaultOrderPin;
           const isCompleting = completingId === order.id;
+          const isDeliveredOnStreet = Boolean(order.delivered_at);
 
           const addressLine = order.delivery_address
             ? `${order.delivery_address.street}, ${order.delivery_address.number} - ${order.delivery_address.neighborhood}`
@@ -109,7 +110,11 @@ export function OrderDeliveryInbox({
           return (
             <div
               key={order.id}
-              className="bg-card border border-border/80 dark:border-border rounded-xl p-3.5 shadow-sm space-y-3 transition-all hover:border-blue-400 dark:hover:border-blue-500/70"
+              className={`bg-card border rounded-xl p-3.5 shadow-sm space-y-3 transition-all ${
+                isDeliveredOnStreet
+                  ? "border-emerald-500/80 dark:border-emerald-500/60 ring-2 ring-emerald-500/20"
+                  : "border-border/80 dark:border-border hover:border-blue-400 dark:hover:border-blue-500/70"
+              }`}
             >
               {/* Top info */}
               <div className="flex items-center justify-between">
@@ -132,6 +137,27 @@ export function OrderDeliveryInbox({
                   <span>{elapsed} min em rota</span>
                 </div>
               </div>
+
+              {/* Status de Entrega na Rua */}
+              {isDeliveredOnStreet && (
+                <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-xs space-y-1">
+                  <div className="flex items-center justify-between font-bold text-emerald-800 dark:text-emerald-300">
+                    <span className="flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                      Entregue na Rua (PIN OK)
+                    </span>
+                    <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-600 text-white font-black">
+                      Conferir Caixa
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
+                    <span>Cobrado na entrega:</span>
+                    <strong className="font-mono text-emerald-700 dark:text-emerald-300">
+                      R$ {Number(order.total_amount || 0).toFixed(2).replace(".", ",")} ({(order.payment_method_type || "dinheiro").replace("_", " ").toUpperCase()})
+                    </strong>
+                  </div>
+                </div>
+              )}
 
               {/* Client & Address */}
               <div className="space-y-0.5 text-xs">
@@ -183,14 +209,18 @@ export function OrderDeliveryInbox({
                   type="button"
                   onClick={() => handleComplete(order)}
                   disabled={isCompleting}
-                  className="flex-1 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm shadow-emerald-600/20"
+                  className={`flex-1 h-9 rounded-lg text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm ${
+                    isDeliveredOnStreet
+                      ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-emerald-600/30"
+                      : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20"
+                  }`}
                 >
                   {isCompleting ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <CheckCircle2 className="w-3.5 h-3.5" />
                   )}
-                  <span>Aceitar e Confirmar</span>
+                  <span>{isDeliveredOnStreet ? "Confirmar Acerto & Dar Baixa" : "Aceitar e Confirmar"}</span>
                 </Button>
 
                 <Button

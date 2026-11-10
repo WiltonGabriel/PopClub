@@ -2,11 +2,16 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { orderService, Order, OrderStatus } from "../services/orderService";
-import { subscribeToOrderEvents, OrderEventPayload } from "../lib/orderEvents";
+import {
+  subscribeToOrderEvents,
+  OrderEventPayload,
+  setupTabVisibilityRevalidation,
+  startOrderPollingHeartbeat,
+  connectOrderEventsSSE,
+} from "../lib/orderEvents";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../components/ui/ToastNotification";
-import { playDingSound } from "../lib/sound";
-import { sendWebNotification } from "../lib/notifications";
+import { notifyOrderStatusChange } from "../lib/notifications";
 
 const GUEST_ORDERS_STORAGE_KEY = "popshake_guest_order_ids";
 const getUserOrdersKey = (userId: string) => `popshake_orders_${userId}`;
@@ -24,54 +29,6 @@ interface OrderContextType {
 
 const OrderContext = createContext<OrderContextType | null>(null);
 
-const STATUS_CONFIG: Record<
-  OrderStatus,
-  { label: string; badgeClass: string; toastMsg: string; description: string }
-> = {
-  pending: {
-    label: "Recebido",
-    badgeClass: "bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200 dark:border-purple-900/40",
-    toastMsg: "recebido pela loja",
-    description: "Recebemos seu pedido! A cozinha já vai iniciar o preparo.",
-  },
-  accepted: {
-    label: "Confirmado",
-    badgeClass: "bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200 dark:border-purple-900/40",
-    toastMsg: "confirmado pela cozinha",
-    description: "Pedido confirmado! A equipe está separando seus acompanhamentos.",
-  },
-  preparing: {
-    label: "Em Preparo",
-    badgeClass: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-900/40",
-    toastMsg: "está em preparo! 🥣",
-    description: "Seu copo está sendo montado com todo o capricho.",
-  },
-  ready: {
-    label: "Pronto p/ Saída",
-    badgeClass: "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200 dark:border-blue-900/40",
-    toastMsg: "está pronto para envio/retirada! 📦",
-    description: "Seu pedido está embalado e pronto para viagem ou retirada no balcão.",
-  },
-  delivering: {
-    label: "Saiu para Entrega",
-    badgeClass: "bg-[#9306CF]/15 text-[#9306CF] dark:text-[#C7A9C9] border-[#9306CF]/30 animate-pulse",
-    toastMsg: "saiu para entrega! 🛵",
-    description: "Saiu para entrega! O motoboy está a caminho do seu endereço.",
-  },
-  completed: {
-    label: "Entregue",
-    badgeClass: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/40",
-    toastMsg: "foi entregue! Bom apetite! 🎉",
-    description: "Pedido entregue. Bom apetite!",
-  },
-  cancelled: {
-    label: "Pedido Cancelado",
-    badgeClass: "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300 border-red-200 dark:border-red-900/40",
-    toastMsg: "foi cancelado pela loja.",
-    description: "Este pedido precisou ser cancelado.",
-  },
-};
-
 export function OrderProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
   const { showToast } = useToast();
@@ -81,7 +38,20 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [guestOrderIds, setGuestOrderIds] = useState<string[]>([]);
 
-  // Rastreamento de status anterior para emitir notificações sonoras e visuais apenas na transição
+  // Refs mutáveis para evitar re-criação de timers e listeners
+  const ordersRef = useRef<Order[]>(orders);
+  ordersRef.current = orders;
+
+  const guestOrderIdsRef = useRef<string[]>(guestOrderIds);
+  guestOrderIdsRef.current = guestOrderIds;
+
+  const activeOrders = orders.filter((o) => !["completed", "cancelled"].includes(o.status));
+  const activeOrdersRef = useRef<Order[]>(activeOrders);
+  activeOrdersRef.current = activeOrders;
+
+  const historyOrders = orders.filter((o) => ["completed", "cancelled"].includes(o.status));
+
+  // Rastreamento de status anterior para emitir notificações apenas na transição real
   const previousStatusMap = useRef<Record<string, OrderStatus>>({});
   const activeUserIdRef = useRef<string | null>(null);
 
@@ -144,64 +114,15 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
       // Notifica o cliente se houve transição de status em algum pedido
       safeData.forEach((updated) => {
         const oldStatus = previousStatusMap.current[updated.id];
-        const newStatus = updated.status;
-
-        if (oldStatus && oldStatus !== newStatus) {
-          const shortId = updated.id.substring(0, 6);
-          const config = STATUS_CONFIG[newStatus];
-
-          playDingSound();
-
-          let notifBody = `Atualização no pedido #${shortId}: ${config?.label || newStatus}`;
-          if (newStatus === "delivering") {
-            notifBody = `Seu pedido #${shortId} saiu para entrega! 🛵💨`;
-          } else if (newStatus === "preparing") {
-            notifBody = `Seu pedido #${shortId} começou a ser preparado! 🍧`;
-          } else if (newStatus === "ready") {
-            notifBody = `Seu pedido #${shortId} está pronto para envio/retirada! 📦`;
-          } else if (newStatus === "completed") {
-            notifBody = `Pedido #${shortId} entregue! Bom apetite! 🎉`;
-          } else if (newStatus === "cancelled") {
-            notifBody = `Seu pedido #${shortId} foi cancelado. Motivo: ${updated.cancellation_reason || "Informado pela loja"}`;
-          }
-
-          sendWebNotification("Pop Shake Sorveteria", {
-            body: notifBody,
-            icon: "/icon.png",
+        if (oldStatus && oldStatus !== updated.status) {
+          notifyOrderStatusChange({
+            order: updated,
+            previousStatus: oldStatus,
+            showToast,
           });
-
-          if (newStatus === "delivering") {
-            showToast({
-              title: `Seu pedido #${shortId} saiu para entrega! 🛵`,
-              message: "O motoboy está a caminho do seu endereço.",
-              type: "info",
-              duration: 9000,
-            });
-          } else if (newStatus === "completed") {
-            showToast({
-              title: `Pedido #${shortId} Entregue! 🎉`,
-              message: "Pedido entregue. Bom apetite!",
-              type: "success",
-              duration: 8000,
-            });
-          } else if (newStatus === "cancelled") {
-            showToast({
-              title: `Pedido #${shortId} Cancelado`,
-              message: `Motivo: ${updated.cancellation_reason || "Informado pela loja"}`,
-              type: "error",
-              duration: 10000,
-            });
-          } else if (config) {
-            showToast({
-              title: `Atualização no Pedido #${shortId}`,
-              message: config.description,
-              type: "info",
-              duration: 6000,
-            });
-          }
         }
 
-        previousStatusMap.current[updated.id] = newStatus;
+        previousStatusMap.current[updated.id] = updated.status;
       });
 
       setOrders(safeData);
@@ -212,6 +133,44 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
       if (!silent) setLoading(false);
     }
   }, [userId, authLoading, guestOrderIds, showToast]);
+
+  // 1. Revalidação instantânea ao ganhar foco ou visibilidade da aba (visibilitychange e window focus)
+  useEffect(() => {
+    const unsubscribe = setupTabVisibilityRevalidation(() => {
+      refreshOrders(true);
+    });
+    return unsubscribe;
+  }, [refreshOrders]);
+
+  // 2. Polling inteligente resiliente (heartbeat a cada 4-6 segundos enquanto houver pedido ativo)
+  useEffect(() => {
+    const unsubscribe = startOrderPollingHeartbeat({
+      getHasActiveOrders: () => {
+        return (
+          activeOrdersRef.current.length > 0 ||
+          (guestOrderIdsRef.current.length > 0 && ordersRef.current.length === 0)
+        );
+      },
+      onPoll: () => refreshOrders(true),
+      intervalMs: 5000,
+    });
+    return unsubscribe;
+  }, [refreshOrders]);
+
+  // 3. Conexão SSE (Server-Sent Events) com reconexão resiliente e fallback automático
+  useEffect(() => {
+    if (authLoading) return;
+
+    const unsubscribe = connectOrderEventsSSE({
+      userId: user?.id,
+      guestOrderIds,
+      onEvent: () => {
+        refreshOrders(true);
+      },
+    });
+
+    return unsubscribe;
+  }, [user?.id, guestOrderIds, authLoading, refreshOrders]);
 
   // Reconciliação intencional: quando um usuário loga e possui pedidos de visitante pendentes
   useEffect(() => {
@@ -330,9 +289,6 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
     },
     [refreshOrders]
   );
-
-  const activeOrders = orders.filter((o) => !["completed", "cancelled"].includes(o.status));
-  const historyOrders = orders.filter((o) => ["completed", "cancelled"].includes(o.status));
 
   return (
     <OrderContext.Provider

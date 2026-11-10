@@ -5,6 +5,10 @@ import { getAuthUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { orderLookupLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

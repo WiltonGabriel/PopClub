@@ -7,6 +7,11 @@ import { hasPermission } from "@/lib/permissions";
 
 import { formatOrder } from "@/lib/orderFormat";
 import { orderLookupLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
+import { serverOrderEventManager } from "@/lib/serverOrderEvents";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export async function GET(request: Request) {
   try {
@@ -471,7 +476,18 @@ export async function PATCH(request: Request) {
       },
     });
 
-    return apiSuccess(formatOrder(updated!));
+    const formatted = formatOrder(updated!);
+
+    serverOrderEventManager.emit({
+      type: updated?.status === "cancelled" ? "order_cancelled" : "order_updated",
+      orderId: updated!.id,
+      userId: updated!.userId,
+      status: updated!.status,
+      order: formatted,
+      timestamp: Date.now(),
+    });
+
+    return apiSuccess(formatted);
   } catch (error: unknown) {
     return handleApiError(error, "PATCH /api/orders", "Erro ao atualizar pedido.");
   }

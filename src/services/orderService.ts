@@ -179,6 +179,11 @@ async function safeParseResponse<T>(res: Response, fallbackErrorMessage: string)
   return (parsed !== null ? parsed : {}) as T;
 }
 
+const NO_CACHE_HEADERS: HeadersInit = {
+  "Cache-Control": "no-cache, no-store, must-revalidate",
+  Pragma: "no-cache",
+};
+
 export const orderService = {
   async getMyOrders(guestOrderIds?: string[]): Promise<Order[]> {
     let url = "/api/orders";
@@ -186,6 +191,8 @@ export const orderService = {
       url += `?guestOrderIds=${encodeURIComponent(guestOrderIds.join(","))}`;
     }
     const res = await fetch(url, {
+      cache: "no-store",
+      headers: NO_CACHE_HEADERS,
       signal: AbortSignal.timeout(10000),
     });
     const result = await safeParseResponse<Order[] | { orders?: Order[]; data?: Order[] }>(
@@ -218,6 +225,8 @@ export const orderService = {
   async getAllOrders(includeArchived = false): Promise<Order[]> {
     const url = `/api/orders?all=true&includeArchived=${includeArchived ? "true" : "false"}`;
     const res = await fetch(url, {
+      cache: "no-store",
+      headers: NO_CACHE_HEADERS,
       signal: AbortSignal.timeout(10000),
     });
     const data = await safeParseResponse<Order[] | { orders?: Order[]; data?: Order[] }>(
@@ -254,6 +263,8 @@ export const orderService = {
     if (params.shiftId) query.set("shiftId", params.shiftId);
 
     const res = await fetch(`/api/orders?${query.toString()}`, {
+      cache: "no-store",
+      headers: NO_CACHE_HEADERS,
       signal: AbortSignal.timeout(10000),
     });
     return await safeParseResponse<HistoricalOrdersResponse>(
@@ -310,12 +321,16 @@ export const orderService = {
     let url = `/api/orders/${cleanId}`;
     if (token) url += `?token=${encodeURIComponent(token)}`;
     const res = await fetch(url, {
+      cache: "no-store",
+      headers: NO_CACHE_HEADERS,
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok && res.status === 404) {
       let fallbackUrl = `/api/orders?id=${cleanId}`;
       if (token) fallbackUrl += `&token=${encodeURIComponent(token)}`;
       const fallbackRes = await fetch(fallbackUrl, {
+        cache: "no-store",
+        headers: NO_CACHE_HEADERS,
         signal: AbortSignal.timeout(10000),
       });
       const data = await safeParseResponse<Order | { order?: Order; data?: Order }>(
@@ -333,7 +348,7 @@ export const orderService = {
 
   async dispatchOrder(
     orderId: string,
-    enableGpsOrOptions: boolean | { enableGps?: boolean; courierName?: string; courierPhone?: string; courierCode?: string }
+    enableGpsOrOptions: boolean | { enableGps?: boolean; courierName?: string; courierPhone?: string; courierCode?: string; mode?: "assign" | "dispatch" }
   ): Promise<{ order: Order; trackingToken?: string | null; trackingUrl?: string | null }> {
     const payload = typeof enableGpsOrOptions === "boolean"
       ? { enableGps: enableGpsOrOptions }
