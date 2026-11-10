@@ -7,11 +7,19 @@ import { emailService, emailDeduplicationTracker } from "@/lib/emailService";
 import * as authLib from "@/lib/auth";
 import * as permissionsLib from "@/lib/permissions";
 import { checkoutLimiter } from "@/lib/rateLimit";
+import { StoreScheduleDomainService } from "@/domain/services/StoreScheduleDomainService";
 
 describe("Idempotência de Checkout, Máquina de Estados (FSM) e Deduplicação", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     emailDeduplicationTracker.clear();
+    vi.spyOn(StoreScheduleDomainService, "assertCanAcceptOrders").mockReturnValue({
+      canAcceptOrders: true,
+      status: "OPEN",
+      isOpen: true,
+      openingTime: "13:00",
+      closingTime: "23:30",
+    } as any);
     // Reset rate limiter so tests don't get throttled
     vi.spyOn(checkoutLimiter, "check").mockReturnValue({
       success: true,

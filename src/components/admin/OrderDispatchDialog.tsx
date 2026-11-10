@@ -33,6 +33,7 @@ export function OrderDispatchDialog({
 }: OrderDispatchDialogProps) {
   const { showToast } = useToast();
 
+  const [dispatchMode, setDispatchMode] = useState<"assign" | "dispatch">("assign");
   const [couriers, setCouriers] = useState<Courier[]>([]);
   const [loadingCouriers, setLoadingCouriers] = useState(true);
   const [enableGps, setEnableGps] = useState(true);
@@ -166,7 +167,7 @@ export function OrderDispatchDialog({
 
   const isSafetyConfirmed = confirmSafetyText.trim() === "CONFIRMO";
   const isCourierValid = Boolean(courierName.trim());
-  const canDispatch = isSafetyConfirmed && isCourierValid && !loading;
+  const canDispatch = isCourierValid && !loading && (dispatchMode === "assign" || isSafetyConfirmed);
 
   const handleSelectCourier = (courierId: string) => {
     setSelectedCourierId(courierId);
@@ -232,6 +233,7 @@ export function OrderDispatchDialog({
         courierName: courierName.trim(),
         courierPhone: courierPhone.trim(),
         courierCode: courierCode.trim() || undefined,
+        mode: dispatchMode,
       });
 
       if (enableGps && res.trackingToken && res.trackingUrl) {
@@ -240,15 +242,19 @@ export function OrderDispatchDialog({
           trackingUrl: res.trackingUrl,
         });
         showToast({
-          title: "Despachado com GPS!",
-          message: "Link de rastreamento gerado e motoboy atribuído.",
+          title: dispatchMode === "assign" ? "Motoboy Atribuído!" : "Despachado com GPS!",
+          message: dispatchMode === "assign"
+            ? "Motoboy vinculado. A esteira mudará automaticamente para 'Em Trânsito' quando ele iniciar a rota."
+            : "Link de rastreamento gerado e motoboy atribuído.",
           type: "success",
         });
         onDispatched(order.id);
       } else {
         showToast({
-          title: "Pedido Despachado",
-          message: `Despachado com sucesso para ${courierName}.`,
+          title: dispatchMode === "assign" ? "Motoboy Atribuído" : "Pedido Despachado",
+          message: dispatchMode === "assign"
+            ? `Atribuído a ${courierName}. Aguardando início de rota.`
+            : `Despachado com sucesso para ${courierName}.`,
           type: "success",
         });
         onDispatched(order.id);
@@ -256,8 +262,8 @@ export function OrderDispatchDialog({
       }
     } catch (err: unknown) {
       showToast({
-        title: "Erro ao despachar",
-        message: (err instanceof Error ? err.message : "Erro desconhecido") || "Não foi possível despachar o pedido.",
+        title: "Erro na operação",
+        message: (err instanceof Error ? err.message : "Erro desconhecido") || "Não foi possível concluir a ação.",
         type: "error",
       });
     } finally {
@@ -301,7 +307,7 @@ export function OrderDispatchDialog({
                 Logística & Despacho
               </span>
               <h2 className="font-heading text-lg font-black uppercase tracking-tight">
-                Despachar Pedido #{order.id.substring(0, 6)} 🛵
+                {dispatchMode === "assign" ? "Atribuir Motoboy" : "Despachar Saída"} #{order.id.substring(0, 6)} 🛵
               </h2>
             </div>
           </div>
@@ -313,6 +319,36 @@ export function OrderDispatchDialog({
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Seletor de Modo Operacional */}
+        {!dispatchedData && (
+          <div className="grid grid-cols-2 gap-2 p-1 bg-muted/60 rounded-xl border border-border/40 text-xs">
+            <button
+              type="button"
+              onClick={() => setDispatchMode("assign")}
+              className={`py-2 px-3 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                dispatchMode === "assign"
+                  ? "bg-primary text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Bike className="w-3.5 h-3.5" />
+              <span>Atribuir (Aguardando)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDispatchMode("dispatch")}
+              className={`py-2 px-3 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                dispatchMode === "dispatch"
+                  ? "bg-accent text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Navigation className="w-3.5 h-3.5" />
+              <span>Despacho Imediato</span>
+            </button>
+          </div>
+        )}
 
         {/* Resumo do Pedido e Destino */}
         <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60 text-xs space-y-2">
@@ -527,43 +563,57 @@ export function OrderDispatchDialog({
               </p>
             </div>
 
-            {/* Trava de Segurança CONFIRMO */}
-            <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700/50 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-300 font-heading font-bold text-xs uppercase tracking-wide">
-                  <ShieldCheck className="w-4 h-4" />
-                  Trava de Segurança Obrigatória
+            {/* Trava de Segurança CONFIRMO (Modo Despacho Imediato) ou Info (Modo Atribuição) */}
+            {dispatchMode === "dispatch" ? (
+              <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700/50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-300 font-heading font-bold text-xs uppercase tracking-wide">
+                    <ShieldCheck className="w-4 h-4" />
+                    Trava de Segurança (Saída Imediata)
+                  </div>
+                  {isSafetyConfirmed && (
+                    <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                      <Check className="w-3.5 h-3.5" /> Liberado
+                    </span>
+                  )}
                 </div>
-                {isSafetyConfirmed && (
-                  <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                    <Check className="w-3.5 h-3.5" /> Liberado
-                  </span>
-                )}
+                <p className="text-[11px] text-amber-700 dark:text-amber-300/90 leading-tight">
+                  Para confirmar que o motoboy já pegou o pedido e está saindo da loja, digite exatamente{" "}
+                  <strong className="font-mono bg-amber-200/60 dark:bg-amber-900/60 px-1 py-0.5 rounded text-amber-900 dark:text-amber-100">
+                    CONFIRMO
+                  </strong>
+                  :
+                </p>
+                <input
+                  type="text"
+                  placeholder='Digite "CONFIRMO"'
+                  value={confirmSafetyText}
+                  onChange={(e) => setConfirmSafetyText(e.target.value.toUpperCase())}
+                  className="w-full h-10 px-3 rounded-lg bg-white dark:bg-zinc-900 border border-amber-300 dark:border-amber-700 font-mono text-sm tracking-widest text-foreground font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                />
               </div>
-              <p className="text-[11px] text-amber-700 dark:text-amber-300/90 leading-tight">
-                Para liberar a saída e atualizar o pedido para &quot;A Caminho&quot;, digite exatamente{" "}
-                <strong className="font-mono bg-amber-200/60 dark:bg-amber-900/60 px-1 py-0.5 rounded text-amber-900 dark:text-amber-100">
-                  CONFIRMO
-                </strong>
-                :
-              </p>
-              <input
-                type="text"
-                placeholder='Digite "CONFIRMO"'
-                value={confirmSafetyText}
-                onChange={(e) => setConfirmSafetyText(e.target.value.toUpperCase())}
-                className="w-full h-10 px-3 rounded-lg bg-white dark:bg-zinc-900 border border-amber-300 dark:border-amber-700 font-mono text-sm tracking-widest text-foreground font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-              />
-            </div>
+            ) : (
+              <div className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/40 text-xs space-y-1">
+                <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300 font-bold">
+                  <Bike className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span>Modo Atribuição Inteligente</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  O pedido continua em <strong>Pronto</strong>. Quando o motoboy abrir o link de rota e tocar em <strong>&quot;Iniciar Rota & Ligar GPS&quot;</strong>, a esteira atualizará automaticamente para <strong>&quot;Em Trânsito&quot;</strong> em tempo real!
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center justify-between pt-2">
               <div className="text-[11px] text-muted-foreground">
                 {!isCourierValid ? (
                   <span className="text-destructive font-semibold">Selecione um entregador</span>
-                ) : !isSafetyConfirmed ? (
+                ) : dispatchMode === "dispatch" && !isSafetyConfirmed ? (
                   <span className="text-amber-600 dark:text-amber-400 font-medium">Digite CONFIRMO acima</span>
                 ) : (
-                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">Pronto para despachar</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                    {dispatchMode === "assign" ? "Pronto para vincular motoboy" : "Pronto para despachar"}
+                  </span>
                 )}
               </div>
               <div className="flex items-center gap-2">
@@ -585,11 +635,16 @@ export function OrderDispatchDialog({
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Despachando...
+                      Processando...
+                    </>
+                  ) : dispatchMode === "assign" ? (
+                    <>
+                      <Bike className="w-4 h-4" />
+                      Vincular Motoboy
                     </>
                   ) : (
                     <>
-                      <Bike className="w-4 h-4" />
+                      <Navigation className="w-4 h-4" />
                       Confirmar Saída
                     </>
                   )}

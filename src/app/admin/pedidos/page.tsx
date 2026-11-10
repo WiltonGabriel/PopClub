@@ -159,7 +159,7 @@ export default function AdminPedidosPage() {
   });
 
   const promptUpdateStatus = (order: Order, stage: { nextStatus: OrderStatus; label: string }) => {
-    if (order.status === "preparing" || stage.nextStatus === "delivering" || stage.nextStatus === "ready") {
+    if (stage.nextStatus === "delivering") {
       setOrderToDispatch(order);
       setIsDispatchModalOpen(true);
       return;
@@ -929,7 +929,7 @@ export default function AdminPedidosPage() {
   const handleUpdateStatus = async (orderId: string, currentStatus: OrderStatus) => {
     const stage = getNextStage(currentStatus);
     if (!stage) return;
-    if (currentStatus === "preparing" || stage.nextStatus === "delivering" || stage.nextStatus === "ready") {
+    if (stage.nextStatus === "delivering") {
       const found = orders.find((o) => o.id === orderId);
       if (found) {
         setOrderToDispatch(found);
@@ -1316,6 +1316,20 @@ export default function AdminPedidosPage() {
                       </span>
                     </div>
 
+                    {order.courier_name && (
+                      <div className="flex items-center justify-between text-[10px] px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/50">
+                        <span className="truncate flex items-center gap-1 font-semibold">
+                          <Bike className="w-2.5 h-2.5" />
+                          {order.courier_name}
+                        </span>
+                        {order.status === "ready" && (
+                          <span className="font-mono text-[9px] uppercase font-bold text-blue-600 dark:text-blue-400">
+                            Aguardando
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     {/* Linha 4: Ações Rápidas Operacionais Padronizadas (Sem Textos Longos) */}
                     <div className="flex items-center justify-between gap-1 pt-1 border-t border-gray-100 dark:border-border/30">
                       {/* Lado Esquerdo: Ficha, Comprovante e Cancelar */}
@@ -1586,6 +1600,20 @@ export default function AdminPedidosPage() {
                         )}
                       </div>
                     </div>
+
+                    {order.courier_name && (
+                      <div className="flex items-center justify-between p-2 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-900/40 text-xs">
+                        <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300 font-bold truncate">
+                          <Bike className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">{order.courier_name}</span>
+                        </div>
+                        {order.status === "ready" && (
+                          <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-blue-600 text-white font-black shrink-0">
+                            Aguardando Saída
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                     {/* Botões Operacionais Padronizados (Ícone de Seta Compacto) */}
                     <div className="flex items-center justify-between gap-1 pt-2 border-t border-gray-100 dark:border-border/30">

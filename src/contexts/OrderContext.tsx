@@ -40,14 +40,21 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
 
   // Refs mutáveis para evitar re-criação de timers e listeners
   const ordersRef = useRef<Order[]>(orders);
-  ordersRef.current = orders;
-
   const guestOrderIdsRef = useRef<string[]>(guestOrderIds);
-  guestOrderIdsRef.current = guestOrderIds;
-
   const activeOrders = orders.filter((o) => !["completed", "cancelled"].includes(o.status));
   const activeOrdersRef = useRef<Order[]>(activeOrders);
-  activeOrdersRef.current = activeOrders;
+
+  useEffect(() => {
+    ordersRef.current = orders;
+  }, [orders]);
+
+  useEffect(() => {
+    guestOrderIdsRef.current = guestOrderIds;
+  }, [guestOrderIds]);
+
+  useEffect(() => {
+    activeOrdersRef.current = activeOrders;
+  }, [activeOrders]);
 
   const historyOrders = orders.filter((o) => ["completed", "cancelled"].includes(o.status));
 

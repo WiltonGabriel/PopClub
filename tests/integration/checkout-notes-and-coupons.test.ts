@@ -3,10 +3,18 @@ import { prisma } from "@/lib/prisma";
 import { POST as checkoutHandler } from "@/app/api/checkout/route";
 import * as authLib from "@/lib/auth";
 import { checkoutLimiter } from "@/lib/rateLimit";
+import { StoreScheduleDomainService } from "@/domain/services/StoreScheduleDomainService";
 
 describe("Observação de Itens e Regras de Cupom no Checkout", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.spyOn(StoreScheduleDomainService, "assertCanAcceptOrders").mockReturnValue({
+      canAcceptOrders: true,
+      status: "OPEN",
+      isOpen: true,
+      openingTime: "13:00",
+      closingTime: "23:30",
+    } as any);
     vi.spyOn(checkoutLimiter, "check").mockReturnValue({
       success: true,
       remaining: 99,

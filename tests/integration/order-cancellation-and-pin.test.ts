@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { PATCH as updateOrderStatusHandler } from "@/app/api/orders/route";
 import { POST as completeDeliveryHandler } from "@/app/api/delivery/[token]/complete/route";
+import { POST as startDeliveryHandler } from "@/app/api/delivery/[token]/start/route";
 import { POST as shiftsHandler } from "@/app/api/shifts/route";
 import * as authLib from "@/lib/auth";
 import * as permissionsLib from "@/lib/permissions";
@@ -220,6 +221,65 @@ describe("Cancelamento com Estorno, PIN de Entrega e Fechamento de Turno", () =>
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.success).toBe(true);
+    });
+
+    it("inicia rota de entrega e transiciona pedido de ready para delivering (/api/delivery/[token]/start)", async () => {
+      vi.spyOn(prisma.order, "findUnique").mockResolvedValue({
+        id: "order-ready-1",
+        status: "ready",
+        trackingToken: "token-start-1",
+        userId: "user-1",
+        courierName: "Carlos Motoboy",
+      } as any);
+
+      vi.spyOn(prisma.order, "update").mockResolvedValue({
+        id: "order-ready-1",
+        status: "delivering",
+      } as any);
+
+      const req = new Request("http://localhost:3000/api/delivery/token-start-1/start", {
+        method: "POST",
+      });
+
+      const res = await startDeliveryHandler(req, {
+        params: Promise.resolve({ token: "token-start-1" }),
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(data.status).toBe("delivering");
+    });
+
+    it("mantém em delivering aguardando conferência quando requiresReconciliation=true para dinheiro", async () => {
+      vi.spyOn(prisma.order, "findUnique").mockResolvedValue({
+        id: "order-cash-1",
+        status: "delivering",
+        orderPin: "9988",
+        trackingToken: "token-cash-1",
+        paymentMethodType: "dinheiro",
+        userId: "user-cash-1",
+      } as any);
+
+      vi.spyOn(authLib, "getAuthUser").mockResolvedValue(null);
+      vi.spyOn(permissionsLib, "hasPermission").mockReturnValue(false);
+      vi.spyOn(prisma.order, "updateMany").mockResolvedValue({ count: 1 });
+
+      const req = new Request("http://localhost:3000/api/delivery/token-cash-1/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: "9988", requiresReconciliation: true }),
+      });
+
+      const res = await completeDeliveryHandler(req, {
+        params: Promise.resolve({ token: "token-cash-1" }),
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(data.status).toBe("delivering");
+      expect(data.requiresReconciliation).toBe(true);
     });
   });
 
