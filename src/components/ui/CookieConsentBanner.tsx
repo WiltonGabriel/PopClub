@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Cookie, ShieldCheck, Check, Settings2, X, ChevronRight } from "lucide-react";
+import { Cookie, ShieldCheck, Check, Settings2, X, ChevronRight, Ban } from "lucide-react";
 import {
   privacyService,
   CookieConsentPreferences,
@@ -19,7 +19,7 @@ export function CookieConsentBanner() {
     setMounted(true);
     const stored = privacyService.getConsent();
     if (!stored) {
-      // Nenhum consentimento registrado ainda: exibe banner sutil
+      // Nenhum consentimento registrado ainda: exibe banner sutil (Quiet Design)
       setShowBanner(true);
     } else {
       setPreferences(stored);
@@ -56,7 +56,7 @@ export function CookieConsentBanner() {
     setShowPreferencesModal(false);
   };
 
-  const handleAcceptEssentialOnly = () => {
+  const handleRejectNonEssential = () => {
     const saved = privacyService.saveConsent({ analytics: false, preferences: false });
     setPreferences(saved);
     setShowBanner(false);
@@ -75,7 +75,7 @@ export function CookieConsentBanner() {
 
   return (
     <>
-      {/* BANNER FLUTUANTE DISCRETO (Não cobre a tela, não trava a compra no mobile) */}
+      {/* BANNER FLUTUANTE DISCRETO (Quiet Design, sem travar navegação, conforme LGPD e ANPD) */}
       {showBanner && !showPreferencesModal && (
         <aside
           role="region"
@@ -90,21 +90,25 @@ export function CookieConsentBanner() {
               <div className="flex-1 text-xs leading-relaxed">
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
-                    Sua Privacidade no PopClub
+                    Privacidade e Cookies no PopShake
                   </h3>
                   <button
-                    onClick={handleAcceptEssentialOnly}
-                    title="Fechar e manter apenas essenciais"
-                    aria-label="Fechar banner e manter apenas cookies essenciais"
+                    onClick={handleRejectNonEssential}
+                    title="Fechar banner e manter apenas cookies estritamente necessários"
+                    aria-label="Fechar banner e manter apenas cookies necessários"
                     className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors p-0.5"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
                 <p className="text-zinc-600 dark:text-zinc-300">
-                  Usamos cookies necessários para sua sacola e entrega. Dados opcionais só são ativados com sua permissão (LGPD).
+                  Utilizamos armazenamento essencial para manter sua sacola e calcular a entrega. Recursos opcionais dependem da sua permissão, respeitando a LGPD e as orientações da ANPD.
                 </p>
-                <div className="mt-1 flex items-center gap-2 text-[11px] text-pink-600 dark:text-pink-400 font-medium">
+                <div className="mt-1.5 flex flex-wrap items-center gap-3 text-[11px] font-medium text-pink-600 dark:text-pink-400">
+                  <Link href="/cookies" className="hover:underline flex items-center gap-0.5">
+                    Política de Cookies <ChevronRight className="w-3 h-3" />
+                  </Link>
+                  <span className="text-zinc-300 dark:text-zinc-700">•</span>
                   <Link href="/privacidade" className="hover:underline flex items-center gap-0.5">
                     Política de Privacidade <ChevronRight className="w-3 h-3" />
                   </Link>
@@ -112,26 +116,28 @@ export function CookieConsentBanner() {
               </div>
             </div>
 
+            {/* Ações com Equilíbrio Visual Obrigatório (Opção de Rejeitar com Destaque Paritário) */}
             <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-wrap items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setShowPreferencesModal(true)}
-                className="px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center gap-1.5"
+                className="px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <Settings2 className="w-3.5 h-3.5" />
-                Preferências
+                Personalizar
               </button>
               <button
                 type="button"
-                onClick={handleAcceptEssentialOnly}
-                className="px-3 py-1.5 text-xs font-medium bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 rounded-lg transition-colors"
+                onClick={handleRejectNonEssential}
+                className="px-3 py-1.5 text-xs font-semibold bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 rounded-lg transition-colors border border-zinc-300 dark:border-zinc-700 cursor-pointer flex items-center gap-1"
               >
-                Apenas Essenciais
+                <Ban className="w-3 h-3 text-zinc-500" />
+                Apenas Necessários
               </button>
               <button
                 type="button"
                 onClick={handleAcceptAll}
-                className="px-3 py-1.5 text-xs font-semibold bg-pink-600 hover:bg-pink-700 active:bg-pink-800 text-white rounded-lg shadow-sm transition-colors flex items-center gap-1"
+                className="px-3 py-1.5 text-xs font-semibold bg-pink-600 hover:bg-pink-700 active:bg-pink-800 text-white rounded-lg shadow-xs transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <Check className="w-3.5 h-3.5" />
                 Aceitar Todos
@@ -143,7 +149,7 @@ export function CookieConsentBanner() {
 
       {/* MODAL DE PREFERÊNCIAS GRANULARES (LGPD & GUIA DE COOKIES DA ANPD) */}
       {showPreferencesModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div
             role="dialog"
             aria-modal="true"
@@ -158,16 +164,16 @@ export function CookieConsentBanner() {
                 </div>
                 <div>
                   <h2 id="cookie-modal-title" className="font-bold text-base text-zinc-900 dark:text-zinc-100">
-                    Preferências de Privacidade
+                    Preferências de Armazenamento e Cookies
                   </h2>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    Em conformidade com a LGPD e o Guia Oficial da ANPD
+                    Em conformidade com a LGPD (Lei nº 13.709/2018) e o Guia da ANPD
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowPreferencesModal(false)}
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                 aria-label="Fechar preferências de privacidade"
               >
                 <X className="w-5 h-5" />
@@ -177,7 +183,7 @@ export function CookieConsentBanner() {
             {/* Conteúdo com scroll */}
             <div className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs leading-relaxed">
               <p className="text-zinc-600 dark:text-zinc-300">
-                Você tem o direito de escolher quais categorias de armazenamento e cookies autoriza no PopClub. A qualquer momento você pode rever suas opções aqui ou no rodapé do site.
+                Você pode escolher quais categorias de armazenamento autoriza no PopShake. Suas escolhas são salvas no seu navegador e você pode alterá-las ou revogá-las quando desejar.
               </p>
 
               {/* Categoria 1: Necessários */}
@@ -191,11 +197,34 @@ export function CookieConsentBanner() {
                   </span>
                 </div>
                 <p className="text-zinc-500 dark:text-zinc-400 text-[11px]">
-                  Indispensáveis para autenticação segura, persistência dos itens na sacola de compras, proteção anti-CSRF e cálculo da rota de entrega (Art. 7º, V da LGPD). Não podem ser desligados.
+                  Indispensáveis para autenticação de sessão segura (<code className="text-zinc-700 dark:text-zinc-300">popshake_session</code>), persistência dos itens na sacola de compras, segurança anti-CSRF e cálculo da rota de entrega (Art. 7º, V da LGPD). Não podem ser desativados.
                 </p>
               </div>
 
-              {/* Categoria 2: Analíticos */}
+              {/* Categoria 2: Preferências Opcionais */}
+              <div className="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    Preferências e Personalização (Opcional)
+                  </span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={preferences.preferences}
+                      onChange={(e) =>
+                        setPreferences((prev) => ({ ...prev, preferences: e.target.checked }))
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-zinc-300 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-pink-600"></div>
+                  </label>
+                </div>
+                <p className="text-zinc-500 dark:text-zinc-400 text-[11px]">
+                  Memoriza personalizações da interface (tema claro/escuro, modos de acessibilidade e cupons salvos temporariamente na sacola). Desativado por padrão até manifestação voluntária.
+                </p>
+              </div>
+
+              {/* Categoria 3: Métricas e Desempenho */}
               <div className="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-zinc-900 dark:text-zinc-100">
@@ -214,66 +243,53 @@ export function CookieConsentBanner() {
                   </label>
                 </div>
                 <p className="text-zinc-500 dark:text-zinc-400 text-[11px]">
-                  Coleta telemetria anônima sobre velocidade de carregamento e produtos mais acessados para aprimorar os sabores disponíveis e a experiência do app. Desativado por padrão (Privacy by Default).
+                  Reserva a permissão para eventuais medições técnicas de desempenho (atualmente nenhuma coleta de telemetria encontra-se ativa na plataforma). O PopShake NÃO utiliza rastreadores de terceiros (como Google Analytics ou Facebook Pixel).
                 </p>
               </div>
 
-              {/* Categoria 3: Preferências Opcionais */}
-              <div className="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">
-                    Personalização da Experiência (Opcional)
-                  </span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={preferences.preferences}
-                      onChange={(e) =>
-                        setPreferences((prev) => ({ ...prev, preferences: e.target.checked }))
-                      }
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-zinc-300 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-pink-600"></div>
-                  </label>
-                </div>
-                <p className="text-zinc-500 dark:text-zinc-400 text-[11px]">
-                  Permite memorizar filtros de categorias preferidas e opções estéticas para visitas recorrentes.
+              <div className="text-[11px] text-zinc-500 dark:text-zinc-400 pt-1 space-y-1">
+                <p>
+                  Para a lista completa de chaves armazenadas, prazos e direitos (Art. 18 da LGPD), consulte nossa{" "}
+                  <Link
+                    href="/cookies"
+                    onClick={() => setShowPreferencesModal(false)}
+                    className="text-pink-600 dark:text-pink-400 font-semibold underline underline-offset-2"
+                  >
+                    Política de Cookies
+                  </Link>{" "}
+                  ou a{" "}
+                  <Link
+                    href="/privacidade"
+                    onClick={() => setShowPreferencesModal(false)}
+                    className="text-pink-600 dark:text-pink-400 font-semibold underline underline-offset-2"
+                  >
+                    Política de Privacidade
+                  </Link>
+                  .
                 </p>
-              </div>
-
-              <div className="text-[11px] text-zinc-500 dark:text-zinc-400 pt-1">
-                Para detalhes completos sobre retenção e exercício dos seus direitos (Art. 18 da LGPD), consulte nossa{" "}
-                <Link
-                  href="/privacidade"
-                  onClick={() => setShowPreferencesModal(false)}
-                  className="text-pink-600 dark:text-pink-400 font-medium underline underline-offset-2"
-                >
-                  Política de Privacidade
-                </Link>
-                .
               </div>
             </div>
 
-            {/* Footer de Ações */}
+            {/* Footer de Ações com Rejeição Paritária */}
             <div className="p-4 sm:p-5 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 flex flex-wrap items-center justify-end gap-2">
               <button
                 type="button"
-                onClick={handleAcceptEssentialOnly}
-                className="px-3.5 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 rounded-xl transition-colors"
+                onClick={handleRejectNonEssential}
+                className="px-3.5 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700/80 rounded-xl transition-colors cursor-pointer"
               >
                 Rejeitar Opcionais
               </button>
               <button
                 type="button"
                 onClick={handleSaveCustom}
-                className="px-4 py-2 text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 rounded-xl transition-colors shadow-sm"
+                className="px-4 py-2 text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 rounded-xl transition-colors shadow-xs cursor-pointer"
               >
                 Salvar Preferências
               </button>
               <button
                 type="button"
                 onClick={handleAcceptAll}
-                className="px-4 py-2 text-xs font-semibold bg-pink-600 hover:bg-pink-700 text-white rounded-xl shadow-sm transition-colors"
+                className="px-4 py-2 text-xs font-semibold bg-pink-600 hover:bg-pink-700 text-white rounded-xl shadow-xs transition-colors cursor-pointer"
               >
                 Aceitar Todos
               </button>

@@ -15,7 +15,6 @@ import {
   Sparkles,
   Settings2,
   Database,
-  HelpCircle,
 } from "lucide-react";
 import { privacyService } from "@/services/privacyService";
 
@@ -180,7 +179,7 @@ export default function PoliticaPrivacidadePage() {
                 Estritamente Necessários
               </span>
               <p className="text-zinc-500 dark:text-zinc-400 text-[11px] leading-relaxed">
-                Autenticação da sessão, itens da sacola de compras e proteção contra invasões (CSRF). Funcionam sem consentimento prévio nos termos da LGPD.
+                Autenticação da sessão (<code>popshake_session</code>), itens da sacola de compras e proteção contra invasões (CSRF). Funcionam sem consentimento prévio nos termos da LGPD.
               </p>
             </div>
 
@@ -204,6 +203,16 @@ export default function PoliticaPrivacidadePage() {
               </p>
             </div>
           </div>
+
+          <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-zinc-500 dark:text-zinc-400 border-t border-zinc-100 dark:border-zinc-850">
+            <span>Para tabela detalhada de chaves, finalidades e prazos de expiração:</span>
+            <Link
+              href="/cookies"
+              className="inline-flex items-center gap-1 font-semibold text-pink-600 dark:text-pink-400 hover:underline"
+            >
+              Consultar Política de Cookies Completa & Inventário Técnico →
+            </Link>
+          </div>
         </div>
 
         {/* Card: Retenção e Segurança */}
@@ -225,6 +234,7 @@ export default function PoliticaPrivacidadePage() {
         <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-zinc-500 border-t border-zinc-200 dark:border-zinc-800">
           <p>Dúvidas sobre o tratamento de dados? Entre em contato com nosso Encarregado pelo e-mail acima.</p>
           <div className="flex items-center gap-4 font-semibold text-pink-600 dark:text-pink-400">
+            <Link href="/cookies" className="hover:underline">Política de Cookies</Link>
             <Link href="/termos" className="hover:underline">Termos de Uso</Link>
             <Link href="/conta" className="hover:underline">Minha Conta & LGPD</Link>
           </div>

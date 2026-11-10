@@ -406,6 +406,10 @@ export function Footer() {
               Privacidade & LGPD
             </Link>
             <span className="opacity-40">•</span>
+            <Link href="/cookies" className="hover:text-pink-600 dark:hover:text-pink-400 transition-colors">
+              Política de Cookies
+            </Link>
+            <span className="opacity-40">•</span>
             <Link href="/termos" className="hover:text-pink-600 dark:hover:text-pink-400 transition-colors">
               Termos de Uso
             </Link>

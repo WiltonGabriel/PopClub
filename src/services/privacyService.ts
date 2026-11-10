@@ -103,6 +103,24 @@ export const privacyService = {
   },
 
   /**
+   * Verifica se o usuário já expressou consentimento formal
+   */
+  hasUserConsented(): boolean {
+    return this.getConsent() !== null;
+  },
+
+  /**
+   * Verifica se uma categoria específica de armazenamento está autorizada
+   * "necessary" é sempre autorizada (Art. 7º, V da LGPD).
+   */
+  isCategoryAllowed(category: "necessary" | "analytics" | "preferences"): boolean {
+    if (category === "necessary") return true;
+    const consent = this.getConsent();
+    if (!consent) return false; // Privacy by default
+    return Boolean(consent[category]);
+  },
+
+  /**
    * Salva o consentimento do usuário localmente
    */
   saveConsent(prefs: Partial<CookieConsentPreferences>): CookieConsentPreferences {
@@ -117,6 +135,12 @@ export const privacyService = {
     if (typeof window !== "undefined") {
       try {
         localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(fullPrefs));
+        // Quando o usuário revoga ou rejeita preferências opcionais, limpa chaves passivas não essenciais
+        if (!fullPrefs.preferences && typeof localStorage.removeItem === "function") {
+          localStorage.removeItem("popclub_applied_coupon");
+          localStorage.removeItem("popshake_home_sections_order");
+          localStorage.removeItem("popshake_category_order");
+        }
         window.dispatchEvent(new CustomEvent("popclub:cookie-consent-updated", { detail: fullPrefs }));
       } catch (e) {
         console.warn("Não foi possível persistir as preferências de cookies:", e);

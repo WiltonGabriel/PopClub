@@ -51,8 +51,10 @@ import {
   Cookie,
   ShieldAlert,
   Trash2,
+  Smartphone,
 } from "lucide-react";
-import { privacyService } from "@/services/privacyService";
+import { privacyService, CookieConsentPreferences } from "@/services/privacyService";
+import { pwaInstallService } from "@/services/pwaInstallService";
 import { notificationService, AppNotification } from "../../services/notificationService";
 import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -452,6 +454,12 @@ export default function AccountPage() {
   const [copiedCouponId, setCopiedCouponId] = useState<string | null>(null);
   const [isSavingNotificationPref, setIsSavingNotificationPref] = useState(false);
 
+  // Instalação do Aplicativo PopShake (PWA) e Consentimento de Cookies
+  const [pwaAutoPrompt, setPwaAutoPrompt] = useState<boolean>(true);
+  const [isPwaStandalone, setIsPwaStandalone] = useState<boolean>(false);
+  const [isPwaDismissed, setIsPwaDismissed] = useState<boolean>(false);
+  const [cookieConsent, setCookieConsent] = useState<CookieConsentPreferences | null>(null);
+
   // Modal de Avatar
   const [avatarPresets, setAvatarPresets] = useState<AvatarPresetItem[]>(DEFAULT_AVATAR_PRESETS);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
@@ -472,16 +480,49 @@ export default function AccountPage() {
     }
   }, []);
 
-  // Detecta ?tab=... ou ?section=... na URL
+  // Detecta ?tab=... ou ?section=... na URL e sincroniza preferências PWA/Cookies
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab") || params.get("section");
-      const validSections = ["perfil", "notificacoes", "enderecos", "preferencias", "acessibilidade"];
+      const validSections = ["perfil", "notificacoes", "enderecos", "preferencias", "acessibilidade", "privacidade"];
       if (tabParam && validSections.includes(tabParam)) {
         setActiveSection(tabParam);
         setCurrentView(tabParam as AccountView);
       }
+
+      setPwaAutoPrompt(pwaInstallService.isAutoPromptEnabled());
+      setIsPwaStandalone(pwaInstallService.isStandalone());
+      setIsPwaDismissed(pwaInstallService.isDismissedActive());
+      setCookieConsent(privacyService.getConsent());
+
+      const handlePwaPref = (e: Event) => {
+        const custom = e as CustomEvent<{ enabled: boolean }>;
+        if (custom.detail) {
+          setPwaAutoPrompt(custom.detail.enabled);
+        }
+      };
+
+      const handlePwaDismissed = () => {
+        setIsPwaDismissed(pwaInstallService.isDismissedActive());
+      };
+
+      const handleConsentUpdated = (e: Event) => {
+        const custom = e as CustomEvent<CookieConsentPreferences>;
+        if (custom.detail) {
+          setCookieConsent(custom.detail);
+        }
+      };
+
+      window.addEventListener("popshake:pwa-prompt-preference-changed", handlePwaPref as EventListener);
+      window.addEventListener("popshake:pwa-prompt-dismissed", handlePwaDismissed as EventListener);
+      window.addEventListener("popclub:cookie-consent-updated", handleConsentUpdated as EventListener);
+
+      return () => {
+        window.removeEventListener("popshake:pwa-prompt-preference-changed", handlePwaPref as EventListener);
+        window.removeEventListener("popshake:pwa-prompt-dismissed", handlePwaDismissed as EventListener);
+        window.removeEventListener("popclub:cookie-consent-updated", handleConsentUpdated as EventListener);
+      };
     }
   }, []);
 
@@ -881,7 +922,7 @@ export default function AccountPage() {
     { 
       id: "preferencias", 
       label: "Preferências", 
-      desc: "Forma de pagamento e troco na entrega",
+      desc: "Tema, aplicativo PopShake e pagamentos",
       icon: <Settings className="w-4 h-4" /> 
     },
     { 
@@ -892,8 +933,8 @@ export default function AccountPage() {
     },
     { 
       id: "privacidade", 
-      label: "Privacidade & LGPD", 
-      desc: "Portabilidade de dados, cookies e anonimização",
+      label: "Privacidade e dados", 
+      desc: "Políticas, cookies, consentimento e direitos LGPD",
       icon: <ShieldCheck className="w-4 h-4" /> 
     },
   ];
@@ -2569,6 +2610,107 @@ export default function AccountPage() {
                 )}
               </div>
 
+              {/* ================= SEÇÃO: INSTALAÇÃO DO APLICATIVO POPSHAKE (PWA) ================= */}
+              <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-[#512B54]/40">
+                <div>
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                    <Smartphone className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                    Instalação do Aplicativo PopShake
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Instale o aplicativo na tela inicial para pedidos mais rápidos e controle se o aviso automático deve aparecer.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3.5">
+                  {/* Instalar aplicativo manualmente (sempre acessível independentemente de preferências) */}
+                  <div className="p-4 rounded-2xl bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-heading font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Download className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                        Instalar aplicativo
+                      </p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Inicie manualmente o processo de instalação do PopShake no seu dispositivo, mesmo que tenha dispensado ou desativado o aviso automático.
+                      </p>
+                    </div>
+                    {isPwaStandalone ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-semibold shrink-0">
+                        <Check className="w-4 h-4" />
+                        Aplicativo Instalado
+                      </span>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          pwaInstallService.openManualInstall();
+                          showToast({
+                            type: "info",
+                            title: "Instalação Manual do App",
+                            message: "O guia de instalação do PopShake foi aberto para você concluir.",
+                          });
+                        }}
+                        className="h-9 px-4 rounded-xl border-[#9306CF]/30 text-[#9306CF] dark:text-[#C7A9C9] hover:bg-[#9306CF]/10 text-xs font-bold uppercase tracking-wider shrink-0 cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        Instalar Aplicativo
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Controle independente do Aviso de instalação automático */}
+                  <div className="p-4 rounded-2xl bg-gray-50/70 dark:bg-[#190B1A]/80 border border-gray-200 dark:border-[#512B54]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-heading font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Bell className="w-4 h-4 text-[#9306CF] dark:text-[#C7A9C9]" />
+                        Aviso de instalação
+                      </p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {pwaAutoPrompt
+                          ? isPwaDismissed
+                            ? "Ativado nas configurações (popup silenciado temporariamente por até 4 meses após dispensa)."
+                            : "Ativado nas configurações (o aviso automático pode aparecer quando aplicável)."
+                          : "Desativado (o popup automático não voltará a aparecer, mas a instalação manual acima continua disponível)."}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        const next = !pwaAutoPrompt;
+                        pwaInstallService.setAutoPromptEnabled(next);
+                        setPwaAutoPrompt(next);
+                        showToast({
+                          type: "success",
+                          title: next ? "Aviso de instalação ativado" : "Aviso de instalação desativado",
+                          message: next
+                            ? "A exibição automática foi habilitada."
+                            : "O aviso automático não será mais exibido.",
+                        });
+                      }}
+                      className={`h-9 px-4 rounded-xl text-xs font-bold uppercase tracking-wider shrink-0 cursor-pointer transition-colors ${
+                        pwaAutoPrompt
+                          ? "border-emerald-500/40 text-emerald-700 dark:text-emerald-300 bg-emerald-50/70 dark:bg-emerald-950/30 hover:bg-emerald-100/70"
+                          : "border-zinc-300 dark:border-zinc-700 text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      {pwaAutoPrompt ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+                          Ativado
+                        </>
+                      ) : (
+                        <>
+                          <X className="w-3.5 h-3.5 mr-1.5" />
+                          Desativado
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
               {/* Rodapé com Salvar */}
               <div className="pt-4 border-t border-gray-200 dark:border-[#512B54]/40 flex items-center justify-end">
                 <Button
@@ -2588,7 +2730,7 @@ export default function AccountPage() {
             </div>
           )}
 
-          {/* ================= SEÇÃO: PRIVACIDADE & LGPD ================= */}
+          {/* ================= SEÇÃO: PRIVACIDADE E DADOS (LGPD & COOKIES) ================= */}
           {activeSection === "privacidade" && (
             <div className="bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 rounded-3xl p-5 sm:p-8 space-y-6 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-200 dark:border-zinc-800">
@@ -2598,22 +2740,91 @@ export default function AccountPage() {
                     LGPD (Lei nº 13.709/2018) • Art. 18
                   </div>
                   <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-tight text-gray-900 dark:text-white">
-                    Privacidade & Seus Direitos
+                    Privacidade e Dados
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Consulte, exporte seus dados ou solicite a anonimização e exclusão da sua conta com transparência.
+                    Consulte políticas, personalize seu consentimento de cookies e exerça seus direitos como titular de dados.
                   </p>
                 </div>
 
-                <Link
-                  href="/privacidade"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-pink-600 dark:text-pink-400 hover:underline shrink-0"
-                >
-                  Ler Política Completa →
-                </Link>
+                <div className="flex flex-wrap items-center gap-3 text-xs font-semibold shrink-0">
+                  <Link
+                    href="/privacidade"
+                    className="text-pink-600 dark:text-pink-400 hover:underline"
+                  >
+                    Política de Privacidade →
+                  </Link>
+                  <span className="text-zinc-300 dark:text-zinc-700">•</span>
+                  <Link
+                    href="/cookies"
+                    className="text-pink-600 dark:text-pink-400 hover:underline"
+                  >
+                    Política de Cookies →
+                  </Link>
+                </div>
               </div>
 
-              {/* Bloco 1: Portabilidade de Dados (Art. 18, V) */}
+              {/* Bloco 1: Governança de Cookies, Escolhas Atuais e Consentimento (Guia da ANPD) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <h4 className="font-heading font-bold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                      <Cookie className="w-4 h-4 text-amber-500" />
+                      Gerenciamento de Consentimento e Cookies
+                    </h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Consulte suas escolhas atuais salvas no navegador ou altere-as a qualquer momento sem depender da reaparição do aviso.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Resumo transparente das preferências atuais */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                  <div className="p-3 rounded-xl bg-white dark:bg-zinc-950/60 border border-zinc-200/80 dark:border-zinc-800/80">
+                    <span className="font-semibold block text-zinc-900 dark:text-zinc-100">Necessários</span>
+                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">Sempre Ativo</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white dark:bg-zinc-950/60 border border-zinc-200/80 dark:border-zinc-800/80">
+                    <span className="font-semibold block text-zinc-900 dark:text-zinc-100">Preferências Locais</span>
+                    <span className={`text-[11px] font-medium ${cookieConsent?.preferences ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-500"}`}>
+                      {cookieConsent?.preferences ? "Autorizado" : "Desativado"}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white dark:bg-zinc-950/60 border border-zinc-200/80 dark:border-zinc-800/80">
+                    <span className="font-semibold block text-zinc-900 dark:text-zinc-100">Métricas & Desempenho</span>
+                    <span className={`text-[11px] font-medium ${cookieConsent?.analytics ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-500"}`}>
+                      {cookieConsent?.analytics ? "Autorizado" : "Desativado"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-1 flex flex-wrap items-center justify-between gap-3">
+                  <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                    {cookieConsent?.timestamp
+                      ? `Última escolha registrada em ${new Date(cookieConsent.timestamp).toLocaleDateString("pt-BR")}`
+                      : "Consentimento padrão ativo (Apenas Estritamente Necessários)"}
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                      href="/cookies"
+                      className="inline-flex items-center px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 rounded-xl transition-colors"
+                    >
+                      Consultar Política de Cookies
+                    </Link>
+                    <Button
+                      type="button"
+                      onClick={() => privacyService.openPreferencesModal()}
+                      variant="outline"
+                      className="h-9 px-4 text-xs font-semibold rounded-xl border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 cursor-pointer flex items-center gap-2"
+                    >
+                      <Cookie className="w-4 h-4 text-amber-500" />
+                      <span>Gerenciar Preferências</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bloco 2: Portabilidade de Dados (Art. 18, V) */}
               <div className="p-4 sm:p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
@@ -2646,33 +2857,6 @@ export default function AccountPage() {
                         <span>Exportar Meus Dados (JSON)</span>
                       </>
                     )}
-                  </Button>
-                </div>
-              </div>
-
-              {/* Bloco 2: Governança de Cookies e Armazenamento (Guia da ANPD) */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <h4 className="font-heading font-bold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                      <Cookie className="w-4 h-4 text-amber-500" />
-                      Preferências de Cookies e Rastreamento
-                    </h4>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Controle a ativação de telemetria analítica e preferências locais no seu dispositivo conforme as diretrizes da ANPD. Cookies estritamente essenciais permanecem protegendo sua sacola.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-2 flex justify-end">
-                  <Button
-                    type="button"
-                    onClick={() => privacyService.openPreferencesModal()}
-                    variant="outline"
-                    className="h-10 px-4 text-xs font-semibold rounded-xl border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 cursor-pointer flex items-center gap-2"
-                  >
-                    <Cookie className="w-4 h-4 text-amber-500" />
-                    <span>Personalizar Cookies</span>
                   </Button>
                 </div>
               </div>
