@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { couponService, Coupon } from "../../services/couponService";
+import {
+  loyaltyBadgeService,
+  LoyaltyBadgeConfig,
+  DEFAULT_LOYALTY_BADGES,
+} from "../../services/loyaltyBadgeService";
 import { CouponFormDialog } from "./CouponFormDialog";
 import { Button } from "../ui/button";
 import {
@@ -28,6 +33,7 @@ import {
 
 export function CouponManagement() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [loyaltyBadges, setLoyaltyBadges] = useState<LoyaltyBadgeConfig[]>(DEFAULT_LOYALTY_BADGES);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeSubTab, setActiveSubTab] = useState<"ativos" | "arquivados">("ativos");
@@ -53,6 +59,7 @@ export function CouponManagement() {
 
   useEffect(() => {
     fetchCoupons();
+    loyaltyBadgeService.getBadges().then(setLoyaltyBadges).catch(() => null);
   }, [fetchCoupons]);
 
   const handlePurgeInactive = async () => {
@@ -318,6 +325,13 @@ export function CouponManagement() {
             const isCopied = copiedCode === coupon.code;
             const hasLimit = typeof coupon.maxUses === "number" && coupon.maxUses > 0;
             const usagePct = hasLimit ? Math.min(100, Math.round((coupon.uses / (coupon.maxUses || 1)) * 100)) : 0;
+            const requiredBadge = (coupon.loyaltyBadgeId || coupon.minLoyaltyLevel)
+              ? loyaltyBadges.find(
+                  (b) =>
+                    (coupon.loyaltyBadgeId && b.id === coupon.loyaltyBadgeId) ||
+                    (coupon.minLoyaltyLevel && b.level === coupon.minLoyaltyLevel)
+                )
+              : undefined;
 
             return (
               <div
@@ -415,6 +429,19 @@ export function CouponManagement() {
                           : "Toda a Loja"}
                       </span>
                     </div>
+
+                    {(requiredBadge || coupon.minLoyaltyLevel || coupon.loyaltyBadgeId) && (
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="flex items-center gap-1 text-gray-500">
+                          <ShieldCheck className="w-3 h-3 text-amber-500" /> Fidelidade:
+                        </span>
+                        <span className="font-semibold text-amber-700 dark:text-amber-300">
+                          {requiredBadge
+                            ? `${requiredBadge.icon} ${requiredBadge.name}+`
+                            : `Nível ${coupon.minLoyaltyLevel}+`}
+                        </span>
+                      </div>
+                    )}
 
                     {coupon.expiresAt && (
                       <div className="flex items-center justify-between text-[11px]">

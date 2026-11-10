@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser, hashPassword } from "@/lib/auth";
 import { cleanCpf, validateCpf } from "@/lib/cpf";
 import { DEFAULT_EDITOR_PERMISSIONS, isUserAdmin, isUserEditor, hasPermission } from "@/lib/permissions";
+import { calculateAccountAgeMonths, getUserBadge } from "@/services/loyaltyBadgeService";
+import { loadLoyaltyBadgesConfig } from "@/services/couponLoyaltyService";
 import { Role, Prisma } from "@prisma/client";
 
 export async function GET(request: Request) {
@@ -24,6 +26,7 @@ export async function GET(request: Request) {
     const maxOrdersStr = searchParams.get("maxOrders");
     const minMonthsStr = searchParams.get("minMonths");
     const maxMonthsStr = searchParams.get("maxMonths");
+    const loyaltyBadgeLevelStr = searchParams.get("loyaltyBadgeLevel");
 
     const where: Prisma.UserWhereInput = {};
 
@@ -64,19 +67,13 @@ export async function GET(request: Request) {
       where.isBlocked = true;
     }
 
-    if (minOrdersStr || maxOrdersStr) {
-      const minO = minOrdersStr ? parseInt(minOrdersStr, 10) : null;
-      const maxO = maxOrdersStr ? parseInt(maxOrdersStr, 10) : null;
-      // Note: we can't easily filter by relation count in standard Prisma where without specific config in older versions, but assuming Prisma 6 supports _count filtering:
-      /* If Prisma doesn't support _count in where we might have a type error, but Prisma >= 4.3 supports it */
-      const countFilter: { gte?: number; lte?: number } = {};
-      if (minO !== null && !isNaN(minO)) countFilter.gte = minO;
-      if (maxO !== null && !isNaN(maxO)) countFilter.lte = maxO;
-      if (Object.keys(countFilter).length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        where.orders = { ...(where.orders as object || {}), _count: countFilter } as any;
-      }
-    }
+    const minOrdersFilter = minOrdersStr ? parseInt(minOrdersStr, 10) : null;
+    const maxOrdersFilter = maxOrdersStr ? parseInt(maxOrdersStr, 10) : null;
+    const targetBadgeLevel = loyaltyBadgeLevelStr ? parseInt(loyaltyBadgeLevelStr, 10) : null;
+    const needsOrderDerivedFilter =
+      (minOrdersFilter !== null && !Number.isNaN(minOrdersFilter)) ||
+      (maxOrdersFilter !== null && !Number.isNaN(maxOrdersFilter)) ||
+      (targetBadgeLevel !== null && !Number.isNaN(targetBadgeLevel));
 
     if (minMonthsStr || maxMonthsStr) {
       const minM = minMonthsStr ? parseInt(minMonthsStr, 10) : null;
@@ -135,6 +132,104 @@ export async function GET(request: Request) {
       ];
     }
 
+    const baseUserSelect = {
+      id: true,
+      cpf: true,
+      email: true,
+      username: true,
+      phone: true,
+      fullName: true,
+      avatarUrl: true,
+      role: true,
+      permissions: true,
+      isRegistered: true,
+      isActive: true,
+      isBlocked: true,
+      blockReason: true,
+      tokenVersion: true,
+      deletedAt: true,
+      createdAt: true,
+      updatedAt: true,
+      customRoleId: true,
+      customRole: {
+        select: {
+          id: true,
+          name: true,
+          color: true,
+          permissions: true,
+        },
+      },
+      createdById: true,
+      createdBy: {
+        select: {
+          id: true,
+          fullName: true,
+          username: true,
+          role: true,
+        },
+      },
+      _count: {
+        select: { orders: true },
+      },
+    } as const;
+
+    if (needsOrderDerivedFilter) {
+      const badges =
+        targetBadgeLevel !== null && !Number.isNaN(targetBadgeLevel)
+          ? await loadLoyaltyBadgesConfig()
+          : [];
+
+      const candidates = await prisma.user.findMany({
+        where,
+        orderBy,
+        select: {
+          ...baseUserSelect,
+          orders: {
+            where: { status: { not: "cancelled" } },
+            select: { status: true },
+          },
+        },
+      });
+
+      const filteredUsers = candidates.filter((u) => {
+        const nonCancelledCount = u.orders.length;
+        if (minOrdersFilter !== null && !Number.isNaN(minOrdersFilter) && nonCancelledCount < minOrdersFilter) {
+          return false;
+        }
+        if (maxOrdersFilter !== null && !Number.isNaN(maxOrdersFilter) && nonCancelledCount > maxOrdersFilter) {
+          return false;
+        }
+        if (targetBadgeLevel !== null && !Number.isNaN(targetBadgeLevel)) {
+          const months = calculateAccountAgeMonths(u.createdAt);
+          const completedCount = u.orders.filter((o) => o.status === "completed").length;
+          const userBadge = getUserBadge({ months, completedOrders: completedCount }, badges);
+          if (userBadge.level !== targetBadgeLevel) {
+            return false;
+          }
+        }
+        return true;
+      });
+
+      const total = filteredUsers.length;
+      const pagedUsers = filteredUsers
+        .slice((page - 1) * limit, page * limit)
+        .map((u) => {
+          const { orders, ...userWithoutOrders } = u;
+          void orders;
+          return userWithoutOrders;
+        });
+
+      return NextResponse.json({
+        users: pagedUsers,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      });
+    }
+
     const total = await prisma.user.count({ where });
 
     const users = await prisma.user.findMany({
@@ -142,46 +237,7 @@ export async function GET(request: Request) {
       skip: (page - 1) * limit,
       take: limit,
       orderBy,
-      select: {
-        id: true,
-        cpf: true,
-        email: true,
-        username: true,
-        phone: true,
-        fullName: true,
-        avatarUrl: true,
-        role: true,
-        permissions: true,
-        isRegistered: true,
-        isActive: true,
-        isBlocked: true,
-        blockReason: true,
-        tokenVersion: true,
-        deletedAt: true,
-        createdAt: true,
-        updatedAt: true,
-        customRoleId: true,
-        customRole: {
-          select: {
-            id: true,
-            name: true,
-            color: true,
-            permissions: true,
-          },
-        },
-        createdById: true,
-        createdBy: {
-          select: {
-            id: true,
-            fullName: true,
-            username: true,
-            role: true,
-          },
-        },
-        _count: {
-          select: { orders: true },
-        },
-      },
+      select: baseUserSelect,
     });
 
     return NextResponse.json({

@@ -3,6 +3,7 @@ import {
   calculateAccountAgeMonths,
   isBadgeUnlocked,
   getUserBadge,
+  formatLoyaltyBadgeRequirement,
   LoyaltyBadgeConfig,
 } from "@/services/loyaltyBadgeService";
 
@@ -96,5 +97,12 @@ describe("LoyaltyBadgeService (Regras de Selos por Meses e Compras)", () => {
     const userBadge = getUserBadge({ months: 0, completedOrders: 20 }, customBadges);
     expect(userBadge.level).toBe(3);
     expect(userBadge.name).toBe("Ouro");
+  });
+
+  it("formata critérios de meses, compras e modo de exigência com formatLoyaltyBadgeRequirement", () => {
+    expect(formatLoyaltyBadgeRequirement(customBadges[0])).toBe("Novo membro");
+    expect(formatLoyaltyBadgeRequirement(customBadges[1])).toBe("2 meses ou 5 pedidos");
+    expect(formatLoyaltyBadgeRequirement(customBadges[2])).toBe("15 pedidos");
+    expect(formatLoyaltyBadgeRequirement(customBadges[3])).toBe("12 meses e 30 pedidos");
   });
 });

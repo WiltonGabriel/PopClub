@@ -122,6 +122,7 @@ export interface GetUsersParams {
   maxOrders?: number;
   minMonths?: number;
   maxMonths?: number;
+  loyaltyBadgeLevel?: number;
 }
 
 export interface GetUsersResponse {
@@ -147,6 +148,7 @@ export const adminUserService = {
     if (params.maxOrders !== undefined) searchParams.set("maxOrders", String(params.maxOrders));
     if (params.minMonths !== undefined) searchParams.set("minMonths", String(params.minMonths));
     if (params.maxMonths !== undefined) searchParams.set("maxMonths", String(params.maxMonths));
+    if (params.loyaltyBadgeLevel !== undefined) searchParams.set("loyaltyBadgeLevel", String(params.loyaltyBadgeLevel));
 
     const res = await fetch(`/api/admin/users?${searchParams.toString()}`);
     const data = await res.json();

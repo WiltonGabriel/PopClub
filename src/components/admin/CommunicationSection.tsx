@@ -32,7 +32,8 @@ import { couponService, Coupon } from "../../services/couponService";
 import { 
   loyaltyBadgeService, 
   LoyaltyBadgeConfig, 
-  DEFAULT_LOYALTY_BADGES 
+  DEFAULT_LOYALTY_BADGES,
+  formatLoyaltyBadgeRequirement,
 } from "../../services/loyaltyBadgeService";
 import { useToast } from "../ui/ToastNotification";
 import { playDingSound } from "../../lib/sound";
@@ -503,7 +504,7 @@ export function CommunicationSection() {
                   Selos de Fidelidade Elegíveis
                 </h4>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Marque quais selos de clientes receberão este comunicado (calculado pela idade da conta):
+                  Marque quais selos de clientes receberão este comunicado (calculado por tempo de conta e/ou pedidos concluídos):
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -550,7 +551,7 @@ export function CommunicationSection() {
                           {b.name}
                         </span>
                         <span className="text-[11px] text-muted-foreground block truncate">
-                          {b.minMonths === 0 ? "Menos de 1 mês" : `A partir de ${b.minMonths} ${b.minMonths === 1 ? "mês" : "meses"}`}
+                          {formatLoyaltyBadgeRequirement(b)}
                         </span>
                       </div>
                     </div>

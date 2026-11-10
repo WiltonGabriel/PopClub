@@ -109,6 +109,7 @@ export default function CourierDeliveryPage({
   const [completing, setCompleting] = useState(false);
   const [deliveryPinInput, setDeliveryPinInput] = useState("");
   const [isCompletedSuccess, setIsCompletedSuccess] = useState(false);
+  const [awaitingCashReconciliation, setAwaitingCashReconciliation] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [copiedDeliveryLink, setCopiedDeliveryLink] = useState(false);
 
@@ -247,20 +248,28 @@ export default function CourierDeliveryPage({
   const handleCompleteDelivery = async () => {
     setCompleting(true);
     try {
+      const requiresCashReconciliation = delivery?.payment?.type === "dinheiro";
       const res = await fetch(`/api/delivery/${token}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin: deliveryPinInput.trim() }),
+        body: JSON.stringify({
+          pin: deliveryPinInput.trim(),
+          requiresReconciliation: requiresCashReconciliation,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "Erro ao finalizar entrega.");
       }
       stopTracking();
+      setAwaitingCashReconciliation(Boolean(data.requiresReconciliation));
       setIsCompletedSuccess(true);
       setIsCompleteModalOpen(false);
       if (delivery) {
-        setDelivery({ ...delivery, status: "completed" });
+        setDelivery({
+          ...delivery,
+          status: data.status || (data.requiresReconciliation ? "delivering" : "completed"),
+        });
       }
     } catch (err: any) {
       alert(err.message || "Falha ao concluir entrega.");
@@ -452,10 +461,14 @@ export default function CourierDeliveryPage({
               <CheckCircle2 className="w-10 h-10" />
             </div>
             <h2 className="font-heading text-xl font-black text-emerald-300 uppercase tracking-tight">
-              Entrega Finalizada!
+              {awaitingCashReconciliation
+                ? "Entrega Confirmada — Acerto no Caixa!"
+                : "Entrega Finalizada!"}
             </h2>
             <p className="text-xs text-emerald-200/90 leading-relaxed">
-              O pedido foi concluído com sucesso e o cliente já foi notificado. Muito obrigado pelo seu excelente trabalho!
+              {awaitingCashReconciliation
+                ? "O PIN do cliente foi validado com sucesso! Retorne à loja para conferir o recebimento em dinheiro no caixa e dar baixa definitiva."
+                : "O pedido foi concluído com sucesso e o cliente já foi notificado. Muito obrigado pelo seu excelente trabalho!"}
             </p>
           </div>
         ) : (

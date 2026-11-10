@@ -24,7 +24,8 @@ import {
 import { 
   loyaltyBadgeService, 
   LoyaltyBadgeConfig, 
-  DEFAULT_LOYALTY_BADGES 
+  DEFAULT_LOYALTY_BADGES,
+  formatLoyaltyBadgeRequirement,
 } from "../../services/loyaltyBadgeService";
 
 interface CouponFormDialogProps {
@@ -426,12 +427,12 @@ export function CouponFormDialog({
                 <option value="">Sem restrição (Qualquer cliente cadastrado)</option>
                 {loyaltyBadges.map((b) => (
                   <option key={b.id} value={b.id}>
-                    A partir de {b.icon} {b.name} ({b.minMonths === 0 ? "Novo membro" : `${b.minMonths} ${b.minMonths === 1 ? "mês" : "meses"}`})
+                    A partir de {b.icon} {b.name} ({formatLoyaltyBadgeRequirement(b)})
                   </option>
                 ))}
               </select>
               <p className="text-[11px] text-muted-foreground">
-                O cliente precisará atingir este selo (ou superior) pelo tempo de conta para conseguir aplicar o cupom no checkout.
+                O cliente precisará atingir este selo (ou superior) pelo critério de fidelidade configurado (tempo de conta e/ou pedidos concluídos).
               </p>
             </div>
           </div>

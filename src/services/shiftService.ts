@@ -30,6 +30,22 @@ export interface ShiftRecord {
   notes: string | null;
 }
 
+export interface CloseShiftPendingOrder {
+  id: string;
+  shortId: string;
+  status: string;
+  totalAmount: number;
+  clientName: string;
+  createdAt: string;
+}
+
+export interface CloseShiftOptions {
+  notes?: string;
+  forceClose?: boolean;
+  forceReason?: string;
+  resolveAction?: "cancel" | "archive";
+}
+
 export interface ShiftStatusResponse {
   isOpen: boolean;
   currentShiftId: string | null;
@@ -69,13 +85,21 @@ export const shiftService = {
     return body;
   },
 
-  async closeShift(notes?: string) {
+  async closeShift(notesOrOptions?: string | CloseShiftOptions) {
+    const options: CloseShiftOptions =
+      typeof notesOrOptions === "string" || notesOrOptions === undefined
+        ? { notes: notesOrOptions }
+        : notesOrOptions;
+
     const res = await fetch("/api/shifts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         action: "close",
-        notes,
+        notes: options.notes,
+        forceClose: options.forceClose,
+        forceReason: options.forceReason,
+        resolveAction: options.resolveAction,
       }),
       signal: AbortSignal.timeout(10000),
     });
@@ -85,6 +109,7 @@ export const shiftService = {
       err.pendingCount = body.pendingCount;
       err.pendingOrders = body.pendingOrders;
       err.breakdown = body.breakdown;
+      err.canForceClose = body.canForceClose;
       err.code = body.code;
       throw err;
     }

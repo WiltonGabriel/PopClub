@@ -203,6 +203,36 @@ describe("CouponDomainService (Regras Puras de Domínio de Cupons)", () => {
       });
     }).toThrowError(/exclusivo para produtos específicos que não estão no seu carrinho/);
 
+    // Falha quando selo resolvido está abaixo do nível exigido, mesmo se completedOrdersCount >= minLoyaltyLevel
+    expect(() => {
+      CouponDomainService.validateEligibility({
+        coupon: { ...baseValidCoupon, minLoyaltyLevel: 4, loyaltyBadgeId: "badge_ouro" },
+        subtotal: 50.0,
+        isRegisteredUser: true,
+        userMonths: 0,
+        completedOrdersCount: 4, // igual ao level 4, mas Bronze exige 3 e Ouro exige 25
+        userBadgeLevel: 2,
+        userBadgeId: "badge_bronze",
+        requiredBadgeName: "Cliente Ouro VIP",
+        requiredBadgeLevel: 4,
+      });
+    }).toThrowError(/exclusivo para clientes com selo Cliente Ouro VIP/);
+
+    // Sucesso quando o selo resolvido atinge o nível exigido por pedidos concluídos
+    expect(() => {
+      CouponDomainService.validateEligibility({
+        coupon: { ...baseValidCoupon, minLoyaltyLevel: 4, loyaltyBadgeId: "badge_ouro" },
+        subtotal: 50.0,
+        isRegisteredUser: true,
+        userMonths: 0,
+        completedOrdersCount: 25,
+        userBadgeLevel: 4,
+        userBadgeId: "badge_ouro",
+        requiredBadgeName: "Cliente Ouro VIP",
+        requiredBadgeLevel: 4,
+      });
+    }).not.toThrow();
+
     // Sucesso: carrinho contém ao menos um produto do escopo
     expect(() => {
       CouponDomainService.validateEligibility({

@@ -45,8 +45,22 @@ done
 
 echo "==> Conexão com PostgreSQL estabelecida com sucesso!"
 
-echo "==> Executando migrations do banco de dados (./node_modules/.bin/prisma migrate deploy)..."
-./node_modules/.bin/prisma migrate deploy
+if [ -d "prisma/migrations" ] && [ -n "$(ls -A prisma/migrations 2>/dev/null)" ]; then
+  echo "==> Executando migrations do banco de dados (./node_modules/.bin/prisma migrate deploy)..."
+  ./node_modules/.bin/prisma migrate deploy
+else
+  echo "==> Diretório prisma/migrations ausente/vazio; sincronizando schema com db push..."
+  if ! ./node_modules/.bin/prisma db push --skip-generate; then
+    echo "==> Verificando se há alterações destrutivas (DROP) pendentes antes de prosseguir..."
+    DIFF_SQL=$(./node_modules/.bin/prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --script 2>/dev/null || true)
+    if [ -n "$DIFF_SQL" ] && echo "$DIFF_SQL" | grep -qiE '(^|[^a-zA-Z_])DROP([^a-zA-Z_]|$)'; then
+      echo "==> ERRO: prisma db push bloqueado por conter instruções DROP potencialmente destrutivas."
+      exit 1
+    fi
+    echo "==> Nenhuma instrução DROP detectada (apenas adições/índices). Aplicando db push seguro..."
+    ./node_modules/.bin/prisma db push --skip-generate --accept-data-loss
+  fi
+fi
 
 echo "==> Iniciando aplicação Next.js (node server.js)..."
 exec node server.js

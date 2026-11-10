@@ -32,9 +32,13 @@ interface StockControlSectionProps {
    * Mapa de ID do produto para quantidade em preparo/ativos no quadro de pedidos Kanban
    */
   activeDemandMap?: Record<string, number>;
+  /**
+   * Incrementado pelo painel quando pedidos são criados/cancelados para recarregar o estoque automaticamente
+   */
+  refreshTrigger?: number;
 }
 
-export function StockControlSection({ activeDemandMap = {} }: StockControlSectionProps) {
+export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }: StockControlSectionProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [activePromotions, setActivePromotions] = useState<Promotion[]>([]);
@@ -150,6 +154,12 @@ export function StockControlSection({ activeDemandMap = {} }: StockControlSectio
       Object.values(timers).forEach(clearTimeout);
     };
   }, [loadData]);
+
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      loadData(true);
+    }
+  }, [refreshTrigger, loadData]);
 
   // Atualização de Disponibilidade (Switch Imediato)
   const handleToggleAvailability = async (product: Product) => {

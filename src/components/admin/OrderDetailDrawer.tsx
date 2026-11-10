@@ -168,6 +168,14 @@ export function OrderDetailDrawer({
                     {order.shift_code || order.shift_id}
                   </span>
                 )}
+                {order.order_pin && (
+                  <span
+                    className="inline-flex items-center gap-1 font-mono text-[10px] font-black px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50"
+                    title="PIN de Confirmação da Entrega"
+                  >
+                    PIN: {order.order_pin}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Registrado em {createdDate.toLocaleDateString("pt-BR")} às {createdDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
@@ -313,6 +321,14 @@ export function OrderDetailDrawer({
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 pl-6 leading-relaxed">
                               {it.product.description}
                             </p>
+                          )}
+
+                          {it.notes && it.notes.trim().length > 0 && (
+                            <div className="mt-1.5 pl-6">
+                              <span className="inline-flex items-start gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg bg-amber-50 text-amber-900 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800/50">
+                                <span>Obs.: {it.notes}</span>
+                              </span>
+                            </div>
                           )}
 
                           {/* Snapshot dos complementos selecionados */}

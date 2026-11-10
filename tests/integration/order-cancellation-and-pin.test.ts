@@ -110,6 +110,33 @@ describe("Cancelamento com Estorno, PIN de Entrega e Fechamento de Turno", () =>
         },
       });
     });
+
+    it("rejeita conclusão via PATCH /api/orders com PIN divergente quando o pedido possui PIN", async () => {
+      vi.spyOn(authLib, "getAuthUser").mockResolvedValue(adminUser as any);
+      vi.spyOn(permissionsLib, "hasPermission").mockReturnValue(true);
+
+      vi.spyOn(prisma.order, "findUnique").mockResolvedValue({
+        id: "order-pin-patch-1",
+        status: "delivering",
+        orderPin: "8492",
+        items: [],
+      } as any);
+
+      const req = new Request("http://localhost:3000/api/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: "order-pin-patch-1",
+          status: "completed",
+          orderPin: "0000",
+        }),
+      });
+
+      const res = await updateOrderStatusHandler(req);
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.code).toBe("INVALID_ORDER_PIN");
+    });
   });
 
   describe("2. Validação Real do PIN de Confirmação de Entrega (/api/delivery/[token]/complete)", () => {
@@ -383,6 +410,83 @@ describe("Cancelamento com Estorno, PIN de Entrega e Fechamento de Turno", () =>
       expect(res.status).toBe(400);
       const data = await res.json();
       expect(data.code).toBe("FORCE_REASON_REQUIRED");
+    });
+
+    it("estorna estoque e cupons ao forçar fechamento com resolveAction='cancel'", async () => {
+      vi.spyOn(authLib, "getAuthUser").mockResolvedValue(cashierUser as any);
+      vi.spyOn(permissionsLib, "hasPermission").mockReturnValue(true);
+
+      const pendingWithStock = {
+        id: "ord-force-cancel-1",
+        userId: "user-client-9",
+        couponId: "coupon-9",
+        status: "preparing",
+        totalAmount: 55,
+        createdAt: new Date(),
+        items: [
+          {
+            productId: "prod-force-1",
+            quantity: 3,
+            promotionId: null,
+            product: { stock: 4 },
+          },
+        ],
+      };
+
+      vi.spyOn(prisma.order, "findMany")
+        .mockResolvedValueOnce([pendingWithStock] as any)
+        .mockResolvedValueOnce([{ ...pendingWithStock, status: "cancelled" }] as any);
+
+      const txOrderUpdateMany = vi.fn().mockResolvedValue({ count: 1 });
+      const txProductUpdate = vi.fn().mockResolvedValue({});
+      const txCouponUpdateMany = vi.fn().mockResolvedValue({ count: 1 });
+      const txCouponRedemptionDelete = vi.fn().mockResolvedValue({ count: 1 });
+
+      vi.spyOn(prisma, "$transaction").mockImplementation(async (cb: any) => {
+        return cb({
+          order: { updateMany: txOrderUpdateMany },
+          product: { update: txProductUpdate },
+          coupon: { updateMany: txCouponUpdateMany },
+          couponRedemption: { deleteMany: txCouponRedemptionDelete },
+          $executeRaw: vi.fn().mockResolvedValue(1),
+        });
+      });
+
+      vi.spyOn(prisma.storeSettings, "findUnique").mockResolvedValue({
+        id: "store_config",
+        currentShiftId: "shift-open-2",
+        isOpen: true,
+      } as any);
+      vi.spyOn(prisma.shift, "update").mockResolvedValue({
+        id: "shift-open-2",
+        code: "TURNO-2026-002",
+        openedAt: new Date(),
+      } as any);
+      vi.spyOn(prisma.order, "updateMany").mockResolvedValue({ count: 1 });
+      vi.spyOn(prisma.storeSettings, "update").mockResolvedValue({ id: "store_config", isOpen: false } as any);
+
+      const req = new Request("http://localhost:3000/api/shifts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "close",
+          forceClose: true,
+          forceReason: "Queda de sistema e cancelamento com estorno.",
+          resolveAction: "cancel",
+        }),
+      });
+
+      const res = await shiftsHandler(req);
+      expect(res.status).toBe(200);
+      expect(txProductUpdate).toHaveBeenCalledWith({
+        where: { id: "prod-force-1" },
+        data: { stock: { increment: 3 } },
+      });
+      expect(txCouponUpdateMany).toHaveBeenCalledWith({
+        where: { id: "coupon-9", uses: { gt: 0 } },
+        data: { uses: { decrement: 1 } },
+      });
+      expect(txCouponRedemptionDelete).toHaveBeenCalledTimes(1);
     });
   });
 });

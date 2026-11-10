@@ -58,7 +58,12 @@ import {
   getNotificationPermission,
   isNotificationSupported,
 } from "../../../lib/notifications";
-import { subscribeToOrderEvents } from "../../../lib/orderEvents";
+import {
+  connectOrderEventsSSE,
+  setupTabVisibilityRevalidation,
+  startOrderPollingHeartbeat,
+  subscribeToOrderEvents,
+} from "../../../lib/orderEvents";
 import { Button } from "../../../components/ui/button";
 import { OrderCancelDialog } from "../../../components/admin/OrderCancelDialog";
 import { OrderDetailDrawer } from "../../../components/admin/OrderDetailDrawer";
@@ -94,6 +99,11 @@ export default function AdminPedidosPage() {
   }, [user, authLoading, isAdmin, canAccess, router]);
 
   const [orders, setOrders] = useState<Order[]>([]);
+  const ordersRef = useRef<Order[]>([]);
+  useEffect(() => {
+    ordersRef.current = orders;
+  }, [orders]);
+  const [stockRefreshTrigger, setStockRefreshTrigger] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Estados de Responsividade Mobile
@@ -294,6 +304,9 @@ export default function AdminPedidosPage() {
   const [shiftData, setShiftData] = useState<ShiftStatusResponse | null>(null);
   const [isOpenStoreModalOpen, setIsOpenStoreModalOpen] = useState(false);
   const [isCloseShiftModalOpen, setIsCloseShiftModalOpen] = useState(false);
+  const [isForceCloseExpanded, setIsForceCloseExpanded] = useState(false);
+  const [forceCloseReason, setForceCloseReason] = useState("");
+  const [forceResolveAction, setForceResolveAction] = useState<"cancel" | "archive">("cancel");
   const [isAdjustDeliveryModalOpen, setIsAdjustDeliveryModalOpen] = useState(false);
   const [deliveryTimeInput, setDeliveryTimeInput] = useState("30-50 min");
   const [shiftActionLoading, setShiftActionLoading] = useState(false);
@@ -483,12 +496,18 @@ export default function AdminPedidosPage() {
     }
   };
 
-  // Encerramento de Turno / Fechar Loja
-  const handleCloseShift = async () => {
+  // Encerramento de Turno / Fechar Loja (normal ou contingência)
+  const executeCloseShift = async (options?: {
+    forceClose?: boolean;
+    forceReason?: string;
+    resolveAction?: "cancel" | "archive";
+  }) => {
     setShiftActionLoading(true);
     try {
-      await shiftService.closeShift();
+      await shiftService.closeShift(options);
       setIsCloseShiftModalOpen(false);
+      setIsForceCloseExpanded(false);
+      setForceCloseReason("");
 
       // Trava de segurança: Pausar alertas sonoros de novos pedidos ao encerrar o turno
       setIsSoundMuted(true);
@@ -498,8 +517,13 @@ export default function AdminPedidosPage() {
       } catch {}
 
       await fetchOrders(false);
+      if (options?.forceClose && options?.resolveAction === "cancel") {
+        setStockRefreshTrigger((c) => c + 1);
+      }
       showToast({
-        title: "Turno Encerrado com Sucesso! 🔴",
+        title: options?.forceClose
+          ? "Turno Encerrado em Contingência 🔴"
+          : "Turno Encerrado com Sucesso! 🔴",
         message: "A esteira foi limpa e os pedidos foram arquivados para o próximo turno.",
         type: "success",
       });
@@ -511,7 +535,7 @@ export default function AdminPedidosPage() {
       if (pendingCount) {
         showToast({
           title: "Atenção: Pedidos Ativos na Esteira",
-          message: `Não é possível encerrar. Existem ${pendingCount} pedido(s) em andamento. Conclua ou cancele-os primeiro.`,
+          message: `Não é possível encerrar normalmente. Existem ${pendingCount} pedido(s) em andamento.`,
           type: "warning",
           duration: 9000,
         });
@@ -525,6 +549,25 @@ export default function AdminPedidosPage() {
     } finally {
       setShiftActionLoading(false);
     }
+  };
+
+  const handleCloseShift = () => executeCloseShift();
+
+  const handleForceCloseShift = () => {
+    const cleanReason = forceCloseReason.trim();
+    if (cleanReason.length < 5) {
+      showToast({
+        title: "Justificativa obrigatória",
+        message: "Informe pelo menos 5 caracteres para registrar a contingência.",
+        type: "warning",
+      });
+      return;
+    }
+    return executeCloseShift({
+      forceClose: true,
+      forceReason: cleanReason,
+      resolveAction: forceResolveAction,
+    });
   };
 
   // Ajuste rápido de tempo de entrega
@@ -654,11 +697,27 @@ export default function AdminPedidosPage() {
     return completedOrdersInBoard.reduce((acc, o) => acc + (o.total_amount || 0), 0);
   }, [completedOrdersInBoard]);
 
-  // Carga inicial e sincronização contínua (polling inteligente + eventos locais)
+  // Carga inicial e sincronização contínua (SSE em tempo real + heartbeat ativo + visibilidade + eventos locais)
   useEffect(() => {
     fetchOrders();
 
-    // Polling saudável a cada 15 segundos, respeitando a visibilidade da aba
+    // SSE em tempo real: connectOrderEventsSSE já dispara dispatchOrderEvent internamente
+    const disconnectSSE = connectOrderEventsSSE({});
+
+    // Revalidação imediata ao focar ou restaurar a aba
+    const cleanupVisibility = setupTabVisibilityRevalidation(() => {
+      fetchOrders();
+    });
+
+    // Heartbeat rápido (5s) enquanto houver pedidos em andamento na esteira
+    const stopHeartbeat = startOrderPollingHeartbeat({
+      getHasActiveOrders: () =>
+        ordersRef.current.some((o) => !["completed", "cancelled"].includes(o.status)),
+      onPoll: () => fetchOrders(),
+      intervalMs: 5000,
+    });
+
+    // Polling de retaguarda a cada 15 segundos, respeitando a visibilidade da aba
     const pollInterval = setInterval(async () => {
       if (typeof document !== "undefined" && document.visibilityState !== "visible") {
         return; // Pausa se a aba estiver em segundo plano para não sobrecarregar rede e WAF
@@ -705,7 +764,7 @@ export default function AdminPedidosPage() {
       }
     }, 15000);
 
-    // Eventos locais imediatos entre abas
+    // Eventos locais imediatos entre abas e vindos do SSE
     const unsubscribe = subscribeToOrderEvents((event) => {
       if (event.type === "order_created") {
         if (!isSoundMutedRef.current) {
@@ -723,11 +782,17 @@ export default function AdminPedidosPage() {
           duration: 9000,
         });
       }
+      if (event.type === "order_created" || event.type === "order_cancelled") {
+        setStockRefreshTrigger((c) => c + 1);
+      }
       fetchOrders();
     });
 
     return () => {
       clearInterval(pollInterval);
+      disconnectSSE();
+      cleanupVisibility();
+      stopHeartbeat();
       unsubscribe();
     };
   }, [fetchOrders, showToast]);
@@ -1568,6 +1633,11 @@ export default function AdminPedidosPage() {
                               {it.product.description}
                             </p>
                           )}
+                          {it.notes && it.notes.trim().length > 0 && (
+                            <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 rounded-md px-1.5 py-0.5 pl-4 mt-1">
+                              Obs.: {it.notes}
+                            </p>
+                          )}
                         </div>
                       ))
                     ) : (
@@ -2180,7 +2250,7 @@ export default function AdminPedidosPage() {
         </section>
 
         {/* Seção Dedicada: Controle Rápido de Estoque & Itens à Venda */}
-        <StockControlSection activeDemandMap={activeDemandMap} />
+        <StockControlSection activeDemandMap={activeDemandMap} refreshTrigger={stockRefreshTrigger} />
       </main>
 
       {/* Gaveta / Drawer Lateral com a Ficha Completa do Pedido */}
@@ -2508,17 +2578,100 @@ export default function AdminPedidosPage() {
                 })}
               </div>
 
-              {/* Botões do Modal A */}
-              <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-border/30">
-                <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1">
-                  🔒 Fechamento travado ({pendingOrdersInBoard.length} pendências)
-                </span>
-                <Button
-                  onClick={() => setIsCloseShiftModalOpen(false)}
-                  className="rounded-xl bg-foreground hover:bg-[#68356C] text-white text-xs font-bold uppercase tracking-wider px-5 shadow-md cursor-pointer"
-                >
-                  Voltar para a Esteira
-                </Button>
+              {/* Contingência de Fechamento Forçado */}
+              <div className="pt-3 border-t border-gray-100 dark:border-border/30 space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsForceCloseExpanded((prev) => !prev)}
+                    className="text-[11px] font-bold text-red-600 dark:text-red-400 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    <span>
+                      {isForceCloseExpanded
+                        ? "Ocultar Contingência de Fechamento Forçado"
+                        : "Fechamento Forçado (Contingência)"}
+                    </span>
+                  </button>
+                  <Button
+                    onClick={() => {
+                      setIsCloseShiftModalOpen(false);
+                      setIsForceCloseExpanded(false);
+                    }}
+                    className="rounded-xl bg-foreground hover:bg-[#68356C] text-white text-xs font-bold uppercase tracking-wider px-5 shadow-md cursor-pointer"
+                  >
+                    Voltar para a Esteira
+                  </Button>
+                </div>
+
+                {isForceCloseExpanded && (
+                  <div className="p-3.5 rounded-2xl bg-red-50/80 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 space-y-3">
+                    <p className="text-[11px] text-red-900 dark:text-red-200 leading-relaxed">
+                      Use somente em imprevistos (queda de energia, internet ou encerramento emergencial). Escolha o destino dos {pendingOrdersInBoard.length} pedido(s) pendente(s) e informe o motivo:
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setForceResolveAction("cancel")}
+                        className={`p-2.5 rounded-xl border text-left text-xs transition-all cursor-pointer ${
+                          forceResolveAction === "cancel"
+                            ? "bg-red-600 text-white border-red-600 shadow-xs"
+                            : "bg-white dark:bg-background border-gray-200 dark:border-border/50 text-foreground"
+                        }`}
+                      >
+                        <strong className="block">Cancelar pendências</strong>
+                        <span className={`text-[10px] ${forceResolveAction === "cancel" ? "text-red-100" : "text-muted-foreground"}`}>
+                          Estorna estoque, cotas e cupons automaticamente
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setForceResolveAction("archive")}
+                        className={`p-2.5 rounded-xl border text-left text-xs transition-all cursor-pointer ${
+                          forceResolveAction === "archive"
+                            ? "bg-amber-600 text-white border-amber-600 shadow-xs"
+                            : "bg-white dark:bg-background border-gray-200 dark:border-border/50 text-foreground"
+                        }`}
+                      >
+                        <strong className="block">Apenas arquivar turno</strong>
+                        <span className={`text-[10px] ${forceResolveAction === "archive" ? "text-amber-100" : "text-muted-foreground"}`}>
+                          Preserva status atual e remove da esteira ativa
+                        </span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-red-900 dark:text-red-200 block">
+                        Justificativa da Contingência (mín. 5 caracteres)
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={forceCloseReason}
+                        onChange={(e) => setForceCloseReason(e.target.value)}
+                        placeholder="Ex: Queda de energia no estabelecimento durante o encerramento."
+                        className="w-full rounded-xl border border-red-200 dark:border-red-900/50 bg-white dark:bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-red-500/40"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        type="button"
+                        onClick={handleForceCloseShift}
+                        disabled={shiftActionLoading || forceCloseReason.trim().length < 5}
+                        className="rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wider px-4 shadow-md cursor-pointer disabled:opacity-50"
+                      >
+                        {shiftActionLoading ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                        ) : (
+                          <ShieldAlert className="w-3.5 h-3.5 mr-1.5" />
+                        )}
+                        Confirmar Fechamento Forçado
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : (

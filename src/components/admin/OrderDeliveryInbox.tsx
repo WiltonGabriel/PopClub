@@ -93,7 +93,9 @@ export function OrderDeliveryInbox({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {deliveringOrders.map((order) => {
           const clientName = order.user?.fullName || order.user?.username || "Cliente";
-          const courierName = order.courier_name || "Motoboy Despachado";
+          const courierName =
+            order.courier_name ||
+            (order.status === "ready" ? "Pronto / Sem Entregador" : "Motoboy Despachado");
           const shortId = order.id.substring(0, 6).toUpperCase();
           const elapsed = getElapsedMinutes(order.dispatched_at || order.created_at);
           const defaultCourierCode = order.courier_code || "MB-01";

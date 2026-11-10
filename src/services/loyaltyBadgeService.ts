@@ -112,6 +112,37 @@ export function getBadgeForMonths(months: number, badges: LoyaltyBadgeConfig[] =
   return getUserBadge({ months, completedOrders: 0 }, badges);
 }
 
+/**
+ * Formata uma descrição curta e legível dos critérios configurados no selo
+ * (meses, pedidos concluídos e modo de exigência).
+ */
+export function formatLoyaltyBadgeRequirement(badge: LoyaltyBadgeConfig): string {
+  const minMonths = Math.max(0, badge.minMonths || 0);
+  const minOrders = Math.max(0, badge.minOrders ?? 0);
+  const mode = badge.criteriaMode || "either";
+
+  const monthsLabel = `${minMonths} ${minMonths === 1 ? "mês" : "meses"}`;
+  const ordersLabel = `${minOrders} ${minOrders === 1 ? "pedido" : "pedidos"}`;
+
+  if (minMonths === 0 && minOrders === 0) {
+    return "Novo membro";
+  }
+  if (mode === "orders") {
+    return minOrders > 0 ? ordersLabel : "Novo membro";
+  }
+  if (mode === "months") {
+    return minMonths > 0 ? monthsLabel : "Novo membro";
+  }
+  if (mode === "both") {
+    if (minMonths > 0 && minOrders > 0) return `${monthsLabel} e ${ordersLabel}`;
+    return minMonths > 0 ? monthsLabel : ordersLabel;
+  }
+  if (minMonths > 0 && minOrders > 0) {
+    return `${monthsLabel} ou ${ordersLabel}`;
+  }
+  return minMonths > 0 ? monthsLabel : ordersLabel;
+}
+
 export const loyaltyBadgeService = {
   async getBadges(): Promise<LoyaltyBadgeConfig[]> {
     try {

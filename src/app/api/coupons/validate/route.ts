@@ -8,11 +8,8 @@ import {
   getIpFromRequest,
   createRateLimitResponse,
 } from "@/lib/rateLimit";
-import {
-  DEFAULT_LOYALTY_BADGES,
-  LoyaltyBadgeConfig,
-  calculateAccountAgeMonths,
-} from "@/services/loyaltyBadgeService";
+import { calculateAccountAgeMonths } from "@/services/loyaltyBadgeService";
+import { resolveCouponLoyaltyContext } from "@/services/couponLoyaltyService";
 import { CouponDomainService } from "@/domain/services/CouponDomainService";
 import { InvalidCouponException } from "@/domain/errors";
 
@@ -72,6 +69,9 @@ export async function POST(request: Request) {
     let userMonths = 0;
     let completedOrdersCount = 0;
     let requiredBadgeName = "VIP";
+    let requiredBadgeLevel: number | undefined;
+    let userBadgeLevel: number | undefined;
+    let userBadgeId: string | undefined;
 
     const effectiveUserId = authUser?.id || (typeof body.userId === "string" ? body.userId : undefined);
     if (effectiveUserId) {
@@ -92,25 +92,14 @@ export async function POST(request: Request) {
     }
 
     if (coupon?.minLoyaltyLevel || coupon?.loyaltyBadgeId) {
-      const record = await prisma.notificationTemplate.findFirst({
-        where: { category: "loyalty_badges" },
-        orderBy: { updatedAt: "desc" },
+      const loyaltyCtx = await resolveCouponLoyaltyContext(coupon, {
+        userMonths,
+        completedOrdersCount,
       });
-      let badges: LoyaltyBadgeConfig[] = DEFAULT_LOYALTY_BADGES;
-      if (record?.message) {
-        try {
-          const parsed = JSON.parse(record.message);
-          if (Array.isArray(parsed) && parsed.length > 0) badges = parsed;
-        } catch {}
-      }
-
-      const requiredBadge = badges.find(
-        (b) =>
-          (coupon.loyaltyBadgeId && b.id === coupon.loyaltyBadgeId) ||
-          (coupon.minLoyaltyLevel && b.level === coupon.minLoyaltyLevel)
-      );
-
-      requiredBadgeName = requiredBadge?.name || "VIP";
+      requiredBadgeName = loyaltyCtx.requiredBadgeName;
+      requiredBadgeLevel = loyaltyCtx.requiredBadgeLevel;
+      userBadgeLevel = loyaltyCtx.userBadge.level;
+      userBadgeId = loyaltyCtx.userBadge.id;
     }
 
     // Identificação de uso prévio caso seja oncePerUser
@@ -150,7 +139,10 @@ export async function POST(request: Request) {
       isRegisteredUser,
       userMonths,
       completedOrdersCount,
+      userBadgeLevel,
+      userBadgeId,
       requiredBadgeName,
+      requiredBadgeLevel,
       hasPriorUsage,
       cartProductIds,
     });

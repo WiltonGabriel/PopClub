@@ -166,6 +166,11 @@ export function OrderTriageBar({
                     {totalItems} {totalItems === 1 ? "item" : "itens"}: {firstItemName}
                     {totalItems > 1 ? ` +${totalItems - 1}` : ""}
                   </p>
+                  {order.items?.some((it) => Boolean(it.notes?.trim())) && (
+                    <p className="mt-1 text-[10px] font-semibold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 rounded px-1.5 py-0.5 truncate">
+                      Obs.: {order.items.filter((it) => Boolean(it.notes?.trim())).map((it) => it.notes?.trim()).join(" • ")}
+                    </p>
+                  )}
                 </div>
 
                 <div className="mt-1.5 flex items-center gap-1.5 text-[10px]">

@@ -43,7 +43,12 @@ import { bannerService, HighlightBannerData } from "../../services/bannerService
 import { storeSettingsService, StoreSettings } from "../../services/storeSettingsService";
 import { productService, Product } from "../../services/productService";
 import { playNewOrderChime } from "../../lib/sound";
-import { subscribeToOrderEvents } from "../../lib/orderEvents";
+import {
+  connectOrderEventsSSE,
+  setupTabVisibilityRevalidation,
+  startOrderPollingHeartbeat,
+  subscribeToOrderEvents,
+} from "../../lib/orderEvents";
 import { Button } from "../../components/ui/button";
 import { PromotionFormDialog } from "../../components/admin/PromotionFormDialog";
 import { ComboFormDialog } from "../../components/admin/ComboFormDialog";
@@ -64,6 +69,7 @@ import { MobileOrientationBanner } from "../../components/admin/MobileOrientatio
 import { LogisticsAndCouriersSection } from "../../components/admin/LogisticsAndCouriersSection";
 import { ChannelsAndSupportSection } from "../../components/admin/ChannelsAndSupportSection";
 import { StoreStatusTopWidget } from "../../components/admin/StoreStatusTopWidget";
+import { OrderDispatchDialog } from "../../components/admin/OrderDispatchDialog";
 import { TAB_PERMISSION_MAP, PermissionKey } from "../../lib/permissions";
 
 const TAB_DEFINITIONS = [
@@ -90,6 +96,11 @@ export default function AdminDashboard() {
   const searchParams = useSearchParams();
 
   const [orders, setOrders] = useState<Order[]>([]);
+  const ordersRef = useRef<Order[]>([]);
+  useEffect(() => {
+    ordersRef.current = orders;
+  }, [orders]);
+  const [orderToDispatch, setOrderToDispatch] = useState<Order | null>(null);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [combos, setCombos] = useState<Product[]>([]);
   const [highlightBanner, setHighlightBanner] = useState<HighlightBannerData>({
@@ -243,14 +254,34 @@ export default function AdminDashboard() {
     loadAll();
     setCurrentTime(Date.now());
 
-    // Polling contínuo a cada 15s pausado caso aba esteja inativa
+    // Conexão SSE em tempo real (dispara dispatchOrderEvent internamente)
+    const disconnectSSE = connectOrderEventsSSE({});
+
+    // Revalidação ao restaurar/focar a aba
+    const cleanupVisibility = setupTabVisibilityRevalidation(() => {
+      fetchOrders();
+      setCurrentTime(Date.now());
+    });
+
+    // Heartbeat de 5s enquanto houver pedidos ativos na esteira
+    const stopHeartbeat = startOrderPollingHeartbeat({
+      getHasActiveOrders: () =>
+        ordersRef.current.some((o) => !["completed", "cancelled"].includes(o.status)),
+      onPoll: () => {
+        fetchOrders();
+        setCurrentTime(Date.now());
+      },
+      intervalMs: 5000,
+    });
+
+    // Polling contínuo de retaguarda a cada 15s pausado caso aba esteja inativa
     const interval = setInterval(() => {
       if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
       fetchOrders();
       setCurrentTime(Date.now());
     }, 15000);
 
-    // Ouvinte imediato de eventos de pedidos locais
+    // Ouvinte imediato de eventos de pedidos locais e vindos do SSE
     const unsubscribe = subscribeToOrderEvents((event) => {
       if (event.type === "order_created") {
         playNewOrderChime();
@@ -260,6 +291,9 @@ export default function AdminDashboard() {
 
     return () => {
       clearInterval(interval);
+      disconnectSSE();
+      cleanupVisibility();
+      stopHeartbeat();
       unsubscribe();
     };
   }, [loadAll, fetchOrders]);
@@ -580,14 +614,18 @@ export default function AdminDashboard() {
                             {nextInfo && (
                               <button
                                 type="button"
-                                onClick={() =>
+                                onClick={() => {
+                                  if (nextInfo.targetStatus === "delivering") {
+                                    setOrderToDispatch(order);
+                                    return;
+                                  }
                                   setAdvanceModal({
                                     orderId: order.id,
                                     targetStatus: nextInfo.targetStatus,
                                     targetLabel: nextInfo.targetLabel,
                                     description: nextInfo.description,
-                                  })
-                                }
+                                  });
+                                }}
                                 title={`Avançar para: ${nextInfo.targetLabel}`}
                                 className="p-1.5 rounded-lg bg-primary text-white hover:bg-[#7b05ad] active:scale-95 transition-all shadow-xs flex items-center justify-center"
                               >
@@ -1238,6 +1276,16 @@ export default function AdminDashboard() {
         onOpenChange={setEditBannerModalOpen}
         currentBanner={highlightBanner}
         onSaved={(updated) => setHighlightBanner(updated)}
+      />
+
+      {/* Modal de Despacho Logístico com Entregador/GPS */}
+      <OrderDispatchDialog
+        order={orderToDispatch}
+        isOpen={!!orderToDispatch}
+        onClose={() => setOrderToDispatch(null)}
+        onDispatched={() => {
+          fetchOrders();
+        }}
       />
 
       {/* Modal Explicativo de Confirmação de Avanço de Pedido */}

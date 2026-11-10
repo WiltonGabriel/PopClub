@@ -125,5 +125,33 @@ describe("shiftService (Gestão de Turnos e Expediente Operacional)", () => {
         expect(err.pendingOrders).toEqual(["PED-01", "PED-02"]);
       }
     });
+
+    it("envia payload de contingência (forceClose, forceReason, resolveAction) quando solicitado", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true, summary: {} }),
+      } as Response);
+
+      const result = await shiftService.closeShift({
+        forceClose: true,
+        forceReason: "Queda de energia elétrica no bairro",
+        resolveAction: "cancel",
+      });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/shifts",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            action: "close",
+            notes: undefined,
+            forceClose: true,
+            forceReason: "Queda de energia elétrica no bairro",
+            resolveAction: "cancel",
+          }),
+        })
+      );
+      expect(result.success).toBe(true);
+    });
   });
 });

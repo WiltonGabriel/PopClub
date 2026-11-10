@@ -26,7 +26,12 @@ import {
   UserDossier,
   CustomRoleItem,
 } from "@/services/adminUserService";
-import { loyaltyBadgeService, LoyaltyBadgeConfig, DEFAULT_LOYALTY_BADGES } from "@/services/loyaltyBadgeService";
+import {
+  loyaltyBadgeService,
+  LoyaltyBadgeConfig,
+  DEFAULT_LOYALTY_BADGES,
+  formatLoyaltyBadgeRequirement,
+} from "@/services/loyaltyBadgeService";
 import {
   PERMISSION_DEFINITIONS,
   DEFAULT_EDITOR_PERMISSIONS,
@@ -191,8 +196,7 @@ export function UsersManagementSection() {
 
       let minOrders: number | undefined;
       let maxOrders: number | undefined;
-      let minMonths: number | undefined;
-      let maxMonths: number | undefined;
+      let loyaltyBadgeLevel: number | undefined;
 
       if (profileLoyalty === "recurrent") {
         minOrders = 3;
@@ -202,17 +206,9 @@ export function UsersManagementSection() {
       } else if (profileLoyalty === "inactive") {
         maxOrders = 0;
       } else if (profileLoyalty.startsWith("badge_")) {
-        const badgeLevel = parseInt(profileLoyalty.replace("badge_", ""), 10);
-        const badge = loyaltyBadges.find(b => b.level === badgeLevel);
-        if (badge) {
-           minMonths = badge.minMonths;
-           // Find next badge to set maxMonths (so we strictly filter this tier)
-           const nextBadge = [...loyaltyBadges]
-              .sort((a, b) => a.minMonths - b.minMonths)
-              .find(b => b.minMonths > badge.minMonths);
-           if (nextBadge) {
-              maxMonths = nextBadge.minMonths; // upper bound is exclusive conceptually, but lte on API
-           }
+        const parsedLevel = parseInt(profileLoyalty.replace("badge_", ""), 10);
+        if (!Number.isNaN(parsedLevel)) {
+          loyaltyBadgeLevel = parsedLevel;
         }
       }
 
@@ -225,8 +221,7 @@ export function UsersManagementSection() {
         status: statusFilter,
         minOrders,
         maxOrders,
-        minMonths,
-        maxMonths
+        loyaltyBadgeLevel,
       });
       setUsers(res.users);
       setTotalPages(res.pagination.totalPages || 1);
@@ -792,7 +787,7 @@ interface FilterTabItem {
               <optgroup label="Selos de Fidelidade (Clientes)">
                 {loyaltyBadges.map(b => (
                   <option key={`badge_${b.level}`} value={`badge_${b.level}`}>
-                    {b.icon} {b.name} ({b.minMonths}m{b.minMonths === 0 ? '' : '+'})
+                    {b.icon} {b.name} ({formatLoyaltyBadgeRequirement(b)})
                   </option>
                 ))}
               </optgroup>

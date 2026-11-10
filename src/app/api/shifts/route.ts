@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
 import { hasPermission } from "@/lib/permissions";
+import { serverOrderEventManager } from "@/lib/serverOrderEvents";
+import { restoreOrderInventoryAndCoupons } from "@/services/orderRefundService";
 
 export async function GET(request: Request) {
   try {
@@ -200,9 +202,23 @@ export async function POST(request: Request) {
         },
         select: {
           id: true,
+          userId: true,
+          couponId: true,
           status: true,
           totalAmount: true,
           createdAt: true,
+          items: {
+            select: {
+              productId: true,
+              quantity: true,
+              promotionId: true,
+              product: {
+                select: {
+                  stock: true,
+                },
+              },
+            },
+          },
           user: {
             select: {
               fullName: true,
@@ -228,19 +244,44 @@ export async function POST(request: Request) {
             );
           }
 
-          // Se solicitado cancelamento das pendências, atualiza
+          // Se solicitado cancelamento das pendências, cancela com estorno atômico de estoque/cupons
           if (resolveAction === "cancel") {
-            await prisma.order.updateMany({
-              where: {
-                id: { in: pendingOrders.map((p) => p.id) },
-                status: { notIn: ["completed", "cancelled"] },
-              },
-              data: {
-                status: "cancelled",
-                cancellationReason: `Fechamento Forçado: ${cleanReason}`,
-                cancelledAt: now,
-              },
+            const cancelledOrdersForEvent: { id: string; userId: string | null }[] = [];
+
+            await prisma.$transaction(async (tx) => {
+              for (const pendingOrder of pendingOrders) {
+                const cancelRes = await tx.order.updateMany({
+                  where: {
+                    id: pendingOrder.id,
+                    status: { notIn: ["completed", "cancelled"] },
+                  },
+                  data: {
+                    status: "cancelled",
+                    cancellationReason: `Fechamento Forçado: ${cleanReason}`,
+                    cancelledAt: now,
+                  },
+                });
+
+                if (cancelRes.count > 0) {
+                  await restoreOrderInventoryAndCoupons(tx, pendingOrder);
+                  cancelledOrdersForEvent.push({
+                    id: pendingOrder.id,
+                    userId: pendingOrder.userId ?? null,
+                  });
+                }
+              }
             });
+
+            for (const cancelledOrder of cancelledOrdersForEvent) {
+              serverOrderEventManager.emit({
+                type: "order_cancelled",
+                orderId: cancelledOrder.id,
+                userId: cancelledOrder.userId,
+                status: "cancelled",
+                order: { id: cancelledOrder.id, status: "cancelled" },
+                timestamp: Date.now(),
+              });
+            }
           }
         } else {
           const inboxCount = pendingOrders.filter((o) => o.status === "pending").length;

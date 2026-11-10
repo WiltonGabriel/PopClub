@@ -265,6 +265,24 @@ export function OrderAcceptDialog({
               </span>
             )}
           </div>
+
+          {order.items?.some((it) => Boolean(it.notes?.trim())) && (
+            <div className="pt-2 border-t border-gray-200/70 dark:border-border/30 space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 block">
+                Observações da Cozinha
+              </span>
+              {order.items
+                .filter((it) => Boolean(it.notes?.trim()))
+                .map((it) => (
+                  <p
+                    key={it.id}
+                    className="text-[11px] text-amber-900 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 rounded-lg px-2 py-1"
+                  >
+                    <strong>{it.quantity}x {it.product?.name || "Item"}:</strong> {it.notes}
+                  </p>
+                ))}
+            </div>
+          )}
         </div>
 
         {/* Seção de Tempo Estimado de Entrega */}

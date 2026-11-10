@@ -8,6 +8,7 @@ import { hasPermission } from "@/lib/permissions";
 import { formatOrder } from "@/lib/orderFormat";
 import { orderLookupLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
 import { serverOrderEventManager } from "@/lib/serverOrderEvents";
+import { restoreOrderInventoryAndCoupons } from "@/services/orderRefundService";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -361,7 +362,17 @@ export async function PATCH(request: Request) {
     if (body.courierCode) {
       dataToUpdate.courierCode = sanitizeText(String(body.courierCode));
     }
-    if (body.orderPin) {
+    if (status === "completed" && existingOrder.orderPin && body.orderPin !== undefined && !body.bypassPin) {
+      const providedPin = sanitizeText(String(body.orderPin)).trim().toUpperCase();
+      const expectedPin = existingOrder.orderPin.trim().toUpperCase();
+      if (!providedPin || providedPin !== expectedPin) {
+        return apiError(
+          "PIN do pedido incorreto. Solicite o código de 4 dígitos ao cliente ou ao entregador.",
+          400,
+          "INVALID_ORDER_PIN"
+        );
+      }
+    } else if (body.orderPin && !existingOrder.orderPin) {
       dataToUpdate.orderPin = sanitizeText(String(body.orderPin));
     }
 
@@ -381,43 +392,7 @@ export async function PATCH(request: Request) {
             throw new Error("CONCURRENT_STATUS_UPDATE");
           }
 
-          // 1. Restaura estoque dos produtos físicos cancelados
-          for (const it of existingOrder.items || []) {
-            if (it.product && it.product.stock !== null) {
-              await tx.product.update({
-                where: { id: it.productId },
-                data: { stock: { increment: it.quantity } },
-              });
-            }
-
-            // 2. Restaura cotas de lote em promoções de escassez
-            if (it.promotionId) {
-              await tx.$executeRaw`
-                UPDATE promotions
-                SET scarcity_sold = GREATEST(0, scarcity_sold - ${it.quantity}),
-                    scarcity_units = scarcity_units + ${it.quantity}
-                WHERE id = ${it.promotionId} AND scarcity_units IS NOT NULL
-              `;
-            }
-          }
-
-          // 3. Restaura utilização de cupom e libera cupom de uso único (oncePerUser)
-          if (existingOrder.couponId) {
-            await tx.coupon.updateMany({
-              where: { id: existingOrder.couponId, uses: { gt: 0 } },
-              data: { uses: { decrement: 1 } },
-            });
-
-            await tx.couponRedemption.deleteMany({
-              where: {
-                couponId: existingOrder.couponId,
-                OR: [
-                  { orderId: existingOrder.id },
-                  ...(existingOrder.userId ? [{ userId: existingOrder.userId }] : []),
-                ],
-              },
-            });
-          }
+          await restoreOrderInventoryAndCoupons(tx, existingOrder);
         });
       } catch (txErr: any) {
         if (txErr?.message === "CONCURRENT_STATUS_UPDATE") {

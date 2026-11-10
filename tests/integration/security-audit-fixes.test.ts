@@ -340,6 +340,15 @@ describe("Auditoria de Segurança — Validação das Correções Anti-Vulnerabi
         passwordHash: null,
         tokenVersion: 1,
       } as any);
+      vi.spyOn(prisma.user, "update").mockResolvedValue({
+        id: "guest-user-without-coords",
+        fullName: "Cliente Teste",
+        phone: "65999881122",
+        role: "CLIENT" as any,
+        isRegistered: false,
+        passwordHash: null,
+        tokenVersion: 1,
+      } as any);
 
       const req = new Request("http://localhost:3000/api/checkout", {
         method: "POST",

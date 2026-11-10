@@ -1,4 +1,5 @@
 import { getAuthUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import { serverOrderEventManager } from "@/lib/serverOrderEvents";
 
 export const dynamic = "force-dynamic";
@@ -26,12 +27,17 @@ export async function GET(request: Request) {
       );
 
       // 2. Inscrição no canal de eventos em tempo real
+      const hasStaffOrderAccess =
+        hasPermission(authUser, "ORDERS_KANBAN") ||
+        hasPermission(authUser, "ORDERS_HISTORY") ||
+        hasPermission(authUser, "METRICS_VIEW");
+
       unsubscribe = serverOrderEventManager.subscribe((event) => {
         const isMatch =
           Boolean(orderId && event.orderId === orderId) ||
           Boolean(authUser?.id && event.userId === authUser.id) ||
           Boolean(guestOrderIds.length > 0 && guestOrderIds.includes(event.orderId)) ||
-          Boolean(authUser && ["admin", "manager"].includes(authUser.role || ""));
+          hasStaffOrderAccess;
 
         if (isMatch) {
           try {

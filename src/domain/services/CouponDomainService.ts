@@ -26,6 +26,7 @@ export interface CouponEligibilityParams {
   userBadgeLevel?: number;
   userBadgeId?: string;
   requiredBadgeName?: string;
+  requiredBadgeLevel?: number;
   hasPriorUsage?: boolean;
   cartProductIds?: string[];
   referenceDate?: Date;
@@ -46,6 +47,7 @@ export class CouponDomainService {
       userBadgeLevel,
       userBadgeId,
       requiredBadgeName = "VIP",
+      requiredBadgeLevel,
       hasPriorUsage = false,
       cartProductIds = [],
       referenceDate = new Date(),
@@ -89,15 +91,20 @@ export class CouponDomainService {
       );
     }
 
-    // 4. Nível Mínimo de Fidelidade / Selo (avaliado por nível de selo, meses de conta ou compras concluídas)
+    // 4. Nível Mínimo de Fidelidade / Selo (avaliado pelo selo resolvido ou fallback legado em testes diretos)
     if (coupon.minLoyaltyLevel || coupon.loyaltyBadgeId) {
-      const requiredLevel = coupon.minLoyaltyLevel || 0;
-      const passedByLevel = userBadgeLevel !== undefined && userBadgeLevel >= requiredLevel;
+      const requiredLevel = requiredBadgeLevel ?? coupon.minLoyaltyLevel ?? 0;
       const passedByBadgeId = Boolean(coupon.loyaltyBadgeId && userBadgeId && userBadgeId === coupon.loyaltyBadgeId);
-      const passedByMonths = userMonths >= requiredLevel;
-      const passedByOrders = completedOrdersCount > 0 && completedOrdersCount >= requiredLevel;
 
-      const isEligible = passedByLevel || passedByBadgeId || passedByMonths || passedByOrders;
+      let isEligible = false;
+      if (userBadgeLevel !== undefined) {
+        const passedByLevel = requiredLevel > 0 ? userBadgeLevel >= requiredLevel : false;
+        isEligible = passedByLevel || passedByBadgeId;
+      } else {
+        const passedByMonths = userMonths >= requiredLevel;
+        const passedByOrders = completedOrdersCount > 0 && completedOrdersCount >= requiredLevel;
+        isEligible = passedByBadgeId || passedByMonths || passedByOrders;
+      }
       if (!isEligible) {
         throw new InvalidCouponException(
           coupon.code,
