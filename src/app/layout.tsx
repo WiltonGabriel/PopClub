@@ -13,6 +13,7 @@ import { OrderProvider } from "@/contexts/OrderContext";
 import { ToastProvider } from "@/components/ui/ToastNotification";
 import { AddressModal } from "@/components/storefront/AddressModal";
 import { CookieConsentBanner } from "@/components/ui/CookieConsentBanner";
+import { InstallPwaBanner } from "@/components/ui/InstallPwaBanner";
 import { GlobalBackgroundSync } from "@/components/ui/GlobalBackgroundSync";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk", display: "swap" });
@@ -24,18 +25,31 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#8B5CF6" },
+    { media: "(prefers-color-scheme: dark)", color: "#0B0F19" },
+  ],
 };
 
 export const metadata: Metadata = {
   title: "Pop Shake Sorveteria",
   description: "Cardápio Digital e Delivery Oficial da Pop Shake Sorveteria",
+  applicationName: "Pop Shake",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Pop Shake",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
     icon: [
       { url: "/icon.png?v=2" },
       { url: "/favicon.ico?v=2" },
     ],
     shortcut: "/icon.png?v=2",
-    apple: "/icon.png?v=2",
+    apple: "/apple-icon.png?v=2",
   },
 };
 
@@ -89,6 +103,7 @@ export default function RootLayout({
                         {children}
                         <AddressModal />
                         <CookieConsentBanner />
+                        <InstallPwaBanner />
                       </OrderProvider>
                     </AddressProvider>
                   </CartProvider>
