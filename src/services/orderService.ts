@@ -9,6 +9,7 @@ export interface OrderItem {
   product_id: string;
   quantity: number;
   price_at_time: number;
+  notes?: string | null;
   selected_addons?: Array<{
     id: string;
     name: string;
@@ -108,6 +109,7 @@ export interface CheckoutPayload {
     productId: string;
     quantity: number;
     promotionId?: string | null;
+    notes?: string | null;
     selectedAddons?: Array<{
       id: string;
       name?: string | null;

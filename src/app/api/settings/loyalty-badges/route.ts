@@ -64,22 +64,40 @@ export async function PUT(request: Request) {
       const name = String(b.name || `Selo Nível ${level}`).trim();
       const icon = String(b.icon || "🌟").trim();
       const minMonths = Math.max(0, parseInt(String(b.minMonths ?? 0), 10) || 0);
+      const minOrders = Math.max(0, parseInt(String(b.minOrders ?? 0), 10) || 0);
+      const criteriaMode =
+        b.criteriaMode === "orders" || b.criteriaMode === "months" || b.criteriaMode === "both"
+          ? b.criteriaMode
+          : "either";
 
       // Classes visuais automáticas caso não venha definida
       let badgeClass = b.badgeClass;
       if (!badgeClass) {
-        if (minMonths === 0) {
+        if (minMonths === 0 && minOrders === 0) {
           badgeClass = "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30";
-        } else if (minMonths <= 3) {
+        } else if (minMonths <= 3 || minOrders <= 5) {
           badgeClass = "bg-amber-700/10 text-amber-800 dark:text-amber-300 border-amber-700/30";
-        } else if (minMonths <= 8) {
+        } else if (minMonths <= 8 || minOrders <= 15) {
           badgeClass = "bg-slate-200/70 text-slate-800 dark:bg-slate-800/80 dark:text-slate-200 border-slate-300 dark:border-slate-700";
-        } else if (minMonths <= 18) {
+        } else if (minMonths <= 18 || minOrders <= 30) {
           badgeClass = "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40 shadow-xs";
-        } else if (minMonths <= 30) {
+        } else if (minMonths <= 30 || minOrders <= 50) {
           badgeClass = "bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 border-cyan-500/40 shadow-xs";
         } else {
           badgeClass = "bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-500/40 shadow-xs";
+        }
+      }
+
+      let description = b.description;
+      if (!description) {
+        if (minMonths > 0 && minOrders > 0) {
+          description = `A partir de ${minOrders} pedidos ou ${minMonths} meses`;
+        } else if (minOrders > 0) {
+          description = `A partir de ${minOrders} pedidos concluídos`;
+        } else if (minMonths > 0) {
+          description = `A partir de ${minMonths} meses de conta`;
+        } else {
+          description = "Novo membro";
         }
       }
 
@@ -89,7 +107,9 @@ export async function PUT(request: Request) {
         name,
         icon,
         minMonths,
-        description: b.description || (minMonths === 0 ? "Novo membro" : `A partir de ${minMonths} meses`),
+        minOrders,
+        criteriaMode,
+        description,
         badgeClass,
       };
     });

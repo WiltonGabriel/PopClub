@@ -39,6 +39,7 @@ const checkoutSchema = z.object({
       productId: z.string().min(1, "ID do produto inválido"),
       quantity: z.number().int().positive("A quantidade deve ser maior que zero"),
       promotionId: z.string().optional().nullable(),
+      notes: z.string().trim().max(300, "Observação muito longa (máximo 300 caracteres)").optional().nullable(),
       selectedAddons: z.array(
         z.object({
           id: z.string(),
@@ -370,6 +371,7 @@ export async function POST(request: Request) {
     const dbAddonsMap = new Map(dbAddons.map((a) => [a.id, a]));
 
     let calculatedSubtotal = 0;
+    let nonComboSubtotal = 0;
     let promoDiscountTotal = 0;
     let hasCombosInCart = false;
 
@@ -378,6 +380,7 @@ export async function POST(request: Request) {
       quantity: number;
       priceAtTime: number;
       promotionId: string | null;
+      notes: string | null;
       selectedAddons: Array<{
         id: string;
         name: string;
@@ -532,13 +535,18 @@ export async function POST(request: Request) {
 
       promoDiscountTotal += promoDiscountOnProduct * item.quantity;
       const unitPrice = effectiveBasePrice + addonsTotalPerUnit;
-      calculatedSubtotal += (baseOriginalPrice + addonsTotalPerUnit) * item.quantity;
+      const itemSubtotal = (baseOriginalPrice + addonsTotalPerUnit) * item.quantity;
+      calculatedSubtotal += itemSubtotal;
+      if (!product.isCombo) {
+        nonComboSubtotal += itemSubtotal;
+      }
 
       validatedOrderItems.push({
         productId: product.id,
         quantity: item.quantity,
         priceAtTime: unitPrice,
         promotionId: item.promotionId || null,
+        notes: item.notes && item.notes.trim() ? sanitizeText(item.notes.trim()) : null,
         selectedAddons: finalSelectedAddons && finalSelectedAddons.length > 0 ? finalSelectedAddons : null,
       });
     }
@@ -549,33 +557,33 @@ export async function POST(request: Request) {
     let validCouponCode: string | null = null;
 
     if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
-      if (!targetIsRegistered) {
-        return NextResponse.json(
-          {
-            error: "🏷️ Cupom indisponível: Descontos e cupons são exclusivos para clientes com cadastro completo. Complete seu cadastro para aplicar este cupom.",
-            code: "COUPON_REQUIRES_REGISTRATION",
-          },
-          { status: 403 }
-        );
-      }
-
       const cleanCode = couponCode.trim().toUpperCase();
       const coupon: DBCoupon | null = await prisma.coupon.findUnique({
         where: { code: cleanCode },
       });
 
-      // Regra de Double-Dipping: Proibir cupons globais em carrinhos que já contenham Combos Promocionais
-      if (hasCombosInCart && coupon?.discountType === "percentage" && (!coupon.productIds || coupon.productIds.length === 0)) {
-        throw new InvalidCouponException(
-          cleanCode,
-          "Este cupom não pode ser acumulado com pedidos que contenham Combos Promocionais.",
-          { code: "COUPON_NOT_ALLOWED_WITH_COMBOS" }
-        );
+      // Identificação de fidelidade e histórico de pedidos para elegibilidade
+      let userMonths = 0;
+      let completedOrdersCount = 0;
+      let requiredBadgeName = "VIP";
+
+      if (targetUserId) {
+        const [dbUser, ordersCount] = await Promise.all([
+          prisma.user.findUnique({
+            where: { id: targetUserId },
+            select: { createdAt: true, isRegistered: true },
+          }),
+          prisma.order.count({
+            where: { userId: targetUserId, status: "completed" },
+          }),
+        ]);
+
+        if (dbUser?.createdAt) {
+          userMonths = calculateAccountAgeMonths(dbUser.createdAt);
+        }
+        completedOrdersCount = ordersCount;
       }
 
-      // Identificação de fidelidade
-      let userMonths = 0;
-      let requiredBadgeName = "VIP";
       if (coupon?.minLoyaltyLevel || coupon?.loyaltyBadgeId) {
         const record = await prisma.notificationTemplate.findFirst({
           where: { category: "loyalty_badges" },
@@ -595,14 +603,6 @@ export async function POST(request: Request) {
             (coupon.minLoyaltyLevel && b.level === coupon.minLoyaltyLevel)
         );
         requiredBadgeName = requiredBadge?.name || "VIP";
-
-        const dbUser = await prisma.user.findUnique({
-          where: { id: targetUserId },
-          select: { createdAt: true, isRegistered: true },
-        });
-        if (dbUser?.createdAt) {
-          userMonths = calculateAccountAgeMonths(dbUser.createdAt);
-        }
       }
 
       // Identificação de uso prévio
@@ -644,6 +644,7 @@ export async function POST(request: Request) {
         subtotal: calculatedSubtotal,
         isRegisteredUser: targetIsRegistered,
         userMonths,
+        completedOrdersCount,
         requiredBadgeName,
         hasPriorUsage,
         cartProductIds,
@@ -651,7 +652,9 @@ export async function POST(request: Request) {
 
       validCouponId = coupon!.id;
       validCouponCode = coupon!.code;
-      couponDiscount = CouponDomainService.calculateDiscount(coupon!, calculatedSubtotal);
+      couponDiscount = CouponDomainService.calculateDiscount(coupon!, calculatedSubtotal, {
+        eligibleSubtotal: hasCombosInCart && nonComboSubtotal > 0 ? nonComboSubtotal : calculatedSubtotal,
+      });
     }
 
     // Validação de Raio Geográfico (Haversine) para pedidos de Entrega
@@ -823,6 +826,7 @@ export async function POST(request: Request) {
               quantity: oi.quantity,
               priceAtTime: oi.priceAtTime,
               promotionId: oi.promotionId,
+              notes: oi.notes || null,
               selectedAddons: oi.selectedAddons ? oi.selectedAddons : undefined,
             })),
           },

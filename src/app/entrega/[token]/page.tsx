@@ -107,6 +107,7 @@ export default function CourierDeliveryPage({
   // Estados de Conclusão e Compartilhamento
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [deliveryPinInput, setDeliveryPinInput] = useState("");
   const [isCompletedSuccess, setIsCompletedSuccess] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [copiedDeliveryLink, setCopiedDeliveryLink] = useState(false);
@@ -236,6 +237,8 @@ export default function CourierDeliveryPage({
     try {
       const res = await fetch(`/api/delivery/${token}/complete`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: deliveryPinInput.trim() }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -732,6 +735,27 @@ export default function CourierDeliveryPage({
             <p className={`text-xs leading-relaxed ${isLightMode ? "text-slate-600" : "text-gray-300"}`}>
               Você confirma que o pedido foi entregue ao cliente <strong>{client.name}</strong> e o pagamento foi conferido?
             </p>
+
+            <div className="pt-2 text-left space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block text-center">
+                Código PIN do Cliente (4 dígitos)
+              </label>
+              <input
+                type="text"
+                maxLength={6}
+                value={deliveryPinInput}
+                onChange={(e) => setDeliveryPinInput(e.target.value.toUpperCase())}
+                placeholder="Ex: 4821"
+                className={`w-full text-center text-xl font-mono font-black tracking-widest uppercase py-2.5 px-3 rounded-xl border outline-none transition-all ${
+                  isLightMode
+                    ? "bg-slate-100 border-slate-300 focus:border-primary text-slate-900"
+                    : "bg-white/10 border-white/20 focus:border-primary text-white"
+                }`}
+              />
+              <p className="text-[10px] text-muted-foreground text-center">
+                Peça ao cliente o código exibido na tela de rastreamento dele.
+              </p>
+            </div>
 
             <div className="grid grid-cols-2 gap-2 pt-2">
               <Button

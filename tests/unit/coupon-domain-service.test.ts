@@ -85,20 +85,35 @@ describe("CouponDomainService (Regras Puras de Domínio de Cupons)", () => {
     }).toThrowError(/Limite de utilizações deste cupom atingido/);
   });
 
-  it("lança InvalidCouponException para usuários visitantes sem cadastro completo", () => {
+  it("lança InvalidCouponException para usuários visitantes sem cadastro completo quando cupom exige cadastro", () => {
+    const couponRequiringRegistration: CouponModel = {
+      ...baseValidCoupon,
+      requiresRegistration: true,
+    };
+
     expect(() => {
       CouponDomainService.validateEligibility({
-        coupon: baseValidCoupon,
+        coupon: couponRequiringRegistration,
         subtotal: 50.0,
         isRegisteredUser: false,
       });
     }).toThrowError(/exclusivos para clientes com cadastro completo/);
   });
 
+  it("permite usuários de acesso rápido (visitantes) utilizarem cupons padrão que não exigem cadastro", () => {
+    expect(() => {
+      CouponDomainService.validateEligibility({
+        coupon: baseValidCoupon,
+        subtotal: 50.0,
+        isRegisteredUser: false,
+      });
+    }).not.toThrow();
+  });
+
   it("lança InvalidCouponException quando o nível de fidelidade/meses é insuficiente", () => {
     const loyaltyCoupon: CouponModel = {
       ...baseValidCoupon,
-      minLoyaltyLevel: 6, // Exige 6 meses
+      minLoyaltyLevel: 6, // Exige 6 meses ou nível 6
     };
 
     expect(() => {
@@ -107,9 +122,43 @@ describe("CouponDomainService (Regras Puras de Domínio de Cupons)", () => {
         subtotal: 50.0,
         isRegisteredUser: true,
         userMonths: 2, // Apenas 2 meses
+        completedOrdersCount: 1, // Poucas compras
         requiredBadgeName: "Ouro",
       });
     }).toThrowError(/exclusivo para clientes com selo Ouro/);
+  });
+
+  it("aprova cupom de fidelidade quando o usuário atinge o critério por compras concluídas", () => {
+    const loyaltyCoupon: CouponModel = {
+      ...baseValidCoupon,
+      minLoyaltyLevel: 5,
+    };
+
+    expect(() => {
+      CouponDomainService.validateEligibility({
+        coupon: loyaltyCoupon,
+        subtotal: 50.0,
+        isRegisteredUser: true,
+        userMonths: 0, // Conta nova criada hoje
+        completedOrdersCount: 10, // Mas já fez 10 pedidos!
+        requiredBadgeName: "Cliente Fiel",
+      });
+    }).not.toThrow();
+  });
+
+  it("calcula desconto sobre eligibleSubtotal para conviver amigavelmente com combos promocionais", () => {
+    const pctCoupon: CouponModel = {
+      ...baseValidCoupon,
+      discountType: "percentage",
+      discountValue: 10, // 10%
+    };
+
+    // Subtotal total = R$ 100 (R$ 40 em combos promocionais e R$ 60 em itens elegíveis)
+    const discount = CouponDomainService.calculateDiscount(pctCoupon, 100.0, {
+      eligibleSubtotal: 60.0,
+    });
+    // 10% de R$ 60 = R$ 6.00
+    expect(discount).toBe(6.0);
   });
 
   it("lança InvalidCouponException quando o cupom é de uso único por cliente e já foi utilizado", () => {

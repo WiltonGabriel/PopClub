@@ -276,7 +276,9 @@ export async function PATCH(request: Request) {
     // Busca o pedido existente para validar autorização e integridade
     const existingOrder = await prisma.order.findUnique({
       where: { id: orderId },
-      select: { id: true, userId: true, status: true },
+      include: {
+        items: { include: { product: true } },
+      },
     });
 
     if (!existingOrder) {
@@ -359,31 +361,106 @@ export async function PATCH(request: Request) {
     }
 
     // Atualização com verificação atômica de concorrência (evita conflitos e race conditions)
-    const updateResult = await prisma.order.updateMany({
-      where: {
-        id: orderId,
-        status: existingOrder.status,
-      },
-      data: dataToUpdate,
-    });
+    if (status === "cancelled") {
+      try {
+        await prisma.$transaction(async (tx) => {
+          const updateResult = await tx.order.updateMany({
+            where: {
+              id: orderId,
+              status: existingOrder.status,
+            },
+            data: dataToUpdate,
+          });
 
-    if (updateResult.count === 0) {
-      // Outro operador ou chamada paralela alterou o status no mesmo instante
-      const freshOrder = await prisma.order.findUnique({
-        where: { id: orderId },
-        include: {
-          items: { include: { product: true } },
-          user: { select: { fullName: true, username: true, email: true, phone: true } },
-        },
-      });
-      if (freshOrder?.status === status) {
-        return apiSuccess(formatOrder(freshOrder));
+          if (updateResult.count === 0) {
+            throw new Error("CONCURRENT_STATUS_UPDATE");
+          }
+
+          // 1. Restaura estoque dos produtos físicos cancelados
+          for (const it of existingOrder.items || []) {
+            if (it.product && it.product.stock !== null) {
+              await tx.product.update({
+                where: { id: it.productId },
+                data: { stock: { increment: it.quantity } },
+              });
+            }
+
+            // 2. Restaura cotas de lote em promoções de escassez
+            if (it.promotionId) {
+              await tx.$executeRaw`
+                UPDATE promotions
+                SET scarcity_sold = GREATEST(0, scarcity_sold - ${it.quantity}),
+                    scarcity_units = scarcity_units + ${it.quantity}
+                WHERE id = ${it.promotionId} AND scarcity_units IS NOT NULL
+              `;
+            }
+          }
+
+          // 3. Restaura utilização de cupom e libera cupom de uso único (oncePerUser)
+          if (existingOrder.couponId) {
+            await tx.coupon.updateMany({
+              where: { id: existingOrder.couponId, uses: { gt: 0 } },
+              data: { uses: { decrement: 1 } },
+            });
+
+            await tx.couponRedemption.deleteMany({
+              where: {
+                couponId: existingOrder.couponId,
+                OR: [
+                  { orderId: existingOrder.id },
+                  ...(existingOrder.userId ? [{ userId: existingOrder.userId }] : []),
+                ],
+              },
+            });
+          }
+        });
+      } catch (txErr: any) {
+        if (txErr?.message === "CONCURRENT_STATUS_UPDATE") {
+          const freshOrder = await prisma.order.findUnique({
+            where: { id: orderId },
+            include: {
+              items: { include: { product: true } },
+              user: { select: { fullName: true, username: true, email: true, phone: true } },
+            },
+          });
+          if (freshOrder?.status === status) {
+            return apiSuccess(formatOrder(freshOrder));
+          }
+          return apiError(
+            "O pedido foi atualizado concorrentemente por outro operador.",
+            409,
+            "CONCURRENT_STATUS_UPDATE"
+          );
+        }
+        throw txErr;
       }
-      return apiError(
-        "O pedido foi atualizado concorrentemente por outro operador.",
-        409,
-        "CONCURRENT_STATUS_UPDATE"
-      );
+    } else {
+      const updateResult = await prisma.order.updateMany({
+        where: {
+          id: orderId,
+          status: existingOrder.status,
+        },
+        data: dataToUpdate,
+      });
+
+      if (updateResult.count === 0) {
+        // Outro operador ou chamada paralela alterou o status no mesmo instante
+        const freshOrder = await prisma.order.findUnique({
+          where: { id: orderId },
+          include: {
+            items: { include: { product: true } },
+            user: { select: { fullName: true, username: true, email: true, phone: true } },
+          },
+        });
+        if (freshOrder?.status === status) {
+          return apiSuccess(formatOrder(freshOrder));
+        }
+        return apiError(
+          "O pedido foi atualizado concorrentemente por outro operador.",
+          409,
+          "CONCURRENT_STATUS_UPDATE"
+        );
+      }
     }
 
     const updated = await prisma.order.findUnique({

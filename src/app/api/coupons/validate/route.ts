@@ -69,9 +69,28 @@ export async function POST(request: Request) {
     const authUser = await getAuthUser(request);
     const isRegisteredUser = Boolean(authUser?.isRegistered);
 
-    // Identificação de fidelidade caso o cupom exija selo
     let userMonths = 0;
+    let completedOrdersCount = 0;
     let requiredBadgeName = "VIP";
+
+    const effectiveUserId = authUser?.id || (typeof body.userId === "string" ? body.userId : undefined);
+    if (effectiveUserId) {
+      const [dbUser, ordersCount] = await Promise.all([
+        prisma.user.findUnique({
+          where: { id: effectiveUserId },
+          select: { createdAt: true, isRegistered: true },
+        }),
+        prisma.order.count({
+          where: { userId: effectiveUserId, status: "completed" },
+        }),
+      ]);
+
+      if (dbUser?.createdAt) {
+        userMonths = calculateAccountAgeMonths(dbUser.createdAt);
+      }
+      completedOrdersCount = ordersCount;
+    }
+
     if (coupon?.minLoyaltyLevel || coupon?.loyaltyBadgeId) {
       const record = await prisma.notificationTemplate.findFirst({
         where: { category: "loyalty_badges" },
@@ -92,16 +111,6 @@ export async function POST(request: Request) {
       );
 
       requiredBadgeName = requiredBadge?.name || "VIP";
-
-      if (authUser?.id) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: authUser.id },
-          select: { createdAt: true, isRegistered: true },
-        });
-        if (dbUser?.createdAt) {
-          userMonths = calculateAccountAgeMonths(dbUser.createdAt);
-        }
-      }
     }
 
     // Identificação de uso prévio caso seja oncePerUser
@@ -140,6 +149,7 @@ export async function POST(request: Request) {
       subtotal: numSubtotal,
       isRegisteredUser,
       userMonths,
+      completedOrdersCount,
       requiredBadgeName,
       hasPriorUsage,
       cartProductIds,

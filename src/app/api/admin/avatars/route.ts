@@ -2,9 +2,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { adminOperationsLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
 
 export async function GET(request: Request) {
   try {
+    const ip = getIpFromRequest(request);
+    const limitCheck = adminOperationsLimiter.check(ip);
+    if (!limitCheck.success) {
+      return createRateLimitResponse(limitCheck, "Muitas requisições. Aguarde um momento.");
+    }
+
     const user = await getAuthUser(request);
     if (!hasPermission(user, "theme_manage")) {
       return NextResponse.json({ error: "Acesso negado. Permissão para gerenciar identidade visual necessária." }, { status: 403 });
@@ -23,6 +30,12 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const ip = getIpFromRequest(request);
+    const limitCheck = adminOperationsLimiter.check(ip);
+    if (!limitCheck.success) {
+      return createRateLimitResponse(limitCheck, "Muitas requisições. Aguarde um momento.");
+    }
+
     const user = await getAuthUser(request);
     if (!hasPermission(user, "theme_manage")) {
       return NextResponse.json({ error: "Acesso negado. Permissão para gerenciar identidade visual necessária." }, { status: 403 });
@@ -40,7 +53,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Corpo da requisição inválido." }, { status: 400 });
     }
 
-    const { name, description, imageUrl, category, isActive, order } = body;
+    const { name, description, imageUrl, category, isActive, order, minMonths, minOrders } = body;
 
     if (!name || typeof name !== "string" || !name.trim()) {
       return NextResponse.json({ error: "O nome do avatar é obrigatório." }, { status: 400 });
@@ -57,6 +70,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "A imagem/SVG do avatar é obrigatória." }, { status: 400 });
     }
 
+    const numMinMonths = Math.max(0, parseInt(String(minMonths ?? 0), 10) || 0);
+    const numMinOrders = Math.max(0, parseInt(String(minOrders ?? 0), 10) || 0);
+
     const newAvatar = await prisma.avatarPreset.create({
       data: {
         name: name.trim(),
@@ -65,6 +81,8 @@ export async function POST(request: Request) {
         category: category ? category.trim() : "Oficial",
         isActive: typeof isActive === "boolean" ? isActive : true,
         order: typeof order === "number" ? order : 0,
+        minMonths: numMinMonths,
+        minOrders: numMinOrders,
       },
     });
 

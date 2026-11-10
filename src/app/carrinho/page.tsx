@@ -874,6 +874,7 @@ export default function CarrinhoPage() {
           productId: i.productId,
           quantity: i.quantity,
           promotionId: i.promotionId || null,
+          notes: i.notes ? i.notes.trim() : null,
           selectedAddons: i.selectedOptions && i.selectedOptions.length > 0 ? i.selectedOptions.map(opt => ({
             id: opt.id || opt.name, // Fallback to name if id is missing
             name: opt.name,

@@ -120,7 +120,7 @@ export async function POST(request: Request) {
       return apiError("Formato de requisição inválido ou corpo vazio.", 400);
     }
 
-    const { action, estimatedDeliveryTime, notes } = body;
+    const { action, estimatedDeliveryTime, notes, forceClose, forceReason, resolveAction } = body;
     const now = new Date();
 
     if (action === "open") {
@@ -215,35 +215,63 @@ export async function POST(request: Request) {
         },
       });
 
-      // BLOQUEIO TERMINANTE: Sem bypass acidental
+      // TRAVA DE SEGURANÇA: Valida se há pedidos em aberto na esteira
       if (pendingOrders.length > 0) {
-        const inboxCount = pendingOrders.filter((o) => o.status === "pending").length;
-        const preparingCount = pendingOrders.filter((o) => ["accepted", "preparing"].includes(o.status)).length;
-        const readyCount = pendingOrders.filter((o) => o.status === "ready").length;
-        const deliveringCount = pendingOrders.filter((o) => o.status === "delivering").length;
+        // Se a contingência de fechamento forçado for solicitada com justificativa
+        if (forceClose === true) {
+          const cleanReason = String(forceReason || "").trim();
+          if (cleanReason.length < 5) {
+            return apiError(
+              "Para forçar o encerramento do turno com pedidos pendentes, informe uma justificativa válida de contingência (mínimo 5 caracteres).",
+              400,
+              "FORCE_REASON_REQUIRED"
+            );
+          }
 
-        return NextResponse.json(
-          {
-            error: `Não é possível encerrar o turno agora. Existem ${pendingOrders.length} pedido(s) ativos na esteira.`,
-            code: "PENDING_ORDERS_ACTIVE",
-            pendingCount: pendingOrders.length,
-            breakdown: {
-              inbox: inboxCount,
-              preparing: preparingCount,
-              ready: readyCount,
-              delivering: deliveringCount,
+          // Se solicitado cancelamento das pendências, atualiza
+          if (resolveAction === "cancel") {
+            await prisma.order.updateMany({
+              where: {
+                id: { in: pendingOrders.map((p) => p.id) },
+                status: { notIn: ["completed", "cancelled"] },
+              },
+              data: {
+                status: "cancelled",
+                cancellationReason: `Fechamento Forçado: ${cleanReason}`,
+                cancelledAt: now,
+              },
+            });
+          }
+        } else {
+          const inboxCount = pendingOrders.filter((o) => o.status === "pending").length;
+          const preparingCount = pendingOrders.filter((o) => ["accepted", "preparing"].includes(o.status)).length;
+          const readyCount = pendingOrders.filter((o) => o.status === "ready").length;
+          const deliveringCount = pendingOrders.filter((o) => o.status === "delivering").length;
+
+          return NextResponse.json(
+            {
+              error: `Não é possível encerrar o turno agora. Existem ${pendingOrders.length} pedido(s) ativos na esteira.`,
+              code: "PENDING_ORDERS_ACTIVE",
+              canForceClose: true,
+              pendingCount: pendingOrders.length,
+              breakdown: {
+                inbox: inboxCount,
+                preparing: preparingCount,
+                ready: readyCount,
+                delivering: deliveringCount,
+              },
+              pendingOrders: pendingOrders.map((p) => ({
+                id: p.id,
+                shortId: p.id.substring(0, 6),
+                status: p.status,
+                totalAmount: Number(p.totalAmount),
+                clientName: p.user?.fullName || p.user?.username || "Cliente",
+                createdAt: p.createdAt.toISOString(),
+              })),
             },
-            pendingOrders: pendingOrders.map((p) => ({
-              id: p.id,
-              shortId: p.id.substring(0, 6),
-              status: p.status,
-              totalAmount: Number(p.totalAmount),
-              clientName: p.user?.fullName || p.user?.username || "Cliente",
-              createdAt: p.createdAt.toISOString(),
-            })),
-          },
-          { status: 400 }
-        );
+            { status: 400 }
+          );
+        }
       }
 
       // Calcula a conferência de caixa do turno atual
@@ -274,6 +302,10 @@ export async function POST(request: Request) {
         where: { id: "store_config" },
       });
 
+      const effectiveNotes = forceClose && forceReason
+        ? `${notes ? notes + " | " : ""}[FECHAMENTO FORÇADO]: ${String(forceReason).trim()}`
+        : (notes || null);
+
       let shiftRecord = null;
       if (settings?.currentShiftId) {
         shiftRecord = await prisma.shift.update({
@@ -288,7 +320,7 @@ export async function POST(request: Request) {
             cashTotal,
             pixTotal,
             cardTotal,
-            notes: notes || null,
+            notes: effectiveNotes,
           },
         });
       } else {
@@ -307,18 +339,22 @@ export async function POST(request: Request) {
             cashTotal,
             pixTotal,
             cardTotal,
-            notes: notes || null,
+            notes: effectiveNotes,
           },
         });
       }
 
-      // Arquiva os pedidos concluídos e cancelados da visão ativa do Kanban
+      // Arquiva os pedidos da visão ativa do Kanban
       await prisma.order.updateMany({
         where: {
           isArchived: false,
-          status: {
-            in: ["completed", "cancelled"],
-          },
+          ...(forceClose
+            ? {}
+            : {
+                status: {
+                  in: ["completed", "cancelled"],
+                },
+              }),
         },
         data: {
           isArchived: true,

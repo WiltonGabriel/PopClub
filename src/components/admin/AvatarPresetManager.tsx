@@ -28,6 +28,8 @@ export interface AvatarPreset {
   category: string | null;
   isActive: boolean;
   order: number;
+  minMonths?: number;
+  minOrders?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -59,6 +61,8 @@ export function AvatarPresetManager() {
   const [formImageUrl, setFormImageUrl] = useState("/avatars/avatar-sorvete.svg");
   const [formCategory, setFormCategory] = useState("Oficial");
   const [formOrder, setFormOrder] = useState(0);
+  const [formMinMonths, setFormMinMonths] = useState(0);
+  const [formMinOrders, setFormMinOrders] = useState(0);
   const [formIsActive, setFormIsActive] = useState(true);
 
   const { showToast } = useToast();
@@ -95,6 +99,8 @@ export function AvatarPresetManager() {
     setFormImageUrl("/avatars/avatar-sorvete.svg");
     setFormCategory("Oficial");
     setFormOrder(avatars.length + 1);
+    setFormMinMonths(0);
+    setFormMinOrders(0);
     setFormIsActive(true);
     setIsModalOpen(true);
   };
@@ -106,6 +112,8 @@ export function AvatarPresetManager() {
     setFormImageUrl(avatar.imageUrl);
     setFormCategory(avatar.category || "Oficial");
     setFormOrder(avatar.order);
+    setFormMinMonths(avatar.minMonths ?? 0);
+    setFormMinOrders(avatar.minOrders ?? 0);
     setFormIsActive(avatar.isActive);
     setIsModalOpen(true);
   };
@@ -197,6 +205,8 @@ export function AvatarPresetManager() {
         imageUrl: formImageUrl.trim(),
         category: formCategory.trim() || null,
         order: Number(formOrder),
+        minMonths: Number(formMinMonths),
+        minOrders: Number(formMinOrders),
         isActive: formIsActive,
       };
 
@@ -364,11 +374,22 @@ export function AvatarPresetManager() {
                   {avatar.description}
                 </p>
 
-                {avatar.category && (
-                  <span className="mt-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary dark:text-muted-foreground border border-primary/20">
-                    {avatar.category}
-                  </span>
-                )}
+                <div className="flex flex-wrap items-center justify-center gap-1.5 mt-2">
+                  {avatar.category && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary dark:text-muted-foreground border border-primary/20">
+                      {avatar.category}
+                    </span>
+                  )}
+                  {((avatar.minMonths ?? 0) > 0 || (avatar.minOrders ?? 0) > 0) ? (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                      🔒 {avatar.minOrders ? `${avatar.minOrders} pedidos` : ""}{avatar.minOrders && avatar.minMonths ? " ou " : ""}{avatar.minMonths ? `${avatar.minMonths}m de conta` : ""}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                      🌟 Livre
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Botões de Ação */}
@@ -585,6 +606,37 @@ export function AvatarPresetManager() {
                     onChange={(e) => setFormOrder(parseInt(e.target.value, 10) || 0)}
                     className="rounded-xl"
                   />
+                </div>
+              </div>
+
+              {/* Requisitos de Desbloqueio (Fidelidade por Meses e Compras) */}
+              <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-purple-500/5 border border-purple-500/20">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300">
+                    Meses de Conta (Mínimo)
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={formMinMonths}
+                    onChange={(e) => setFormMinMonths(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                    className="rounded-xl bg-white dark:bg-background"
+                  />
+                  <p className="text-[10px] text-muted-foreground">0 = liberado imediatamente</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300">
+                    Compras Feitas (Mínimo)
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={formMinOrders}
+                    onChange={(e) => setFormMinOrders(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                    className="rounded-xl bg-white dark:bg-background"
+                  />
+                  <p className="text-[10px] text-muted-foreground">0 = sem exigência de compras</p>
                 </div>
               </div>
 

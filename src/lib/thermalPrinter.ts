@@ -69,6 +69,11 @@ export function printOrderReceipt(order: Order, storeName = "Pop Shake Sorveteri
           ${item.product?.description ? `<div>${item.product.description}</div>` : ""}
         </div>
         ${addonsHtml}
+        ${
+          (item as any).notes
+            ? `<div style="font-size: 11px; font-weight: 900; color: #000; padding: 3px 6px; margin: 3px 0 3px 8px; border: 1px solid #000; background: #f0f0f0;">📝 OBS: ${(item as any).notes}</div>`
+            : ""
+        }
       </div>
     `;
     })

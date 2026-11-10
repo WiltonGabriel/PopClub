@@ -89,4 +89,25 @@ export class StockDomainService {
   public static isStandardInventoryProduct(product: { isCombo?: boolean; hasActivePromotion?: boolean }): boolean {
     return !product.isCombo && !product.hasActivePromotion;
   }
+
+  /**
+   * Calcula o novo estoque ao restaurar itens de um pedido cancelado.
+   */
+  public static calculateRestoredStock(currentStock: number, quantityToRestore: number): number {
+    return Math.max(0, currentStock + quantityToRestore);
+  }
+
+  /**
+   * Calcula a nova cota de lote ao restaurar promoção de um pedido cancelado.
+   */
+  public static calculateRestoredScarcity(
+    currentUnits: number,
+    currentSold: number,
+    quantityToRestore: number
+  ): { scarcityUnits: number; scarcitySold: number } {
+    return {
+      scarcityUnits: Math.max(0, currentUnits + quantityToRestore),
+      scarcitySold: Math.max(0, currentSold - quantityToRestore),
+    };
+  }
 }

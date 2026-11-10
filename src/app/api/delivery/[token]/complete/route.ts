@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
+import { getAuthUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 
 export async function POST(
   request: Request,
@@ -12,9 +14,16 @@ export async function POST(
       return apiError("Token de entrega não informado.", 400);
     }
 
+    let body: { pin?: string; bypassPin?: boolean } = {};
+    try {
+      body = await request.json();
+    } catch {
+      // Body vazio é tolerado caso venha requisição sem payload
+    }
+
     const existingOrder = await prisma.order.findUnique({
       where: { trackingToken: token },
-      select: { id: true, status: true },
+      select: { id: true, status: true, orderPin: true },
     });
 
     if (!existingOrder) {
@@ -30,6 +39,26 @@ export async function POST(
         success: true,
         message: "Este pedido já foi finalizado anteriormente.",
       });
+    }
+
+    // Validação estrita do PIN de Entrega (se configurado no pedido)
+    if (existingOrder.orderPin) {
+      const cleanInputPin = String(body.pin || "").trim().toUpperCase();
+      const expectedPin = existingOrder.orderPin.trim().toUpperCase();
+
+      if (cleanInputPin !== expectedPin) {
+        // Verifica se é um operador da loja (Admin/Staff) forçando a finalização
+        const authUser = await getAuthUser(request);
+        const isStaff = hasPermission(authUser, "ORDERS_KANBAN") || hasPermission(authUser, "ORDERS_HISTORY");
+
+        if (!isStaff || !body.bypassPin) {
+          return apiError(
+            "Código PIN de confirmação incorreto ou não informado. Solicite o código ao cliente para confirmar a entrega.",
+            400,
+            "INVALID_DELIVERY_PIN"
+          );
+        }
+      }
     }
 
     const updateResult = await prisma.order.updateMany({

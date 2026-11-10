@@ -172,6 +172,9 @@ export const orderLookupLimiter = new RateLimiter(60 * 1000, 40);
 // Uploads de Mídia / Arquivos: 20 uploads por minuto
 export const addonUploadLimiter = new RateLimiter(60 * 1000, 20);
 
+// Troca / Seleção de Avatares: 30 requisições por minuto
+export const avatarLimiter = new RateLimiter(60 * 1000, 30);
+
 // Operações Administrativas / CRUD do Lojista: 240 requisições por minuto (alta elasticidade para edições em lote)
 export const adminOperationsLimiter = new RateLimiter(60 * 1000, 240);
 export const addonCrudLimiter = adminOperationsLimiter;

@@ -10,6 +10,7 @@ export interface CouponModel {
   minLoyaltyLevel?: number | null;
   loyaltyBadgeId?: string | null;
   oncePerUser?: boolean;
+  requiresRegistration?: boolean;
   minOrderValue: unknown;
   discountType: "percentage" | "fixed" | string;
   discountValue: unknown;
@@ -21,6 +22,9 @@ export interface CouponEligibilityParams {
   subtotal: number;
   isRegisteredUser?: boolean;
   userMonths?: number;
+  completedOrdersCount?: number;
+  userBadgeLevel?: number;
+  userBadgeId?: string;
   requiredBadgeName?: string;
   hasPriorUsage?: boolean;
   cartProductIds?: string[];
@@ -38,6 +42,9 @@ export class CouponDomainService {
       subtotal,
       isRegisteredUser = false,
       userMonths = 0,
+      completedOrdersCount = 0,
+      userBadgeLevel,
+      userBadgeId,
       requiredBadgeName = "VIP",
       hasPriorUsage = false,
       cartProductIds = [],
@@ -73,8 +80,8 @@ export class CouponDomainService {
       );
     }
 
-    // 3. Exclusividade para Usuários Cadastrados
-    if (!isRegisteredUser) {
+    // 3. Exclusividade para Usuários Cadastrados (Apenas quando explicitamente configurado no cupom)
+    if (coupon.requiresRegistration && !isRegisteredUser) {
       throw new InvalidCouponException(
         coupon.code,
         "🏷️ Cupom indisponível: Descontos e cupons são exclusivos para clientes com cadastro completo.",
@@ -82,10 +89,16 @@ export class CouponDomainService {
       );
     }
 
-    // 4. Nível Mínimo de Fidelidade / Selo
+    // 4. Nível Mínimo de Fidelidade / Selo (avaliado por nível de selo, meses de conta ou compras concluídas)
     if (coupon.minLoyaltyLevel || coupon.loyaltyBadgeId) {
-      const requiredMonths = coupon.minLoyaltyLevel || 0;
-      if (userMonths < requiredMonths) {
+      const requiredLevel = coupon.minLoyaltyLevel || 0;
+      const passedByLevel = userBadgeLevel !== undefined && userBadgeLevel >= requiredLevel;
+      const passedByBadgeId = Boolean(coupon.loyaltyBadgeId && userBadgeId && userBadgeId === coupon.loyaltyBadgeId);
+      const passedByMonths = userMonths >= requiredLevel;
+      const passedByOrders = completedOrdersCount > 0 && completedOrdersCount >= requiredLevel;
+
+      const isEligible = passedByLevel || passedByBadgeId || passedByMonths || passedByOrders;
+      if (!isEligible) {
         throw new InvalidCouponException(
           coupon.code,
           `Este cupom é exclusivo para clientes com selo ${requiredBadgeName} ou superior.`,
@@ -93,7 +106,8 @@ export class CouponDomainService {
             code: "COUPON_REQUIRES_LOYALTY_BADGE",
             requiredBadge: requiredBadgeName,
             userMonths,
-            requiredMonths,
+            requiredMonths: requiredLevel,
+            completedOrdersCount,
           }
         );
       }
@@ -145,16 +159,24 @@ export class CouponDomainService {
 
   /**
    * Cálculo matemático puro do valor do desconto concedido pelo cupom.
+   * Suporta subtotal específico elegível (para evitar descontos excessivos em combos sem barrar o pedido).
    */
-  public static calculateDiscount(coupon: CouponModel, subtotal: number): number {
+  public static calculateDiscount(
+    coupon: CouponModel,
+    subtotal: number,
+    options?: { eligibleSubtotal?: number }
+  ): number {
     const rawValue = Number(coupon.discountValue || 0);
     if (rawValue <= 0 || subtotal <= 0) return 0;
 
+    const baseAmount = options?.eligibleSubtotal !== undefined ? options.eligibleSubtotal : subtotal;
+    if (baseAmount <= 0) return 0;
+
     let discount = 0;
     if (coupon.discountType === "percentage") {
-      discount = (subtotal * rawValue) / 100;
+      discount = (baseAmount * rawValue) / 100;
     } else {
-      discount = Math.min(rawValue, subtotal);
+      discount = Math.min(rawValue, baseAmount);
     }
 
     return Math.max(0, Number(discount.toFixed(2)));

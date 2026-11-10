@@ -364,6 +364,7 @@ model OrderItem {
   priceAtTime Decimal  @db.Decimal(10, 2) @map("price_at_time")
   promotionId String?  @map("promotion_id")
   selectedAddons Json? @map("selected_addons") // Historiza os addons pagos naquele momento
+  notes       String?  @map("notes")
   createdAt   DateTime @default(now()) @map("created_at")
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product     Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
@@ -499,6 +500,8 @@ model AvatarPreset {
   category    String?  @default("Oficial")
   isActive    Boolean  @default(true) @map("is_active")
   order       Int      @default(0)
+  minMonths   Int      @default(0) @map("min_months")
+  minOrders   Int      @default(0) @map("min_orders")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

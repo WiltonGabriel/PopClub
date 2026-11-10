@@ -81,6 +81,7 @@ export function formatOrder(o: DbOrderPayload, shiftCode?: string | null) {
       product_id: it.productId,
       quantity: it.quantity,
       price_at_time: Number(it.priceAtTime),
+      notes: it.notes || null,
       selected_addons: (it.selectedAddons as unknown as AddonItemSummary[]) || null,
       product: it.product
         ? {

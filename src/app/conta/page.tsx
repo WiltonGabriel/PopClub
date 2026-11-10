@@ -88,6 +88,9 @@ interface AvatarPresetItem {
   desc?: string;
   category?: string | null;
   order?: number;
+  minMonths?: number;
+  minOrders?: number;
+  isUnlocked?: boolean;
 }
 
 const DEFAULT_AVATAR_PRESETS: AvatarPresetItem[] = [
@@ -2768,19 +2771,44 @@ export default function AccountPage() {
               {avatarPresets.map((avatar) => {
                 const avatarPath = avatar.imageUrl || avatar.path || "";
                 const isSelected = modalAvatarChoice === avatarPath;
+                const isLocked = avatar.isUnlocked === false;
+                const minMonths = avatar.minMonths ?? 0;
+                const minOrders = avatar.minOrders ?? 0;
+
                 return (
                   <button
                     key={avatar.id}
                     type="button"
-                    onClick={() => setModalAvatarChoice(avatarPath)}
+                    onClick={() => {
+                      if (isLocked) {
+                        const req =
+                          minOrders > 0 && minMonths > 0
+                            ? `${minOrders} pedidos concluídos ou ${minMonths} meses de conta`
+                            : minMonths > 0
+                            ? `${minMonths} meses de conta`
+                            : `${minOrders} pedidos concluídos`;
+                        alert(`Avatar bloqueado! Requisito para desbloquear: ${req}.`);
+                        return;
+                      }
+                      setModalAvatarChoice(avatarPath);
+                    }}
                     className={`relative p-3 rounded-2xl border-2 flex flex-col items-center text-center transition-all cursor-pointer group ${
-                      isSelected
+                      isLocked
+                        ? "border-gray-200 dark:border-[#512B54]/20 bg-gray-100/60 dark:bg-black/40 opacity-60 hover:opacity-80"
+                        : isSelected
                         ? "border-[#9306CF] bg-[#9306CF]/10 dark:bg-[#9306CF]/20 ring-2 ring-[#9306CF]/30 shadow-md shadow-[#9306CF]/20 scale-102"
                         : "border-gray-200 dark:border-[#512B54]/40 hover:border-[#9306CF]/50 bg-gray-50/50 dark:bg-[#190B1A]/60 hover:scale-102"
                     }`}
                   >
+                    {/* Badge de Bloqueio */}
+                    {isLocked && (
+                      <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-amber-500/90 text-white text-[9px] font-bold flex items-center gap-0.5 shadow-xs">
+                        🔒 Bloqueado
+                      </span>
+                    )}
+
                     {/* Badge de Selecionado */}
-                    {isSelected && (
+                    {isSelected && !isLocked && (
                       <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#9306CF] text-white flex items-center justify-center shadow-xs">
                         <Check className="w-3 h-3" />
                       </span>
@@ -2799,7 +2827,9 @@ export default function AccountPage() {
                       {avatar.name}
                     </span>
                     <span className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
-                      {avatar.description || avatar.desc || ""}
+                      {isLocked
+                        ? (minOrders > 0 && minMonths > 0 ? `${minOrders} compras ou ${minMonths}m` : minOrders > 0 ? `${minOrders} compras` : `${minMonths} meses`)
+                        : (avatar.description || avatar.desc || "")}
                     </span>
                   </button>
                 );

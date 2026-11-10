@@ -11,6 +11,7 @@ import {
   Loader2, 
   X,
   Clock,
+  ShoppingBag,
   AlertCircle
 } from "lucide-react";
 import { 
@@ -37,6 +38,8 @@ export function LoyaltyBadgesSection() {
   const [formName, setFormName] = useState("");
   const [formIcon, setFormIcon] = useState("🌟");
   const [formMonths, setFormMonths] = useState(0);
+  const [formOrders, setFormOrders] = useState(0);
+  const [formCriteriaMode, setFormCriteriaMode] = useState<"months" | "orders" | "either" | "both">("either");
 
   // Trava de Confirmação Crítica (Digitação "SIM")
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -69,12 +72,15 @@ export function LoyaltyBadgesSection() {
     }
 
     const nextMonths = badges.length > 0 ? (badges[badges.length - 1].minMonths || 0) + 6 : 0;
+    const nextOrders = badges.length > 0 ? ((badges[badges.length - 1].minOrders || 0) + 5) : 0;
     const nextEmoji = SUGGESTED_EMOJIS[badges.length] || "💎";
 
     setEditingBadge(null);
     setFormName(`Nível VIP ${badges.length + 1}`);
     setFormIcon(nextEmoji);
     setFormMonths(nextMonths);
+    setFormOrders(nextOrders);
+    setFormCriteriaMode("either");
     setIsModalOpen(true);
   };
 
@@ -83,6 +89,8 @@ export function LoyaltyBadgesSection() {
     setFormName(badge.name);
     setFormIcon(badge.icon);
     setFormMonths(badge.minMonths);
+    setFormOrders(badge.minOrders ?? 0);
+    setFormCriteriaMode(badge.criteriaMode ?? "either");
     setIsModalOpen(true);
   };
 
@@ -99,13 +107,21 @@ export function LoyaltyBadgesSection() {
 
     const trimmedIcon = formIcon.trim() || "🌟";
     const numMonths = Math.max(0, parseInt(String(formMonths), 10) || 0);
+    const numOrders = Math.max(0, parseInt(String(formOrders), 10) || 0);
 
     if (editingBadge) {
       // Atualizar existente
       setBadges((prev) =>
         prev.map((b) =>
           b.id === editingBadge.id
-            ? { ...b, name: trimmedName, icon: trimmedIcon, minMonths: numMonths }
+            ? { 
+                ...b, 
+                name: trimmedName, 
+                icon: trimmedIcon, 
+                minMonths: numMonths,
+                minOrders: numOrders,
+                criteriaMode: formCriteriaMode,
+              }
             : b
         )
       );
@@ -118,6 +134,8 @@ export function LoyaltyBadgesSection() {
         name: trimmedName,
         icon: trimmedIcon,
         minMonths: numMonths,
+        minOrders: numOrders,
+        criteriaMode: formCriteriaMode,
       };
       setBadges((prev) => [...prev, newBadge]);
     }
@@ -316,6 +334,15 @@ export function LoyaltyBadgesSection() {
                       <Clock className="w-3.5 h-3.5 text-primary/70 shrink-0" />
                       <span>{tenureLabel}</span>
                     </p>
+                    {(badge.minOrders ?? 0) > 0 && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <ShoppingBag className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                        <span>A partir de {badge.minOrders} pedidos</span>
+                        <span className="text-[10px] font-semibold text-primary/80 uppercase">
+                          ({badge.criteriaMode === "both" ? "E meses" : badge.criteriaMode === "orders" ? "Apenas pedidos" : "OU meses"})
+                        </span>
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -436,6 +463,87 @@ export function LoyaltyBadgesSection() {
                 <p className="text-[11px] text-muted-foreground">
                   O cliente receberá este selo automaticamente ao completar este número de meses desde o cadastro.
                 </p>
+              </div>
+
+              {/* Pedidos Mínimos Concluídos */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                    Pedidos Mínimos Concluídos (Compras)
+                  </Label>
+                  <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                    {formOrders === 0 ? "Sem exigência (0 pedidos)" : `${formOrders} pedidos`}
+                  </span>
+                </div>
+                <Input
+                  type="number"
+                  min={0}
+                  max={1000}
+                  value={formOrders}
+                  onChange={(e) => setFormOrders(parseInt(e.target.value, 10) || 0)}
+                  placeholder="0"
+                  className="rounded-xl h-10 border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/80"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Permite que clientes frequentes desbloqueiem o selo mais rápido através de compras.
+                </p>
+              </div>
+
+              {/* Modo de Critério (Meses vs Pedidos) */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  Regra de Desbloqueio
+                </Label>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setFormCriteriaMode("either")}
+                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                      formCriteriaMode === "either"
+                        ? "border-primary bg-primary/10 text-primary font-bold"
+                        : "border-border/60 hover:bg-muted text-zinc-700 dark:text-zinc-300"
+                    }`}
+                  >
+                    <div className="font-semibold">Meses OU Pedidos</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">Basta cumprir uma das condições</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormCriteriaMode("both")}
+                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                      formCriteriaMode === "both"
+                        ? "border-primary bg-primary/10 text-primary font-bold"
+                        : "border-border/60 hover:bg-muted text-zinc-700 dark:text-zinc-300"
+                    }`}
+                  >
+                    <div className="font-semibold">Meses E Pedidos</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">Exige cumprir ambas</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormCriteriaMode("orders")}
+                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                      formCriteriaMode === "orders"
+                        ? "border-primary bg-primary/10 text-primary font-bold"
+                        : "border-border/60 hover:bg-muted text-zinc-700 dark:text-zinc-300"
+                    }`}
+                  >
+                    <div className="font-semibold">Apenas Pedidos</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">Ignora meses de conta</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormCriteriaMode("months")}
+                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                      formCriteriaMode === "months"
+                        ? "border-primary bg-primary/10 text-primary font-bold"
+                        : "border-border/60 hover:bg-muted text-zinc-700 dark:text-zinc-300"
+                    }`}
+                  >
+                    <div className="font-semibold">Apenas Meses</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">Tempo de cadastro</div>
+                  </button>
+                </div>
               </div>
 
               {/* Prévia Instantânea */}

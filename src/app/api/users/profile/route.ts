@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser, verifyPassword, hashPassword } from "@/lib/auth";
+import { calculateAccountAgeMonths } from "@/services/loyaltyBadgeService";
+import { avatarLimiter, getRateLimitKey, createRateLimitResponse } from "@/lib/rateLimit";
 
 const DEFAULT_AVATAR = "/avatars/avatar-sorvete.svg";
 const GUEST_DEFAULT_AVATAR = "/avatars/avatar-guest-user.svg";
@@ -123,18 +125,6 @@ async function handleUpdateProfile(request: Request) {
       return NextResponse.json({ error: "Formato de requisição inválido ou corpo vazio." }, { status: 400 });
     }
 
-    // Gating de Avatar: Clientes em Acesso Rápido usam o avatar padrão neutro
-    const requestedAvatar = body?.avatar_url || body?.avatar;
-    if (requestedAvatar && requestedAvatar !== GUEST_DEFAULT_AVATAR && !authUser.isRegistered) {
-      return NextResponse.json(
-        {
-          error: "Personalização de avatar disponível após completar o cadastro.",
-          code: "AVATAR_REQUIRES_REGISTRATION",
-        },
-        { status: 403 }
-      );
-    }
-
     // Buscar configurações e usuário já existentes para fusão segura sem perda de dados
     const current = await prisma.user.findUnique({
       where: { id: authUser.id },
@@ -144,6 +134,7 @@ async function handleUpdateProfile(request: Request) {
         email: true,
         passwordHash: true,
         isRegistered: true,
+        createdAt: true,
         accessibilitySettings: true,
         lastNameChangedAt: true,
         lastEmailChangedAt: true,
@@ -151,6 +142,72 @@ async function handleUpdateProfile(request: Request) {
         passwordUpdatedAt: true,
       },
     });
+
+    // Gating e Desbloqueio de Avatar (por Meses de Conta e Compras Concluídas)
+    const requestedAvatar = body?.avatar_url || body?.avatar;
+    if (requestedAvatar && requestedAvatar !== GUEST_DEFAULT_AVATAR) {
+      if (!authUser.isRegistered) {
+        return NextResponse.json(
+          {
+            error: "Personalização de avatar disponível após completar o cadastro.",
+            code: "AVATAR_REQUIRES_REGISTRATION",
+          },
+          { status: 403 }
+        );
+      }
+
+      const avatarLimitKey = getRateLimitKey(request, "avatar_update", authUser.id);
+      const limitCheck = avatarLimiter.check(avatarLimitKey);
+      if (!limitCheck.success) {
+        return createRateLimitResponse(limitCheck, "Muitas alterações de avatar. Por favor, aguarde antes de tentar novamente.");
+      }
+
+      const preset = await prisma.avatarPreset.findFirst({
+        where: { imageUrl: requestedAvatar, isActive: true },
+      });
+
+      if (preset && ((preset.minMonths ?? 0) > 0 || (preset.minOrders ?? 0) > 0)) {
+        const minMonths = preset.minMonths ?? 0;
+        const minOrders = preset.minOrders ?? 0;
+
+        let userMonths = 0;
+        if (current?.createdAt) {
+          userMonths = calculateAccountAgeMonths(current.createdAt);
+        }
+
+        const completedOrders = await prisma.order.count({
+          where: { userId: authUser.id, status: "completed" },
+        });
+
+        const isUnlocked =
+          minMonths > 0 && minOrders > 0
+            ? userMonths >= minMonths || completedOrders >= minOrders
+            : minMonths > 0
+            ? userMonths >= minMonths
+            : completedOrders >= minOrders;
+
+        if (!isUnlocked) {
+          const reqDesc =
+            minMonths > 0 && minOrders > 0
+              ? `${minOrders} pedidos concluídos ou ${minMonths} meses de conta`
+              : minMonths > 0
+              ? `${minMonths} meses de conta`
+              : `${minOrders} pedidos concluídos`;
+
+          return NextResponse.json(
+            {
+              error: `O avatar "${preset.name}" está bloqueado. Requisito para desbloquear: ${reqDesc}.`,
+              code: "AVATAR_LOCKED",
+              minMonths,
+              minOrders,
+              userMonths,
+              completedOrders,
+            },
+            { status: 403 }
+          );
+        }
+      }
+    }
 
     const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
     const dataToUpdate: Prisma.UserUpdateInput = {};
