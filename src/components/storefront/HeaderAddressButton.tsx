@@ -75,7 +75,7 @@ export function HeaderAddressButton({
       className={`group flex items-center gap-1.5 text-xs sm:text-sm text-foreground dark:text-foreground hover:text-primary dark:hover:text-white transition-all border border-border/50 hover:border-primary/50 bg-white/70 dark:bg-[#230E26]/70 hover:bg-muted/80 rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 shrink-0 shadow-xs cursor-pointer active:scale-95 ${className}`}
     >
       <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary dark:text-muted-foreground shrink-0 group-hover:scale-110 transition-transform" />
-      <span className={`font-medium truncate text-left ${spanClassName || "max-w-[110px] xs:max-w-[150px] sm:max-w-[180px] md:max-w-[240px]"}`}>
+      <span className={`font-medium truncate text-left ${spanClassName || "max-w-[110px] xs:max-w-[150px] sm:max-w-[180px] md:max-w-[140px] lg:max-w-[180px] xl:max-w-[240px]"}`}>
         {displayText}
       </span>
       <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />

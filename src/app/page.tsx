@@ -742,7 +742,7 @@ export default function Storefront() {
         </div>
 
         {/* ── 2. HEADER DESKTOP EXCLUSIVO (md+) ── */}
-        <div className="hidden md:flex max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-2.5 items-center justify-between gap-4 w-full">
+        <div className="hidden md:flex max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-2.5 items-center justify-between gap-2 lg:gap-3 xl:gap-4 w-full">
 
           {/* ── ESQUERDA: Logotipo tipográfico PopShake ── */}
           <div className="flex items-center gap-2 min-w-0 shrink-0">
@@ -765,9 +765,9 @@ export default function Storefront() {
           </div>
 
           {/* ── CENTRO: Endereço + Busca com Autocomplete ── */}
-          <div className="flex items-center gap-3 flex-1 max-w-xl mx-4 min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 xl:gap-3 flex-1 max-w-xl mx-1.5 lg:mx-3 xl:mx-4 min-w-0">
             <HeaderAddressButton className="shrink-0" />
-            <div className="flex-1 min-w-[200px] max-w-[440px]">
+            <div className="flex-1 min-w-0 max-w-[440px]">
               <SearchAutocomplete
                 products={products}
                 initialValue={search}
@@ -778,7 +778,7 @@ export default function Storefront() {
           </div>
 
           {/* ── DIREITA: Actions Desktop ── */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 xl:gap-2 shrink-0">
 
             {/* 1. [ Modo de Edição / Cliente ] — exclusivo para Administrador no Desktop (à esquerda de Pedidos) */}
             {isAdmin && <AdminEditModeToggle />}
@@ -921,14 +921,14 @@ export default function Storefront() {
                     )}
                   </div>
 
-                  {/* Nome do usuário truncado — Oculto no Mobile (< md) */}
-                  <span className="hidden md:inline-flex text-xs sm:text-sm font-semibold text-foreground dark:text-foreground max-w-[120px] truncate shrink-0">
+                  {/* Nome do usuário truncado — Visível a partir de telas largas (xl+) para evitar sobreposição em monitores verticais */}
+                  <span className="hidden xl:inline-flex text-xs sm:text-sm font-semibold text-foreground dark:text-foreground max-w-[120px] truncate shrink-0">
                     {userFirstName}
                   </span>
 
-                  {/* Chevron — Oculto no Mobile (< md) */}
+                  {/* Chevron — Apenas em telas largas (xl+) */}
                   <ChevronDown
-                    className={`hidden md:inline-flex w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-transform duration-200 shrink-0 ${
+                    className={`hidden xl:inline-flex w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-transform duration-200 shrink-0 ${
                       userMenuOpen ? "rotate-180 text-primary" : ""
                     }`}
                   />
