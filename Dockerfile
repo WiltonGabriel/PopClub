@@ -27,10 +27,13 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 # Copia todo o node_modules de deps para garantir o CLI do Prisma e o pacote effect
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+# Garante que o Prisma Client gerado no stage builder esteja atualizado para o schema atual
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 COPY --chown=nextjs:nodejs entrypoint.sh ./entrypoint.sh
-RUN chmod +x ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh && mkdir -p /app/backups && chown -R nextjs:nodejs /app/backups
 
 USER nextjs
 EXPOSE 3000
