@@ -9,6 +9,16 @@ import * as authLib from "@/lib/auth";
 describe("Unificação dos Critérios de Fidelidade (Meses + Pedidos + Selo Real)", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.spyOn(prisma.loyaltyBadgeConfig, "findMany").mockResolvedValue(
+      DEFAULT_LOYALTY_BADGES.map((b) => ({
+        ...b,
+        minOrders: b.minOrders ?? 0,
+        criteriaMode: b.criteriaMode ?? "either",
+        description: b.description ?? null,
+        badgeClass: b.badgeClass ?? null,
+        updatedAt: new Date(),
+      })) as any
+    );
   });
 
   describe("1. Validação de Cupom (/api/coupons/validate)", () => {

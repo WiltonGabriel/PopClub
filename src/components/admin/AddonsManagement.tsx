@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   IceCream,
   Plus,
@@ -16,6 +16,9 @@ import {
   X,
   Upload,
   FolderTree,
+  AlertTriangle,
+  CheckCircle2,
+  Wrench,
 } from "lucide-react";
 import {
   addonService,
@@ -23,6 +26,8 @@ import {
   AddonItem,
   CreateAddonGroupInput,
 } from "@/services/addonService";
+import { Product, productService } from "@/services/productService";
+import { AddonOrganizationService } from "@/domain/services/AddonOrganizationService";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, parseSafeNumber } from "@/lib/formatters";
 import { Input } from "@/components/ui/input";
@@ -34,6 +39,12 @@ export function AddonsManagement() {
   const { showToast } = useToast();
   const [activeSubTab, setActiveSubTab] = useState<"addons" | "categories">("addons");
   const [groups, setGroups] = useState<AddonGroup[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const auditIssues = useMemo(
+    () => AddonOrganizationService.auditAddonCatalog(groups, products),
+    [groups, products]
+  );
+  const [fixingAudit, setFixingAudit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
@@ -72,11 +83,16 @@ export function AddonsManagement() {
   const loadGroups = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await addonService.getGroups();
-      setGroups(data);
+      const [groupsData, productsData] = await Promise.all([
+        addonService.getGroups(),
+        productService.getProducts().catch(() => [] as Product[]),
+      ]);
+      const sortedGroups = AddonOrganizationService.sortAddonGroups(groupsData);
+      setGroups(sortedGroups);
+      setProducts(productsData);
       // Auto-expande todos os grupos inicialmente
       const initialExpanded: Record<string, boolean> = {};
-      data.forEach((g) => {
+      sortedGroups.forEach((g) => {
         initialExpanded[g.id] = true;
       });
       setExpandedGroups(initialExpanded);
@@ -90,6 +106,72 @@ export function AddonsManagement() {
       setLoading(false);
     }
   }, [showToast]);
+
+  const handleAutoFixAuditIssues = async () => {
+    setFixingAudit(true);
+    try {
+      let fixedCount = 0;
+      const groupsById = new Map(groups.map((g) => [g.id, { name: g.name, sortOrder: g.sortOrder }]));
+
+      for (const issue of auditIssues) {
+        if (issue.code === "CUTLERY_NOT_LAST" && issue.groupId) {
+          await addonService.updateGroup(issue.groupId, { sortOrder: 99 });
+          fixedCount++;
+        } else if (issue.code === "MISSING_ITEM_QUANTITY_SUPPORT" && issue.groupId) {
+          await addonService.updateGroup(issue.groupId, { allowItemQuantity: true });
+          fixedCount++;
+        } else if (issue.code === "CUTLERY_NOT_LAST" && issue.productId) {
+          const prod = products.find((p) => p.id === issue.productId);
+          const currentIds =
+            prod?.addonGroupIds ||
+            prod?.addonGroups?.map((ag) => ag.groupId).filter((id): id is string => Boolean(id)) ||
+            [];
+          if (currentIds.length > 0) {
+            const orderedIds = AddonOrganizationService.sortAddonGroupIds(currentIds, groupsById);
+            await productService.updateProduct(issue.productId, { addonGroupIds: orderedIds });
+            fixedCount++;
+          }
+        } else if (issue.code === "REDUNDANT_COMBO_GROUP" && issue.productId) {
+          const combo = products.find((p) => p.id === issue.productId);
+          if (combo) {
+            const cleanedIds = (combo.addonGroups || [])
+              .map((pag) => pag.groupId)
+              .filter((gid): gid is string => {
+                if (!gid) return false;
+                const g = groups.find((grp) => grp.id === gid);
+                if (!g) return false;
+                if (AddonOrganizationService.isCutleryGroupName(g.name)) return true;
+                return !/^(?:copo|marmita|milk\s*shake|shake|garrafa|pote|roleta)\s*(?:\d+\s*)?(?:\([^)]+\))?\s*[-•:]/i.test(
+                  g.name
+                );
+              });
+            await productService.updateProduct(combo.id, {
+              addonGroupIds: AddonOrganizationService.sortAddonGroupIds(cleanedIds, groupsById),
+            });
+            fixedCount++;
+          }
+        }
+      }
+
+      await loadGroups();
+      showToast({
+        type: "success",
+        title: "Auditoria Aplicada",
+        message:
+          fixedCount > 0
+            ? `${fixedCount} ajuste(s) estrutural(is) de ordem e configuração foram corrigidos.`
+            : "Nenhuma correção automática pendente; revise manualmente os alertas informativos.",
+      });
+    } catch (err: unknown) {
+      showToast({
+        type: "error",
+        title: "Erro ao Corrigir",
+        message: err instanceof Error ? err.message : "Falha ao aplicar correções automáticas.",
+      });
+    } finally {
+      setFixingAudit(false);
+    }
+  };
 
   useEffect(() => {
     loadGroups();
@@ -144,11 +226,15 @@ export function AddonsManagement() {
     try {
       if (editingGroup) {
         const updated = await addonService.updateGroup(editingGroup.id, groupForm);
-        setGroups((prev) => prev.map((g) => (g.id === updated.id ? { ...updated, productsCount: g.productsCount } : g)));
+        setGroups((prev) =>
+          AddonOrganizationService.sortAddonGroups(
+            prev.map((g) => (g.id === updated.id ? { ...updated, productsCount: g.productsCount } : g))
+          )
+        );
         showToast({ type: "success", title: "Grupo Atualizado", message: `"${updated.name}" foi salvo com sucesso.` });
       } else {
         const created = await addonService.createGroup(groupForm);
-        setGroups((prev) => [created, ...prev]);
+        setGroups((prev) => AddonOrganizationService.sortAddonGroups([created, ...prev]));
         setExpandedGroups((prev) => ({ ...prev, [created.id]: true }));
         showToast({ type: "success", title: "Grupo Criado", message: `"${created.name}" foi adicionado com sucesso.` });
       }
@@ -397,6 +483,67 @@ export function AddonsManagement() {
           </Button>
         </div>
       </div>
+
+      {/* Painel de Auditoria Automática de Complementos */}
+      {!loading && groups.length > 0 && (
+        auditIssues.length > 0 ? (
+          <div className="p-4 rounded-2xl bg-amber-50/80 dark:bg-amber-950/25 border border-amber-200 dark:border-amber-800/40 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-amber-950 dark:text-amber-200">
+                    Auditoria de Complementos: {auditIssues.length} ponto(s) identificado(s)
+                  </h4>
+                  <p className="text-[11px] text-amber-800/90 dark:text-amber-300/80">
+                    Revise grupos sem vínculo, duplicidades, combos legados ou ordem de talheres/descartáveis.
+                  </p>
+                </div>
+              </div>
+              {auditIssues.some(
+                (i) =>
+                  i.code === "CUTLERY_NOT_LAST" ||
+                  i.code === "MISSING_ITEM_QUANTITY_SUPPORT" ||
+                  i.code === "REDUNDANT_COMBO_GROUP"
+              ) && (
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={fixingAudit}
+                  onClick={handleAutoFixAuditIssues}
+                  className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shrink-0 cursor-pointer"
+                >
+                  {fixingAudit ? (
+                    <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                  ) : (
+                    <Wrench className="w-3.5 h-3.5 mr-1.5" />
+                  )}
+                  Corrigir Ordem & Combos
+                </Button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {auditIssues.slice(0, 6).map((issue, idx) => (
+                <div
+                  key={`${issue.code}-${idx}`}
+                  className="p-2.5 rounded-xl bg-white/80 dark:bg-zinc-900/60 border border-amber-200/70 dark:border-amber-800/30 text-[11px]"
+                >
+                  <p className="font-bold text-amber-950 dark:text-amber-200">{issue.title}</p>
+                  <p className="text-amber-800/85 dark:text-amber-300/80 mt-0.5 leading-snug">
+                    {issue.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="px-4 py-2.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/30 flex items-center gap-2 text-xs text-emerald-800 dark:text-emerald-300 font-medium">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <span>Auditoria aprovada: grupos sem duplicidades, combos limpos e descartáveis ao final.</span>
+          </div>
+        )
+      )}
 
       {/* Lista de Grupos (Acordeões) */}
       {loading ? (

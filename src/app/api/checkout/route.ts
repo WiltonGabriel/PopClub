@@ -23,6 +23,7 @@ import {
   StockDomainService,
   AddonDomainService,
 } from "@/domain/services";
+import { AddonOrganizationService } from "@/domain/services/AddonOrganizationService";
 import {
   ResourceNotFoundException,
   InvalidCouponException,
@@ -313,7 +314,20 @@ export async function POST(request: Request) {
           where: { isActive: true },
           orderBy: { createdAt: "desc" as const },
         },
-        comboItems: true,
+        addonGroups: {
+          select: { groupId: true },
+        },
+        comboItems: {
+          include: {
+            product: {
+              include: {
+                addonGroups: {
+                  select: { groupId: true },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
@@ -443,45 +457,84 @@ export async function POST(request: Request) {
           }
         }
 
-        // Multiplicador de cotas gratuitas para combos compostos (ex: combo com 2 copos = 2x cotas gratuitas do grupo)
-        const comboMultiplier =
-          product.isCombo && product.comboItems && product.comboItems.length > 0
-            ? product.comboItems.reduce((acc, ci) => acc + (ci.quantity || 1), 0)
-            : 1;
+        // Agrupamento por unidade (no combo) + grupo para aplicar cotas gratuitas sem mistura indevida entre copos/marmitas
+        type AddonBucketEntry = {
+          dbAddon: (typeof dbAddons)[0];
+          quantity: number;
+          originalName?: string | null;
+          originalGroupName?: string | null;
+        };
+        const selectionsByBucket = new Map<
+          string,
+          { unitTitle: string | null; groupId: string; entries: AddonBucketEntry[] }
+        >();
 
-        // Agrupamento por grupo para aplicar a cota de itens grátis (freeQuantity)
-        const selectionsByGroup = new Map<string, Array<{ dbAddon: typeof dbAddons[0]; quantity: number; originalName?: string | null; originalGroupName?: string | null }>>();
         for (const addon of realAddons) {
           const dbAddon = dbAddonsMap.get(addon.id)!;
-          const list = selectionsByGroup.get(dbAddon.groupId) || [];
-          list.push({
+          const { unitTitle } = product.isCombo
+            ? AddonOrganizationService.extractUnitAndGroup(addon.groupName)
+            : { unitTitle: null };
+          const bucketKey = `${unitTitle || "__shared__"}::${dbAddon.groupId}`;
+          const existingBucket = selectionsByBucket.get(bucketKey) || {
+            unitTitle,
+            groupId: dbAddon.groupId,
+            entries: [],
+          };
+          existingBucket.entries.push({
             dbAddon,
             quantity: addon.quantity || 1,
             originalName: addon.name,
             originalGroupName: addon.groupName,
           });
-          selectionsByGroup.set(dbAddon.groupId, list);
+          selectionsByBucket.set(bucketKey, existingBucket);
         }
 
-        for (const [, groupSelections] of selectionsByGroup.entries()) {
-          const group = groupSelections[0]?.dbAddon.group;
+        const totalComboUnits =
+          product.isCombo && product.comboItems && product.comboItems.length > 0
+            ? product.comboItems.reduce((acc, ci) => acc + (ci.quantity || 1), 0)
+            : 1;
+
+        for (const [, bucket] of selectionsByBucket.entries()) {
+          const group = bucket.entries[0]?.dbAddon.group;
           if (!group) continue;
+
+          // Calcula o multiplicador exato do balde:
+          // - Com prefixo de unidade ("Copo #1 • ..."), vale 1 cota daquela unidade.
+          // - Grupos compartilhados de talheres/descartáveis ou vinculados ao combo pai valem 1.
+          // - Payloads legados sem prefixo de unidade contam quantos itens do combo possuem aquele grupo.
+          let bucketMultiplier = 1;
+          if (product.isCombo && !bucket.unitTitle) {
+            const isParentGroup = Boolean(
+              (product as any).addonGroups?.some((pag: any) => pag.groupId === group.id)
+            );
+            if (!isParentGroup && !AddonOrganizationService.isCutleryGroupName(group.name)) {
+              const matchingUnitsCount = (product.comboItems || []).reduce((acc: number, ci: any) => {
+                const childHasGroup = ci.product?.addonGroups?.some((pag: any) => pag.groupId === group.id);
+                return acc + (childHasGroup ? (ci.quantity || 1) : 0);
+              }, 0);
+              bucketMultiplier = matchingUnitsCount > 0 ? matchingUnitsCount : totalComboUnits;
+            }
+          }
 
           const validation = AddonDomainService.validateGroupSelections({
             group,
             dbItems: dbAddonsMap as any,
-            selections: groupSelections.map((s) => ({
+            selections: bucket.entries.map((s) => ({
               id: s.dbAddon.id,
               name: s.originalName || s.dbAddon.name,
               groupName: s.originalGroupName || group.name,
               price: Number(s.dbAddon.price),
               quantity: s.quantity,
             })),
-            comboMultiplier,
+            comboMultiplier: bucketMultiplier,
           });
 
           addonsTotalPerUnit += validation.addonsSubtotal;
           finalSelectedAddons.push(...validation.processedAddons);
+        }
+
+        if (finalSelectedAddons && finalSelectedAddons.length > 0) {
+          finalSelectedAddons = AddonOrganizationService.organizeOrderAddons(finalSelectedAddons).flatSorted;
         }
       }
 
@@ -596,22 +649,15 @@ export async function POST(request: Request) {
         userBadgeId = loyaltyCtx.userBadge.id;
       }
 
-      // Identificação de uso prévio
+      // Identificação de uso prévio baseada apenas no usuário resolvido via sessão ou acesso rápido validado
       let hasPriorUsage = false;
       if (coupon?.oncePerUser) {
-        const rawBody = typeof json === "object" && json !== null ? (json as Record<string, unknown>) : {};
-        const clientUserId = targetUserId || (typeof rawBody.userId === "string" ? rawBody.userId : undefined);
-        const clientPhone =
-          (typeof rawBody.customerPhone === "string" ? rawBody.customerPhone : undefined) ||
-          (typeof rawBody.phone === "string" ? rawBody.phone : undefined) ||
-          targetUserPhone;
-
         const conditions: Prisma.OrderWhereInput[] = [];
-        if (clientUserId) {
-          conditions.push({ userId: clientUserId });
+        if (targetUserId) {
+          conditions.push({ userId: targetUserId });
         }
-        if (clientPhone) {
-          conditions.push({ user: { phone: clientPhone } });
+        if (targetUserPhone) {
+          conditions.push({ user: { phone: targetUserPhone } });
         }
 
         if (conditions.length > 0) {

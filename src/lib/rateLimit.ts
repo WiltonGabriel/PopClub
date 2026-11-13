@@ -159,6 +159,10 @@ export const checkoutLimiter = new RateLimiter(60 * 1000, 10);
 
 // Geocodificação e Mapas (Nominatim / OSRM): 40 consultas por minuto (elástico para movimentação de pin no mapa)
 export const geocodeLimiter = new RateLimiter(60 * 1000, 40);
+export const routeCalculateLimiter = new RateLimiter(60 * 1000, 40);
+
+// Tentativas inválidas de PIN de confirmação de entrega: 5 falhas em 15 minutos por IP + token
+export const deliveryPinLimiter = new RateLimiter(15 * 60 * 1000, 5);
 
 // Busca e Catálogo de Produtos: 120 requisições por minuto
 export const productLookupLimiter = new RateLimiter(60 * 1000, 120);

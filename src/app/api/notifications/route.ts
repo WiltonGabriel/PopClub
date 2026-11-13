@@ -1,7 +1,28 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
-import { getTargetClients } from "./helpers";
+import { hasPermission } from "@/lib/permissions";
+import { getTargetClients, VALID_TARGET_AUDIENCES } from "./helpers";
+import { recordAdminAudit } from "@/services/auditLogService";
+
+const dispatchNotificationSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1, "O título da mensagem é obrigatório.")
+    .max(100, "O título da mensagem não pode exceder 100 caracteres."),
+  message: z
+    .string()
+    .trim()
+    .min(1, "O conteúdo da mensagem é obrigatório.")
+    .max(1000, "O conteúdo da mensagem não pode exceder 1000 caracteres."),
+  targetAudience: z.enum(VALID_TARGET_AUDIENCES).optional().default("ALL"),
+  loyaltyBadgeIds: z.array(z.string().trim().min(1)).optional().default([]),
+  customUserIds: z.array(z.string().trim().min(1)).optional().default([]),
+  couponId: z.string().trim().min(1).nullable().optional().default(null),
+  type: z.enum(["BROADCAST", "TARGETED", "COUPON"]).nullable().optional().default(null),
+});
 
 export async function GET(request: Request) {
   try {
@@ -115,39 +136,40 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Acesso não autorizado." }, { status: 403 });
+    if (!user) {
+      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    }
+    if (!hasPermission(user, "notifications_manage")) {
+      return NextResponse.json(
+        { error: "Acesso negado. Permissão notifications_manage necessária." },
+        { status: 403 }
+      );
     }
 
-    let body: any;
+    let rawBody: unknown;
     try {
-      body = await request.json();
+      rawBody = await request.json();
     } catch {
       return NextResponse.json({ error: "Corpo da requisição inválido." }, { status: 400 });
+    }
+
+    const parsed = dispatchNotificationSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message || "Dados de notificação inválidos." },
+        { status: 400 }
+      );
     }
 
     const {
       title,
       message,
-      targetAudience = "ALL",
-      loyaltyBadgeIds = [],
-      couponId = null,
-      type = null,
-    } = body || {};
-
-    if (!title || typeof title !== "string" || !title.trim()) {
-      return NextResponse.json({ error: "O título da mensagem é obrigatório." }, { status: 400 });
-    }
-    if (title.length > 100) {
-      return NextResponse.json({ error: "O título da mensagem não pode exceder 100 caracteres." }, { status: 400 });
-    }
-
-    if (!message || typeof message !== "string" || !message.trim()) {
-      return NextResponse.json({ error: "O conteúdo da mensagem é obrigatório." }, { status: 400 });
-    }
-    if (message.length > 1000) {
-      return NextResponse.json({ error: "O conteúdo da mensagem não pode exceder 1000 caracteres." }, { status: 400 });
-    }
+      targetAudience,
+      loyaltyBadgeIds,
+      customUserIds,
+      couponId,
+      type,
+    } = parsed.data;
 
     // Trava de Cooldown para Broadcast
     const finalType = type || (couponId ? "COUPON" : targetAudience === "ALL" ? "BROADCAST" : "TARGETED");
@@ -176,7 +198,11 @@ export async function POST(request: Request) {
     }
 
     // Identifica clientes elegíveis de acordo com o segmento
-    const targetClients = await getTargetClients(targetAudience, Array.isArray(loyaltyBadgeIds) ? loyaltyBadgeIds : undefined);
+    const targetClients = await getTargetClients(
+      targetAudience,
+      loyaltyBadgeIds,
+      customUserIds
+    );
 
     if (targetClients.length === 0) {
       return NextResponse.json({
@@ -203,6 +229,19 @@ export async function POST(request: Request) {
         isRead: false,
       })),
       skipDuplicates: true,
+    });
+
+    await recordAdminAudit({
+      actor: { id: user.id, role: user.role },
+      action: "DISPATCH_NOTIFICATION",
+      resourceType: "notification",
+      resourceId: notification.id,
+      summary: `Disparou notificação "${notification.title}" (${targetAudience}) para ${targetClients.length} cliente(s).`,
+      metadata: {
+        targetAudience,
+        recipientsCount: targetClients.length,
+        hasCoupon: Boolean(couponId),
+      },
     });
 
     return NextResponse.json({

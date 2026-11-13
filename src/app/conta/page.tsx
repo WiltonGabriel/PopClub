@@ -1230,8 +1230,8 @@ export default function AccountPage() {
                   </Link>
                 )}
 
-                {/* 4. Gestão de Usuários & Equipe (se permitido via RBAC) */}
-                {canAccess("USERS_MANAGE") && (
+                {/* 4. Gestão de Usuários & Equipe (Soberania Administrativa) */}
+                {isAdmin && (
                   <Link
                     href="/admin/usuarios"
                     className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 hover:border-amber-500/50 dark:hover:border-amber-500/50 hover:shadow-md transition-all active:scale-[0.99]"

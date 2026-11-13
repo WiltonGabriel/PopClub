@@ -1,4 +1,5 @@
 import { AddonRuleViolationException } from "@/domain/errors";
+import { AddonOrganizationService } from "@/domain/services/AddonOrganizationService";
 
 export interface DomainAddonGroup {
   id: string;
@@ -152,7 +153,7 @@ export class AddonDomainService {
         addonsSubtotal += finalPrice;
         processedAddons.push({
           id: dbItem.id,
-          name: sel.name || dbItem.name,
+          name: AddonOrganizationService.stripQuantitySuffix(sel.name || dbItem.name) || dbItem.name,
           groupName: sel.groupName || group.name,
           price: finalPrice,
           quantity: 1,

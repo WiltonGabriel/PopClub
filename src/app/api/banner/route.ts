@@ -1,6 +1,16 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
+import { recordAdminAudit } from "@/services/auditLogService";
+
+const bannerUpdateSchema = z.object({
+  icon: z.string().trim().max(32).optional(),
+  title: z.string().trim().max(200).optional(),
+  subtitle: z.string().trim().max(400).optional(),
+  badge: z.string().trim().max(80).optional(),
+});
 
 const DEFAULT_BANNER = {
   id: "home_highlight",
@@ -41,16 +51,19 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
+    if (!user) {
+      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    }
+    if (!hasPermission(user, "theme_manage")) {
       return NextResponse.json(
-        { error: "Acesso negado. Apenas administradores podem editar o banner." },
+        { error: "Acesso negado. Permissão theme_manage necessária para editar o banner." },
         { status: 403 }
       );
     }
 
-    let body: any;
+    let rawBody: unknown;
     try {
-      body = await request.json();
+      rawBody = await request.json();
     } catch {
       return NextResponse.json(
         { error: "Formato de requisição inválido ou corpo vazio." },
@@ -58,7 +71,15 @@ export async function PUT(request: Request) {
       );
     }
 
-    const { icon, title, subtitle, badge } = body || {};
+    const parsed = bannerUpdateSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message || "Dados do banner inválidos." },
+        { status: 400 }
+      );
+    }
+
+    const { icon, title, subtitle, badge } = parsed.data;
 
     const banner = await prisma.highlightBanner.upsert({
       where: { id: "home_highlight" },
@@ -77,6 +98,15 @@ export async function PUT(request: Request) {
       },
     });
 
+    await recordAdminAudit({
+      actor: { id: user.id, role: user.role },
+      action: "UPDATE_HIGHLIGHT_BANNER",
+      resourceType: "highlight_banner",
+      resourceId: banner.id,
+      summary: "Atualizou banner de destaque da vitrine.",
+      diffKeys: ["icon", "title", "subtitle", "badge"],
+    });
+
     return NextResponse.json({
       id: banner.id,
       icon: banner.icon,
@@ -84,7 +114,7 @@ export async function PUT(request: Request) {
       subtitle: banner.subtitle,
       badge: banner.badge,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao atualizar banner de destaque:", error);
     return NextResponse.json(
       { error: "Erro ao salvar alterações do banner." },

@@ -3,6 +3,11 @@ import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
 import { getAuthUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { serverOrderEventManager } from "@/lib/serverOrderEvents";
+import {
+  deliveryPinLimiter,
+  getRateLimitKey,
+  createRateLimitResponse,
+} from "@/lib/rateLimit";
 
 interface CompleteDeliveryBody {
   pin?: string;
@@ -51,19 +56,38 @@ export async function POST(
     const authUser = await getAuthUser(request);
     const isStaff = hasPermission(authUser, "ORDERS_KANBAN") || hasPermission(authUser, "ORDERS_HISTORY");
 
-    // Validação estrita do PIN de Entrega (se configurado no pedido)
+    // Validação estrita do PIN de Entrega (se configurado no pedido) com proteção contra força bruta
     if (existingOrder.orderPin) {
+      const pinRateKey = getRateLimitKey(request, "delivery_pin", token);
+      const blockedCheck = deliveryPinLimiter.isBlocked(pinRateKey);
+      if (blockedCheck && (!isStaff || !body.bypassPin)) {
+        return createRateLimitResponse(
+          blockedCheck,
+          "Muitas tentativas incorretas de PIN de entrega. Aguarde antes de tentar novamente."
+        );
+      }
+
       const cleanInputPin = String(body.pin || "").trim().toUpperCase();
       const expectedPin = existingOrder.orderPin.trim().toUpperCase();
 
       if (cleanInputPin !== expectedPin) {
         if (!isStaff || !body.bypassPin) {
+          const failedCheck = deliveryPinLimiter.check(pinRateKey);
+          if (!failedCheck.success) {
+            return createRateLimitResponse(
+              failedCheck,
+              "Muitas tentativas incorretas de PIN de entrega. Aguarde antes de tentar novamente."
+            );
+          }
+
           return apiError(
             "Código PIN de confirmação incorreto ou não informado. Solicite o código ao cliente para confirmar a entrega.",
             400,
             "INVALID_DELIVERY_PIN"
           );
         }
+      } else {
+        deliveryPinLimiter.reset(pinRateKey);
       }
     }
 

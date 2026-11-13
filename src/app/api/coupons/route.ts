@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { recordAdminAudit } from "@/services/auditLogService";
 
 export async function GET(request: Request) {
   try {
@@ -131,6 +132,16 @@ export async function POST(request: Request) {
         minLoyaltyLevel: minLoyaltyLevel ? parseInt(String(minLoyaltyLevel), 10) : null,
         loyaltyBadgeId: loyaltyBadgeId ? String(loyaltyBadgeId).trim() : null,
       },
+    });
+
+    await recordAdminAudit({
+      actor: user ? { id: user.id, role: user.role } : null,
+      action: "CREATE_COUPON",
+      resourceType: "coupon",
+      resourceId: newCoupon.id,
+      summary: `Criou cupom "${newCoupon.code}".`,
+      diffKeys: ["code", "discountType", "discountValue", "isActive", "oncePerUser"],
+      metadata: { discountType: newCoupon.discountType, isActive: newCoupon.isActive },
     });
 
     return NextResponse.json({

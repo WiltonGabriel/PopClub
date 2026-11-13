@@ -125,4 +125,14 @@ describe("AddonDomainService (Regras Puras de Grupos de Adicionais)", () => {
     expect(result.processedAddons.length).toBe(4);
     expect(result.addonsSubtotal).toBe(6.0);
   });
+
+  it("remove sufixo redundante '(Nx)' do nome ao processar seleções", () => {
+    const result = AddonDomainService.validateGroupSelections({
+      group: { ...mockGroup, allowItemQuantity: true },
+      dbItems,
+      selections: [{ id: "item-nutella", name: "Nutella Pura (2x)", quantity: 2 }],
+    });
+
+    expect(result.processedAddons.every((p) => p.name === "Nutella Pura")).toBe(true);
+  });
 });

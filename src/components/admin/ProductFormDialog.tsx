@@ -5,6 +5,7 @@ import { productService, Product } from "../../services/productService";
 import { categoryService, Category } from "../../services/categoryService";
 import { badgeService, CardBadge } from "../../services/badgeService";
 import { addonService, AddonGroup } from "../../services/addonService";
+import { AddonOrganizationService } from "@/domain/services/AddonOrganizationService";
 import { formatDecimal } from "@/lib/formatters";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
@@ -99,7 +100,7 @@ export function ProductFormDialog({
       badgeService.getBadges().then(setBadges).catch(() => {});
 
       addonService.getGroups().then((groups) => {
-        setAvailableAddonGroups(groups.filter((g) => g.isActive));
+        setAvailableAddonGroups(AddonOrganizationService.sortAddonGroups(groups.filter((g) => g.isActive)));
       }).catch(() => {});
 
       if (productToEdit?.id && (!productToEdit.addonGroupIds || productToEdit.addonGroupIds.length === 0)) {
@@ -202,6 +203,13 @@ export function ProductFormDialog({
       let result: Product;
       const catName = selectedCategory?.name || productToEdit?.category || "Outros";
       const finalCardBadgeId = cardBadgeId === "none" ? null : cardBadgeId;
+      const groupsMetaMap = new Map(
+        availableAddonGroups.map((g) => [g.id, { name: g.name, sortOrder: g.sortOrder }])
+      );
+      const orderedAddonGroupIds = AddonOrganizationService.sortAddonGroupIds(
+        selectedAddonGroupIds,
+        groupsMetaMap
+      );
 
       if (productToEdit) {
         result = await productService.updateProduct(
@@ -214,7 +222,7 @@ export function ProductFormDialog({
             category_id: categoryId,
             category: catName,
             cardBadgeId: finalCardBadgeId,
-            addonGroupIds: selectedAddonGroupIds,
+            addonGroupIds: orderedAddonGroupIds,
           },
           file || undefined
         );
@@ -229,7 +237,7 @@ export function ProductFormDialog({
             category: catName,
             imageUrl: "",
             cardBadgeId: finalCardBadgeId,
-            addonGroupIds: selectedAddonGroupIds,
+            addonGroupIds: orderedAddonGroupIds,
           },
           file || undefined
         );
@@ -564,7 +572,7 @@ export function ProductFormDialog({
                   </div>
 
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Marque os grupos de complementos disponíveis para o cliente personalizar este produto.
+                    Marque os grupos de complementos pertinentes a este produto. Grupos de talheres e descartáveis são posicionados automaticamente ao final.
                   </p>
 
                   {availableAddonGroups.length === 0 ? (
@@ -577,6 +585,7 @@ export function ProductFormDialog({
                         const isChecked = selectedAddonGroupIds.includes(group.id);
                         const freeText = group.freeQuantity > 0 ? `Até ${group.freeQuantity} grátis` : "Sem itens grátis";
                         const reqText = group.isRequired ? "Obrigatório" : "Opcional";
+                        const isCutlery = AddonOrganizationService.isCutleryGroupName(group.name);
 
                         return (
                           <label
@@ -591,16 +600,28 @@ export function ProductFormDialog({
                               type="checkbox"
                               checked={isChecked}
                               onChange={(e) => {
+                                const groupsMeta = new Map(
+                                  availableAddonGroups.map((g) => [g.id, { name: g.name, sortOrder: g.sortOrder }])
+                                );
                                 if (e.target.checked) {
-                                  setSelectedAddonGroupIds((prev) => [...prev, group.id]);
+                                  setSelectedAddonGroupIds((prev) =>
+                                    AddonOrganizationService.sortAddonGroupIds([...prev, group.id], groupsMeta)
+                                  );
                                 } else {
                                   setSelectedAddonGroupIds((prev) => prev.filter((id) => id !== group.id));
                                 }
                               }}
                               className="mt-0.5 w-4 h-4 accent-primary rounded cursor-pointer shrink-0"
                             />
-                            <div className="min-w-0">
-                              <p className="text-xs font-bold text-foreground truncate">{group.name}</p>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-xs font-bold text-foreground truncate">{group.name}</p>
+                                {isCutlery && (
+                                  <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 shrink-0">
+                                    Final
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-[10px] text-muted-foreground mt-0.5">
                                 {group.items?.length || 0} opções • {reqText} • {freeText}
                               </p>

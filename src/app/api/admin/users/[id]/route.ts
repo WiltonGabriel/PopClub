@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser, hashPassword } from "@/lib/auth";
 import { cleanCpf, validateCpf } from "@/lib/cpf";
 import { Role } from "@prisma/client";
-import { isUserAdmin, isUserEditor, hasPermission } from "@/lib/permissions";
+import { isUserAdmin, isUserEditor, hasPermission, validatePermissionsInput } from "@/lib/permissions";
+import { recordAdminAudit } from "@/services/auditLogService";
 
 export async function PATCH(
   request: Request,
@@ -40,6 +41,14 @@ export async function PATCH(
 
     if (!targetUser) {
       return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
+    }
+
+    // Trava RBAC: Editores com users_manage só podem moderar contas CLIENT (nunca ADMIN ou outro EDITOR)
+    if (!isSelf && !isAdmin && targetUser.role !== Role.CLIENT) {
+      return NextResponse.json(
+        { error: "Acesso negado. Apenas administradores podem editar membros da equipe." },
+        { status: 403 }
+      );
     }
 
     let body: Record<string, unknown>;
@@ -202,7 +211,14 @@ export async function PATCH(
       if (!Array.isArray(permissions)) {
         return NextResponse.json({ error: "Permissões devem ser uma lista." }, { status: 400 });
       }
-      dataToUpdate.permissions = permissions.filter((p: unknown) => typeof p === "string");
+      const { valid, invalid } = validatePermissionsInput(permissions);
+      if (invalid.length > 0) {
+        return NextResponse.json(
+          { error: `Permissões inválidas informadas: ${invalid.join(", ")}` },
+          { status: 400 }
+        );
+      }
+      dataToUpdate.permissions = valid;
       shouldInvalidateSession = true;
     }
 
@@ -361,6 +377,16 @@ export async function PATCH(
       },
     });
 
+    await recordAdminAudit({
+      actor: { id: authUser.id, role: authUser.role },
+      action: "UPDATE_USER",
+      resourceType: "user",
+      resourceId: updatedUser.id,
+      summary: `Atualizou conta (${updatedUser.role}).`,
+      diffKeys: Object.keys(dataToUpdate),
+      metadata: { targetRole: updatedUser.role, isBlocked: updatedUser.isBlocked, isSelf },
+    });
+
     return NextResponse.json(updatedUser);
   } catch (error: unknown) {
     console.error("Erro ao atualizar usuário:", error);
@@ -401,6 +427,13 @@ export async function DELETE(
     }
 
     // Trava: O sistema nunca pode ter zero administradores ativos
+    if (targetUser.role !== Role.CLIENT && !isUserAdmin(authUser)) {
+      return NextResponse.json(
+        { error: "Acesso negado. Apenas administradores podem desativar membros da equipe." },
+        { status: 403 }
+      );
+    }
+
     if (targetUser.role === Role.ADMIN) {
       if (!isUserAdmin(authUser)) {
         return NextResponse.json(
@@ -433,6 +466,16 @@ export async function DELETE(
         deletedAt: new Date(),
         tokenVersion: { increment: 1 },
       },
+    });
+
+    await recordAdminAudit({
+      actor: { id: authUser.id, role: authUser.role },
+      action: "DEACTIVATE_USER",
+      resourceType: "user",
+      resourceId: id,
+      summary: `Desativou conta (${targetUser.role}).`,
+      diffKeys: ["isActive", "deletedAt"],
+      metadata: { targetRole: targetUser.role },
     });
 
     return NextResponse.json({

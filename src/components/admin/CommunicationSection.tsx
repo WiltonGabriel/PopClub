@@ -36,6 +36,7 @@ import {
   formatLoyaltyBadgeRequirement,
 } from "../../services/loyaltyBadgeService";
 import { useToast } from "../ui/ToastNotification";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { playDingSound } from "../../lib/sound";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -143,6 +144,8 @@ export function CommunicationSection() {
   // Custom Audience
   const [isCustomAudienceModalOpen, setIsCustomAudienceModalOpen] = useState(false);
   const [customAudienceUserIds, setCustomAudienceUserIds] = useState<string[]>([]);
+  const [templateIdToDelete, setTemplateIdToDelete] = useState<string | null>(null);
+  const [deletingTemplate, setDeletingTemplate] = useState(false);
 
   // Presets / Modelos
   const [templates, setTemplates] = useState<NotificationTemplateItem[]>([]);
@@ -289,16 +292,24 @@ export function CommunicationSection() {
   };
 
   // Deleta preset customizado
-  const handleDeleteTemplate = async (e: React.MouseEvent, id: string) => {
+  const handleDeleteTemplate = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!confirm("Deseja realmente excluir este modelo de mensagem?")) return;
+    setTemplateIdToDelete(id);
+  };
+
+  const executeDeleteTemplate = async () => {
+    if (!templateIdToDelete) return;
+    setDeletingTemplate(true);
     try {
-      await notificationService.deleteTemplate(id);
-      setTemplates((prev) => prev.filter((t) => t.id !== id));
-      if (selectedTemplateId === id) setSelectedTemplateId(null);
+      await notificationService.deleteTemplate(templateIdToDelete);
+      setTemplates((prev) => prev.filter((t) => t.id !== templateIdToDelete));
+      if (selectedTemplateId === templateIdToDelete) setSelectedTemplateId(null);
       showToast("Modelo removido.", "info");
-    } catch (err: any) {
-      showToast(err.message || "Erro ao excluir modelo.", "error");
+      setTemplateIdToDelete(null);
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Erro ao excluir modelo.", "error");
+    } finally {
+      setDeletingTemplate(false);
     }
   };
 
@@ -346,6 +357,7 @@ export function CommunicationSection() {
         message: message.trim(),
         targetAudience: audienceFilterMode === "LOYALTY" ? "LOYALTY" : selectedAudience,
         loyaltyBadgeIds: audienceFilterMode === "LOYALTY" ? selectedLoyaltyBadgeIds : undefined,
+        customUserIds: audienceFilterMode !== "LOYALTY" && selectedAudience === "CUSTOM" ? customAudienceUserIds : undefined,
         couponId: selectedCouponId || null,
         type: selectedCouponId ? "COUPON" : isBroadcast ? "BROADCAST" : "TARGETED",
       });
@@ -871,6 +883,18 @@ export function CommunicationSection() {
         open={isCustomAudienceModalOpen}
         onOpenChange={setIsCustomAudienceModalOpen}
         onSelectionSaved={setCustomAudienceUserIds}
+      />
+      <ConfirmDialog
+        open={!!templateIdToDelete}
+        onOpenChange={(open) => {
+          if (!open && !deletingTemplate) setTemplateIdToDelete(null);
+        }}
+        title="Excluir Modelo de Mensagem"
+        description="Deseja realmente excluir este modelo de mensagem salvo?"
+        confirmLabel="Excluir Modelo"
+        variant="danger"
+        loading={deletingTemplate}
+        onConfirm={executeDeleteTemplate}
       />
     </div>
   );

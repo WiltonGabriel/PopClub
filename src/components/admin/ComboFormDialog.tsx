@@ -8,6 +8,8 @@ import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { productService, Product } from "../../services/productService";
 import { badgeService, CardBadge } from "../../services/badgeService";
+import { addonService, AddonGroup } from "../../services/addonService";
+import { AddonOrganizationService } from "@/domain/services/AddonOrganizationService";
 import { ImageCropperDialog } from "./ImageCropperDialog";
 import { UrgencyScarcityConfig, UrgencyScarcityValues } from "./UrgencyScarcityConfig";
 import {
@@ -71,6 +73,8 @@ export function ComboFormDialog({
   // Produtos do combo: { [productId]: quantity }
   const [comboItems, setComboItems] = useState<{ [productId: string]: number }>({});
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
+  const [availableAddonGroups, setAvailableAddonGroups] = useState<AddonGroup[]>([]);
+  const [selectedComboCutleryGroupId, setSelectedComboCutleryGroupId] = useState<string>("none");
   const [productSearch, setProductSearch] = useState("");
   const [badges, setBadges] = useState<CardBadge[]>([]);
 
@@ -126,6 +130,10 @@ export function ComboFormDialog({
         .getBadges()
         .then(setBadges)
         .catch(() => {});
+      addonService
+        .getGroups()
+        .then((groups) => setAvailableAddonGroups(AddonOrganizationService.sortAddonGroups(groups.filter((g) => g.isActive))))
+        .catch(() => {});
     }
   }, [open]);
 
@@ -145,6 +153,11 @@ export function ComboFormDialog({
         itemsMap[it.productId] = it.quantity;
       });
       setComboItems(itemsMap);
+
+      const parentCutlery = (comboToEdit.addonGroups || []).find((pag) =>
+        AddonOrganizationService.isCutleryGroupName(pag.group?.name)
+      );
+      setSelectedComboCutleryGroupId(parentCutlery?.groupId || "none");
 
       // Simplification: always use fixed price if editing a combo, since we just have final price
       setPricingMode("fixed_price");
@@ -177,6 +190,7 @@ export function ComboFormDialog({
       setCropModalOpen(false);
       setRawImageSrc(null);
       setComboItems({});
+      setSelectedComboCutleryGroupId("none");
       setUrgencyState({
         showScarcity: false,
         scarcityType: "strategic",
@@ -301,6 +315,29 @@ export function ComboFormDialog({
         ? parseInt(urgencyState.scarcityUnits)
         : null;
 
+      // Mantém no combo pai apenas complementos gerais pertinentes (sem duplicar grupos dos filhos) + 1 grupo de talheres ao final
+      const comboAddonGroupIds: string[] = [];
+      const existingNonCutlery = (comboToEdit?.addonGroups || [])
+        .map((pag) => pag.groupId)
+        .filter((gid): gid is string => {
+          if (!gid) return false;
+          const g = availableAddonGroups.find((grp) => grp.id === gid);
+          if (!g) return false;
+          if (AddonOrganizationService.isCutleryGroupName(g.name)) return false;
+          // Descarta grupos legados por unidade quando os itens do combo já carregam seus grupos
+          const matchesChild = Object.keys(comboItems).some((pid) =>
+            productsMap.get(pid)?.addonGroupIds?.includes(gid)
+          );
+          const isLegacySlot = /^(?:copo|marmita|milk\s*shake|shake|garrafa|pote|roleta)\s*(?:\d+\s*)?(?:\([^)]+\))?\s*[-•:]/i.test(
+            g.name
+          );
+          return !matchesChild && !isLegacySlot;
+        });
+      comboAddonGroupIds.push(...existingNonCutlery);
+      if (selectedComboCutleryGroupId && selectedComboCutleryGroupId !== "none") {
+        comboAddonGroupIds.push(selectedComboCutleryGroupId);
+      }
+
       const payload = {
         name: title.trim(),
         description: description.trim(),
@@ -310,6 +347,7 @@ export function ComboFormDialog({
         isAvailable: isActive,
         isCombo: true,
         comboItems: itemsPayload,
+        addonGroupIds: comboAddonGroupIds,
         imageUrl: comboToEdit?.imageUrl || "",
         cardBadgeId: matchedBadge?.id || comboToEdit?.cardBadgeId || null,
         // Urgência & Escassez
@@ -560,6 +598,16 @@ export function ComboFormDialog({
                           <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">
                             R$ {Number(p.price).toFixed(2).replace(".", ",")} un.
                           </span>
+                          {p.addonGroups && p.addonGroups.length > 0 && (
+                            <p className="text-[10px] text-primary dark:text-violet-300 mt-0.5 truncate">
+                              Complementos por unidade:{" "}
+                              {AddonOrganizationService.sortAddonGroups(p.addonGroups)
+                                .filter((pag) => !AddonOrganizationService.isCutleryGroupName(pag.group?.name))
+                                .map((pag) => pag.group?.name)
+                                .filter(Boolean)
+                                .join(" • ") || "Somente base"}
+                            </p>
+                          )}
                         </div>
                       </div>
 
@@ -614,6 +662,39 @@ export function ComboFormDialog({
                 </p>
               </div>
             )}
+
+            {/* Grupo único de Talheres / Descartáveis para todo o combo (sempre ao final) */}
+            <div className="p-3.5 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/30 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-emerald-900 dark:text-emerald-300">
+                  Talheres & Descartáveis do Combo (Ao Final)
+                </Label>
+                <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
+                  Não se repete por copo
+                </span>
+              </div>
+              <Select
+                value={selectedComboCutleryGroupId}
+                onValueChange={(val) => setSelectedComboCutleryGroupId(val ?? "none")}
+              >
+                <SelectTrigger className="bg-white dark:bg-background border-emerald-200 dark:border-emerald-800/40 rounded-xl text-xs">
+                  <SelectValue placeholder="Selecione o grupo de talheres/descartáveis" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Herdar automaticamente dos itens (1x ao final)</SelectItem>
+                  {availableAddonGroups
+                    .filter((g) => AddonOrganizationService.isCutleryGroupName(g.name))
+                    .map((g) => (
+                      <SelectItem key={g.id} value={g.id}>
+                        {g.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-emerald-800/80 dark:text-emerald-300/70">
+                Cada item do combo exibe apenas seus próprios adicionais; talheres e descartáveis aparecem uma única vez no fechamento do combo.
+              </p>
+            </div>
 
             {/* Busca rápida para adicionar produtos ao combo */}
             <div className="space-y-2 pt-1">

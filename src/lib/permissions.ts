@@ -6,16 +6,21 @@
  */
 
 export const PERMISSION_KEYS = {
-  // Módulos Operacionais Principais
+  // Domínio: Operação & Logística
   ORDERS_KANBAN: "ORDERS_KANBAN",
   STOCK_CONTROL: "STOCK_CONTROL",
   ORDERS_HISTORY: "ORDERS_HISTORY",
-
-  // 11 Abas do Painel Operacional (/admin)
   metrics_view: "metrics_view",
+  logistics_manage: "logistics_manage",
+
+  // Domínio: Catálogo & Promoções
   menu_manage: "menu_manage",
   promotions_manage: "promotions_manage",
+
+  // Domínio: Marketing, Experiência & Sistema
   coupons_manage: "coupons_manage",
+  notifications_manage: "notifications_manage",
+  loyalty_manage: "loyalty_manage",
   theme_manage: "theme_manage",
   settings_manage: "settings_manage",
   users_manage: "users_manage",
@@ -64,9 +69,16 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     iconName: "BarChart3",
   },
   {
+    id: "logistics_manage",
+    label: "Logística & Entregadores",
+    description: "Cadastrar, editar, pausar e consultar dados sensíveis (PIX/placa) de entregadores.",
+    category: "operacao",
+    iconName: "Truck",
+  },
+  {
     id: "menu_manage",
     label: "Cardápio (Combos e Complementos)",
-    description: "Criar, editar e pausar itens do cardápio.",
+    description: "Criar, editar e pausar itens, categorias, selos de cards e complementos.",
     category: "cardapio",
     iconName: "IceCream",
   },
@@ -85,23 +97,37 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     iconName: "Ticket",
   },
   {
+    id: "notifications_manage",
+    label: "Disparos & Audiência CRM",
+    description: "Gerenciar templates, listas personalizadas e disparos de notificações.",
+    category: "estrategico",
+    iconName: "Bell",
+  },
+  {
+    id: "loyalty_manage",
+    label: "Fidelidade & Avatares Oficiais",
+    description: "Configurar selos de fidelidade e avatares exclusivos de clientes.",
+    category: "estrategico",
+    iconName: "Award",
+  },
+  {
     id: "theme_manage",
-    label: "Identidade Visual & Tema",
-    description: "Alterar paleta de cores, tipografia, logotipo e layout da loja.",
+    label: "Identidade Visual, Banners & Selos",
+    description: "Alterar banner principal, selos de destaque nos cards, paleta e layout da loja.",
     category: "estrategico",
     iconName: "Palette",
   },
   {
     id: "settings_manage",
-    label: "Configurações Gerais",
-    description: "Configurar loja, atendimento, horários e zonas de entrega.",
+    label: "Configurações Gerais & Canais",
+    description: "Configurar loja, atendimento, WhatsApp, horários e zonas de entrega.",
     category: "estrategico",
     iconName: "Store",
   },
   {
     id: "users_manage",
-    label: "Gestão de Usuários & Equipe",
-    description: "Editar perfis de outros colaboradores ou clientes.",
+    label: "Moderação de Clientes & Usuários",
+    description: "Visualizar lista de clientes, moderar bloqueios e consultar perfis.",
     category: "estrategico",
     iconName: "Users",
   },
@@ -132,16 +158,54 @@ export const TAB_PERMISSION_MAP: Record<string, PermissionKey> = {
   promocoes: "promotions_manage",
   cupons: "coupons_manage",
   identidade_visual: "theme_manage",
-  avatares: "theme_manage",
+  selos_fidelidade: "loyalty_manage",
+  avatares: "loyalty_manage",
   banners_selos: "theme_manage",
-  logistica_entregadores: "settings_manage",
+  logistica_entregadores: "logistics_manage",
   canais_atendimento: "settings_manage",
-  disparos_notificacoes: "settings_manage",
-  configuracoes: "settings_manage",
-  horarios: "settings_manage",
-  zonas_entrega: "settings_manage",
-  usuarios: "users_manage",
+  disparos_notificacoes: "notifications_manage",
 };
+
+/**
+ * Abas restritas exclusivamente a administradores (ADMIN), não delegáveis a Editores.
+ */
+export const ADMIN_ONLY_TABS = new Set<string>(["auditoria"]);
+
+const VALID_PERMISSION_SET = new Set<string>(ALL_PERMISSIONS);
+
+export function isValidPermissionKey(value: string): value is PermissionKey {
+  return VALID_PERMISSION_SET.has(value);
+}
+
+/**
+ * Filtra e valida uma lista de permissões contra a whitelist oficial `ALL_PERMISSIONS`.
+ */
+export function validatePermissionsInput(input: unknown): {
+  valid: PermissionKey[];
+  invalid: string[];
+} {
+  if (!Array.isArray(input)) {
+    return { valid: [], invalid: ["<not-an-array>"] };
+  }
+
+  const validSet = new Set<PermissionKey>();
+  const invalid: string[] = [];
+
+  for (const item of input) {
+    if (typeof item !== "string") {
+      invalid.push(String(item));
+      continue;
+    }
+    const trimmed = item.trim();
+    if (isValidPermissionKey(trimmed)) {
+      validSet.add(trimmed);
+    } else {
+      invalid.push(trimmed);
+    }
+  }
+
+  return { valid: Array.from(validSet), invalid };
+}
 
 /**
  * Verifica se um usuário possui determinada permissão.

@@ -22,6 +22,7 @@ import { useToast } from "../ui/ToastNotification";
 import { formatCurrency, parseSafeNumber } from "@/lib/formatters";
 import { calculateProductPrice } from "@/lib/pricing";
 import { UrgencyScarcityBanner } from "./UrgencyScarcityBanner";
+import { AddonOrganizationService } from "@/domain/services/AddonOrganizationService";
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -125,65 +126,104 @@ function ProductDetailModalContent({
     setSelectedOptions(initial);
   }, []);
 
-  const processComboUnits = useCallback((items: NonNullable<Product["comboItems"]>) => {
-    const units: ComboUnit[] = [];
-    let globalIdx = 1;
-    const total = items.reduce((acc, it) => acc + (it.quantity || 1), 0);
-
-    items.forEach((item) => {
-      const qty = item.quantity || 1;
-      const childProd = item.product || {
-        id: item.productId,
-        name: "Item do Combo",
-        price: 0,
-        description: "",
-        imageUrl: "",
+  const normalizeRawGroups = useCallback((rawGroups?: RawAddonGroup[]): AddonGroup[] => {
+    const mapped = (rawGroups || []).map((g: RawAddonGroup) => {
+      const group = g.group || g;
+      return {
+        ...group,
+        items: group.items || (group as RawAddonGroup).addonItems || [],
       };
-
-      for (let i = 0; i < qty; i++) {
-        const key = `${item.id || item.productId}_${i}`;
-        const title = qty > 1 ? `${childProd.name} #${i + 1}` : childProd.name;
-
-        const normalizedGroups = (childProd.addonGroups || []).map((g: RawAddonGroup) => {
-          const group = g.group || g;
-          return {
-            ...group,
-            items: group.items || (group as RawAddonGroup).addonItems || [],
-          };
-        });
-
-        units.push({
-          key,
-          unitIndex: globalIdx,
-          totalInCombo: total,
-          product: {
-            ...childProd,
-            addonGroups: normalizedGroups,
-          },
-          title,
-        });
-        globalIdx++;
-      }
     });
+    return AddonOrganizationService.sortAddonGroups(mapped);
+  }, []);
 
-    setComboUnits(units);
+  const processComboUnits = useCallback(
+    (items: NonNullable<Product["comboItems"]>, parentAddonGroups?: RawAddonGroup[]) => {
+      const rawUnits: Array<{
+        key: string;
+        unitIndex: number;
+        totalInCombo: number;
+        product: Product;
+        title: string;
+        groups: AddonGroup[];
+      }> = [];
+      let globalIdx = 1;
+      const total = items.reduce((acc, it) => acc + (it.quantity || 1), 0);
 
-    const initialComboSel: Record<string, Record<string, Record<string, number>>> = {};
-    units.forEach((u) => {
-      initialComboSel[u.key] = {};
-      (u.product.addonGroups || []).forEach((g: RawAddonGroup) => {
-        initialComboSel[u.key][g.id] = {};
-        const items = g.items || g.addonItems || [];
-        if (g.isRequired && g.minQuantity === 1 && g.maxQuantity === 1) {
-          const firstAvail = items.find((it: AddonItem) => it.isAvailable);
-          if (firstAvail) {
-            initialComboSel[u.key][g.id] = { [firstAvail.id]: 1 };
-          }
+      items.forEach((item) => {
+        const qty = item.quantity || 1;
+        const childProd = item.product || {
+          id: item.productId,
+          name: "Item do Combo",
+          price: 0,
+          description: "",
+          imageUrl: "",
+        };
+
+        for (let i = 0; i < qty; i++) {
+          const key = `${item.id || item.productId}_${i}`;
+          const title = qty > 1 ? `${childProd.name} #${i + 1}` : childProd.name;
+          const normalizedGroups = normalizeRawGroups(childProd.addonGroups as RawAddonGroup[]);
+
+          rawUnits.push({
+            key,
+            unitIndex: globalIdx,
+            totalInCombo: total,
+            product: {
+              ...childProd,
+              addonGroups: normalizedGroups,
+            },
+            title,
+            groups: normalizedGroups,
+          });
+          globalIdx++;
         }
       });
-    });
-    setComboSelections(initialComboSel);
-  }, []);
+
+      const normalizedParentGroups = normalizeRawGroups(parentAddonGroups);
+      const partitioned = AddonOrganizationService.partitionComboGroups({
+        comboAddonGroups: normalizedParentGroups,
+        comboUnits: rawUnits.map((u) => ({
+          key: u.key,
+          title: u.title,
+          groups: u.groups,
+        })),
+      });
+
+      const units: ComboUnit[] = rawUnits.map((rawUnit, idx) => ({
+        key: rawUnit.key,
+        unitIndex: rawUnit.unitIndex,
+        totalInCombo: rawUnit.totalInCombo,
+        title: rawUnit.title,
+        product: {
+          ...rawUnit.product,
+          addonGroups: partitioned.units[idx]?.groups || [],
+        },
+      }));
+
+      setComboUnits(units);
+
+      const initialComboSel: Record<string, Record<string, Record<string, number>>> = {};
+      units.forEach((u) => {
+        initialComboSel[u.key] = {};
+        (u.product.addonGroups || []).forEach((g: RawAddonGroup) => {
+          initialComboSel[u.key][g.id] = {};
+          const groupItems = g.items || g.addonItems || [];
+          if (g.isRequired && g.minQuantity === 1 && g.maxQuantity === 1) {
+            const firstAvail = groupItems.find((it: AddonItem) => it.isAvailable);
+            if (firstAvail) {
+              initialComboSel[u.key][g.id] = { [firstAvail.id]: 1 };
+            }
+          }
+        });
+      });
+      setComboSelections(initialComboSel);
+
+      setGroups(partitioned.comboTrailingGroups);
+      initSelections(partitioned.comboTrailingGroups);
+    },
+    [initSelections, normalizeRawGroups]
+  );
 
   // Carrega os dados reais do produto ou combo
   useEffect(() => {
@@ -193,39 +233,33 @@ function ProductDetailModalContent({
 
       if (product.isCombo) {
         if (product.comboItems && product.comboItems.length > 0) {
-          processComboUnits(product.comboItems);
+          processComboUnits(product.comboItems, product.addonGroups as RawAddonGroup[]);
         } else {
           setLoadingAddons(true);
           productService
             .getProductById(product.id)
             .then((fullProduct) => {
               if (fullProduct.comboItems && fullProduct.comboItems.length > 0) {
-                processComboUnits(fullProduct.comboItems);
+                processComboUnits(fullProduct.comboItems, fullProduct.addonGroups as RawAddonGroup[]);
               } else {
                 setComboUnits([]);
+                const fallbackGroups = normalizeRawGroups(fullProduct.addonGroups as RawAddonGroup[]);
+                setGroups(fallbackGroups);
+                initSelections(fallbackGroups);
               }
             })
             .catch((err) => {
               console.warn("Aviso ao carregar itens do combo:", err);
               setComboUnits([]);
+              setGroups([]);
             })
             .finally(() => {
               setLoadingAddons(false);
             });
         }
       } else {
-        const normalizeGroups = (rawGroups: RawAddonGroup[]): AddonGroup[] => {
-          return (rawGroups || []).map((g) => {
-            const group = g.group || g;
-            return {
-              ...group,
-              items: group.items || (group as RawAddonGroup).addonItems || [],
-            };
-          });
-        };
-
         if (product.addonGroups && product.addonGroups.length > 0) {
-          const normGroups = normalizeGroups(product.addonGroups);
+          const normGroups = normalizeRawGroups(product.addonGroups as RawAddonGroup[]);
           setGroups(normGroups);
           initSelections(normGroups);
         } else {
@@ -233,7 +267,7 @@ function ProductDetailModalContent({
           productService
             .getProductById(product.id)
             .then((fullProduct) => {
-              const loadedGroups = normalizeGroups(fullProduct.addonGroups || []);
+              const loadedGroups = normalizeRawGroups(fullProduct.addonGroups as RawAddonGroup[]);
               setGroups(loadedGroups);
               initSelections(loadedGroups);
             })
@@ -252,7 +286,7 @@ function ProductDetailModalContent({
       setComboUnits([]);
       setComboSelections({});
     }
-  }, [isOpen, product, initSelections, processComboUnits]);
+  }, [isOpen, product, initSelections, normalizeRawGroups, processComboUnits]);
 
   // Bloqueio do scroll da página quando modal aberto
   useEffect(() => {
@@ -490,115 +524,98 @@ function ProductDetailModalContent({
   const basePrice = pricing.currentPrice;
   const baseOriginalPrice = pricing.originalPrice;
   let extrasTotal = 0;
-  const flatSelectedOptionsList: SelectedOption[] = [];
+  const rawSelectedOptionsList: SelectedOption[] = [];
+
+  const appendGroupSelections = (
+    group: AddonGroup,
+    groupSel: Record<string, number>,
+    groupLabel: string
+  ) => {
+    let freeSlotsLeft = group.freeQuantity || 0;
+
+    Object.entries(groupSel).forEach(([itemId, qty]) => {
+      if (qty <= 0) return;
+      const item = group.items.find((i) => i.id === itemId);
+      if (!item) return;
+      const rawPrice = parseSafeNumber(item.price);
+
+      let freeUnits = 0;
+      let paidUnits = 0;
+
+      for (let q = 0; q < qty; q++) {
+        if (freeSlotsLeft > 0) {
+          freeUnits++;
+          freeSlotsLeft--;
+        } else if (rawPrice === 0) {
+          freeUnits++;
+        } else {
+          paidUnits++;
+          extrasTotal += rawPrice;
+        }
+      }
+
+      if (freeUnits > 0) {
+        rawSelectedOptionsList.push({
+          id: item.id,
+          groupName: groupLabel,
+          name: item.name,
+          price: 0,
+          quantity: freeUnits,
+        });
+      }
+
+      if (paidUnits > 0) {
+        rawSelectedOptionsList.push({
+          id: item.id,
+          groupName: groupLabel,
+          name: item.name,
+          price: rawPrice,
+          quantity: paidUnits,
+        });
+      }
+    });
+  };
 
   if (product.isCombo) {
     comboUnits.forEach((unit) => {
       const unitGroups = unit.product.addonGroups || [];
       unitGroups.forEach((group) => {
         const groupSel = comboSelections[unit.key]?.[group.id] || {};
-        let freeSlotsLeft = group.freeQuantity || 0;
-
-        Object.entries(groupSel).forEach(([itemId, qty]) => {
-          if (qty <= 0) return;
-          const item = group.items.find((i) => i.id === itemId);
-          if (!item) return;
-          const rawPrice = parseSafeNumber(item.price);
-
-          let freeUnits = 0;
-          let paidUnits = 0;
-
-          for (let q = 0; q < qty; q++) {
-            if (freeSlotsLeft > 0) {
-              freeUnits++;
-              freeSlotsLeft--;
-            } else if (rawPrice === 0) {
-              freeUnits++;
-            } else {
-              paidUnits++;
-              extrasTotal += rawPrice;
-            }
-          }
-
-          if (freeUnits > 0) {
-            flatSelectedOptionsList.push({
-              id: item.id,
-              groupName: `${unit.title} • ${group.name}`,
-              name: freeUnits > 1 ? `${item.name} (${freeUnits}x)` : item.name,
-              price: 0,
-              quantity: freeUnits,
-            });
-          }
-
-          if (paidUnits > 0) {
-            flatSelectedOptionsList.push({
-              id: item.id,
-              groupName: `${unit.title} • ${group.name}`,
-              name: paidUnits > 1 ? `${item.name} (${paidUnits}x)` : item.name,
-              price: rawPrice,
-              quantity: paidUnits,
-            });
-          }
-        });
+        appendGroupSelections(group, groupSel, `${unit.title} • ${group.name}`);
       });
+    });
+
+    // Complementos gerais / talheres e descartáveis ao final do combo
+    groups.forEach((group) => {
+      const groupSel = selectedOptions[group.id] || {};
+      appendGroupSelections(group, groupSel, group.name);
     });
   } else {
     groups.forEach((group) => {
       const groupSel = selectedOptions[group.id] || {};
-      let freeSlotsLeft = group.freeQuantity || 0;
-
-      Object.entries(groupSel).forEach(([itemId, qty]) => {
-        if (qty <= 0) return;
-        const item = group.items.find((i) => i.id === itemId);
-        if (!item) return;
-        const rawPrice = parseSafeNumber(item.price);
-
-        let freeUnits = 0;
-        let paidUnits = 0;
-
-        for (let q = 0; q < qty; q++) {
-          if (freeSlotsLeft > 0) {
-            freeUnits++;
-            freeSlotsLeft--;
-          } else if (rawPrice === 0) {
-            freeUnits++;
-          } else {
-            paidUnits++;
-            extrasTotal += rawPrice;
-          }
-        }
-
-        if (freeUnits > 0) {
-          flatSelectedOptionsList.push({
-            id: item.id,
-            groupName: group.name,
-            name: freeUnits > 1 ? `${item.name} (${freeUnits}x)` : item.name,
-            price: 0,
-            quantity: freeUnits,
-          });
-        }
-
-        if (paidUnits > 0) {
-          flatSelectedOptionsList.push({
-            id: item.id,
-            groupName: group.name,
-            name: paidUnits > 1 ? `${item.name} (${paidUnits}x)` : item.name,
-            price: rawPrice,
-            quantity: paidUnits,
-          });
-        }
-      });
+      appendGroupSelections(group, groupSel, group.name);
     });
   }
+
+  const flatSelectedOptionsList: SelectedOption[] = AddonOrganizationService.organizeOrderAddons(
+    rawSelectedOptionsList
+  ).flatSorted;
 
   const unitPrice = basePrice + extrasTotal;
   const totalPrice = unitPrice * quantity;
   const isPromo = pricing.isPromotional;
   const originalUnitPrice = isPromo && baseOriginalPrice ? baseOriginalPrice + extrasTotal : undefined;
 
-  // Validação de grupos obrigatórios
-  let isValid = true;
-  if (product.isCombo) {
+  // Validação de grupos obrigatórios (tanto nas unidades quanto nos grupos gerais do combo)
+  const areStandaloneGroupsValid = groups.every((group) => {
+    const groupSel = selectedOptions[group.id] || {};
+    const count = Object.values(groupSel).reduce((sum, q) => sum + q, 0);
+    const minRequired = group.isRequired ? Math.max(1, group.minQuantity) : group.minQuantity;
+    return count >= minRequired;
+  });
+
+  let isValid = areStandaloneGroupsValid;
+  if (product.isCombo && isValid) {
     for (const unit of comboUnits) {
       for (const group of unit.product.addonGroups || []) {
         const groupSel = comboSelections[unit.key]?.[group.id] || {};
@@ -611,14 +628,6 @@ function ProductDetailModalContent({
       }
       if (!isValid) break;
     }
-  } else {
-    const unsatisfied = groups.filter((group) => {
-      const groupSel = selectedOptions[group.id] || {};
-      const count = Object.values(groupSel).reduce((sum, q) => sum + q, 0);
-      const minRequired = group.isRequired ? Math.max(1, group.minQuantity) : group.minQuantity;
-      return count < minRequired;
-    });
-    isValid = unsatisfied.length === 0;
   }
 
   // Adicionar ao Carrinho
@@ -1055,6 +1064,201 @@ function ProductDetailModalContent({
                 </div>
               );
             })
+          )}
+
+          {/* Bloco Final do Combo: Talheres / Descartáveis e complementos compartilhados */}
+          {!loadingAddons && groups.length > 0 && (
+            <div className="rounded-2xl border border-primary/20 dark:border-primary/30 bg-primary/[0.03] dark:bg-primary/5 p-4 space-y-4">
+              <div className="flex items-center gap-3 pb-3 border-b border-border/40">
+                <div className="w-8 h-8 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                  <Utensils className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-heading font-bold text-sm sm:text-base text-foreground truncate">
+                    Finalização & Descartáveis do Combo
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    Configuração única válida para todo o combo
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {groups.map((group) => {
+                  const groupSel = selectedOptions[group.id] || {};
+                  const currentCount = Object.values(groupSel).reduce((s, q) => s + q, 0);
+                  const isSingleChoice = group.maxQuantity === 1;
+                  const minReq = group.isRequired ? Math.max(1, group.minQuantity) : group.minQuantity;
+                  const isSatisfied = currentCount >= minReq;
+                  const freeQuota = group.freeQuantity || 0;
+                  const allowsQuantity = Boolean(group.allowItemQuantity && group.maxQuantity > 1);
+
+                  return (
+                    <section
+                      key={group.id}
+                      className="border border-zinc-200/80 dark:border-zinc-800 rounded-xl p-3 sm:p-3.5 bg-white dark:bg-zinc-800/40 space-y-2.5 shadow-2xs"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="font-heading font-bold text-xs sm:text-sm text-foreground">
+                            {group.name}
+                          </h4>
+                          {minReq >= 1 ? (
+                            <span
+                              className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border shrink-0 ${
+                                isSatisfied
+                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                                  : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 animate-pulse"
+                              }`}
+                            >
+                              {isSatisfied ? "Obrigatório" : `Escolha ${minReq}`}
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-muted-foreground border border-zinc-200 dark:border-zinc-700/60 shrink-0">
+                              Opcional
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                            {currentCount} de {group.maxQuantity}
+                          </span>
+                          {freeQuota > 0 && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                              Até {freeQuota} incluso{freeQuota === 1 ? "" : "s"}
+                            </span>
+                          )}
+                          {allowsQuantity && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                              Qtd múltipla (+/-)
+                            </span>
+                          )}
+                        </div>
+                        {group.description && (
+                          <p className="w-full text-[11px] text-muted-foreground leading-relaxed">
+                            {group.description}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-1.5">
+                        {group.items.map((item) => {
+                          const itemQty = groupSel[item.id] || 0;
+                          const isSelected = itemQty > 0;
+                          const isMaxReached = !isSelected && !isSingleChoice && currentCount >= group.maxQuantity;
+                          const isPaused = !item.isAvailable;
+                          const itemPrice = parseSafeNumber(item.price);
+
+                          let priceDisplay = "Incluso";
+                          let priceColor = "text-emerald-600 dark:text-emerald-400 font-bold";
+
+                          if (itemPrice > 0) {
+                            if (isSelected && currentCount <= freeQuota) {
+                              priceDisplay = "Incluso";
+                            } else if (!isSelected && currentCount < freeQuota) {
+                              priceDisplay = "Incluso";
+                            } else {
+                              const displayPrice = allowsQuantity && itemQty > 1 ? itemPrice * itemQty : itemPrice;
+                              priceDisplay = `+ ${formatCurrency(displayPrice)}`;
+                              priceColor = "text-primary dark:text-violet-400 font-bold font-mono";
+                            }
+                          }
+
+                          return (
+                            <div
+                              key={item.id}
+                              onClick={() => handleToggleOption(group, item)}
+                              className={`w-full flex items-center justify-between p-2 rounded-xl border transition-all text-left gap-2.5 select-none ${
+                                isPaused
+                                  ? "border-dashed border-zinc-200 dark:border-zinc-800 opacity-50 cursor-not-allowed"
+                                  : isSelected
+                                  ? "border-primary bg-primary/10 dark:bg-primary/20 shadow-2xs cursor-pointer"
+                                  : isMaxReached
+                                  ? "opacity-40 cursor-not-allowed bg-transparent"
+                                  : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 hover:border-primary/40 cursor-pointer"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                {!allowsQuantity && (
+                                  <div
+                                    className={`w-3.5 h-3.5 rounded-${isSingleChoice ? "full" : "sm"} border flex items-center justify-center shrink-0 ${
+                                      isSelected
+                                        ? "border-primary bg-primary text-white"
+                                        : "border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800"
+                                    }`}
+                                  >
+                                    {isSelected &&
+                                      (isSingleChoice ? (
+                                        <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                      ) : (
+                                        <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                      ))}
+                                  </div>
+                                )}
+                                <span
+                                  className={`text-xs font-semibold truncate ${
+                                    isSelected
+                                      ? "text-primary dark:text-violet-300"
+                                      : "text-zinc-900 dark:text-zinc-100"
+                                  }`}
+                                >
+                                  {item.name}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className={`text-[11px] ${priceColor}`}>
+                                  {isPaused ? "Esgotado" : priceDisplay}
+                                </span>
+
+                                {allowsQuantity && !isPaused && (
+                                  <div
+                                    className="flex items-center gap-1 bg-white dark:bg-zinc-800 rounded-lg border border-border/60 p-0.5 shrink-0"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {itemQty > 0 ? (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDecrementOption(group, item)}
+                                          className="w-5 h-5 rounded flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-700 text-foreground cursor-pointer"
+                                          aria-label="Diminuir"
+                                        >
+                                          <Minus className="w-3 h-3" />
+                                        </button>
+                                        <span className="w-4 text-center font-bold text-xs">{itemQty}</span>
+                                        <button
+                                          type="button"
+                                          disabled={currentCount >= group.maxQuantity}
+                                          onClick={() => handleIncrementOption(group, item)}
+                                          className="w-5 h-5 rounded flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-700 text-foreground disabled:opacity-30 cursor-pointer"
+                                          aria-label="Aumentar"
+                                        >
+                                          <Plus className="w-3 h-3" />
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        disabled={currentCount >= group.maxQuantity}
+                                        onClick={() => handleIncrementOption(group, item)}
+                                        className="px-2 py-0.5 rounded text-xs font-bold text-primary hover:bg-primary/10 disabled:opacity-30 cursor-pointer flex items-center gap-0.5"
+                                      >
+                                        <Plus className="w-3 h-3" /> Adicionar
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
       );

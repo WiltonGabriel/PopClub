@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/ToastNotification";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const SUGGESTED_EMOJIS = ["🌟", "🥉", "🥈", "🥇", "💎", "👑", "🏆", "🔥", "⚡", "✨", "🍧", "🥣"];
 
@@ -44,6 +45,13 @@ export function LoyaltyBadgesSection() {
   // Trava de Confirmação Crítica (Digitação "SIM")
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmInputText, setConfirmInputText] = useState("");
+  const [pendingAction, setPendingAction] = useState<{
+    title: string;
+    description: string;
+    confirmLabel: string;
+    variant: "danger" | "warning";
+    onConfirm: () => void;
+  } | null>(null);
 
   const loadBadges = useCallback(async () => {
     setLoading(true);
@@ -169,23 +177,36 @@ export function LoyaltyBadgesSection() {
       return;
     }
 
-    if (!confirm("Deseja realmente remover este nível de selo?")) return;
-
-    setBadges((prev) => prev.filter((b) => b.id !== badgeId));
-    showToast({
-      type: "success",
-      title: "Selo Removido",
-      message: "Clique em 'Salvar Configuração' para confirmar.",
+    setPendingAction({
+      title: "Remover Nível de Selo",
+      description: "Deseja realmente remover este nível de selo de fidelidade? A alteração só é persistida após clicar em Salvar Configuração.",
+      confirmLabel: "Remover Selo",
+      variant: "danger",
+      onConfirm: () => {
+        setBadges((prev) => prev.filter((b) => b.id !== badgeId));
+        showToast({
+          type: "success",
+          title: "Selo Removido",
+          message: "Clique em 'Salvar Configuração' para confirmar.",
+        });
+      },
     });
   };
 
   const handleResetDefaults = () => {
-    if (!confirm("Deseja restaurar os 4 selos de fidelidade originais da Pop Shake?")) return;
-    setBadges(DEFAULT_LOYALTY_BADGES);
-    showToast({
-      type: "info",
-      title: "Padrão Restaurado",
-      message: "Lembre-se de clicar em 'Salvar Configuração' para aplicar.",
+    setPendingAction({
+      title: "Restaurar Padrões Originais",
+      description: "Deseja restaurar os 4 selos de fidelidade originais da Pop Shake?",
+      confirmLabel: "Restaurar Padrões",
+      variant: "warning",
+      onConfirm: () => {
+        setBadges(DEFAULT_LOYALTY_BADGES);
+        showToast({
+          type: "info",
+          title: "Padrão Restaurado",
+          message: "Lembre-se de clicar em 'Salvar Configuração' para aplicar.",
+        });
+      },
     });
   };
 
@@ -213,7 +234,7 @@ export function LoyaltyBadgesSection() {
   const sortedBadges = [...badges].sort((a, b) => a.minMonths - b.minMonths);
 
   return (
-    <div className="space-y-6 pt-6 border-t border-gray-100 dark:border-zinc-800">
+    <div className="space-y-6">
       {/* Cabeçalho da Seção */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div>
@@ -639,6 +660,21 @@ export function LoyaltyBadgesSection() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={!!pendingAction}
+        onOpenChange={(open) => {
+          if (!open) setPendingAction(null);
+        }}
+        title={pendingAction?.title || ""}
+        description={pendingAction?.description || ""}
+        confirmLabel={pendingAction?.confirmLabel || "Confirmar"}
+        variant={pendingAction?.variant || "danger"}
+        onConfirm={() => {
+          if (!pendingAction) return;
+          pendingAction.onConfirm();
+          setPendingAction(null);
+        }}
+      />
     </div>
   );
 }

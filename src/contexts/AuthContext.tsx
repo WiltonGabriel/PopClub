@@ -2,6 +2,7 @@
 
 import React, { createContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { authService } from "../services/authService";
+import { hasPermission, isUserAdmin, isUserEditor } from "../lib/permissions";
 
 export interface AppUser {
   id: string;
@@ -11,6 +12,12 @@ export interface AppUser {
   cpf?: string | null;
   role: "client" | "admin" | "editor";
   permissions?: string[];
+  customRoleId?: string | null;
+  customRole?: {
+    id: string;
+    name: string;
+    permissions: string[];
+  } | null;
   fullName?: string | null;
   avatarUrl?: string | null;
   avatar?: string | null;
@@ -96,20 +103,8 @@ export const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<AppUser | null>({
-    id: "mock-admin",
-    role: "admin",
-    permissions: [
-      "metrics_view",
-      "menu_manage",
-      "promotions_manage",
-      "coupons_manage",
-      "theme_manage",
-      "settings_manage",
-      "users_manage"
-    ]
-  });
-  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const refreshUser = useCallback(async () => {
     try {
@@ -126,6 +121,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           cpf: current.cpf || null,
           role: current.role,
           permissions: current.permissions || [],
+          customRoleId: current.customRoleId || null,
+          customRole: current.customRole || null,
           fullName: current.fullName,
           avatarUrl: avatar,
           avatar: avatar,
@@ -230,16 +227,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [refreshUser]);
 
-  const isAdmin = user?.role === "admin";
-  const isEditor = user?.role === "editor";
+  const isAdmin = isUserAdmin(user);
+  const isEditor = isUserEditor(user);
 
   const canAccess = useCallback((permission: string) => {
-    if (!user) return false;
-    if (user.role === "admin") return true;
-    if (user.role === "editor") {
-      return Boolean(user.permissions && user.permissions.includes(permission));
-    }
-    return false;
+    return hasPermission(user, permission);
   }, [user]);
 
   const session = user ? { user } : null;

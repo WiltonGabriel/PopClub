@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
-import { isUserAdmin, isUserEditor, hasPermission } from "@/lib/permissions";
+import { isUserAdmin, validatePermissionsInput } from "@/lib/permissions";
+import { recordAdminAudit } from "@/services/auditLogService";
 
 export async function PATCH(
   request: Request,
@@ -9,9 +10,11 @@ export async function PATCH(
 ) {
   try {
     const authUser = await getAuthUser(request);
-    const hasUsersManage = isUserAdmin(authUser) || (isUserEditor(authUser) && hasPermission(authUser, "users_manage"));
-    if (!authUser || !hasUsersManage) {
-      return NextResponse.json({ error: "Acesso negado. Permissão users_manage necessária." }, { status: 403 });
+    if (!authUser || !isUserAdmin(authUser)) {
+      return NextResponse.json(
+        { error: "Acesso negado. Apenas administradores podem editar cargos personalizados." },
+        { status: 403 }
+      );
     }
 
     const { id } = await params;
@@ -69,7 +72,14 @@ export async function PATCH(
       if (!Array.isArray(permissions)) {
         return NextResponse.json({ error: "Permissões devem ser uma lista." }, { status: 400 });
       }
-      newPermissions = permissions.filter((p): p is string => typeof p === "string");
+      const { valid, invalid } = validatePermissionsInput(permissions);
+      if (invalid.length > 0) {
+        return NextResponse.json(
+          { error: `Permissões inválidas informadas: ${invalid.join(", ")}` },
+          { status: 400 }
+        );
+      }
+      newPermissions = valid;
       dataToUpdate.permissions = newPermissions;
       updateUsersPermissions = true;
     }
@@ -99,6 +109,16 @@ export async function PATCH(
       });
     }
 
+    await recordAdminAudit({
+      actor: { id: authUser.id, role: authUser.role },
+      action: "UPDATE_CUSTOM_ROLE",
+      resourceType: "custom_role",
+      resourceId: updatedRole.id,
+      summary: `Atualizou cargo personalizado "${updatedRole.name}".`,
+      diffKeys: Object.keys(dataToUpdate),
+      metadata: { roleName: updatedRole.name, permissionsCount: updatedRole.permissions.length },
+    });
+
     return NextResponse.json(updatedRole);
   } catch (error: unknown) {
     console.error("Erro ao atualizar cargo customizado:", error);
@@ -112,9 +132,11 @@ export async function DELETE(
 ) {
   try {
     const authUser = await getAuthUser(request);
-    const hasUsersManage = isUserAdmin(authUser) || (isUserEditor(authUser) && hasPermission(authUser, "users_manage"));
-    if (!authUser || !hasUsersManage) {
-      return NextResponse.json({ error: "Acesso negado. Permissão users_manage necessária." }, { status: 403 });
+    if (!authUser || !isUserAdmin(authUser)) {
+      return NextResponse.json(
+        { error: "Acesso negado. Apenas administradores podem excluir cargos personalizados." },
+        { status: 403 }
+      );
     }
 
     const { id } = await params;
@@ -154,6 +176,15 @@ export async function DELETE(
 
     await prisma.customRole.delete({
       where: { id },
+    });
+
+    await recordAdminAudit({
+      actor: { id: authUser.id, role: authUser.role },
+      action: "DELETE_CUSTOM_ROLE",
+      resourceType: "custom_role",
+      resourceId: id,
+      summary: `Excluiu cargo personalizado "${role.name}".`,
+      metadata: { roleName: role.name },
     });
 
     return NextResponse.json({

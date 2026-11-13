@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { AddonOrganizationService } from "@/domain/services/AddonOrganizationService";
 
 export type DbOrderPayload = Prisma.OrderGetPayload<{
   include: {
@@ -82,7 +83,9 @@ export function formatOrder(o: DbOrderPayload, shiftCode?: string | null) {
       quantity: it.quantity,
       price_at_time: Number(it.priceAtTime),
       notes: it.notes || null,
-      selected_addons: (it.selectedAddons as unknown as AddonItemSummary[]) || null,
+      selected_addons: Array.isArray(it.selectedAddons)
+        ? AddonOrganizationService.organizeOrderAddons(it.selectedAddons as unknown as AddonItemSummary[]).flatSorted
+        : null,
       product: it.product
         ? {
             id: it.product.id,

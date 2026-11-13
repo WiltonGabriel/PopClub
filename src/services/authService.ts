@@ -6,6 +6,12 @@ export interface AuthUser {
   cpf?: string | null;
   role: "client" | "admin" | "editor";
   permissions?: string[];
+  customRoleId?: string | null;
+  customRole?: {
+    id: string;
+    name: string;
+    permissions: string[];
+  } | null;
   fullName?: string | null;
   avatarUrl?: string | null;
   avatar?: string | null;

@@ -25,6 +25,7 @@ import { HeaderAddressButton } from "../components/storefront/HeaderAddressButto
 import { CategoriesDrawer } from "../components/storefront/CategoriesDrawer";
 import { NotificationBell } from "../components/storefront/NotificationBell";
 import { DraggableWhatsAppButton } from "../components/storefront/DraggableWhatsAppButton";
+import { BrandHomeLink } from "../components/storefront/BrandHomeLink";
 import { PopShakeLoading } from "../components/ui/PopShakeLoading";
 import {
   loadingSettingsService,
@@ -710,21 +711,14 @@ export default function Storefront() {
         {/* ── 1. HEADER MOBILE EXCLUSIVO (Padrão iFood: Logo | Endereço | Notificações) ── */}
         <div className="flex md:hidden items-center justify-between gap-2 w-full px-3 py-2">
           {/* À Esquerda: Nome/Logo da loja (PopShake) com tipografia destacada */}
-          <Link
-            href="/"
-            onClick={() => {
+          <BrandHomeLink
+            textSizeClass="text-xl"
+            onNavigate={() => {
               if (mobileCategoryView) {
                 handleCloseMobileCategoryView();
               }
             }}
-            className="flex items-center select-none cursor-pointer hover:opacity-85 transition-opacity duration-200 shrink-0"
-            aria-label="Pop Shake — Início"
-          >
-            <span className="font-heading font-black text-xl tracking-tight flex items-center shrink-0 drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)] select-none">
-              <span className="text-zinc-900 dark:text-white transition-colors">Pop</span>
-              <span className="text-primary dark:text-violet-400 transition-colors">Shake</span>
-            </span>
-          </Link>
+          />
 
           {/* Ao Centro: Seletor de endereço centralizado e clicável */}
           <div className="flex-1 flex justify-center items-center min-w-0 px-1">
@@ -746,21 +740,14 @@ export default function Storefront() {
 
           {/* ── ESQUERDA: Logotipo tipográfico PopShake ── */}
           <div className="flex items-center gap-2 min-w-0 shrink-0">
-            <Link
-              href="/"
-              onClick={() => {
+            <BrandHomeLink
+              textSizeClass="text-2xl"
+              onNavigate={() => {
                 if (mobileCategoryView) {
                   handleCloseMobileCategoryView();
                 }
               }}
-              className="flex items-center select-none cursor-pointer hover:opacity-85 transition-opacity duration-200 shrink-0"
-              aria-label="Pop Shake — Início"
-            >
-              <span className="font-heading font-black text-2xl tracking-tight flex items-center shrink-0 drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)] select-none">
-                <span className="text-zinc-900 dark:text-white transition-colors">Pop</span>
-                <span className="text-primary dark:text-violet-400 transition-colors">Shake</span>
-              </span>
-            </Link>
+            />
             <StoreStatusBadge status={storeStatus.status} closingTime={storeStatus.closingTime} />
           </div>
 

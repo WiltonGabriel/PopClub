@@ -23,6 +23,8 @@ export interface AddonGroup {
   isActive: boolean;
   productsCount?: number;
   items: AddonItem[];
+  groupId?: string;
+  group?: AddonGroup;
   createdAt?: string;
   updatedAt?: string;
 }

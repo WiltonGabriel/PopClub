@@ -32,6 +32,7 @@ import {
   Clock,
 } from "lucide-react";
 import { calculateDistanceKm } from "@/lib/geo";
+import { AddonOrganizationService } from "@/domain/services/AddonOrganizationService";
 import { useCart } from "../../hooks/useCart";
 import { useAuth } from "../../hooks/useAuth";
 import { couponService, ValidatedCoupon } from "../../services/couponService";
@@ -878,6 +879,7 @@ export default function CarrinhoPage() {
           selectedAddons: i.selectedOptions && i.selectedOptions.length > 0 ? i.selectedOptions.map(opt => ({
             id: opt.id || opt.name, // Fallback to name if id is missing
             name: opt.name,
+            groupName: opt.groupName || undefined,
             price: opt.price,
             quantity: opt.quantity || 1
           })) : null,
@@ -1478,23 +1480,44 @@ export default function CarrinhoPage() {
                       {/* Middle Row: Adicionais, Caldas e Observações */}
                       {((item.selectedOptions && item.selectedOptions.length > 0) || item.notes) && (
                         <div className="pt-2 border-t border-gray-200/60 dark:border-border/30 space-y-2">
-                          {item.selectedOptions && item.selectedOptions.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5">
-                              {item.selectedOptions.map((opt, idx) => (
-                                <span
-                                  key={idx}
-                                  className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg bg-primary/5/80 dark:bg-primary/95/50 border border-primary/20/50 dark:border-primary/90/40 text-primary dark:text-muted-foreground font-medium"
-                                >
-                                  <span>{opt.name}</span>
-                                  {parseSafeNumber(opt.price) > 0 && (
-                                    <strong className="font-mono font-bold text-[10px]">
-                                      (+{formatCurrency(opt.price)})
-                                    </strong>
-                                  )}
-                                </span>
-                              ))}
-                            </div>
-                          )}
+                          {item.selectedOptions && item.selectedOptions.length > 0 && (() => {
+                            const { sections } = AddonOrganizationService.organizeOrderAddons(item.selectedOptions);
+                            return (
+                              <div className="space-y-1.5">
+                                {sections.map((section, sIdx) => (
+                                  <div key={`${section.groupName}-${sIdx}`} className="space-y-1">
+                                    {sections.length > 1 && (
+                                      <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground block">
+                                        {section.groupName}
+                                      </span>
+                                    )}
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {section.items.map((opt, idx) => {
+                                        const optQty = opt.quantity || 1;
+                                        const optPrice = parseSafeNumber(opt.price);
+                                        return (
+                                          <span
+                                            key={idx}
+                                            className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg bg-primary/5/80 dark:bg-primary/95/50 border border-primary/20/50 dark:border-primary/90/40 text-primary dark:text-muted-foreground font-medium"
+                                          >
+                                            <span>
+                                              {optQty > 1 ? `${optQty}x ` : ""}
+                                              {opt.name}
+                                            </span>
+                                            {optPrice > 0 && (
+                                              <strong className="font-mono font-bold text-[10px]">
+                                                (+{formatCurrency(optPrice * optQty)})
+                                              </strong>
+                                            )}
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })()}
 
                           {item.notes && (
                             <div className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40 rounded-xl px-3 py-1.5 flex items-start gap-1.5">

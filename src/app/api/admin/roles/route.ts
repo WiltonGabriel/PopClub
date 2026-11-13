@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
-import { isUserAdmin, isUserEditor, hasPermission } from "@/lib/permissions";
+import { isUserAdmin, isUserEditor, hasPermission, validatePermissionsInput } from "@/lib/permissions";
+import { recordAdminAudit } from "@/services/auditLogService";
 
 export async function GET(request: Request) {
   try {
@@ -37,9 +38,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const authUser = await getAuthUser(request);
-    const hasUsersManage = isUserAdmin(authUser) || (isUserEditor(authUser) && hasPermission(authUser, "users_manage"));
-    if (!authUser || !hasUsersManage) {
-      return NextResponse.json({ error: "Acesso negado. Permissão users_manage necessária." }, { status: 403 });
+    if (!authUser || !isUserAdmin(authUser)) {
+      return NextResponse.json(
+        { error: "Acesso negado. Apenas administradores podem criar cargos personalizados." },
+        { status: 403 }
+      );
     }
 
     let body: Record<string, unknown>;
@@ -77,10 +80,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validar permissões
-    const validPermissions = Array.isArray(permissions)
-      ? permissions.filter((p): p is string => typeof p === "string")
-      : [];
+    // Validar permissões contra a whitelist oficial
+    const { valid: validPermissions, invalid: invalidPermissions } = validatePermissionsInput(permissions);
+    if (invalidPermissions.length > 0) {
+      return NextResponse.json(
+        { error: `Permissões inválidas informadas: ${invalidPermissions.join(", ")}` },
+        { status: 400 }
+      );
+    }
 
     const validColors = ["blue", "purple", "emerald", "amber", "rose", "cyan", "indigo", "orange"];
     const chosenColor = typeof color === "string" && validColors.includes(color.toLowerCase())
@@ -105,6 +112,16 @@ export async function POST(request: Request) {
           },
         },
       },
+    });
+
+    await recordAdminAudit({
+      actor: { id: authUser.id, role: authUser.role },
+      action: "CREATE_CUSTOM_ROLE",
+      resourceType: "custom_role",
+      resourceId: newRole.id,
+      summary: `Criou cargo personalizado "${newRole.name}".`,
+      diffKeys: ["name", "color", "permissions"],
+      metadata: { roleName: newRole.name, permissionsCount: validPermissions.length },
     });
 
     return NextResponse.json(newRole, { status: 201 });

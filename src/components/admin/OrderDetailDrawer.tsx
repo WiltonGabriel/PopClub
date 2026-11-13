@@ -19,6 +19,7 @@ import {
 import { Order, OrderStatus } from "../../services/orderService";
 import { Button } from "../ui/button";
 import { printThermalReceipt } from "@/lib/thermalPrinter";
+import { AddonOrganizationService } from "@/domain/services/AddonOrganizationService";
 
 interface OrderDetailDrawerProps {
   order: Order | null;
@@ -331,38 +332,56 @@ export function OrderDetailDrawer({
                             </div>
                           )}
 
-                          {/* Snapshot dos complementos selecionados */}
-                          {it.selected_addons && it.selected_addons.length > 0 && (
-                            <div className="mt-2 pl-6 space-y-1">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
-                                Complementos Selecionados:
-                              </span>
-                              <div className="flex flex-wrap gap-1.5 pt-0.5">
-                                {it.selected_addons.map((add, idx) => (
-                                  <span
-                                    key={idx}
-                                    className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-lg border ${
-                                      add.price > 0
-                                        ? "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40 font-semibold"
-                                        : "bg-gray-100 text-gray-700 border-gray-200 dark:bg-white/10 dark:text-gray-300 dark:border-white/10"
-                                    }`}
-                                  >
-                                    <span>
-                                      {add.quantity > 1 ? `${add.quantity}x ` : ""}
-                                      {add.name}
+                          {/* Snapshot dos complementos selecionados organizados por grupo/unidade */}
+                          {it.selected_addons && it.selected_addons.length > 0 && (() => {
+                            const { sections } = AddonOrganizationService.organizeOrderAddons(it.selected_addons);
+                            return (
+                              <div className="mt-2.5 pl-6 space-y-2">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-primary block">
+                                  Complementos Selecionados:
+                                </span>
+                                {sections.map((section, sIdx) => (
+                                  <div key={`${section.groupName}-${sIdx}`} className="space-y-1">
+                                    <span
+                                      className={`text-[10px] font-semibold uppercase tracking-wide block ${
+                                        section.isCutlery
+                                          ? "text-emerald-700 dark:text-emerald-400"
+                                          : "text-gray-500 dark:text-gray-400"
+                                      }`}
+                                    >
+                                      {section.groupName}
                                     </span>
-                                    {add.price > 0 ? (
-                                      <span className="font-mono text-[10px] text-amber-900 dark:text-amber-200">
-                                        +R$ {(add.price * add.quantity).toFixed(2).replace(".", ",")}
-                                      </span>
-                                    ) : (
-                                      <span className="text-[10px] opacity-70">(Incluso)</span>
-                                    )}
-                                  </span>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {section.items.map((add, idx) => (
+                                        <span
+                                          key={`${add.id || add.name}-${idx}`}
+                                          className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-lg border ${
+                                            add.price > 0
+                                              ? "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40 font-semibold"
+                                              : section.isCutlery
+                                              ? "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800/40"
+                                              : "bg-gray-100 text-gray-700 border-gray-200 dark:bg-white/10 dark:text-gray-300 dark:border-white/10"
+                                          }`}
+                                        >
+                                          <span>
+                                            {add.quantity > 1 ? `${add.quantity}x ` : ""}
+                                            {add.name}
+                                          </span>
+                                          {add.price > 0 ? (
+                                            <span className="font-mono text-[10px] text-amber-900 dark:text-amber-200">
+                                              +R$ {(add.price * add.quantity).toFixed(2).replace(".", ",")}
+                                            </span>
+                                          ) : (
+                                            <span className="text-[10px] opacity-70">(Incluso)</span>
+                                          )}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
                                 ))}
                               </div>
-                            </div>
-                          )}
+                            );
+                          })()}
                         </div>
                         <span className="font-mono font-bold text-gray-700 dark:text-gray-300 text-xs shrink-0">
                           {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(

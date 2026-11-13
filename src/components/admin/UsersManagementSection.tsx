@@ -117,7 +117,7 @@ function formatDate(dateStr: string) {
 }
 
 export function UsersManagementSection() {
-  const { user: currentAuthUser } = useAuth();
+  const { user: currentAuthUser, isAdmin } = useAuth();
 
   // Estados principais de listagem
   const [users, setUsers] = useState<AdminUserListItem[]>([]);
@@ -704,28 +704,32 @@ interface FilterTabItem {
             <span className="hidden sm:inline">Atualizar</span>
           </Button>
 
-          {/* Botão Secundário: "+ Novo Cargo" */}
-          <Button
-            onClick={handleOpenCustomRolesModal}
-            variant="outline"
-            className="border-gray-200 dark:border-border/40 hover:border-primary/50 text-foreground font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-4 cursor-pointer"
-            title="Gerenciar e Criar Cargos Personalizados"
-          >
-            <Shield className="w-4 h-4 text-primary" />
-            <span>+ Novo Cargo</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-mono font-bold">
-              {customRoles.length}/4
-            </span>
-          </Button>
+          {isAdmin && (
+            <>
+              {/* Botão Secundário: "+ Novo Cargo" */}
+              <Button
+                onClick={handleOpenCustomRolesModal}
+                variant="outline"
+                className="border-gray-200 dark:border-border/40 hover:border-primary/50 text-foreground font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-4 cursor-pointer"
+                title="Gerenciar e Criar Cargos Personalizados"
+              >
+                <Shield className="w-4 h-4 text-primary" />
+                <span>+ Novo Cargo</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-mono font-bold">
+                  {customRoles.length}/4
+                </span>
+              </Button>
 
-          {/* Botão Primário: "+ Novo Usuário / Membro" */}
-          <Button
-            onClick={handleOpenCreateModal}
-            className="bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-5 shadow-md shadow-primary/20 cursor-pointer"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>+ Novo Usuário / Membro</span>
-          </Button>
+              {/* Botão Primário: "+ Novo Usuário / Membro" */}
+              <Button
+                onClick={handleOpenCreateModal}
+                className="bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-heading text-xs uppercase tracking-wider rounded-xl font-bold flex items-center gap-2 h-11 px-5 shadow-md shadow-primary/20 cursor-pointer"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>+ Novo Usuário / Membro</span>
+              </Button>
+            </>
+          )}
         </div>
       </div>
 

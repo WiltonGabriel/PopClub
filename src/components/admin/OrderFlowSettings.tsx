@@ -14,8 +14,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { storeSettingsService } from "@/services/storeSettingsService";
+import { useToast } from "@/components/ui/ToastNotification";
 
 export function OrderFlowSettings() {
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -115,7 +117,11 @@ export function OrderFlowSettings() {
       setTimeout(() => setSavedSuccess(false), 3000);
     } catch (err) {
       console.error("Erro ao salvar presets:", err);
-      alert("Não foi possível salvar as configurações de presets.");
+      showToast({
+        type: "error",
+        title: "Erro ao Salvar",
+        message: "Não foi possível salvar as configurações de presets.",
+      });
     } finally {
       setSaving(false);
     }

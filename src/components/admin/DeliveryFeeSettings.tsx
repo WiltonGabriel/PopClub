@@ -26,6 +26,7 @@ import { storeSettingsService } from "../../services/storeSettingsService";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { useToast } from "../ui/ToastNotification";
 
 const LocationPickerMap = dynamic(
   () => import("@/components/logistics/LocationPickerMap"),
@@ -41,6 +42,7 @@ const LocationPickerMap = dynamic(
 );
 
 export function DeliveryFeeSettings() {
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deliveryFee, setDeliveryFee] = useState("5.00");
@@ -132,7 +134,11 @@ export function DeliveryFeeSettings() {
 
   const handleUseCurrentGpsAsStore = () => {
     if (typeof window === "undefined" || !navigator.geolocation) {
-      alert("Seu navegador não suporta geolocalização.");
+      showToast({
+        type: "error",
+        title: "Geolocalização Indisponível",
+        message: "Seu navegador não suporta geolocalização.",
+      });
       return;
     }
 
@@ -169,7 +175,11 @@ export function DeliveryFeeSettings() {
       (err) => {
         console.warn("Erro ao obter GPS da loja:", err);
         setIsLocatingStore(false);
-        alert("Não foi possível obter o sinal do GPS.");
+        showToast({
+          type: "error",
+          title: "Falha no GPS",
+          message: "Não foi possível obter o sinal do GPS.",
+        });
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );

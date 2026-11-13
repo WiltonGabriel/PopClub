@@ -160,4 +160,29 @@ describe("formatProduct (Mapeamento e Formatação de Produtos e Combos)", () =>
     expect(formatted.comboItems[0].product?.name).toBe("Açaí 400ml");
     expect(formatted.comboItems[0].product?.addonGroups).toHaveLength(1);
   });
+
+  it("expõe addonGroupIds e mantém grupos de Talheres/Descartáveis por último na formatação", () => {
+    const raw = {
+      id: "prod-400",
+      name: "Copo 400ml",
+      price: 25,
+      addonGroups: [
+        {
+          groupId: "grp-talheres",
+          sortOrder: 0,
+          group: { id: "grp-talheres", name: "Talheres / Descartáveis", sortOrder: 0, items: [] },
+        },
+        {
+          groupId: "grp-frutas",
+          sortOrder: 1,
+          group: { id: "grp-frutas", name: "Frutas Tradicionais", sortOrder: 1, items: [] },
+        },
+      ],
+    };
+
+    const formatted = formatProduct(raw);
+
+    expect(formatted.addonGroupIds).toEqual(["grp-frutas", "grp-talheres"]);
+    expect(formatted.addonGroups.map((g: any) => g.groupId)).toEqual(["grp-frutas", "grp-talheres"]);
+  });
 });

@@ -6,21 +6,41 @@ import {
 } from "@/services/loyaltyBadgeService";
 import { loadLoyaltyBadgesConfig } from "@/services/couponLoyaltyService";
 
-export type TargetAudienceType =
-  | "ALL"
-  | "LOYALTY"
-  | "NEW_CUSTOMERS"
-  | "ACTIVATION"
-  | "VIP"
-  | "INACTIVE_15"
-  | "INACTIVE_30"
-  | "INACTIVE_60";
+export const VALID_TARGET_AUDIENCES = [
+  "ALL",
+  "LOYALTY",
+  "NEW_CUSTOMERS",
+  "ACTIVATION",
+  "VIP",
+  "INACTIVE_15",
+  "INACTIVE_30",
+  "INACTIVE_60",
+  "CUSTOM",
+] as const;
 
-export async function getTargetClients(audience: TargetAudienceType | string, loyaltyBadgeIds?: string[]) {
+export type TargetAudienceType = (typeof VALID_TARGET_AUDIENCES)[number];
+
+export function isValidTargetAudience(value: string): value is TargetAudienceType {
+  return (VALID_TARGET_AUDIENCES as readonly string[]).includes(value);
+}
+
+export async function getTargetClients(
+  audience: TargetAudienceType | string,
+  loyaltyBadgeIds?: string[],
+  customUserIds?: string[]
+) {
+  if (!isValidTargetAudience(audience)) {
+    return [];
+  }
+
   const now = new Date();
 
-  // Todos os usuários com perfil de cliente (ou todos os usuários caso só haja admin em teste)
   const allUsers = await prisma.user.findMany({
+    where: {
+      role: Role.CLIENT,
+      isActive: true,
+      deletedAt: null,
+    },
     include: {
       orders: {
         where: {
@@ -38,9 +58,21 @@ export async function getTargetClients(audience: TargetAudienceType | string, lo
     },
   });
 
-  // Se houver clientes específicos, filtra por role === Role.CLIENT, senão inclui todos
-  const clients = allUsers.filter((u) => u.role === Role.CLIENT);
-  const baseList = clients.length > 0 ? clients : allUsers;
+  // Garantia defensiva mesmo quando testes mockam findMany() ignorando filtros
+  const baseList = allUsers.filter(
+    (u) =>
+      u.role === Role.CLIENT &&
+      u.isActive !== false &&
+      (u.deletedAt === undefined || u.deletedAt === null)
+  );
+
+  if (audience === "CUSTOM") {
+    if (!Array.isArray(customUserIds) || customUserIds.length === 0) {
+      return [];
+    }
+    const allowedSet = new Set(customUserIds);
+    return baseList.filter((u) => allowedSet.has(u.id));
+  }
 
   if (audience === "LOYALTY" || (loyaltyBadgeIds && loyaltyBadgeIds.length > 0)) {
     const badges = await loadLoyaltyBadgesConfig();
@@ -55,20 +87,13 @@ export async function getTargetClients(audience: TargetAudienceType | string, lo
   }
 
   switch (audience) {
-    case "NEW_CUSTOMERS": {
-      // 0 pedidos realizados não-cancelados
+    case "NEW_CUSTOMERS":
       return baseList.filter((u) => u.orders.length === 0);
-    }
-    case "ACTIVATION": {
-      // 1 a 2 pedidos realizados
+    case "ACTIVATION":
       return baseList.filter((u) => u.orders.length >= 1 && u.orders.length <= 2);
-    }
-    case "VIP": {
-      // 3 ou mais pedidos realizados
+    case "VIP":
       return baseList.filter((u) => u.orders.length >= 3);
-    }
     case "INACTIVE_15": {
-      // Clientes que já pediram, mas sem pedidos nos últimos 15 dias
       const fifteenDaysAgo = new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000);
       return baseList.filter((u) => {
         if (u.orders.length === 0) return false;
@@ -77,7 +102,6 @@ export async function getTargetClients(audience: TargetAudienceType | string, lo
       });
     }
     case "INACTIVE_30": {
-      // Clientes que já pediram, mas sem pedidos nos últimos 30 dias
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       return baseList.filter((u) => {
         if (u.orders.length === 0) return false;
@@ -86,7 +110,6 @@ export async function getTargetClients(audience: TargetAudienceType | string, lo
       });
     }
     case "INACTIVE_60": {
-      // Clientes que já pediram, mas sem pedidos nos últimos 60 dias
       const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
       return baseList.filter((u) => {
         if (u.orders.length === 0) return false;
@@ -95,7 +118,8 @@ export async function getTargetClients(audience: TargetAudienceType | string, lo
       });
     }
     case "ALL":
-    default:
       return baseList;
+    default:
+      return [];
   }
 }

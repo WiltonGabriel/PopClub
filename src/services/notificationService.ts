@@ -43,6 +43,7 @@ export interface DispatchNotificationInput {
   message: string;
   targetAudience: string;
   loyaltyBadgeIds?: string[];
+  customUserIds?: string[];
   couponId?: string | null;
   type?: "BROADCAST" | "TARGETED" | "COUPON";
 }

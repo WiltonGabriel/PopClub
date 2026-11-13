@@ -6,6 +6,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Search, Loader2, Check, Trash2, Users } from "lucide-react";
 import { useToast } from "../ui/ToastNotification";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 
 interface UserStat {
   id: string;
@@ -44,6 +45,8 @@ export function CustomAudienceModal({
 
   // Novo nome de lista
   const [newListName, setNewListName] = useState("");
+  const [listIdToDelete, setListIdToDelete] = useState<string | null>(null);
+  const [deletingList, setDeletingList] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -101,16 +104,24 @@ export function CustomAudienceModal({
     showToast(`Lista "${list.name}" carregada.`, "success");
   };
 
-  const deleteList = async (id: string) => {
-    if (!confirm("Excluir esta lista personalizada?")) return;
+  const deleteList = (id: string) => {
+    setListIdToDelete(id);
+  };
+
+  const executeDeleteList = async () => {
+    if (!listIdToDelete) return;
+    setDeletingList(true);
     try {
-      const res = await fetch(`/api/audience/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/audience/${listIdToDelete}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Erro ao excluir lista.");
-      setLists((prev) => prev.filter((l) => l.id !== id));
+      setLists((prev) => prev.filter((l) => l.id !== listIdToDelete));
       showToast("Lista removida.", "info");
+      setListIdToDelete(null);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro desconhecido";
       showToast(message, "error");
+    } finally {
+      setDeletingList(false);
     }
   };
 
@@ -157,7 +168,8 @@ export function CustomAudienceModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0">
         <DialogHeader className="p-6 pb-4 border-b">
           <DialogTitle className="flex items-center gap-2 text-xl">
@@ -312,5 +324,19 @@ export function CustomAudienceModal({
         </div>
       </DialogContent>
     </Dialog>
+
+    <ConfirmDialog
+      open={!!listIdToDelete}
+      onOpenChange={(open) => {
+        if (!open && !deletingList) setListIdToDelete(null);
+      }}
+      title="Excluir Lista Personalizada"
+      description="Deseja realmente excluir esta lista personalizada de clientes?"
+      confirmLabel="Excluir Lista"
+      variant="danger"
+      loading={deletingList}
+      onConfirm={executeDeleteList}
+    />
+  </>
   );
 }

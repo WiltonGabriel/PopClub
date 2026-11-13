@@ -10,6 +10,7 @@ import { avatarLimiter, adminOperationsLimiter } from "@/lib/rateLimit";
 describe("Desbloqueio Progressivo de Avatares e Rate Limit", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.spyOn(prisma.adminAuditLog, "create").mockResolvedValue({} as any);
     vi.spyOn(avatarLimiter, "check").mockReturnValue({
       success: true,
       remaining: 29,

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
 import { logger } from "@/lib/logger";
 import { hasPermission } from "@/lib/permissions";
+import { recordAdminAudit } from "@/services/auditLogService";
 
 const DEFAULT_SETTINGS = {
   id: "store_config",
@@ -39,6 +40,7 @@ const DEFAULT_SETTINGS = {
   showPaymentMethods: true,
   acceptedPayments: ["pix", "dinheiro", "credito", "debito"],
   googleMapsUrl: "https://maps.google.com/?q=Av.+Filinto+M%C3%BCller,+850+-+Centro+Sul,+V%C3%A1rzea+Grande+-+MT",
+  storeCnpj: null as string | null,
   storeAddress: "Av. Filinto Müller, 850 - Centro Sul, Várzea Grande - MT",
   orderNotificationTemplates: {
     pending: "Olá, {cliente}! Recebemos seu pedido #{codigo_pedido} no Pop Shake. Estamos preparando tudo com muito carinho! Total: {total} ({forma_pagamento}).",
@@ -105,6 +107,7 @@ const settingsUpdateSchema = z.object({
     return ["pix", "dinheiro", "credito", "debito"];
   }).optional(),
   googleMapsUrl: z.string().nullable().optional(),
+  storeCnpj: z.string().trim().max(32, "CNPJ deve ter no máximo 32 caracteres").nullable().optional(),
 });
 
 export async function GET() {
@@ -157,6 +160,7 @@ export async function GET() {
       showPaymentMethods: settings.showPaymentMethods ?? DEFAULT_SETTINGS.showPaymentMethods,
       acceptedPayments: settings.acceptedPayments?.length ? settings.acceptedPayments : DEFAULT_SETTINGS.acceptedPayments,
       googleMapsUrl: settings.googleMapsUrl || DEFAULT_SETTINGS.googleMapsUrl,
+      storeCnpj: settings.storeCnpj ?? DEFAULT_SETTINGS.storeCnpj,
       orderNotificationTemplates: settings.orderNotificationTemplates || DEFAULT_SETTINGS.orderNotificationTemplates,
       instagramUrl: settings.instagramUrl || DEFAULT_SETTINGS.instagramUrl,
       facebookUrl: settings.facebookUrl || DEFAULT_SETTINGS.facebookUrl,
@@ -192,6 +196,7 @@ export async function GET() {
       showPaymentMethods: DEFAULT_SETTINGS.showPaymentMethods,
       acceptedPayments: DEFAULT_SETTINGS.acceptedPayments,
       googleMapsUrl: DEFAULT_SETTINGS.googleMapsUrl,
+      storeCnpj: DEFAULT_SETTINGS.storeCnpj,
       orderNotificationTemplates: DEFAULT_SETTINGS.orderNotificationTemplates,
       instagramUrl: DEFAULT_SETTINGS.instagramUrl,
       facebookUrl: DEFAULT_SETTINGS.facebookUrl,
@@ -256,6 +261,7 @@ export async function PUT(request: Request) {
       showPaymentMethods,
       acceptedPayments,
       googleMapsUrl,
+      storeCnpj,
     } = parsed.data;
 
     const effectiveLat = storeLatitude !== undefined ? storeLatitude : latitude;
@@ -291,6 +297,7 @@ export async function PUT(request: Request) {
     if (showPaymentMethods !== undefined) dataToUpdate.showPaymentMethods = showPaymentMethods;
     if (acceptedPayments !== undefined) dataToUpdate.acceptedPayments = acceptedPayments;
     if (googleMapsUrl !== undefined) dataToUpdate.googleMapsUrl = googleMapsUrl;
+    if (storeCnpj !== undefined) dataToUpdate.storeCnpj = storeCnpj || null;
 
     const settings = await prisma.storeSettings.upsert({
       where: { id: "store_config" },
@@ -325,7 +332,18 @@ export async function PUT(request: Request) {
         showPaymentMethods: showPaymentMethods !== undefined ? showPaymentMethods : DEFAULT_SETTINGS.showPaymentMethods,
         acceptedPayments: acceptedPayments || DEFAULT_SETTINGS.acceptedPayments,
         googleMapsUrl: googleMapsUrl || DEFAULT_SETTINGS.googleMapsUrl,
+        storeCnpj: storeCnpj || null,
       },
+    });
+
+    await recordAdminAudit({
+      actor: user ? { id: user.id, role: user.role } : null,
+      action: "UPDATE_STORE_SETTINGS",
+      resourceType: "store_settings",
+      resourceId: settings.id,
+      summary: "Atualizou configurações operacionais/comerciais da loja.",
+      diffKeys: Object.keys(dataToUpdate),
+      metadata: { updatedFields: Object.keys(dataToUpdate) },
     });
 
     return apiSuccess({
@@ -353,6 +371,7 @@ export async function PUT(request: Request) {
         showPaymentMethods: settings.showPaymentMethods ?? DEFAULT_SETTINGS.showPaymentMethods,
         acceptedPayments: settings.acceptedPayments?.length ? settings.acceptedPayments : DEFAULT_SETTINGS.acceptedPayments,
         googleMapsUrl: settings.googleMapsUrl || DEFAULT_SETTINGS.googleMapsUrl,
+        storeCnpj: settings.storeCnpj ?? DEFAULT_SETTINGS.storeCnpj,
         orderNotificationTemplates: settings.orderNotificationTemplates || DEFAULT_SETTINGS.orderNotificationTemplates,
         instagramUrl: settings.instagramUrl || DEFAULT_SETTINGS.instagramUrl,
         facebookUrl: settings.facebookUrl || DEFAULT_SETTINGS.facebookUrl,

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { addonCrudLimiter, getIpFromRequest } from "@/lib/rateLimit";
 import { hasPermission } from "@/lib/permissions";
+import { AddonOrganizationService } from "@/domain/services/AddonOrganizationService";
 
 export async function GET() {
   try {
@@ -18,7 +19,7 @@ export async function GET() {
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     });
 
-    const formatted = groups.map((g) => ({
+    const formatted = AddonOrganizationService.sortAddonGroups(groups).map((g) => ({
       id: g.id,
       name: g.name,
       description: g.description,
@@ -86,6 +87,12 @@ export async function POST(request: Request) {
     const freeQ = Math.max(0, parseInt(String(freeQuantity ?? 0), 10) || 0);
     const required = isRequired !== undefined ? Boolean(isRequired) : minQ >= 1;
 
+    const defaultSortOrder = AddonOrganizationService.isCutleryGroupName(name) ? 99 : 0;
+    const resolvedSortOrder =
+      sortOrder !== undefined && sortOrder !== null && String(sortOrder).trim() !== ""
+        ? parseInt(String(sortOrder), 10) || defaultSortOrder
+        : defaultSortOrder;
+
     const group = await prisma.addonGroup.create({
       data: {
         name: name.trim(),
@@ -95,7 +102,7 @@ export async function POST(request: Request) {
         freeQuantity: freeQ,
         isRequired: required,
         allowItemQuantity: Boolean(allowItemQuantity),
-        sortOrder: parseInt(String(sortOrder ?? 0), 10) || 0,
+        sortOrder: resolvedSortOrder,
         isActive: isActive !== undefined ? Boolean(isActive) : true,
       },
       include: {

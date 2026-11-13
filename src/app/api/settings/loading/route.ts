@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { isValidSafeAssetUrl } from "@/lib/urlValidation";
 import { z } from "zod";
+import { recordAdminAudit } from "@/services/auditLogService";
 
 const DEFAULT_LOADING = {
   id: "global_loading",
@@ -46,7 +48,14 @@ const loadingSchema = z.object({
   bgCustomDark: z.string().trim().nullable().optional(),
 
   // Favicon Customizado
-  faviconUrl: z.string().trim().nullable().optional(),
+  faviconUrl: z
+    .string()
+    .trim()
+    .nullable()
+    .optional()
+    .refine((val) => isValidSafeAssetUrl(val, true), {
+      message: "URL de favicon inválida ou não permitida.",
+    }),
 });
 
 export async function GET() {
@@ -185,6 +194,15 @@ export async function PUT(request: Request) {
         console.warn("Aviso ao sincronizar favicon com StoreSettings:", errSync);
       }
     }
+
+    await recordAdminAudit({
+      actor: user ? { id: user.id, role: user.role } : null,
+      action: "UPDATE_LOADING_IDENTITY",
+      resourceType: "loading_settings",
+      resourceId: updated.id,
+      summary: "Atualizou identidade visual e tela de carregamento.",
+      diffKeys: Object.keys(validation.data),
+    });
 
     return NextResponse.json({
       success: true,

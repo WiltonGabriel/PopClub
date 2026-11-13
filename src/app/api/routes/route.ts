@@ -1,4 +1,17 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import { routeCalculateLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
+
+const routeRequestSchema = z.object({
+  origin: z.object({
+    lat: z.coerce.number().finite().min(-90, "Latitude de origem inválida.").max(90, "Latitude de origem inválida."),
+    lng: z.coerce.number().finite().min(-180, "Longitude de origem inválida.").max(180, "Longitude de origem inválida."),
+  }),
+  destination: z.object({
+    lat: z.coerce.number().finite().min(-90, "Latitude de destino inválida.").max(90, "Latitude de destino inválida."),
+    lng: z.coerce.number().finite().min(-180, "Longitude de destino inválida.").max(180, "Longitude de destino inválida."),
+  }),
+});
 
 // Função utilitária para cálculo de distância em linha reta (Haversine) caso OSRM falhe
 function haversineDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -18,7 +31,16 @@ function haversineDistanceMeters(lat1: number, lon1: number, lat2: number, lon2:
 
 export async function POST(request: Request) {
   try {
-    let body: any;
+    const ip = getIpFromRequest(request);
+    const limitCheck = routeCalculateLimiter.check(ip);
+    if (!limitCheck.success) {
+      return createRateLimitResponse(
+        limitCheck,
+        "Muitas consultas de rota em sequência. Aguarde alguns instantes."
+      );
+    }
+
+    let body: unknown;
     try {
       body = await request.json();
     } catch {
@@ -28,19 +50,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const { origin, destination } = body || {};
-
-    if (!origin?.lat || !origin?.lng || !destination?.lat || !destination?.lng) {
+    const parsed = routeRequestSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Origem e destino com coordenadas latitude/longitude são obrigatórios." },
+        { error: parsed.error.issues[0]?.message || "Origem e destino com coordenadas latitude/longitude são obrigatórios." },
         { status: 400 }
       );
     }
 
-    const oLat = Number(origin.lat);
-    const oLng = Number(origin.lng);
-    const dLat = Number(destination.lat);
-    const dLng = Number(destination.lng);
+    const { lat: oLat, lng: oLng } = parsed.data.origin;
+    const { lat: dLat, lng: dLng } = parsed.data.destination;
 
     // Chamada ao Open Source Routing Machine (OSRM) - 100% Gratuito sem dependência de API Key
     try {

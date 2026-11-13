@@ -1,5 +1,6 @@
 import { Order } from "@/services/orderService";
 import { formatDecimal, parseSafeNumber } from "@/lib/formatters";
+import { AddonOrganizationService } from "@/domain/services/AddonOrganizationService";
 
 export function printOrderReceipt(order: Order, storeName = "Pop Shake Sorveteria") {
   if (typeof window === "undefined") return;
@@ -36,22 +37,34 @@ export function printOrderReceipt(order: Order, storeName = "Pop Shake Sorveteri
     .map((item) => {
       const itemTotal = formatDecimal(parseSafeNumber(item.price_at_time) * parseSafeNumber(item.quantity, 1));
       const unitPrice = formatDecimal(item.price_at_time);
-      const addons = (item.selected_addons || item.selectedAddons || []) as Array<{
+      const rawAddons = (item.selected_addons || item.selectedAddons || []) as Array<{
+        id?: string;
         name: string;
         groupName?: string;
         price: number;
         quantity: number;
       }>;
+      const { sections: addonSections } = AddonOrganizationService.organizeOrderAddons(rawAddons);
       const addonsHtml =
-        addons && addons.length > 0
+        addonSections.length > 0
           ? `
         <div style="font-size: 10px; color: #333; padding-left: 10px; margin-top: 2px;">
-          ${addons
+          ${addonSections
             .map(
-              (a) =>
-                `<div>• ${a.quantity > 1 ? `${a.quantity}x ` : ""}${a.name} ${
-                  parseSafeNumber(a.price) > 0 ? `(+ R$ ${formatDecimal(parseSafeNumber(a.price) * parseSafeNumber(a.quantity, 1))})` : "(Incluso)"
-                }</div>`
+              (sec) => `
+              <div style="margin-top: 2px;">
+                <div style="font-weight: bold; color: #111;">[${sec.groupName}]</div>
+                ${sec.items
+                  .map(
+                    (a) =>
+                      `<div>• ${a.quantity > 1 ? `${a.quantity}x ` : ""}${a.name} ${
+                        parseSafeNumber(a.price) > 0
+                          ? `(+ R$ ${formatDecimal(parseSafeNumber(a.price) * parseSafeNumber(a.quantity, 1))})`
+                          : "(Incluso)"
+                      }</div>`
+                  )
+                  .join("")}
+              </div>`
             )
             .join("")}
         </div>

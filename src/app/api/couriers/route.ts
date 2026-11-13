@@ -2,58 +2,41 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
 import { hasPermission } from "@/lib/permissions";
+import {
+  courierCreateSchema,
+  toCourierDispatchDto,
+} from "@/services/courierDispatchProjection";
+import { recordAdminAudit } from "@/services/auditLogService";
 
-const INITIAL_PRESET_COURIERS = [
-  {
-    name: "Carlos Silva (Motoboy 01)",
-    phone: "(65) 99234-5678",
-    vehicle: "Honda CG Fan 160",
-    plate: "QBB-1234",
-    pixKey: "65992345678",
-    status: "available",
-  },
-  {
-    name: "Marcos Vinícius (Motoboy 02)",
-    phone: "(65) 99876-5432",
-    vehicle: "Yamaha Fazer 250",
-    plate: "RAX-5678",
-    pixKey: "marcos.motoboy@email.com",
-    status: "available",
-  },
-  {
-    name: "Lucas Ferreira (Motoboy 03)",
-    phone: "(65) 99111-2233",
-    vehicle: "Honda Titan 150",
-    plate: "NTZ-9012",
-    pixKey: "65991112233",
-    status: "off_duty",
-  },
-];
-
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    let couriers = await prisma.courier.findMany({
+    const user = await getAuthUser(request);
+    if (!user) {
+      return apiError("Autenticação necessária para consultar entregadores.", 401, "UNAUTHORIZED");
+    }
+
+    const canManageLogistics = hasPermission(user, "logistics_manage");
+    const canDispatchOrders = hasPermission(user, "ORDERS_KANBAN");
+
+    if (!canManageLogistics && !canDispatchOrders) {
+      return apiError(
+        "Acesso negado. Permissão logistics_manage ou ORDERS_KANBAN necessária.",
+        403,
+        "FORBIDDEN"
+      );
+    }
+
+    const couriers = await prisma.courier.findMany({
       where: { isActive: true },
       orderBy: [{ status: "asc" }, { name: "asc" }],
     });
 
-    // Auto-seed inicial se tabela estiver vazia
-    if (couriers.length === 0) {
-      for (const preset of INITIAL_PRESET_COURIERS) {
-        await prisma.courier.create({
-          data: {
-            ...preset,
-            isActive: true,
-          },
-        });
-      }
-      couriers = await prisma.courier.findMany({
-        where: { isActive: true },
-        orderBy: [{ status: "asc" }, { name: "asc" }],
-      });
+    if (canManageLogistics) {
+      return apiSuccess(couriers);
     }
 
-    return apiSuccess(couriers);
+    // Operadores apenas com ORDERS_KANBAN recebem projeção sem pixKey
+    return apiSuccess(couriers.map(toCourierDispatchDto));
   } catch (error: unknown) {
     return handleApiError(error, "GET /api/couriers", "Erro ao listar entregadores.");
   }
@@ -62,36 +45,52 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await getAuthUser(request);
-    if (!hasPermission(user, "settings_manage") && !hasPermission(user, "ORDERS_KANBAN")) {
-      return apiError("Acesso negado. Permissão para gerenciar logística/entregadores necessária.", 403, "FORBIDDEN");
+    if (!user) {
+      return apiError("Não autenticado.", 401, "UNAUTHORIZED");
+    }
+    if (!hasPermission(user, "logistics_manage")) {
+      return apiError(
+        "Acesso negado. Permissão logistics_manage necessária para cadastrar entregadores.",
+        403,
+        "FORBIDDEN"
+      );
     }
 
-    let body: Record<string, unknown> = {};
+    let rawBody: unknown;
     try {
-      body = (await request.json()) as Record<string, unknown>;
+      rawBody = await request.json();
     } catch {
       return apiError("Corpo da requisição inválido.", 400);
     }
 
-    const { name, phone, vehicle, plate, pixKey, status } = body;
+    const parsed = courierCreateSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      const msg = parsed.error.issues[0]?.message || "Dados do entregador inválidos.";
+      return apiError(msg, 400, "VALIDATION_ERROR");
+    }
 
-    if (!name || typeof name !== "string" || !name.trim()) {
-      return apiError("Nome do entregador é obrigatório.", 400, "VALIDATION_ERROR");
-    }
-    if (!phone || typeof phone !== "string" || !phone.trim()) {
-      return apiError("Telefone WhatsApp com DDD é obrigatório.", 400, "VALIDATION_ERROR");
-    }
+    const { name, phone, vehicle, plate, pixKey, status } = parsed.data;
 
     const courier = await prisma.courier.create({
       data: {
-        name: name.trim(),
-        phone: phone.trim(),
-        vehicle: typeof vehicle === "string" && vehicle.trim() ? vehicle.trim() : "Moto",
-        plate: typeof plate === "string" && plate.trim() ? plate.trim().toUpperCase() : null,
-        pixKey: typeof pixKey === "string" && pixKey.trim() ? pixKey.trim() : null,
-        status: status === "in_transit" || status === "off_duty" ? (status as string) : "available",
+        name,
+        phone,
+        vehicle: vehicle || "Moto",
+        plate: plate ? plate.toUpperCase() : null,
+        pixKey: pixKey || null,
+        status,
         isActive: true,
       },
+    });
+
+    await recordAdminAudit({
+      actor: { id: user.id, role: user.role },
+      action: "CREATE_COURIER",
+      resourceType: "courier",
+      resourceId: courier.id,
+      summary: `Cadastrou entregador "${courier.name}".`,
+      diffKeys: ["name", "vehicle", "status"],
+      metadata: { vehicle: courier.vehicle, status: courier.status },
     });
 
     return apiSuccess(courier);

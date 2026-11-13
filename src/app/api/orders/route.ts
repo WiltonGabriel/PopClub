@@ -43,7 +43,6 @@ export async function GET(request: Request) {
       // Blindagem de Autorização em Nível de Objeto (BOLA / IDOR)
       const trackingToken = searchParams.get("token")?.trim() || null;
       const isStaff =
-        hasPermission(authUser, "ORDERS_READ") ||
         hasPermission(authUser, "ORDERS_KANBAN") ||
         hasPermission(authUser, "ORDERS_HISTORY");
 

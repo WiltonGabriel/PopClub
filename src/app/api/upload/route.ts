@@ -4,6 +4,7 @@ import fs from "fs/promises";
 import crypto from "crypto";
 import sharp from "sharp";
 import { getAuthUser } from "@/lib/auth";
+import { hasPermission, isUserAdmin } from "@/lib/permissions";
 import { addonUploadLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
 
 const ALLOWED_MIME_TYPES = [
@@ -29,11 +30,20 @@ export async function POST(request: Request) {
       );
     }
 
-    // 0. Autenticação estrita no servidor (Apenas administradores podem fazer upload)
+    // 0. Autenticação e RBAC estritos no servidor (Admin ou permissões de conteúdo visual/catálogo)
     const authUser = await getAuthUser(request);
-    if (!authUser || authUser.role !== "admin") {
+    const canUploadAssets =
+      authUser &&
+      (isUserAdmin(authUser) ||
+        hasPermission(authUser, "menu_manage") ||
+        hasPermission(authUser, "promotions_manage") ||
+        hasPermission(authUser, "theme_manage") ||
+        hasPermission(authUser, "loyalty_manage") ||
+        hasPermission(authUser, "settings_manage"));
+
+    if (!canUploadAssets) {
       return NextResponse.json(
-        { error: "Acesso negado. Apenas administradores autenticados podem enviar arquivos." },
+        { error: "Acesso negado. Apenas usuários administrativos autorizados podem enviar arquivos." },
         { status: 403 }
       );
     }

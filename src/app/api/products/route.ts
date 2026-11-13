@@ -4,6 +4,7 @@ import { handleApiError, apiError, apiSuccess } from "@/lib/apiResponse";
 import { sanitizeText } from "@/lib/sanitize";
 
 import { productInclude, formatProduct } from "@/lib/productHelper";
+import { resolveOrderedAddonGroupIds } from "@/lib/addonPersistenceHelper";
 import { hasPermission } from "@/lib/permissions";
 
 export async function GET() {
@@ -140,7 +141,7 @@ export async function POST(request: Request) {
         })),
       } : undefined,
       addonGroups: (Array.isArray(addonGroupIds) && addonGroupIds.length > 0) ? {
-        create: addonGroupIds.map((groupId: string, index: number) => ({
+        create: (await resolveOrderedAddonGroupIds(addonGroupIds)).map((groupId: string, index: number) => ({
           groupId,
           sortOrder: index,
         })),

@@ -30,7 +30,7 @@ export async function GET(request: Request) {
       const hasStaffOrderAccess =
         hasPermission(authUser, "ORDERS_KANBAN") ||
         hasPermission(authUser, "ORDERS_HISTORY") ||
-        hasPermission(authUser, "METRICS_VIEW");
+        hasPermission(authUser, "metrics_view");
 
       unsubscribe = serverOrderEventManager.subscribe((event) => {
         const isMatch =

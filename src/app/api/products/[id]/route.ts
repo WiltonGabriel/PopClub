@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { sanitizeText } from "@/lib/sanitize";
 import { productInclude, formatProduct } from "@/lib/productHelper";
+import { resolveOrderedAddonGroupIds } from "@/lib/addonPersistenceHelper";
 import { hasPermission } from "@/lib/permissions";
 
 export async function GET(
@@ -141,9 +142,10 @@ export async function PUT(
     }
 
     if (Array.isArray(addonGroupIds)) {
+      const orderedGroupIds = await resolveOrderedAddonGroupIds(addonGroupIds);
       dataToUpdate.addonGroups = {
         deleteMany: {},
-        create: addonGroupIds.map((groupId: string, index: number) => ({
+        create: orderedGroupIds.map((groupId: string, index: number) => ({
           groupId,
           sortOrder: index,
         })),

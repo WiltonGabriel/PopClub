@@ -23,7 +23,7 @@ export default function AdminUsuariosPage() {
   const { theme, toggleTheme, resolvedTheme } = useTheme();
   const router = useRouter();
 
-  const canAccessUsers = isAdmin || canAccess("users_manage") || canAccess("USERS_MANAGE");
+  const canAccessUsers = isAdmin || canAccess("users_manage");
 
   useEffect(() => {
     if (!loading) {

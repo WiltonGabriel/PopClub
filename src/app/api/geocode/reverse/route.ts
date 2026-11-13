@@ -26,9 +26,16 @@ export async function GET(request: NextRequest) {
     const latitude = parseFloat(lat);
     const longitude = parseFloat(lon);
 
-    if (isNaN(latitude) || isNaN(longitude)) {
+    if (
+      isNaN(latitude) ||
+      isNaN(longitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
       return NextResponse.json(
-        { error: "Coordenadas geográficas inválidas." },
+        { error: "Coordenadas geográficas inválidas ou fora do intervalo permitido." },
         { status: 400 }
       );
     }

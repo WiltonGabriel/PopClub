@@ -5,6 +5,8 @@ import { badgeService, CardBadge, BadgeProduct } from "../../services/badgeServi
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { useToast } from "../ui/ToastNotification";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 import {
   Tag,
   Plus,
@@ -45,7 +47,10 @@ interface CardBadgesSectionProps {
 }
 
 export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
+  const { showToast } = useToast();
   const [badges, setBadges] = useState<CardBadge[]>([]);
+  const [badgeToDelete, setBadgeToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [deletingBadge, setDeletingBadge] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editingBadge, setEditingBadge] = useState<CardBadge | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -163,15 +168,31 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (confirm(`Tem certeza que deseja excluir o selo "${name}"? Os produtos vinculados a ele ficarão sem selo.`)) {
-      try {
-        await badgeService.deleteBadge(id);
-        await loadBadges();
-        onBadgesUpdated?.();
-      } catch (err: any) {
-        alert(err.message || "Erro ao excluir selo.");
-      }
+  const handleDelete = (id: string, name: string) => {
+    setBadgeToDelete({ id, name });
+  };
+
+  const executeDeleteBadge = async () => {
+    if (!badgeToDelete) return;
+    setDeletingBadge(true);
+    try {
+      await badgeService.deleteBadge(badgeToDelete.id);
+      await loadBadges();
+      onBadgesUpdated?.();
+      showToast({
+        type: "success",
+        title: "Selo Excluído",
+        message: `O selo "${badgeToDelete.name}" foi removido.`,
+      });
+      setBadgeToDelete(null);
+    } catch (err: unknown) {
+      showToast({
+        type: "error",
+        title: "Erro ao Excluir",
+        message: err instanceof Error ? err.message : "Erro ao excluir selo.",
+      });
+    } finally {
+      setDeletingBadge(false);
     }
   };
 
@@ -181,8 +202,12 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
       const updated = await badgeService.removeProduct(badgeId, productId);
       setBadges((prev) => prev.map((b) => (b.id === badgeId ? updated : b)));
       onBadgesUpdated?.();
-    } catch (err: any) {
-      alert(err.message || "Erro ao desvincular produto.");
+    } catch (err: unknown) {
+      showToast({
+        type: "error",
+        title: "Erro ao Desvincular",
+        message: err instanceof Error ? err.message : "Erro ao desvincular produto.",
+      });
     } finally {
       setUnlinkingProductId(null);
     }
@@ -195,8 +220,12 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
       setBadges((prev) => prev.map((b) => (b.id === badgeId ? updated : b)));
       setProductSearch((prev) => ({ ...prev, [badgeId]: "" }));
       onBadgesUpdated?.();
-    } catch (err: any) {
-      alert(err.message || "Erro ao vincular produto.");
+    } catch (err: unknown) {
+      showToast({
+        type: "error",
+        title: "Erro ao Vincular",
+        message: err instanceof Error ? err.message : "Erro ao vincular produto.",
+      });
     } finally {
       setLinkingBadgeId(null);
     }
@@ -598,6 +627,18 @@ export function CardBadgesSection({ onBadgesUpdated }: CardBadgesSectionProps) {
           })}
         </div>
       )}
+      <ConfirmDialog
+        open={!!badgeToDelete}
+        onOpenChange={(open) => {
+          if (!open && !deletingBadge) setBadgeToDelete(null);
+        }}
+        title="Excluir Selo do Card"
+        description={`Tem certeza que deseja excluir o selo "${badgeToDelete?.name || ""}"? Os produtos vinculados a ele ficarão sem selo.`}
+        confirmLabel="Excluir Selo"
+        variant="danger"
+        loading={deletingBadge}
+        onConfirm={executeDeleteBadge}
+      />
     </div>
   );
 }

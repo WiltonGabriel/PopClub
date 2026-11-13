@@ -51,25 +51,33 @@ async function main() {
   });
   console.log(`✅ ${deletedClients.count} usuários de teste removidos. Administradores e Operadores preservados.`);
 
-  // Assegura conta do administrador principal
+  // Assegura conta do administrador principal sem sobrescrever senha existente por padrão
   const rawPass = process.env.INITIAL_ADMIN_PASSWORD || "AdminDevPass@2026";
   const adminPasswordHash = await bcrypt.hash(rawPass, 10);
-  const admin = await prisma.user.upsert({
+  const existingAdmin = await prisma.user.findUnique({
     where: { email: "admin@popclub.com" },
-    update: {
-      passwordHash: adminPasswordHash,
-      role: Role.ADMIN,
-      username: "admin",
-      fullName: "Administrador Pop Shake",
-    },
-    create: {
-      email: "admin@popclub.com",
-      username: "admin",
-      passwordHash: adminPasswordHash,
-      role: Role.ADMIN,
-      fullName: "Administrador Pop Shake",
-    },
+    select: { id: true, email: true, fullName: true },
   });
+
+  const admin = existingAdmin
+    ? await prisma.user.update({
+        where: { id: existingAdmin.id },
+        data: {
+          role: Role.ADMIN,
+          username: "admin",
+          fullName: existingAdmin.fullName || "Administrador Pop Shake",
+          ...(process.env.RESET_ADMIN_PASSWORD === "true" && { passwordHash: adminPasswordHash }),
+        },
+      })
+    : await prisma.user.create({
+        data: {
+          email: "admin@popclub.com",
+          username: "admin",
+          passwordHash: adminPasswordHash,
+          role: Role.ADMIN,
+          fullName: "Administrador Pop Shake",
+        },
+      });
   console.log(`✅ Admin verificado: ${admin.email} (${admin.fullName})`);
 
   // Configurações da Loja
@@ -374,7 +382,7 @@ async function main() {
     },
   });
 
-  // 7. Talheres / Descartáveis (Escolha única obrigatória)
+  // 7. Talheres / Descartáveis (Escolha única obrigatória - sempre ao final)
   const groupTalheres = await prisma.addonGroup.create({
     data: {
       name: "Talheres / Descartáveis",
@@ -383,7 +391,7 @@ async function main() {
       maxQuantity: 1,
       freeQuantity: 0,
       isRequired: true,
-      sortOrder: 5,
+      sortOrder: 99,
       items: {
         create: [
           { name: "Quero colher descartável reforçada (+R$ 0,98)", price: 0.98, sortOrder: 1 },
@@ -487,6 +495,7 @@ async function main() {
       maxQuantity: 2,
       freeQuantity: 2,
       isRequired: true,
+      allowItemQuantity: true,
       sortOrder: 1,
       items: { create: sorveteFlavors },
     },
@@ -500,6 +509,7 @@ async function main() {
       maxQuantity: 3,
       freeQuantity: 3,
       isRequired: true,
+      allowItemQuantity: true,
       sortOrder: 1,
       items: { create: sorveteFlavors },
     },
@@ -542,74 +552,9 @@ async function main() {
     },
   });
 
-  // ── GRUPOS ESPECÍFICOS PARA OS COMBOS (FASE 5)
-  // Combo Casal: Grupos totalmente independentes para Copo 1 e Copo 2
-  const groupComboCasalCopo1Trad = await prisma.addonGroup.create({
-    data: {
-      name: "Copo 1 (400ml) - Adicionais Tradicionais (Até 4 grátis)",
-      description: "Escolha até 4 adicionais inclusos para o primeiro copo.",
-      minQuantity: 0,
-      maxQuantity: 10,
-      freeQuantity: 4,
-      isRequired: false,
-      sortOrder: 1,
-      items: { create: traditionalItems },
-    },
-  });
-
-  const groupComboCasalCopo1Premium = await prisma.addonGroup.create({
-    data: {
-      name: "Copo 1 (400ml) - Cremes & Frutas Nobres (Opcional)",
-      description: "Adicionais especiais pagos para o Copo 1",
-      minQuantity: 0,
-      maxQuantity: 5,
-      freeQuantity: 0,
-      isRequired: false,
-      sortOrder: 2,
-      items: {
-        create: [
-          { name: "Nutella Original Pura (+R$ 7,00)", price: 7.0, sortOrder: 1 },
-          { name: "Creme de Leite Ninho (+R$ 5,00)", price: 5.0, sortOrder: 2 },
-          { name: "Creme de Pistache Italiano (+R$ 8,00)", price: 8.0, sortOrder: 3 },
-          { name: "Morango em Dobro (+R$ 5,00)", price: 5.0, sortOrder: 4 },
-        ],
-      },
-    },
-  });
-
-  const groupComboCasalCopo2Trad = await prisma.addonGroup.create({
-    data: {
-      name: "Copo 2 (400ml) - Adicionais Tradicionais (Até 4 grátis)",
-      description: "Escolha até 4 adicionais inclusos para o segundo copo (independente do Copo 1).",
-      minQuantity: 0,
-      maxQuantity: 10,
-      freeQuantity: 4,
-      isRequired: false,
-      sortOrder: 3,
-      items: { create: traditionalItems },
-    },
-  });
-
-  const groupComboCasalCopo2Premium = await prisma.addonGroup.create({
-    data: {
-      name: "Copo 2 (400ml) - Cremes & Frutas Nobres (Opcional)",
-      description: "Adicionais especiais pagos para o Copo 2",
-      minQuantity: 0,
-      maxQuantity: 5,
-      freeQuantity: 0,
-      isRequired: false,
-      sortOrder: 4,
-      items: {
-        create: [
-          { name: "Nutella Original Pura (+R$ 7,00)", price: 7.0, sortOrder: 1 },
-          { name: "Creme de Leite Ninho (+R$ 5,00)", price: 5.0, sortOrder: 2 },
-          { name: "Creme de Pistache Italiano (+R$ 8,00)", price: 8.0, sortOrder: 3 },
-          { name: "Morango em Dobro (+R$ 5,00)", price: 5.0, sortOrder: 4 },
-        ],
-      },
-    },
-  });
-
+  // ── GRUPOS DE DESCARTE/TALHERES ESPECÍFICOS PARA COMBOS (FASE 5)
+  // Cada unidade do combo herda seus próprios complementos (sem repetir talheres).
+  // Apenas o grupo de talheres/canudos consolidado fica vinculado ao combo pai ao final.
   const groupComboCasalTalheres = await prisma.addonGroup.create({
     data: {
       name: "Talheres do Combo Casal (0 a 2 colheres)",
@@ -618,72 +563,13 @@ async function main() {
       maxQuantity: 2,
       freeQuantity: 0,
       isRequired: false,
-      sortOrder: 5,
+      allowItemQuantity: true,
+      sortOrder: 99,
       items: {
         create: [
           { name: "Colher reforçada descartável", price: 0.98, sortOrder: 1 },
         ],
       },
-    },
-  });
-
-  // Combo Família: Marmita 750ml (6 grátis) + Copo 1 300ml (4 grátis) + Copo 2 300ml (4 grátis) + Talheres (0 a 3)
-  const groupComboFamMarmitaTrad = await prisma.addonGroup.create({
-    data: {
-      name: "Marmita 750ml - Adicionais Tradicionais em Camadas (Até 6 grátis)",
-      description: "Escolha até 6 adicionais inclusos montados em camadas generosas.",
-      minQuantity: 0,
-      maxQuantity: 12,
-      freeQuantity: 6,
-      isRequired: false,
-      sortOrder: 1,
-      items: { create: traditionalItems },
-    },
-  });
-
-  const groupComboFamMarmitaPremium = await prisma.addonGroup.create({
-    data: {
-      name: "Marmita 750ml - Cremes & Frutas Nobres (Opcional)",
-      description: "Turbine a marmita de 750ml com cremes nobres",
-      minQuantity: 0,
-      maxQuantity: 5,
-      freeQuantity: 0,
-      isRequired: false,
-      sortOrder: 2,
-      items: {
-        create: [
-          { name: "Nutella Original Pura (+R$ 7,00)", price: 7.0, sortOrder: 1 },
-          { name: "Creme de Leite Ninho (+R$ 5,00)", price: 5.0, sortOrder: 2 },
-          { name: "Creme de Pistache Italiano (+R$ 8,00)", price: 8.0, sortOrder: 3 },
-          { name: "Morango em Dobro (+R$ 5,00)", price: 5.0, sortOrder: 4 },
-        ],
-      },
-    },
-  });
-
-  const groupComboFamCopo1Trad = await prisma.addonGroup.create({
-    data: {
-      name: "Copo 1 (300ml) - Adicionais Tradicionais (Até 4 grátis)",
-      description: "Escolha até 4 adicionais inclusos para o primeiro copo de 300ml.",
-      minQuantity: 0,
-      maxQuantity: 10,
-      freeQuantity: 4,
-      isRequired: false,
-      sortOrder: 3,
-      items: { create: traditionalItems },
-    },
-  });
-
-  const groupComboFamCopo2Trad = await prisma.addonGroup.create({
-    data: {
-      name: "Copo 2 (300ml) - Adicionais Tradicionais (Até 4 grátis)",
-      description: "Escolha até 4 adicionais inclusos para o segundo copo de 300ml.",
-      minQuantity: 0,
-      maxQuantity: 10,
-      freeQuantity: 4,
-      isRequired: false,
-      sortOrder: 4,
-      items: { create: traditionalItems },
     },
   });
 
@@ -695,83 +581,11 @@ async function main() {
       maxQuantity: 3,
       freeQuantity: 0,
       isRequired: false,
-      sortOrder: 5,
+      allowItemQuantity: true,
+      sortOrder: 99,
       items: {
         create: [
           { name: "Colher reforçada descartável", price: 0.98, sortOrder: 1 },
-        ],
-      },
-    },
-  });
-
-  // Combo Shake & Açaí: Copo 500ml + Milk Shake 500ml
-  const groupComboShakeCopoTrad = await prisma.addonGroup.create({
-    data: {
-      name: "Copo 500ml - Adicionais Tradicionais (Até 4 grátis)",
-      description: "Escolha até 4 adicionais inclusos para o copo de 500ml.",
-      minQuantity: 0,
-      maxQuantity: 10,
-      freeQuantity: 4,
-      isRequired: false,
-      sortOrder: 1,
-      items: { create: traditionalItems },
-    },
-  });
-
-  const groupComboShakeCopoPremium = await prisma.addonGroup.create({
-    data: {
-      name: "Copo 500ml - Cremes & Frutas Nobres (Opcional)",
-      description: "Adicionais especiais pagos para o Copo 500ml",
-      minQuantity: 0,
-      maxQuantity: 5,
-      freeQuantity: 0,
-      isRequired: false,
-      sortOrder: 2,
-      items: {
-        create: [
-          { name: "Nutella Original Pura (+R$ 7,00)", price: 7.0, sortOrder: 1 },
-          { name: "Creme de Leite Ninho (+R$ 5,00)", price: 5.0, sortOrder: 2 },
-          { name: "Creme de Pistache Italiano (+R$ 8,00)", price: 8.0, sortOrder: 3 },
-          { name: "Morango em Dobro (+R$ 5,00)", price: 5.0, sortOrder: 4 },
-        ],
-      },
-    },
-  });
-
-  const groupComboShakeSaborBase = await prisma.addonGroup.create({
-    data: {
-      name: "Milk Shake 500ml - Escolha o Sabor Base (Obrigatório)",
-      description: "Selecione o sabor artesanal do milk shake de 500ml",
-      minQuantity: 1,
-      maxQuantity: 1,
-      freeQuantity: 1,
-      isRequired: true,
-      sortOrder: 3,
-      items: {
-        create: [
-          { name: "Ovomaltine Crocante", price: 0.0, sortOrder: 1 },
-          { name: "Ninho com Nutella", price: 0.0, sortOrder: 2 },
-          { name: "Morango Silvestre", price: 0.0, sortOrder: 3 },
-          { name: "Oreo & Cookies", price: 0.0, sortOrder: 4 },
-        ],
-      },
-    },
-  });
-
-  const groupComboShakeOpcionais = await prisma.addonGroup.create({
-    data: {
-      name: "Milk Shake 500ml - Opcionais de Shake",
-      description: "Opcionais especiais para o shake do combo",
-      minQuantity: 0,
-      maxQuantity: 4,
-      freeQuantity: 0,
-      isRequired: false,
-      sortOrder: 4,
-      items: {
-        create: [
-          { name: "Chantilly artesanal (+R$ 3,50)", price: 3.5, sortOrder: 1 },
-          { name: "Borda de Nutella (+R$ 4,00)", price: 4.0, sortOrder: 2 },
-          { name: "Borda de Doce de Leite (+R$ 3,50)", price: 3.5, sortOrder: 3 },
         ],
       },
     },
@@ -785,7 +599,7 @@ async function main() {
       maxQuantity: 1,
       freeQuantity: 0,
       isRequired: true,
-      sortOrder: 5,
+      sortOrder: 99,
       items: {
         create: [
           { name: "Canudo Incluso + Sem Colher (R$ 0,00)", price: 0.0, sortOrder: 1 },
@@ -863,7 +677,7 @@ async function main() {
         { productId: p.id, groupId: groupCremesNobres.id, sortOrder: 2 },
         { productId: p.id, groupId: groupCaldas.id, sortOrder: 3 },
         { productId: p.id, groupId: groupCrocantes.id, sortOrder: 4 },
-        { productId: p.id, groupId: groupTalheres.id, sortOrder: 5 },
+        { productId: p.id, groupId: groupTalheres.id, sortOrder: 99 },
       ],
     });
   }
@@ -874,7 +688,7 @@ async function main() {
       { productId: pCopo700.id, groupId: groupCremesNobres.id, sortOrder: 2 },
       { productId: pCopo700.id, groupId: groupCaldas.id, sortOrder: 3 },
       { productId: pCopo700.id, groupId: groupCrocantes.id, sortOrder: 4 },
-      { productId: pCopo700.id, groupId: groupTalheres.id, sortOrder: 5 },
+      { productId: pCopo700.id, groupId: groupTalheres.id, sortOrder: 99 },
     ],
   });
 
@@ -949,31 +763,31 @@ async function main() {
       { productId: pMarmita500.id, groupId: groupCremesNobres.id, sortOrder: 2 },
       { productId: pMarmita500.id, groupId: groupCaldas.id, sortOrder: 3 },
       { productId: pMarmita500.id, groupId: groupCrocantes.id, sortOrder: 4 },
-      { productId: pMarmita500.id, groupId: groupTalheres.id, sortOrder: 5 },
+      { productId: pMarmita500.id, groupId: groupTalheres.id, sortOrder: 99 },
 
       { productId: pMarmita750.id, groupId: groupTradicionais6.id, sortOrder: 1 },
       { productId: pMarmita750.id, groupId: groupCremesNobres.id, sortOrder: 2 },
       { productId: pMarmita750.id, groupId: groupCaldas.id, sortOrder: 3 },
       { productId: pMarmita750.id, groupId: groupCrocantes.id, sortOrder: 4 },
-      { productId: pMarmita750.id, groupId: groupTalheres.id, sortOrder: 5 },
+      { productId: pMarmita750.id, groupId: groupTalheres.id, sortOrder: 99 },
 
       { productId: pMarmita1000.id, groupId: groupTradicionais6.id, sortOrder: 1 },
       { productId: pMarmita1000.id, groupId: groupCremesNobres.id, sortOrder: 2 },
       { productId: pMarmita1000.id, groupId: groupCaldas.id, sortOrder: 3 },
       { productId: pMarmita1000.id, groupId: groupCrocantes.id, sortOrder: 4 },
-      { productId: pMarmita1000.id, groupId: groupTalheres.id, sortOrder: 5 },
+      { productId: pMarmita1000.id, groupId: groupTalheres.id, sortOrder: 99 },
 
       { productId: pRoletaP.id, groupId: groupTradicionais4.id, sortOrder: 1 },
       { productId: pRoletaP.id, groupId: groupCremesNobres.id, sortOrder: 2 },
       { productId: pRoletaP.id, groupId: groupCaldas.id, sortOrder: 3 },
       { productId: pRoletaP.id, groupId: groupCrocantes.id, sortOrder: 4 },
-      { productId: pRoletaP.id, groupId: groupTalheres.id, sortOrder: 5 },
+      { productId: pRoletaP.id, groupId: groupTalheres.id, sortOrder: 99 },
 
       { productId: pRoletaM.id, groupId: groupTradicionais6.id, sortOrder: 1 },
       { productId: pRoletaM.id, groupId: groupCremesNobres.id, sortOrder: 2 },
       { productId: pRoletaM.id, groupId: groupCaldas.id, sortOrder: 3 },
       { productId: pRoletaM.id, groupId: groupCrocantes.id, sortOrder: 4 },
-      { productId: pRoletaM.id, groupId: groupTalheres.id, sortOrder: 5 },
+      { productId: pRoletaM.id, groupId: groupTalheres.id, sortOrder: 99 },
     ],
   });
 
@@ -1008,7 +822,7 @@ async function main() {
         { productId: p.id, groupId: groupGarrafaModo.id, sortOrder: 1 },
         { productId: p.id, groupId: groupTradicionais4.id, sortOrder: 2 },
         { productId: p.id, groupId: groupCremesNobres.id, sortOrder: 3 },
-        { productId: p.id, groupId: groupTalheres.id, sortOrder: 4 },
+        { productId: p.id, groupId: groupTalheres.id, sortOrder: 99 },
       ],
     });
   }
@@ -1215,7 +1029,7 @@ async function main() {
         { productId: p.id, groupId: groupCremesNobres.id, sortOrder: 1 },
         { productId: p.id, groupId: groupCaldas.id, sortOrder: 2 },
         { productId: p.id, groupId: groupCrocantes.id, sortOrder: 3 },
-        { productId: p.id, groupId: groupTalheres.id, sortOrder: 4 },
+        { productId: p.id, groupId: groupTalheres.id, sortOrder: 99 },
       ],
     });
   }
@@ -1244,11 +1058,7 @@ async function main() {
 
   await prisma.productAddonGroup.createMany({
     data: [
-      { productId: pComboCasal.id, groupId: groupComboCasalCopo1Trad.id, sortOrder: 1 },
-      { productId: pComboCasal.id, groupId: groupComboCasalCopo1Premium.id, sortOrder: 2 },
-      { productId: pComboCasal.id, groupId: groupComboCasalCopo2Trad.id, sortOrder: 3 },
-      { productId: pComboCasal.id, groupId: groupComboCasalCopo2Premium.id, sortOrder: 4 },
-      { productId: pComboCasal.id, groupId: groupComboCasalTalheres.id, sortOrder: 5 },
+      { productId: pComboCasal.id, groupId: groupComboCasalTalheres.id, sortOrder: 99 },
     ],
   });
 
@@ -1275,11 +1085,7 @@ async function main() {
 
   await prisma.productAddonGroup.createMany({
     data: [
-      { productId: pComboFamilia.id, groupId: groupComboFamMarmitaTrad.id, sortOrder: 1 },
-      { productId: pComboFamilia.id, groupId: groupComboFamMarmitaPremium.id, sortOrder: 2 },
-      { productId: pComboFamilia.id, groupId: groupComboFamCopo1Trad.id, sortOrder: 3 },
-      { productId: pComboFamilia.id, groupId: groupComboFamCopo2Trad.id, sortOrder: 4 },
-      { productId: pComboFamilia.id, groupId: groupComboFamTalheres.id, sortOrder: 5 },
+      { productId: pComboFamilia.id, groupId: groupComboFamTalheres.id, sortOrder: 99 },
     ],
   });
 
@@ -1306,11 +1112,7 @@ async function main() {
 
   await prisma.productAddonGroup.createMany({
     data: [
-      { productId: pComboShakeAcai.id, groupId: groupComboShakeCopoTrad.id, sortOrder: 1 },
-      { productId: pComboShakeAcai.id, groupId: groupComboShakeCopoPremium.id, sortOrder: 2 },
-      { productId: pComboShakeAcai.id, groupId: groupComboShakeSaborBase.id, sortOrder: 3 },
-      { productId: pComboShakeAcai.id, groupId: groupComboShakeOpcionais.id, sortOrder: 4 },
-      { productId: pComboShakeAcai.id, groupId: groupComboShakeTalheres.id, sortOrder: 5 },
+      { productId: pComboShakeAcai.id, groupId: groupComboShakeTalheres.id, sortOrder: 99 },
     ],
   });
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight } from "lucide-react";
 import { useCart } from "../../hooks/useCart";
 import { formatCurrency, parseSafeNumber } from "@/lib/formatters";
+import { AddonOrganizationService } from "@/domain/services/AddonOrganizationService";
 
 interface CartDrawerProps {
   open: boolean;
@@ -153,21 +154,31 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                     )}
 
                     {/* Adicionais e Opções Personalizadas */}
-                    {item.selectedOptions && item.selectedOptions.length > 0 && (
-                      <div className="mt-1 space-y-0.5">
-                        {item.selectedOptions.map((opt, idx) => (
-                          <p key={idx} className="text-[11px] text-muted-foreground flex items-center gap-1 leading-tight">
-                            <span className="w-1 h-1 rounded-full bg-primary shrink-0" />
-                            <span className="truncate">{opt.name}</span>
-                            {parseSafeNumber(opt.price) > 0 && (
-                              <span className="text-primary dark:text-muted-foreground font-mono text-[10px] shrink-0">
-                                (+{formatCurrency(opt.price)})
-                              </span>
-                            )}
-                          </p>
-                        ))}
-                      </div>
-                    )}
+                    {item.selectedOptions && item.selectedOptions.length > 0 && (() => {
+                      const orderedOptions = AddonOrganizationService.organizeOrderAddons(item.selectedOptions).flatSorted;
+                      return (
+                        <div className="mt-1 space-y-0.5">
+                          {orderedOptions.map((opt, idx) => {
+                            const optQty = opt.quantity || 1;
+                            const optPrice = parseSafeNumber(opt.price);
+                            return (
+                              <p key={idx} className="text-[11px] text-muted-foreground flex items-center gap-1 leading-tight">
+                                <span className="w-1 h-1 rounded-full bg-primary shrink-0" />
+                                <span className="truncate">
+                                  {optQty > 1 ? `${optQty}x ` : ""}
+                                  {opt.name}
+                                </span>
+                                {optPrice > 0 && (
+                                  <span className="text-primary dark:text-muted-foreground font-mono text-[10px] shrink-0">
+                                    (+{formatCurrency(optPrice * optQty)})
+                                  </span>
+                                )}
+                              </p>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
 
                     {/* Observações do Pedido */}
                     {item.notes && (

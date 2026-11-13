@@ -1,3 +1,5 @@
+import { AddonOrganizationService } from "@/domain/services/AddonOrganizationService";
+
 export const productInclude = {
   categoryRel: {
     select: { name: true },
@@ -42,6 +44,8 @@ export const productInclude = {
 };
 
 export function formatProduct(p: any) {
+  const sortedProductAddonGroups = AddonOrganizationService.sortAddonGroups(p.addonGroups || []);
+
   return {
     id: p.id,
     name: p.name,
@@ -67,27 +71,34 @@ export function formatProduct(p: any) {
     urgencyType: (p.urgencyType as "date" | "day" | "session") || "date",
     expiresAt: p.expiresAt ? p.expiresAt.toISOString() : null,
     sessionMinutes: p.sessionMinutes ?? null,
-    comboItems: p.comboItems?.map((ci: any) => ({
-      id: ci.id,
-      productId: ci.productId,
-      quantity: ci.quantity,
-      product: ci.product ? {
-        id: ci.product.id,
-        name: ci.product.name,
-        description: ci.product.description || "",
-        price: Number(ci.product.price),
-        imageUrl: ci.product.imageUrl || "",
-        servesText: ci.product.servesText || null,
-        addonGroups: ci.product.addonGroups?.map((pag: any) => ({
-          groupId: pag.groupId,
-          group: pag.group,
-        })) || [],
-      } : null,
-    })) || [],
-    addonGroups: p.addonGroups?.map((pag: any) => ({
+    comboItems: p.comboItems?.map((ci: any) => {
+      const sortedChildAddonGroups = AddonOrganizationService.sortAddonGroups(ci.product?.addonGroups || []);
+      return {
+        id: ci.id,
+        productId: ci.productId,
+        quantity: ci.quantity,
+        product: ci.product ? {
+          id: ci.product.id,
+          name: ci.product.name,
+          description: ci.product.description || "",
+          price: Number(ci.product.price),
+          imageUrl: ci.product.imageUrl || "",
+          servesText: ci.product.servesText || null,
+          addonGroupIds: sortedChildAddonGroups.map((pag: any) => pag.groupId),
+          addonGroups: sortedChildAddonGroups.map((pag: any) => ({
+            groupId: pag.groupId,
+            sortOrder: pag.sortOrder,
+            group: pag.group,
+          })),
+        } : null,
+      };
+    }) || [],
+    addonGroupIds: sortedProductAddonGroups.map((pag: any) => pag.groupId),
+    addonGroups: sortedProductAddonGroups.map((pag: any) => ({
       groupId: pag.groupId,
+      sortOrder: pag.sortOrder,
       group: pag.group,
-    })) || [],
+    })),
     promotions: (p.promotions || []).map((pr: any) => ({
       id: pr.id,
       title: pr.title,

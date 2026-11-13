@@ -437,6 +437,7 @@ model StoreSettings {
   showPaymentMethods    Boolean   @default(true) @map("show_payment_methods")
   acceptedPayments      String[]  @default(["pix", "dinheiro", "credito", "debito"]) @map("accepted_payments")
   googleMapsUrl         String?   @map("google_maps_url")
+  storeCnpj             String?   @map("store_cnpj")
   openedAt               DateTime? @map("opened_at")
   closedAt               DateTime? @map("closed_at")
   updatedAt              DateTime  @updatedAt @map("updated_at")
@@ -579,4 +580,37 @@ model CouponRedemption {
   @@unique([couponId, userId])
   @@index([couponId, userId])
   @@map("coupon_redemptions")
+}
+
+model LoyaltyBadgeConfig {
+  id           String   @id
+  level        Int      @unique
+  name         String
+  icon         String   @default("🌟")
+  minMonths    Int      @default(0) @map("min_months")
+  minOrders    Int      @default(0) @map("min_orders")
+  criteriaMode String   @default("either") @map("criteria_mode")
+  description  String?
+  badgeClass   String?  @map("badge_class")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("loyalty_badge_configs")
+}
+
+model AdminAuditLog {
+  id           String   @id @default(uuid())
+  actorUserId  String?  @map("actor_user_id")
+  actorRole    String   @map("actor_role")
+  action       String
+  resourceType String   @map("resource_type")
+  resourceId   String?  @map("resource_id")
+  summary      String
+  diffKeys     String[] @default([]) @map("diff_keys")
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([actorUserId])
+  @@index([resourceType, createdAt])
+  @@index([createdAt])
+  @@map("admin_audit_logs")
 }

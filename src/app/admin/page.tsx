@@ -14,22 +14,12 @@ import {
   ChevronRight,
   Clock,
   Sparkles,
-  Ticket,
-  BarChart3,
-  Image as ImageIcon,
   Zap,
   Pencil,
-  Truck,
   History,
   Sun,
   Moon,
-  Palette,
-  Send,
   User,
-  IceCream,
-  MessageCircle,
-  Bell,
-  FolderTree,
   Archive,
   RotateCcw,
   CheckCircle2,
@@ -70,28 +60,25 @@ import { LogisticsAndCouriersSection } from "../../components/admin/LogisticsAnd
 import { ChannelsAndSupportSection } from "../../components/admin/ChannelsAndSupportSection";
 import { StoreStatusTopWidget } from "../../components/admin/StoreStatusTopWidget";
 import { OrderDispatchDialog } from "../../components/admin/OrderDispatchDialog";
-import { TAB_PERMISSION_MAP, PermissionKey } from "../../lib/permissions";
+import { AdminNavigationShell } from "../../components/admin/AdminNavigationShell";
+import { AuditLogViewerSection } from "../../components/admin/AuditLogViewerSection";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { useToast } from "../../components/ui/ToastNotification";
+import {
+  AdminGroupId,
+  AdminTabId,
+  getAdminTabMeta,
+  getDefaultAdminSelection,
+  getVisibleAdminGroups,
+  resolveAdminTabParam,
+} from "../../lib/adminNavigation";
 
-const TAB_DEFINITIONS = [
-  { id: "metricas", label: "Métricas & Desempenho", perm: "metrics_view", icon: BarChart3 },
-  { id: "categorias", label: "Categorias", perm: "menu_manage", icon: FolderTree },
-  { id: "complementos", label: "Complementos", perm: "menu_manage", icon: IceCream },
-  { id: "combos", label: "Combos", perm: "menu_manage", icon: Zap },
-  { id: "promocoes", label: "Promoções", perm: "promotions_manage", icon: Tag },
-  { id: "cupons", label: "Cupons", perm: "coupons_manage", icon: Ticket },
-  { id: "identidade_visual", label: "Identidade Visual", perm: "theme_manage", icon: Palette },
-  { id: "avatares", label: "Avatares Oficiais", perm: "theme_manage", icon: User },
-  { id: "banners_selos", label: "Banners & Selos", perm: "theme_manage", icon: ImageIcon },
-  { id: "logistica_entregadores", label: "Logística & Entregadores", perm: "settings_manage", icon: Truck },
-  { id: "canais_atendimento", label: "Canais & Atendimento", perm: "settings_manage", icon: MessageCircle },
-  { id: "disparos_notificacoes", label: "Disparos & Notificações", perm: "settings_manage", icon: Bell },
-] as const;
-
-export type AdminTab = typeof TAB_DEFINITIONS[number]["id"];
+export type AdminTab = AdminTabId;
 
 export default function AdminDashboard() {
   const { theme, toggleTheme, resolvedTheme } = useTheme();
-  const { user, loading: authLoading, isAdmin, isEditor, canAccess } = useAuth();
+  const { user, loading: authLoading, isAdmin, canAccess } = useAuth();
+  const { showToast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -110,10 +97,22 @@ export default function AdminDashboard() {
     badge: "Refrescância Artesanal",
   });
   const [fetching, setFetching] = useState(true);
-  const visibleTabs = TAB_DEFINITIONS.filter(tab => isAdmin || canAccess(tab.perm as PermissionKey));
-  const [activeTab, setActiveTab] = useState<AdminTab>(() => {
-    return (visibleTabs[0]?.id as AdminTab) || "complementos";
-  });
+  const effectiveUser = isAdmin ? { ...user, role: "ADMIN" } : user;
+  const visibleGroups = getVisibleAdminGroups(effectiveUser);
+  const [activeGroup, setActiveGroup] = useState<AdminGroupId>(
+    () => getDefaultAdminSelection(effectiveUser)?.groupId || "operacao"
+  );
+  const [activeTab, setActiveTab] = useState<AdminTabId>(
+    () => getDefaultAdminSelection(effectiveUser)?.tabId || "complementos"
+  );
+  const [confirmState, setConfirmState] = useState<{
+    title: string;
+    description: string;
+    confirmLabel: string;
+    variant: "danger" | "warning" | "primary";
+    onConfirm: () => Promise<void>;
+  } | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
   const [promoDialogOpen, setPromoDialogOpen] = useState(false);
   const [promoToEdit, setPromoToEdit] = useState<Promotion | null>(null);
   const [comboDialogOpen, setComboDialogOpen] = useState(false);
@@ -188,7 +187,11 @@ export default function AdminDashboard() {
       setAdvanceModal(null);
     } catch (error) {
       console.error("Erro ao avançar pedido:", error);
-      alert("Falha ao avançar status do pedido.");
+      showToast({
+        type: "error",
+        title: "Erro ao Avançar Pedido",
+        message: "Não foi possível atualizar o status do pedido.",
+      });
     } finally {
       setIsAdvancing(false);
     }
@@ -298,7 +301,7 @@ export default function AdminDashboard() {
     };
   }, [loadAll, fetchOrders]);
 
-  // Validação de acesso e permissões de abas para Editor vs Admin
+  // Validação de acesso e sincronização de grupo/sub-aba (incluindo deep-links ?tab=...)
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -306,46 +309,97 @@ export default function AdminDashboard() {
       return;
     }
 
-    const tabParam = searchParams.get("tab") as AdminTab | null;
+    const navUser = isAdmin ? { role: "ADMIN" } : user;
+    const tabParam = searchParams.get("tab");
 
     if (tabParam) {
-      const requiredPerm = TAB_PERMISSION_MAP[tabParam];
-      if (requiredPerm) {
-        if (!isAdmin && !canAccess(requiredPerm)) {
+      const resolved = resolveAdminTabParam(tabParam, navUser);
+      if (resolved.valid) {
+        if (resolved.unauthorized) {
           router.push("/admin/pedidos?unauthorized=true");
           return;
         }
-        setActiveTab(tabParam);
-      }
-    } else if (isEditor && !isAdmin) {
-      if (!visibleTabs.find(t => t.id === activeTab)) {
-        if (visibleTabs.length > 0) {
-          setActiveTab(visibleTabs[0].id);
-        } else {
-          router.push("/admin/pedidos?unauthorized=true");
+        if (resolved.groupId && resolved.tabId) {
+          setActiveGroup(resolved.groupId);
+          setActiveTab(resolved.tabId);
+          return;
         }
       }
     }
-  }, [user, authLoading, isAdmin, isEditor, canAccess, searchParams, router]);
 
-  const handleDeletePromo = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir esta promoção?")) return;
-    try {
-      await promotionService.deletePromotion(id);
-      fetchPromos();
-    } catch (error) {
-      console.error("Erro ao excluir promoção:", error);
+    const groups = getVisibleAdminGroups(navUser);
+    const hasCurrentTab = groups.some((g) => g.tabs.some((t) => t.id === activeTab));
+    if (!hasCurrentTab) {
+      const fallback = getDefaultAdminSelection(navUser);
+      if (fallback) {
+        setActiveGroup(fallback.groupId);
+        setActiveTab(fallback.tabId);
+      } else {
+        router.push("/admin/pedidos?unauthorized=true");
+      }
+    } else {
+      const currentMeta = getAdminTabMeta(activeTab);
+      if (currentMeta && currentMeta.groupId !== activeGroup) {
+        setActiveGroup(currentMeta.groupId);
+      }
     }
+  }, [user, authLoading, isAdmin, activeTab, activeGroup, searchParams, router]);
+
+  const handleSelectGroup = (groupId: AdminGroupId) => {
+    const group = visibleGroups.find((g) => g.id === groupId);
+    if (!group || group.tabs.length === 0) return;
+    const keepCurrent = group.tabs.find((t) => t.id === activeTab);
+    const targetTab = keepCurrent ? keepCurrent.id : group.tabs[0].id;
+    setActiveGroup(groupId);
+    setActiveTab(targetTab);
+    router.replace(`/admin?tab=${targetTab}`, { scroll: false });
   };
 
-  const handleDeleteCombo = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este combo?")) return;
-    try {
-      await productService.deleteProduct(id);
-      fetchCombos();
-    } catch (error) {
-      console.error("Erro ao excluir combo:", error);
+  const handleSelectTab = (tabId: AdminTabId) => {
+    const meta = getAdminTabMeta(tabId);
+    if (meta) {
+      setActiveGroup(meta.groupId);
     }
+    setActiveTab(tabId);
+    router.replace(`/admin?tab=${tabId}`, { scroll: false });
+  };
+
+  const handleDeletePromo = (id: string) => {
+    setConfirmState({
+      title: "Excluir Promoção",
+      description: "Tem certeza que deseja excluir esta promoção? Ela será removida imediatamente da vitrine.",
+      confirmLabel: "Excluir Promoção",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          await promotionService.deletePromotion(id);
+          await fetchPromos();
+          showToast({ type: "success", title: "Promoção excluída" });
+        } catch (error) {
+          console.error("Erro ao excluir promoção:", error);
+          showToast({ type: "error", title: "Erro", message: "Não foi possível excluir a promoção." });
+        }
+      },
+    });
+  };
+
+  const handleDeleteCombo = (id: string) => {
+    setConfirmState({
+      title: "Excluir Combo",
+      description: "Tem certeza que deseja excluir este combo do cardápio?",
+      confirmLabel: "Excluir Combo",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          await productService.deleteProduct(id);
+          await fetchCombos();
+          showToast({ type: "success", title: "Combo excluído" });
+        } catch (error) {
+          console.error("Erro ao excluir combo:", error);
+          showToast({ type: "error", title: "Erro", message: "Não foi possível excluir o combo." });
+        }
+      },
+    });
   };
 
   const handleToggleComboAvailability = async (combo: Product) => {
@@ -367,28 +421,47 @@ export default function AdminDashboard() {
     }
   };
 
-  const handlePurgeInactive = async () => {
-    if (!confirm("Deseja expurgar itens inativos e expirados há mais de 60 dias (cupons, promoções e combos obsoletos)?")) return;
-    setPurgingData(true);
-    try {
-      const res = await fetch("/api/admin/maintenance/purge-inactive", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cutoffDays: 60 }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert(data.message || "Expurgo de dados inativos concluído com sucesso!");
-        fetchCombos();
-        fetchPromos();
-      } else {
-        alert(data.error || "Erro ao executar expurgo.");
-      }
-    } catch (err: any) {
-      alert(err.message || "Falha na requisição de expurgo.");
-    } finally {
-      setPurgingData(false);
-    }
+  const handlePurgeInactive = () => {
+    setConfirmState({
+      title: "Expurgar Dados Inativos (TTL 60 dias)",
+      description: "Deseja expurgar itens inativos e expirados há mais de 60 dias (cupons, promoções e combos obsoletos)?",
+      confirmLabel: "Executar Expurgo",
+      variant: "warning",
+      onConfirm: async () => {
+        setPurgingData(true);
+        try {
+          const res = await fetch("/api/admin/maintenance/purge-inactive", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cutoffDays: 60 }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            showToast({
+              type: "success",
+              title: "Expurgo Concluído",
+              message: data.message || "Expurgo de dados inativos concluído com sucesso!",
+            });
+            fetchCombos();
+            fetchPromos();
+          } else {
+            showToast({
+              type: "error",
+              title: "Erro ao Expurgar",
+              message: data.error || "Erro ao executar expurgo.",
+            });
+          }
+        } catch (err: unknown) {
+          showToast({
+            type: "error",
+            title: "Falha na Requisição",
+            message: err instanceof Error ? err.message : "Falha na requisição de expurgo.",
+          });
+        } finally {
+          setPurgingData(false);
+        }
+      },
+    });
   };
 
   if ((fetching && orders.length === 0) || authLoading) {
@@ -643,50 +716,23 @@ export default function AdminDashboard() {
           );
         })()}
 
-        {/* Navegação por Abas Principais (Posicionada Logo Abaixo da Mini Esteira) */}
+        {/* Navegação em 2 Níveis por Grupos e Sub-abas (Posicionada Logo Abaixo da Mini Esteira) */}
         {(() => {
-          const bannerPromos = promotions.filter((p) => Boolean(p.bannerImageUrl));
           const directPromos = promotions.filter((p) => !p.bannerImageUrl);
 
           return (
             <div className="space-y-6">
-              {/* Barra de Abas */}
-              <div className="flex overflow-x-auto items-center gap-2 p-1.5 bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl shadow-xs scrollbar-hide">
-                {visibleTabs.map((tab) => {
-                  const Icon = tab.icon;
-                  let badge = null;
-                  
-                  if (tab.id === "combos") badge = combos.length;
-                  if (tab.id === "promocoes") badge = directPromos.length;
-
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`whitespace-nowrap flex items-center gap-2 font-medium rounded-xl px-4 py-2 text-xs sm:text-sm transition-all cursor-pointer ${
-                        activeTab === tab.id
-                          ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm font-semibold"
-                          : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                      }`}
-                    >
-                      <Icon className="w-4 h-4 shrink-0" />
-                      <span>{tab.label}</span>
-                      {badge !== null && (
-                        <span
-                          className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
-                            activeTab === tab.id
-                              ? "bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900"
-                              : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
-                          }`}
-                        >
-                          {badge}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+              <AdminNavigationShell
+                groups={visibleGroups}
+                activeGroupId={activeGroup}
+                activeTabId={activeTab}
+                onSelectGroup={handleSelectGroup}
+                onSelectTab={handleSelectTab}
+                badgesByTab={{
+                  combos: combos.length,
+                  promocoes: directPromos.length,
+                }}
+              />
 
               {/* CONTEÚDO DA ABA 1: MÉTRICAS & DESEMPENHO */}
               {activeTab === "metricas" && (
@@ -1151,7 +1197,7 @@ export default function AdminDashboard() {
               {activeTab === "complementos" && <AddonsManagement />}
 
               {/* CONTEÚDO DA ABA 4: BANNERS E SELOS (Faixas e Carrossel da Vitrine) */}
-              {(activeTab as string) === "banners_selos" && (
+              {activeTab === "banners_selos" && (
                 <section className="bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 sm:p-7 shadow-sm space-y-8 animate-in fade-in duration-150">
                   {/* SEÇÃO 1: Faixa de Destaque da Vitrine (Home Banner) */}
                   <div className="space-y-4">
@@ -1198,10 +1244,14 @@ export default function AdminDashboard() {
 
                   {/* SEÇÃO 2: Gestão de Selos / Badges Flutuantes dos Cards */}
                   <CardBadgesSection onBadgesUpdated={fetchPromos} />
-
-                  {/* SEÇÃO 4: Gestão de Selos de Fidelidade (Perfil do Cliente) */}
-                  <LoyaltyBadgesSection />
                 </section>
+              )}
+
+              {/* CONTEÚDO: SELOS DE FIDELIDADE (Grupo Fidelidade — independente dos Avatares) */}
+              {activeTab === "selos_fidelidade" && (
+                <div className="bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 sm:p-7 shadow-sm animate-in fade-in duration-150">
+                  <LoyaltyBadgesSection />
+                </div>
               )}
 
               {/* CONTEÚDO DA ABA: APARÊNCIA & IDENTIDADE VISUAL */}
@@ -1234,16 +1284,23 @@ export default function AdminDashboard() {
               )}
 
               {/* CONTEÚDO: DISPAROS & NOTIFICAÇÕES */}
-              {(activeTab as string) === "disparos_notificacoes" && (
+              {activeTab === "disparos_notificacoes" && (
                 <div className="animate-in fade-in duration-150">
                   <CommunicationSection />
                 </div>
               )}
 
               {/* CONTEÚDO DA ABA 7: GESTÃO DO CATÁLOGO DE AVATARES */}
-              {(activeTab as string) === "avatares" && (
+              {activeTab === "avatares" && (
                 <div className="animate-in fade-in duration-150">
                   <AvatarPresetManager />
+                </div>
+              )}
+
+              {/* CONTEÚDO: AUDITORIA & LOGS (Exclusivo Administrador) */}
+              {isAdmin && activeTab === "auditoria" && (
+                <div className="animate-in fade-in duration-150">
+                  <AuditLogViewerSection />
                 </div>
               )}
             </div>
@@ -1327,6 +1384,28 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+      {/* Diálogo Acessível de Confirmação */}
+      <ConfirmDialog
+        open={!!confirmState}
+        onOpenChange={(open) => {
+          if (!open && !confirmBusy) setConfirmState(null);
+        }}
+        title={confirmState?.title || ""}
+        description={confirmState?.description || ""}
+        confirmLabel={confirmState?.confirmLabel || "Confirmar"}
+        variant={confirmState?.variant || "danger"}
+        loading={confirmBusy}
+        onConfirm={async () => {
+          if (!confirmState) return;
+          setConfirmBusy(true);
+          try {
+            await confirmState.onConfirm();
+            setConfirmState(null);
+          } finally {
+            setConfirmBusy(false);
+          }
+        }}
+      />
     </div>
   );
 }

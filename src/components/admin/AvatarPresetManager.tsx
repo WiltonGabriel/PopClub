@@ -19,6 +19,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { useToast } from "../ui/ToastNotification";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 
 export interface AvatarPreset {
   id: string;
@@ -54,6 +55,7 @@ export function AvatarPresetManager() {
   const [editingAvatar, setEditingAvatar] = useState<AvatarPreset | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [avatarToDelete, setAvatarToDelete] = useState<AvatarPreset | null>(null);
 
   // Form State
   const [formName, setFormName] = useState("");
@@ -148,14 +150,16 @@ export function AvatarPresetManager() {
     }
   };
 
-  const handleDelete = async (avatar: AvatarPreset) => {
-    if (!window.confirm(`Tem certeza que deseja excluir o avatar "${avatar.name}"?`)) {
-      return;
-    }
+  const handleDelete = (avatar: AvatarPreset) => {
+    setAvatarToDelete(avatar);
+  };
+
+  const executeDeleteAvatar = async () => {
+    if (!avatarToDelete) return;
 
     try {
-      setDeletingId(avatar.id);
-      const res = await fetch(`/api/admin/avatars/${avatar.id}`, {
+      setDeletingId(avatarToDelete.id);
+      const res = await fetch(`/api/admin/avatars/${avatarToDelete.id}`, {
         method: "DELETE",
       });
 
@@ -163,17 +167,18 @@ export function AvatarPresetManager() {
         throw new Error("Falha ao excluir avatar");
       }
 
-      setAvatars((prev) => prev.filter((a) => a.id !== avatar.id));
+      setAvatars((prev) => prev.filter((a) => a.id !== avatarToDelete.id));
       showToast({
         type: "success",
         title: "Avatar Excluído",
-        message: `O avatar "${avatar.name}" foi removido do catálogo.`,
+        message: `O avatar "${avatarToDelete.name}" foi removido do catálogo.`,
       });
-    } catch (err: any) {
+      setAvatarToDelete(null);
+    } catch (err: unknown) {
       showToast({
         type: "error",
         title: "Erro ao Excluir",
-        message: err?.message || "Não foi possível excluir o avatar.",
+        message: err instanceof Error ? err.message : "Não foi possível excluir o avatar.",
       });
     } finally {
       setDeletingId(null);
@@ -688,6 +693,18 @@ export function AvatarPresetManager() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={!!avatarToDelete}
+        onOpenChange={(open) => {
+          if (!open && !deletingId) setAvatarToDelete(null);
+        }}
+        title="Excluir Avatar Oficial"
+        description={`Tem certeza que deseja excluir o avatar "${avatarToDelete?.name || ""}"?`}
+        confirmLabel="Excluir Avatar"
+        variant="danger"
+        loading={Boolean(deletingId)}
+        onConfirm={executeDeleteAvatar}
+      />
     </section>
   );
 }

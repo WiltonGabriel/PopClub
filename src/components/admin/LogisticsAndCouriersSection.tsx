@@ -27,7 +27,10 @@ import {
   ExternalLink,
   ShieldCheck,
   Compass,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
   storeSettingsService,
   BusinessHourDay,
@@ -122,6 +125,9 @@ export function LogisticsAndCouriersSection() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmInputText, setConfirmInputText] = useState("");
   const confirmInputRef = useRef<HTMLInputElement | null>(null);
+  const [isStructuralExpanded, setIsStructuralExpanded] = useState(false);
+  const [courierToDelete, setCourierToDelete] = useState<Courier | null>(null);
+  const [deletingCourier, setDeletingCourier] = useState(false);
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -205,7 +211,11 @@ export function LogisticsAndCouriersSection() {
 
   const handleUseCurrentGpsAsStore = () => {
     if (!navigator.geolocation) {
-      alert("Geolocalização não é suportada pelo seu navegador.");
+      showToast({
+        type: "error",
+        title: "Geolocalização Indisponível",
+        message: "Seu navegador não suporta captura de geolocalização.",
+      });
       return;
     }
 
@@ -227,7 +237,11 @@ export function LogisticsAndCouriersSection() {
       (err) => {
         console.error(err);
         setIsLocatingStore(false);
-        alert("Não foi possível obter sua localização atual via GPS.");
+        showToast({
+          type: "error",
+          title: "Falha no GPS",
+          message: "Não foi possível obter sua localização atual via GPS.",
+        });
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -433,20 +447,27 @@ export function LogisticsAndCouriersSection() {
     }
   };
 
-  const handleDeleteCourier = async (courier: Courier) => {
-    if (!confirm(`Deseja realmente remover o entregador ${courier.name}?`)) return;
+  const handleDeleteCourier = (courier: Courier) => {
+    setCourierToDelete(courier);
+  };
 
+  const executeDeleteCourier = async () => {
+    if (!courierToDelete) return;
+    setDeletingCourier(true);
     try {
-      await courierService.deleteCourier(courier.id);
-      setCouriers((prev) => prev.filter((c) => c.id !== courier.id));
+      await courierService.deleteCourier(courierToDelete.id);
+      setCouriers((prev) => prev.filter((c) => c.id !== courierToDelete.id));
       showToast({
         type: "success",
         title: "Entregador Removido",
-        message: `${courier.name} foi desvinculado da frota ativa.`,
+        message: `${courierToDelete.name} foi desvinculado da frota ativa.`,
       });
+      setCourierToDelete(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Falha ao excluir entregador.";
       showToast({ type: "error", title: "Erro ao Remover", message: msg });
+    } finally {
+      setDeletingCourier(false);
     }
   };
 
@@ -516,13 +537,13 @@ export function LogisticsAndCouriersSection() {
   const thresholdPreview = parseFloat(freeShippingThreshold) || 0;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-150">
+    <div className="flex flex-col gap-8 animate-in fade-in duration-150">
       {/* ─────────────────────────────────────────────────────────────
-          BLOCO 1: OPERAÇÃO DA LOJA (SEDE, HORÁRIOS & REGRAS DE FRETE)
+          BLOCO 1 (ESTRUTURAL / RETRÁTIL): OPERAÇÃO DA LOJA (SEDE, HORÁRIOS & REGRAS DE FRETE)
       ───────────────────────────────────────────────────────────── */}
-      <section className="bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xs space-y-8">
-        {/* Cabeçalho */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-gray-100 dark:border-zinc-800">
+      <section className="order-2 bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
+        {/* Cabeçalho com Toggle Retrátil */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-zinc-800">
           <div>
             <h3 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide flex items-center gap-2.5 text-foreground">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent text-white flex items-center justify-center shrink-0 shadow-md shadow-primary/20">
@@ -531,19 +552,39 @@ export function LogisticsAndCouriersSection() {
               <span>Operação da Loja & Regras de Entrega</span>
             </h3>
             <p className="text-xs text-muted-foreground mt-1">
-              Configure a sede física (origem dos cálculos), raio máximo de atendimento, horários de funcionamento e valores de frete.
+              Sede física, raio máximo, horários de atendimento e regras de frete ({`Taxa R$ ${feePreview.toFixed(2)}`} • {enableFreeShipping ? `Grátis acima de R$ ${thresholdPreview.toFixed(2)}` : "Sem frete grátis"} • Raio {maxDeliveryRadiusKm} km).
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/60">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               Logística Ativa
             </span>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsStructuralExpanded((prev) => !prev)}
+              aria-expanded={isStructuralExpanded}
+              className="rounded-xl min-h-[44px] px-3.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+            >
+              {isStructuralExpanded ? (
+                <>
+                  <ChevronUp className="w-4 h-4" />
+                  Recolher Regras
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-4 h-4" />
+                  Configurar Regras
+                </>
+              )}
+            </Button>
           </div>
         </div>
 
-        <form onSubmit={handleOpenConfirmModal} className="space-y-8">
+        {isStructuralExpanded && (
+          <form onSubmit={handleOpenConfirmModal} className="space-y-8 pt-2">
           {/* Grid: Regras de Frete e Raio */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Card 1: Taxa Padrão */}
@@ -1009,13 +1050,14 @@ export function LogisticsAndCouriersSection() {
               )}
             </Button>
           </div>
-        </form>
+          </form>
+        )}
       </section>
 
       {/* ─────────────────────────────────────────────────────────────
-          BLOCO 2: CADASTRO & GESTÃO DE ENTREGADORES (MOTOBOYS)
+          BLOCO 2 (PRIORIDADE DIÁRIA NO TOPO): FROTA & ENTREGADORES (MOTOBOYS)
       ───────────────────────────────────────────────────────────── */}
-      <section className="bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
+      <section className="order-1 bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-zinc-800">
           <div>
             <div className="flex items-center gap-2.5">
@@ -1459,6 +1501,18 @@ export function LogisticsAndCouriersSection() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={!!courierToDelete}
+        onOpenChange={(open) => {
+          if (!open && !deletingCourier) setCourierToDelete(null);
+        }}
+        title="Remover Entregador"
+        description={`Deseja realmente remover o entregador ${courierToDelete?.name || ""}? Essa ação desvinculará o entregador da frota ativa.`}
+        confirmLabel="Remover Entregador"
+        variant="danger"
+        loading={deletingCourier}
+        onConfirm={executeDeleteCourier}
+      />
     </div>
   );
 }

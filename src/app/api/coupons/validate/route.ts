@@ -39,9 +39,6 @@ export async function POST(request: Request) {
     interface ValidateCouponBody {
       code?: string;
       subtotal?: number | string;
-      userId?: string;
-      phone?: string;
-      customerPhone?: string;
       productIds?: string[];
     }
 
@@ -73,7 +70,7 @@ export async function POST(request: Request) {
     let userBadgeLevel: number | undefined;
     let userBadgeId: string | undefined;
 
-    const effectiveUserId = authUser?.id || (typeof body.userId === "string" ? body.userId : undefined);
+    const effectiveUserId = authUser?.id || undefined;
     if (effectiveUserId) {
       const [dbUser, ordersCount] = await Promise.all([
         prisma.user.findUnique({
@@ -102,14 +99,11 @@ export async function POST(request: Request) {
       userBadgeId = loyaltyCtx.userBadge.id;
     }
 
-    // Identificação de uso prévio caso seja oncePerUser
+    // Identificação de uso prévio caso seja oncePerUser (apenas pela sessão autenticada, sem aceitar IDs/telefones arbitrários)
     let hasPriorUsage = false;
-    if (coupon?.oncePerUser) {
-      const targetUserId = authUser?.id || (typeof body.userId === "string" ? body.userId : undefined);
-      const targetPhone =
-        (typeof body.phone === "string" ? body.phone : undefined) ||
-        (typeof body.customerPhone === "string" ? body.customerPhone : undefined) ||
-        authUser?.phone;
+    if (coupon?.oncePerUser && authUser) {
+      const targetUserId = authUser.id;
+      const targetPhone = authUser.phone || undefined;
 
       const conditions: Prisma.OrderWhereInput[] = [];
       if (targetUserId) conditions.push({ userId: targetUserId });

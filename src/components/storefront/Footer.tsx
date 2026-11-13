@@ -123,7 +123,7 @@ export function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10">
           {/* Coluna 1 (Marca & Slogan Dinâmico) */}
           <div className="space-y-3.5">
-            <div className="flex items-center gap-2 select-none">
+            <div className="flex items-center gap-2 select-text">
               <span className="font-heading text-2xl tracking-tight text-zinc-900 dark:text-white font-bold">
                 Pop<span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent font-black">Shake</span>
               </span>

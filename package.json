@@ -16,10 +16,11 @@
     "db:backup": "node scripts/backup-db.mjs",
     "db:restore": "node scripts/restore-db.mjs",
     "db:diagnose": "node scripts/diagnose-db.mjs",
+    "db:prelaunch-dry-run": "node scripts/prelaunch-cleanup.mjs --dry-run",
     "test:smoke": "node scripts/smoke-test-all.mjs"
   },
   "prisma": {
-    "seed": "node prisma/seed.js"
+    "seed": "npx tsx prisma/seed.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

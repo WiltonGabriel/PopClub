@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma, DBCoupon } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { recordAdminAudit } from "@/services/auditLogService";
 
 export async function PUT(
   request: Request,
@@ -81,6 +82,15 @@ export async function PUT(
       },
     });
 
+    await recordAdminAudit({
+      actor: user ? { id: user.id, role: user.role } : null,
+      action: "UPDATE_COUPON",
+      resourceType: "coupon",
+      resourceId: updated.id,
+      summary: `Atualizou cupom "${updated.code}".`,
+      diffKeys: Object.keys(body || {}),
+    });
+
     return NextResponse.json({
       id: updated.id,
       code: updated.code,
@@ -131,6 +141,16 @@ export async function PATCH(
       data: { isActive },
     });
 
+    await recordAdminAudit({
+      actor: user ? { id: user.id, role: user.role } : null,
+      action: "TOGGLE_COUPON_STATUS",
+      resourceType: "coupon",
+      resourceId: updated.id,
+      summary: `${updated.isActive ? "Ativou" : "Desativou"} cupom "${updated.code}".`,
+      diffKeys: ["isActive"],
+      metadata: { isActive: updated.isActive },
+    });
+
     return NextResponse.json({
       id: updated.id,
       code: updated.code,
@@ -155,6 +175,14 @@ export async function DELETE(
     const { id } = await params;
     await prisma.coupon.delete({
       where: { id },
+    });
+
+    await recordAdminAudit({
+      actor: user ? { id: user.id, role: user.role } : null,
+      action: "DELETE_COUPON",
+      resourceType: "coupon",
+      resourceId: id,
+      summary: "Excluiu cupom de desconto.",
     });
 
     return NextResponse.json({ success: true });

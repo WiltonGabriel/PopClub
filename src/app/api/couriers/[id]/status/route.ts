@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { hasPermission } from "@/lib/permissions";
+import { courierStatusSchema } from "@/services/courierDispatchProjection";
+import { recordAdminAudit } from "@/services/auditLogService";
 
 export async function PATCH(
   request: Request,
@@ -8,26 +11,43 @@ export async function PATCH(
 ) {
   try {
     const user = await getAuthUser(request);
-    if (!user || user.role !== "admin") {
-      return apiError("Acesso negado. Apenas administradores.", 403, "FORBIDDEN");
+    if (!user) {
+      return apiError("Não autenticado.", 401, "UNAUTHORIZED");
+    }
+    if (!hasPermission(user, "logistics_manage")) {
+      return apiError(
+        "Acesso negado. Permissão logistics_manage necessária.",
+        403,
+        "FORBIDDEN"
+      );
     }
 
     const { id } = await params;
-    let body: Record<string, unknown> = {};
+    let rawBody: unknown = {};
     try {
-      body = (await request.json()) as Record<string, unknown>;
+      rawBody = await request.json();
     } catch {
       return apiError("Corpo da requisição inválido.", 400);
     }
 
-    const status = body?.status as string | undefined;
-    if (!status || !["available", "in_transit", "off_duty"].includes(status)) {
+    const parsed = courierStatusSchema.safeParse(rawBody);
+    if (!parsed.success) {
       return apiError("Status inválido. Use 'available', 'in_transit' ou 'off_duty'.", 400);
     }
 
     const updated = await prisma.courier.update({
       where: { id },
-      data: { status },
+      data: { status: parsed.data.status },
+    });
+
+    await recordAdminAudit({
+      actor: { id: user.id, role: user.role },
+      action: "UPDATE_COURIER_STATUS",
+      resourceType: "courier",
+      resourceId: updated.id,
+      summary: `Alterou status do entregador "${updated.name}" para "${updated.status}".`,
+      diffKeys: ["status"],
+      metadata: { status: updated.status },
     });
 
     return apiSuccess(updated);

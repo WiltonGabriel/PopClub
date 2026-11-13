@@ -9,6 +9,8 @@ import {
 } from "../../services/loyaltyBadgeService";
 import { CouponFormDialog } from "./CouponFormDialog";
 import { Button } from "../ui/button";
+import { useToast } from "../ui/ToastNotification";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 import {
   Ticket,
   Plus,
@@ -32,7 +34,16 @@ import {
 } from "lucide-react";
 
 export function CouponManagement() {
+  const { showToast } = useToast();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [confirmState, setConfirmState] = useState<{
+    title: string;
+    description: string;
+    confirmLabel: string;
+    variant: "danger" | "warning";
+    onConfirm: () => Promise<void>;
+  } | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
   const [loyaltyBadges, setLoyaltyBadges] = useState<LoyaltyBadgeConfig[]>(DEFAULT_LOYALTY_BADGES);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -62,29 +73,47 @@ export function CouponManagement() {
     loyaltyBadgeService.getBadges().then(setLoyaltyBadges).catch(() => null);
   }, [fetchCoupons]);
 
-  const handlePurgeInactive = async () => {
-    if (!confirm("Deseja expurgar cupons e dados inativos há mais de 60 dias? Essa ação é definitiva e não afeta o histórico de pedidos passados.")) {
-      return;
-    }
-    setPurging(true);
-    try {
-      const res = await fetch("/api/admin/maintenance/purge-inactive", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cutoffDays: 60 }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        alert(data.message || "Expurgo realizado com sucesso.");
-        fetchCoupons();
-      } else {
-        alert(data.error || "Erro ao expurgar dados.");
-      }
-    } catch {
-      alert("Falha de conexão ao executar expurgo.");
-    } finally {
-      setPurging(false);
-    }
+  const handlePurgeInactive = () => {
+    setConfirmState({
+      title: "Expurgar Dados Inativos",
+      description:
+        "Deseja expurgar cupons e dados inativos há mais de 60 dias? Essa ação é definitiva e não afeta o histórico de pedidos passados.",
+      confirmLabel: "Executar Expurgo",
+      variant: "warning",
+      onConfirm: async () => {
+        setPurging(true);
+        try {
+          const res = await fetch("/api/admin/maintenance/purge-inactive", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cutoffDays: 60 }),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            showToast({
+              type: "success",
+              title: "Expurgo Concluído",
+              message: data.message || "Expurgo realizado com sucesso.",
+            });
+            fetchCoupons();
+          } else {
+            showToast({
+              type: "error",
+              title: "Erro ao Expurgar",
+              message: data.error || "Erro ao expurgar dados.",
+            });
+          }
+        } catch {
+          showToast({
+            type: "error",
+            title: "Falha de Conexão",
+            message: "Falha de conexão ao executar expurgo.",
+          });
+        } finally {
+          setPurging(false);
+        }
+      },
+    });
   };
 
   const handleCopyCode = (code: string) => {
@@ -102,21 +131,40 @@ export function CouponManagement() {
 
     try {
       await couponService.toggleCouponStatus(coupon.id, nextStatus);
-    } catch (err: any) {
-      alert("Erro ao alterar status do cupom");
+    } catch {
+      showToast({
+        type: "error",
+        title: "Erro",
+        message: "Erro ao alterar status do cupom.",
+      });
       fetchCoupons();
     }
   };
 
-  const handleDeleteCoupon = async (id: string, code: string) => {
-    if (confirm(`Tem certeza que deseja excluir o cupom "${code}"?`)) {
-      try {
-        await couponService.deleteCoupon(id);
-        fetchCoupons();
-      } catch (err: any) {
-        alert(err.message || "Erro ao excluir cupom.");
-      }
-    }
+  const handleDeleteCoupon = (id: string, code: string) => {
+    setConfirmState({
+      title: "Excluir Cupom",
+      description: `Tem certeza que deseja excluir o cupom "${code}"?`,
+      confirmLabel: "Excluir Cupom",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          await couponService.deleteCoupon(id);
+          await fetchCoupons();
+          showToast({
+            type: "success",
+            title: "Cupom Excluído",
+            message: `O cupom "${code}" foi removido.`,
+          });
+        } catch (err: unknown) {
+          showToast({
+            type: "error",
+            title: "Erro ao Excluir",
+            message: err instanceof Error ? err.message : "Erro ao excluir cupom.",
+          });
+        }
+      },
+    });
   };
 
   // Métricas e separação de ativos vs arquivados
@@ -527,6 +575,27 @@ export function CouponManagement() {
         onOpenChange={setDialogOpen}
         onSaved={fetchCoupons}
         couponToEdit={couponToEdit}
+      />
+      <ConfirmDialog
+        open={!!confirmState}
+        onOpenChange={(open) => {
+          if (!open && !confirmBusy) setConfirmState(null);
+        }}
+        title={confirmState?.title || ""}
+        description={confirmState?.description || ""}
+        confirmLabel={confirmState?.confirmLabel || "Confirmar"}
+        variant={confirmState?.variant || "danger"}
+        loading={confirmBusy}
+        onConfirm={async () => {
+          if (!confirmState) return;
+          setConfirmBusy(true);
+          try {
+            await confirmState.onConfirm();
+            setConfirmState(null);
+          } finally {
+            setConfirmBusy(false);
+          }
+        }}
       />
     </div>
   );

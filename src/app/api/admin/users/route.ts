@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser, hashPassword } from "@/lib/auth";
 import { cleanCpf, validateCpf } from "@/lib/cpf";
-import { DEFAULT_EDITOR_PERMISSIONS, isUserAdmin, isUserEditor, hasPermission } from "@/lib/permissions";
+import { DEFAULT_EDITOR_PERMISSIONS, isUserAdmin, isUserEditor, hasPermission, validatePermissionsInput } from "@/lib/permissions";
+import { recordAdminAudit } from "@/services/auditLogService";
 import { calculateAccountAgeMonths, getUserBadge } from "@/services/loyaltyBadgeService";
 import { loadLoyaltyBadgesConfig } from "@/services/couponLoyaltyService";
 import { Role, Prisma } from "@prisma/client";
@@ -258,9 +259,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const authUser = await getAuthUser(request);
-    const hasUsersManage = isUserAdmin(authUser) || (isUserEditor(authUser) && hasPermission(authUser, "users_manage"));
-    if (!authUser || !hasUsersManage) {
-      return NextResponse.json({ error: "Acesso negado. Permissão users_manage necessária." }, { status: 403 });
+    if (!authUser || !isUserAdmin(authUser)) {
+      return NextResponse.json(
+        { error: "Acesso negado. Apenas administradores podem criar membros da equipe." },
+        { status: 403 }
+      );
     }
 
     let body: Record<string, unknown>;
@@ -401,8 +404,18 @@ export async function POST(request: Request) {
         finalPermissions = customRole.permissions;
       } else {
         // Editor padrão modular
-        if (Array.isArray(permissions) && permissions.length > 0) {
-          finalPermissions = permissions.filter((p): p is string => typeof p === "string");
+        if (permissions !== undefined) {
+          if (!Array.isArray(permissions)) {
+            return NextResponse.json({ error: "Permissões devem ser uma lista." }, { status: 400 });
+          }
+          const { valid, invalid } = validatePermissionsInput(permissions);
+          if (invalid.length > 0) {
+            return NextResponse.json(
+              { error: `Permissões inválidas informadas: ${invalid.join(", ")}` },
+              { status: 400 }
+            );
+          }
+          finalPermissions = valid.length > 0 ? valid : [...DEFAULT_EDITOR_PERMISSIONS];
         } else {
           finalPermissions = [...DEFAULT_EDITOR_PERMISSIONS];
         }
@@ -459,6 +472,16 @@ export async function POST(request: Request) {
           },
         },
       },
+    });
+
+    await recordAdminAudit({
+      actor: { id: authUser.id, role: authUser.role },
+      action: "CREATE_STAFF_USER",
+      resourceType: "user",
+      resourceId: newUser.id,
+      summary: `Cadastrou membro da equipe com cargo ${newUser.role}.`,
+      diffKeys: ["role", "customRoleId", "permissions"],
+      metadata: { targetRole: newUser.role, customRoleId: newUser.customRoleId },
     });
 
     return NextResponse.json(newUser, { status: 201 });

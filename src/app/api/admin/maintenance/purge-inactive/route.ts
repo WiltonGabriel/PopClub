@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
+import { isUserAdmin } from "@/lib/permissions";
 import { adminOperationsLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
 import { ArchiveRetentionService, INACTIVE_RETENTION_DAYS } from "@/services/archiveRetentionService";
+import { recordAdminAudit } from "@/services/auditLogService";
 
 export async function POST(request: Request) {
   try {
@@ -16,9 +17,9 @@ export async function POST(request: Request) {
     }
 
     const user = await getAuthUser(request);
-    if (!user || (!hasPermission(user, "menu_manage") && user.role !== "admin")) {
+    if (!user || !isUserAdmin(user)) {
       return NextResponse.json(
-        { error: "Acesso negado. Permissão administrativa necessária para executar expurgo de dados." },
+        { error: "Acesso negado. Apenas administradores podem executar expurgo de dados." },
         { status: 403 }
       );
     }
@@ -34,6 +35,14 @@ export async function POST(request: Request) {
     }
 
     const result = await ArchiveRetentionService.purgeAll(cutoffDays);
+
+    await recordAdminAudit({
+      actor: { id: user.id, role: user.role },
+      action: "PURGE_INACTIVE_ARCHIVE",
+      resourceType: "maintenance",
+      summary: `Executou expurgo de registros inativos com retenção de ${cutoffDays} dias.`,
+      metadata: { cutoffDays },
+    });
 
     return NextResponse.json({
       success: true,

@@ -1,33 +1,16 @@
-import { prisma } from "@/lib/prisma";
 import { CouponModel } from "@/domain/services/CouponDomainService";
 import {
-  DEFAULT_LOYALTY_BADGES,
   LoyaltyBadgeConfig,
   getUserBadge,
 } from "@/services/loyaltyBadgeService";
+import { getOrBackfillLoyaltyBadges } from "@/services/loyaltyBadgeConfigBackfill";
 
 /**
- * Carrega os selos de fidelidade configurados na tabela NotificationTemplate,
- * usando DEFAULT_LOYALTY_BADGES como fallback seguro.
+ * Carrega os selos de fidelidade da tabela dedicada LoyaltyBadgeConfig
+ * (com backfill idempotente do template legado e fallback seguro para padrão).
  */
 export async function loadLoyaltyBadgesConfig(): Promise<LoyaltyBadgeConfig[]> {
-  const record = await prisma.notificationTemplate.findFirst({
-    where: { category: "loyalty_badges" },
-    orderBy: { updatedAt: "desc" },
-  });
-
-  if (record?.message) {
-    try {
-      const parsed = JSON.parse(record.message);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed as LoyaltyBadgeConfig[];
-      }
-    } catch {
-      // fallback para configuração padrão
-    }
-  }
-
-  return DEFAULT_LOYALTY_BADGES;
+  return getOrBackfillLoyaltyBadges();
 }
 
 export interface CouponLoyaltyContext {
