@@ -217,23 +217,28 @@ export function GpsInteractiveMapModal({
               onLocationSelect={handleLocationPicked}
             />
 
-            {/* Botão Flutuante: Centralizar na Minha Posição GPS */}
-            <div className="absolute top-3 left-3 z-[1000]">
+            {/* Botão Flutuante Compacto: Centralizar na Minha Localização GPS */}
+            <div className="absolute top-1/2 right-3 -translate-y-1/2 z-[1000] group/gps">
               <button
                 type="button"
                 onClick={handleCenterOnUserGps}
                 disabled={isLocatingUser}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/95 dark:bg-[#190B1A]/95 text-foreground hover:text-primary border border-border/80 shadow-lg text-xs font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
-                title="Buscar meu sinal de GPS"
+                aria-label="Minha localização"
+                title="Minha localização"
+                className="peer w-11 h-11 rounded-full flex items-center justify-center bg-white/95 dark:bg-[#190B1A]/95 text-foreground hover:text-primary border border-border/80 shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 {isLocatingUser ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" aria-hidden="true" />
                 ) : (
-                  <Crosshair className="w-4 h-4 text-primary" />
+                  <Crosshair className="w-5 h-5 text-primary" aria-hidden="true" />
                 )}
-                <span className="hidden xs:inline">Centralizar na Minha Posição</span>
-                <span className="xs:hidden">Meu GPS</span>
               </button>
+              <span
+                aria-hidden="true"
+                className="pointer-events-none inline-flex items-center whitespace-nowrap absolute right-full mr-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg bg-[#190B1A]/95 dark:bg-white/95 text-white dark:text-[#190B1A] text-[11px] font-bold shadow-md border border-border/40 opacity-0 scale-95 group-hover/gps:opacity-100 group-hover/gps:scale-100 peer-focus-visible:opacity-100 peer-focus-visible:scale-100 transition-all duration-150"
+              >
+                Minha localização
+              </span>
             </div>
           </div>
 
