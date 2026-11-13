@@ -39,6 +39,5 @@ database_schema.sql
 public/uploads/*
 !public/uploads/.gitkeep
 
-# Scripts e Documentacao Auxiliar fora da Imagem Final
-scripts
+# Documentacao Auxiliar fora da Imagem Final
 docs
