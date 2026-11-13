@@ -9,9 +9,10 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Tag, Sparkles, Loader2, Clock, Eye } from "lucide-react";
+import { Tag, Sparkles, Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { ImageCropperDialog } from "./ImageCropperDialog";
 import { UrgencyScarcityConfig, UrgencyScarcityValues } from "./UrgencyScarcityConfig";
+import { PromotionDomainService } from "@/domain/services/PromotionDomainService";
 
 interface PromotionFormDialogProps {
   open: boolean;
@@ -49,6 +50,7 @@ export function PromotionFormDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [isActive, setIsActive] = useState(true);
   const [autoBanner, setAutoBanner] = useState(false);
 
   // Duração & Escassez Unificada
@@ -78,7 +80,7 @@ export function PromotionFormDialog({
     if (promoToEdit) {
       setTitle(promoToEdit.title);
       setBadge(promoToEdit.badge);
-      setDescription(promoToEdit.description);
+      setDescription(promoToEdit.description || "");
       setDiscountType(promoToEdit.discountType);
       setDiscountValue(promoToEdit.discountValue.toString());
       setGradientStart(promoToEdit.gradientStart || "hsl(var(--primary))");
@@ -87,6 +89,7 @@ export function PromotionFormDialog({
       setBannerFile(null);
       setRawBannerSrc(null);
       setCropModalOpen(false);
+      setIsActive(Boolean(promoToEdit.isActive));
 
       setSelectedProductId(promoToEdit.productId || null);
       setAutoBanner(promoToEdit.autoBanner || false);
@@ -117,6 +120,7 @@ export function PromotionFormDialog({
       setBannerFile(null);
       setRawBannerSrc(null);
       setCropModalOpen(false);
+      setIsActive(true);
       setSelectedProductId(null);
       setAutoBanner(false);
       setUrgencyState({
@@ -130,6 +134,7 @@ export function PromotionFormDialog({
         sessionMinutes: "60",
       });
     }
+    setError("");
   }, [promoToEdit, open]);
 
   const bannerPreviewSrc = useMemo(() => {
@@ -192,6 +197,31 @@ export function PromotionFormDialog({
       return;
     }
 
+    const selectedProduct = availableProducts.find((p) => p.id === selectedProductId);
+
+    if (urgencyState.showDuration && urgencyState.urgencyType === "date") {
+      if (!urgencyState.expiresAt) {
+        setError("Informe a data e hora limite ou desative a duração limitada da promoção.");
+        setLoading(false);
+        return;
+      }
+      const parsedExp = new Date(urgencyState.expiresAt);
+      if (Number.isNaN(parsedExp.getTime()) || parsedExp.getTime() <= Date.now()) {
+        setError("A data de expiração informada já venceu. Escolha um horário futuro ou desative a duração limitada.");
+        setLoading(false);
+        return;
+      }
+    }
+
+    const parsedValue = parseFloat(discountValue) || 0;
+    if (discountType === "fixed" && selectedProduct && parsedValue >= Number(selectedProduct.price)) {
+      setError(
+        `No modo Preço Fixo Promocional, o valor deve ser menor que o preço original de ${selectedProduct.name} (R$ ${Number(selectedProduct.price).toFixed(2).replace(".", ",")}).`
+      );
+      setLoading(false);
+      return;
+    }
+
     try {
       let expiresAt: string | null = null;
       if (urgencyState.showDuration) {
@@ -207,19 +237,26 @@ export function PromotionFormDialog({
         }
       }
 
+      const durationDisplay = PromotionDomainService.buildDurationDisplay({
+        showDuration: urgencyState.showDuration,
+        showScarcity: urgencyState.showScarcity,
+        urgencyType: urgencyState.urgencyType,
+      });
+
       const payload = {
         title,
         badge,
         description,
         discountType,
-        discountValue: parseFloat(discountValue) || 0,
+        discountValue: parsedValue,
         gradientStart,
         gradientEnd,
         bannerImageUrl: bannerUrl,
-        isActive: promoToEdit ? promoToEdit.isActive : true,
+        isActive,
         expiresAt,
         productId: selectedProductId,
         autoBanner,
+        durationDisplay,
         showScarcity: urgencyState.showScarcity,
         scarcityUnits: urgencyState.showScarcity && urgencyState.scarcityUnits ? parseInt(urgencyState.scarcityUnits, 10) : null,
         scarcityType: urgencyState.scarcityType,
@@ -262,7 +299,11 @@ export function PromotionFormDialog({
           </DialogHeader>
 
           {error && (
-            <div className="p-3.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-xl text-red-600 dark:text-red-300 text-xs sm:text-sm flex items-center gap-2.5 font-medium">
+            <div
+              role="alert"
+              className="p-3.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-xl text-red-600 dark:text-red-300 text-xs sm:text-sm flex items-center gap-2.5 font-medium"
+            >
+              <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
@@ -304,7 +345,23 @@ export function PromotionFormDialog({
                   {description || "Descreva aqui as vantagens imperdíveis desta oferta especial..."}
                 </p>
                 <div className="mt-2 text-xs font-mono font-bold text-white bg-black/40 px-2.5 py-1 rounded-md inline-block backdrop-blur-xs">
-                  {discountType === "percentage" ? `${discountValue || 0}% OFF` : `R$ ${discountValue || 0} OFF`}
+                  {(() => {
+                    const selectedProduct = availableProducts.find((p) => p.id === selectedProductId);
+                    const val = parseFloat(discountValue) || 0;
+                    if (selectedProduct) {
+                      const preview = PromotionDomainService.calculatePromotionPricing(
+                        Number(selectedProduct.price),
+                        discountType,
+                        val
+                      );
+                      if (preview.isPromotional) {
+                        return `DE R$ ${preview.originalPrice.toFixed(2).replace(".", ",")} POR R$ ${preview.finalPrice.toFixed(2).replace(".", ",")} (${preview.discountPercent}% OFF)`;
+                      }
+                    }
+                    return discountType === "percentage"
+                      ? `${val}% OFF`
+                      : `POR R$ ${val.toFixed(2).replace(".", ",")}`;
+                  })()}
                 </div>
               </div>
 
@@ -315,6 +372,53 @@ export function PromotionFormDialog({
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5 pt-1">
+            {/* Publicação e Visibilidade na Vitrine */}
+            <div
+              className={`rounded-2xl border p-4 flex items-center justify-between gap-4 transition-colors ${
+                isActive
+                  ? "bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50"
+                  : "bg-amber-50/70 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/50"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                    isActive
+                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                      : "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                  }`}
+                >
+                  {isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-foreground">
+                    Publicar na vitrine (visível para clientes)
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {isActive
+                      ? "Quando salva, esta oferta e seu banner aparecem imediatamente para os clientes se a vigência estiver em dia."
+                      : "Modo rascunho/pausado: apenas administradores no modo edição conseguem visualizar este banner."}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isActive}
+                aria-label="Publicar na vitrine para clientes"
+                onClick={() => setIsActive((prev) => !prev)}
+                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                  isActive ? "bg-emerald-600" : "bg-muted-foreground/30"
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                    isActive ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+
             {/* 1. Nome e Badge da Promoção */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2 space-y-1.5">
@@ -325,7 +429,7 @@ export function PromotionFormDialog({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Ex: Quinta do Açaí 20% OFF"
-                  className="font-medium bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 text-xs sm:text-sm rounded-xl focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
+                  className="font-medium bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 text-base sm:text-sm rounded-xl focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
                   required
                 />
               </div>
@@ -380,7 +484,7 @@ export function PromotionFormDialog({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Ex: Todos os copos de 500ml e 700ml com desconto especial hoje!"
-                className="bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 text-xs sm:text-sm rounded-xl focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
+                className="bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 text-base sm:text-sm rounded-xl focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
               />
             </div>
 
@@ -401,24 +505,29 @@ export function PromotionFormDialog({
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-gray-200 dark:border-border/40 bg-white dark:bg-[#200B22]">
                     <SelectItem value="percentage">Porcentagem (%)</SelectItem>
-                    <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>
+                    <SelectItem value="fixed">Preço Fixo Promocional (R$)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                  Valor do Desconto *
+                  {discountType === "percentage" ? "Percentual de Desconto (%) *" : "Novo Preço Promocional (R$) *"}
                 </Label>
                 <Input
                   type="number"
                   step="0.01"
                   value={discountValue}
                   onChange={(e) => setDiscountValue(e.target.value)}
-                  placeholder={discountType === "percentage" ? "Ex: 20" : "Ex: 10.00"}
-                  className="bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 rounded-xl font-mono text-xs sm:text-sm focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
+                  placeholder={discountType === "percentage" ? "Ex: 20" : "Ex: 19.90"}
+                  className="bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 rounded-xl font-mono text-base sm:text-sm focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
                   required
                 />
+                {discountType === "fixed" && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Informe o preço final promocional cobrado pelo item (menor que o preço original).
+                  </p>
+                )}
               </div>
             </div>
 

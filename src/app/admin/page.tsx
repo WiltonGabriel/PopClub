@@ -23,7 +23,11 @@ import {
   Archive,
   RotateCcw,
   CheckCircle2,
+  Eye,
+  EyeOff,
+  Image as ImageIcon,
 } from "lucide-react";
+import { PromotionDomainService } from "@/domain/services/PromotionDomainService";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -413,11 +417,32 @@ export default function AdminDashboard() {
   };
 
   const handleTogglePromoActive = async (promo: Promotion) => {
+    const visibility = PromotionDomainService.getPromotionVisibilityStatus(promo);
+    if (!promo.isActive && (visibility.status === "expired" || visibility.status === "sold_out")) {
+      setPromoToEdit(promo);
+      setPromoDialogOpen(true);
+      showToast({
+        type: "info",
+        title: "Renove a vigência antes de publicar",
+        message: "Ajuste a data limite ou o estoque do lote para reativar na vitrine.",
+      });
+      return;
+    }
+
     try {
       await promotionService.updatePromotion(promo.id, { isActive: !promo.isActive });
+      showToast({
+        type: "success",
+        title: promo.isActive ? "Promoção pausada" : "Promoção publicada na vitrine",
+      });
       fetchPromos();
     } catch (error) {
       console.error("Erro ao alterar status da promoção:", error);
+      showToast({
+        type: "error",
+        title: "Erro",
+        message: "Não foi possível alterar o status da promoção.",
+      });
     }
   };
 
@@ -718,7 +743,7 @@ export default function AdminDashboard() {
 
         {/* Navegação em 2 Níveis por Grupos e Sub-abas (Posicionada Logo Abaixo da Mini Esteira) */}
         {(() => {
-          const directPromos = promotions.filter((p) => !p.bannerImageUrl);
+          const allPromotions = promotions;
 
           return (
             <div className="space-y-6">
@@ -730,7 +755,7 @@ export default function AdminDashboard() {
                 onSelectTab={handleSelectTab}
                 badgesByTab={{
                   combos: combos.length,
-                  promocoes: directPromos.length,
+                  promocoes: allPromotions.length,
                 }}
               />
 
@@ -972,15 +997,13 @@ export default function AdminDashboard() {
 
               {/* CONTEÚDO DA ABA 3: PROMOÇÕES (Descontos diretos e ofertas relâmpago) */}
               {activeTab === "promocoes" && (() => {
-                const nowMs = currentTime;
-                const activePromosList = directPromos.filter((p) => {
-                  const isExpired = p.expiresAt && nowMs > 0 ? new Date(p.expiresAt).getTime() <= nowMs : false;
-                  return p.isActive && !isExpired;
-                });
-                const archivedPromosList = directPromos.filter((p) => {
-                  const isExpired = p.expiresAt ? new Date(p.expiresAt).getTime() <= nowMs : false;
-                  return !p.isActive || isExpired;
-                });
+                const refDate = currentTime > 0 ? new Date(currentTime) : undefined;
+                const isPromoVisible = (promoItem: Promotion) =>
+                  refDate
+                    ? PromotionDomainService.isPromotionPubliclyVisible(promoItem, refDate)
+                    : (promoItem.isVisiblePublicly ?? promoItem.isActive);
+                const activePromosList = allPromotions.filter(isPromoVisible);
+                const archivedPromosList = allPromotions.filter((p) => !isPromoVisible(p));
                 const displayedPromos = promosSubTab === "ativos" ? activePromosList : archivedPromosList;
 
                 return (
@@ -1087,30 +1110,56 @@ export default function AdminDashboard() {
                             <div
                               className="h-1.5 w-full absolute top-0 left-0"
                               style={{
-                                background: promo.isActive
+                                background: isPromoVisible(promo)
                                   ? `linear-gradient(to right, ${promo.gradientStart || "hsl(var(--primary))"}, ${promo.gradientEnd || "hsl(var(--accent))"})`
                                   : "#9CA3AF",
                               }}
                             />
 
                             <div className="space-y-3 pt-1">
-                              <div className="flex justify-between items-start gap-2">
-                                <span className="bg-primary/10 dark:bg-primary/95/60 text-primary dark:text-muted-foreground text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg border border-primary/20/60 shadow-xs">
-                                  {promo.badge || "OFERTA"}
-                                </span>
-                                <div className="flex items-center gap-1.5">
-                                  {!promo.isActive && (
-                                    <span className="text-[10px] font-bold uppercase bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800/40">
-                                      Inativo
-                                    </span>
-                                  )}
-                                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-lg border border-emerald-200/50">
-                                    {promo.discountType === "percentage"
-                                      ? `${promo.discountValue}% OFF`
-                                      : `R$ ${promo.discountValue.toFixed(2)} OFF`}
-                                  </span>
-                                </div>
-                              </div>
+                              {(() => {
+                                const visibility = PromotionDomainService.getPromotionVisibilityStatus(promo, refDate);
+                                const basePrice = Number(promo.productPrice ?? promo.product?.price ?? 0);
+                                const pricing = PromotionDomainService.calculatePromotionPricing(
+                                  basePrice,
+                                  promo.discountType,
+                                  Number(promo.discountValue || 0)
+                                );
+                                return (
+                                  <div className="flex justify-between items-start gap-2 flex-wrap">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="bg-primary/10 dark:bg-primary/95/60 text-primary dark:text-muted-foreground text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg border border-primary/20/60 shadow-xs">
+                                        {promo.badge || "OFERTA"}
+                                      </span>
+                                      {promo.bannerImageUrl && (
+                                        <span className="inline-flex items-center gap-1 bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800/40">
+                                          <ImageIcon className="w-3 h-3" />
+                                          Com Banner
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span
+                                        title={visibility.reason}
+                                        className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
+                                          visibility.isVisiblePublicly
+                                            ? "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40"
+                                            : "bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/40"
+                                        }`}
+                                      >
+                                        {visibility.label}
+                                      </span>
+                                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-lg border border-emerald-200/50">
+                                        {promo.discountType === "percentage"
+                                          ? `${promo.discountValue}% OFF`
+                                          : pricing.isPromotional
+                                            ? `POR R$ ${pricing.finalPrice.toFixed(2).replace(".", ",")}`
+                                            : `POR R$ ${Number(promo.discountValue).toFixed(2).replace(".", ",")}`}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
 
                               <div>
                                 <h4 className="font-heading font-bold text-base leading-snug text-foreground dark:text-foreground">
@@ -1149,17 +1198,28 @@ export default function AdminDashboard() {
                               </Link>
 
                               <div className="flex gap-1.5">
-                                {!promo.isActive && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleTogglePromoActive(promo)}
-                                    className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl transition-colors cursor-pointer flex items-center gap-1 text-xs font-semibold"
-                                    title="Reativar Promoção"
-                                  >
-                                    <RotateCcw className="w-3.5 h-3.5" />
-                                    <span>Reativar</span>
-                                  </button>
-                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleTogglePromoActive(promo)}
+                                  className={`p-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1 text-xs font-semibold ${
+                                    promo.isActive
+                                      ? "text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                                      : "text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                                  }`}
+                                  title={promo.isActive ? "Pausar Promoção" : "Reativar Promoção"}
+                                >
+                                  {promo.isActive ? (
+                                    <>
+                                      <EyeOff className="w-3.5 h-3.5" />
+                                      <span>Pausar</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <RotateCcw className="w-3.5 h-3.5" />
+                                      <span>Reativar</span>
+                                    </>
+                                  )}
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1199,6 +1259,45 @@ export default function AdminDashboard() {
               {/* CONTEÚDO DA ABA 4: BANNERS E SELOS (Faixas e Carrossel da Vitrine) */}
               {activeTab === "banners_selos" && (
                 <section className="bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 sm:p-7 shadow-sm space-y-8 animate-in fade-in duration-150">
+                  {/* Resumo e Atalho dos Banners do Carrossel Promocional */}
+                  <div className="rounded-2xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-primary" />
+                        <h4 className="font-heading font-bold text-sm text-foreground">
+                          Banners do Carrossel Promocional ({promotions.length})
+                        </h4>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {promotions.filter((p) => PromotionDomainService.isPromotionPubliclyVisible(p)).length}{" "}
+                        ativo(s) e visível(is) para clientes na vitrine principal agora.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSelectTab("promocoes")}
+                        className="rounded-xl text-xs font-semibold cursor-pointer"
+                      >
+                        Gerenciar Promoções & Banners
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          setPromoToEdit(null);
+                          setPromoDialogOpen(true);
+                        }}
+                        className="rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 text-white cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5 mr-1" />
+                        Novo Banner Promocional
+                      </Button>
+                    </div>
+                  </div>
+
                   {/* SEÇÃO 1: Faixa de Destaque da Vitrine (Home Banner) */}
                   <div className="space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-border/30">

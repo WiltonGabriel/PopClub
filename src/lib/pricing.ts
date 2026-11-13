@@ -1,3 +1,5 @@
+import { PromotionDomainService } from "@/domain/services/PromotionDomainService";
+
 export interface ProductPromotionCandidate {
   id?: string;
   discountType: "percentage" | "fixed" | string;
@@ -54,35 +56,19 @@ export function calculateProductPrice(
   });
 
   if (activePromo && basePrice > 0) {
-    const rawVal = Number(activePromo.discountValue || 0);
-    let calculatedPrice = basePrice;
-    let discountPercent = 0;
+    const pricing = PromotionDomainService.calculatePromotionPricing(
+      basePrice,
+      activePromo.discountType,
+      Number(activePromo.discountValue || 0)
+    );
 
-    if (activePromo.discountType === "percentage") {
-      const pct = Math.min(100, Math.max(0, rawVal));
-      calculatedPrice = Number((basePrice * (1 - pct / 100)).toFixed(2));
-      discountPercent = Math.round(pct);
-    } else {
-      // Fixo: aplica o valor promocional definido (ex: R$ 24,90 em vez do preço cheio R$ 32,00)
-      // Se o valor fixo for menor que o preço de tabela, é o novo preço
-      if (rawVal > 0 && rawVal < basePrice) {
-        calculatedPrice = Number(rawVal.toFixed(2));
-        discountPercent = Math.round(((basePrice - calculatedPrice) / basePrice) * 100);
-      } else if (rawVal > 0 && rawVal >= basePrice) {
-        // Se por ventura cadastraram o desconto como valor a abater (ex: R$ 5 de desconto)
-        // e rawVal < basePrice não bateu, mantém basePrice
-        calculatedPrice = basePrice;
-        discountPercent = 0;
-      }
-    }
-
-    if (calculatedPrice < basePrice) {
+    if (pricing.isPromotional) {
       return {
-        currentPrice: calculatedPrice,
-        originalPrice: basePrice,
+        currentPrice: pricing.finalPrice,
+        originalPrice: pricing.originalPrice,
         isPromotional: true,
         isPromo: true,
-        discountPercent,
+        discountPercent: pricing.discountPercent,
       };
     }
   }

@@ -969,13 +969,13 @@ export default function CarrinhoPage() {
           </Link>
           <Link
             href={`/rastreamento?id=${orderSuccessId}`}
-            className="border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 font-mono text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-2 rounded-xl"
+            className="border border-primary/40 bg-primary/8 text-primary hover:bg-primary/15 px-6 py-3 text-sm font-bold flex items-center justify-center gap-2 rounded-2xl transition-all shadow-sm"
           >
             Rastrear em Tempo Real
           </Link>
           <Link
             href="/"
-            className="border-2 border-border hover:bg-muted px-6 py-3 font-mono text-xs uppercase tracking-widest font-bold flex items-center justify-center rounded-xl"
+            className="border border-border/70 bg-card hover:bg-muted px-6 py-3 text-sm font-semibold flex items-center justify-center rounded-2xl transition-all"
           >
             Voltar ao Cardápio
           </Link>
@@ -1282,7 +1282,7 @@ export default function CarrinhoPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold text-amber-700 dark:text-amber-300">
-                          Identificamos que você já possui cadastro no PopClub!
+                          Identificamos que você já possui cadastro no Pop Shake!
                         </p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
                           Olá, <strong>{inlineName || "Cliente"}</strong>! Digite sua senha para entrar preservando os itens do seu carrinho:
@@ -2554,7 +2554,7 @@ export default function CarrinhoPage() {
               <button
                 type="button"
                 onClick={() => setShowReviewModal(false)}
-                className="flex-1 h-12 border-2 border-border font-mono text-xs uppercase tracking-widest font-bold hover:bg-muted text-foreground transition-colors cursor-pointer rounded-xl"
+                className="flex-1 h-12 border border-border/70 bg-card text-sm font-bold hover:bg-muted text-foreground transition-colors cursor-pointer rounded-2xl"
               >
                 Editar Pedido
               </button>

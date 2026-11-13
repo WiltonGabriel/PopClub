@@ -2,12 +2,20 @@ import { productService } from "./productService";
 
 
 
+export type PromotionVisibilityStatus =
+  | "active"
+  | "paused"
+  | "scheduled"
+  | "expired"
+  | "sold_out"
+  | "product_unavailable";
+
 export interface Promotion {
   id: string;
   title: string;
   badge: string;
-  description: string;
-  bannerImageUrl: string;
+  description: string | null;
+  bannerImageUrl: string | null;
   gradientStart: string;
   gradientEnd: string;
   discountType: "percentage" | "fixed";
@@ -19,16 +27,28 @@ export interface Promotion {
   createdAt?: string;
   originalTotal?: number;
   discountAmount?: number;
+  discountPercent?: number;
   finalPrice?: number;
-  
-  // New Fields
+  productName?: string | null;
+  productPrice?: number;
+  productImage?: string | null;
+  promoPrice?: number;
+  visibilityStatus?: PromotionVisibilityStatus;
+  isVisiblePublicly?: boolean;
+  visibilityLabel?: string;
+  visibilityReason?: string;
+
+  // Vínculo e Urgência
   productId?: string | null;
   product?: {
     id: string;
     name: string;
-    description: string;
+    description?: string | null;
     price: number;
-    imageUrl: string;
+    imageUrl: string | null;
+    isAvailable?: boolean;
+    isCombo?: boolean;
+    addonGroupIds?: string[];
   };
   autoBanner?: boolean;
   showScarcity?: boolean;
@@ -45,6 +65,7 @@ export interface Promotion {
 export const promotionService = {
   async getActivePromotions(): Promise<Promotion[]> {
     const res = await fetch("/api/promotions", {
+      cache: "no-store",
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) {
@@ -56,6 +77,7 @@ export const promotionService = {
 
   async getAllPromotions(): Promise<Promotion[]> {
     const res = await fetch("/api/promotions?all=true", {
+      cache: "no-store",
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) {
@@ -66,9 +88,12 @@ export const promotionService = {
   },
 
   async getPromotionById(id: string): Promise<Promotion> {
-    const res = await fetch(`/api/promotions/${id}`);
+    const res = await fetch(`/api/promotions/${id}`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(10000),
+    });
     if (!res.ok) {
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       throw new Error(data.error || "Erro ao carregar detalhes da promoção.");
     }
     return await res.json();

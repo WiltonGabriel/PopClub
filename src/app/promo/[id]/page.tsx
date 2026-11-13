@@ -3,294 +3,469 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Home, ShoppingBag, Check, Sparkles, Tag, ArrowRight, Loader2 } from "lucide-react";
-import { promotionService, Promotion } from "../../../services/promotionService";
-import { useCart } from "../../../hooks/useCart";
-import { Button } from "../../../components/ui/button";
+import {
+  ArrowLeft,
+  ShoppingBag,
+  Sparkles,
+  Check,
+  AlertCircle,
+  SlidersHorizontal,
+  ArrowRight,
+  Clock,
+} from "lucide-react";
+import { promotionService, Promotion } from "@/services/promotionService";
+import { productService, Product, ProductPromotion } from "@/services/productService";
+import { useCart } from "@/hooks/useCart";
+import { useToast } from "@/components/ui/ToastNotification";
+import { BrandHomeLink } from "@/components/storefront/BrandHomeLink";
+import { ProductDetailModal } from "@/components/storefront/ProductDetailModal";
+import { UrgencyScarcityBanner } from "@/components/storefront/UrgencyScarcityBanner";
+import { PromotionDomainService } from "@/domain/services/PromotionDomainService";
 
-export default function PromotionDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default function PromoDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const { addItem, totalItems } = useCart();
-
-  const handleBack = () => {
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push("/");
-    }
-  };
+  const { showToast } = useToast();
 
   const [promo, setPromo] = useState<Promotion | null>(null);
+  const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [added, setAdded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [addedFeedback, setAddedFeedback] = useState(false);
 
   useEffect(() => {
-    promotionService
-      .getPromotionById(id)
-      .then(setPromo)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [id]);
+    let cancelled = false;
 
-  const handleAddPromoToCart = () => {
-    if (!promo || !promo.product) return;
+    async function loadOffer() {
+      try {
+        setLoading(true);
+        setError(null);
+        const promoData = await promotionService.getPromotionById(id);
+        if (cancelled) return;
+        setPromo(promoData);
 
-    const originalPrice = promo.product.price;
-    let finalPrice = originalPrice;
-    if (promo.discountType === "percentage") {
-      finalPrice = Number((originalPrice * (1 - promo.discountValue / 100)).toFixed(2));
-    } else {
-      finalPrice = Math.max(0, originalPrice - promo.discountValue);
+        if (promoData.productId) {
+          const fullProduct = await productService
+            .getProductById(promoData.productId)
+            .catch(() => null);
+          if (!cancelled && fullProduct) {
+            setProduct(fullProduct);
+          }
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Oferta não encontrada.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
     }
 
-    addItem({
-      productId: promo.product.id,
-      name: `${promo.product.name} (${promo.title})`,
-      price: finalPrice,
-      originalPrice: originalPrice,
-      quantity: 1,
-      imageUrl: promo.product.imageUrl,
-      promotionId: promo.id,
-      promotionTitle: promo.title,
-    });
-
-    setAdded(true);
-    setTimeout(() => setAdded(false), 3000);
-  };
+    loadOffer();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="sticky top-0 z-30 border-b border-border/50 bg-background/85 backdrop-blur-md">
+          <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+            <BrandHomeLink textSizeClass="text-2xl" />
+            <div className="h-9 w-28 rounded-full skeleton-light" />
+          </div>
+        </header>
+        <main className="max-w-5xl w-full mx-auto px-4 py-10 space-y-6">
+          <div className="h-64 sm:h-72 rounded-3xl skeleton-light" />
+          <div className="h-44 rounded-3xl skeleton-light" />
+        </main>
       </div>
     );
   }
 
   if (error || !promo) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6 text-center">
-        <h2 className="font-heading text-2xl font-bold uppercase mb-2">Promoção não encontrada</h2>
-        <p className="text-muted-foreground text-sm font-sans mb-6">
-          Esta promoção pode ter sido encerrada ou não está mais disponível.
-        </p>
-        <Link href="/" className="border-2 border-primary bg-primary/10 text-primary px-4 py-2 font-mono text-xs uppercase font-bold hover:bg-primary hover:text-white transition-colors">
-          Voltar para o Cardápio
-        </Link>
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="sticky top-0 z-30 border-b border-border/50 bg-background/85 backdrop-blur-md">
+          <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+            <BrandHomeLink textSizeClass="text-2xl" />
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Voltar ao Cardápio
+            </Link>
+          </div>
+        </header>
+
+        <main className="flex-1 flex items-center justify-center px-4 py-12">
+          <div className="max-w-md w-full rounded-3xl border border-border/60 bg-card/90 p-8 text-center shadow-lg space-y-5">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
+              <AlertCircle className="w-7 h-7" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="font-heading text-2xl font-bold text-foreground">
+                Oferta não encontrada
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {error || "Esta promoção pode ter sido encerrada ou removida do cardápio."}
+              </p>
+            </div>
+            <Link
+              href="/"
+              className="btn-clay inline-flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold text-white"
+            >
+              Explorar Cardápio Pop Shake
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </main>
       </div>
     );
   }
 
-  const bgGradient = `linear-gradient(135deg, ${promo.gradientStart || "hsl(var(--primary))"}, ${promo.gradientEnd || "#881BAA"})`;
+  const basePrice = Number(product?.price ?? promo.productPrice ?? promo.product?.price ?? 0);
+  const pricing = PromotionDomainService.calculatePromotionPricing(
+    basePrice,
+    promo.discountType,
+    Number(promo.discountValue || 0)
+  );
+  const visibility = PromotionDomainService.getPromotionVisibilityStatus({
+    isActive: promo.isActive,
+    startsAt: promo.startsAt,
+    expiresAt: promo.expiresAt,
+    scarcityType: promo.scarcityType,
+    scarcityUnits: promo.scarcityUnits,
+    product: product ? { isAvailable: product.isAvailable } : promo.product,
+  });
 
-  const originalPrice = promo.product?.price || 0;
-  let finalPrice = originalPrice;
-  if (promo.discountType === "percentage") {
-    finalPrice = Number((originalPrice * (1 - promo.discountValue / 100)).toFixed(2));
-  } else {
-    finalPrice = Math.max(0, originalPrice - promo.discountValue);
-  }
-  const discountAmount = Math.max(0, originalPrice - finalPrice);
+  const promoAsProductPromotion: ProductPromotion = {
+    id: promo.id,
+    title: promo.title,
+    badge: promo.badge || "PROMO",
+    discountType: promo.discountType,
+    discountValue: Number(promo.discountValue || 0),
+    startsAt: promo.startsAt ?? null,
+    expiresAt: promo.expiresAt ?? null,
+    isActive: promo.isActive,
+    showDuration: promo.showDuration,
+    durationDisplay: promo.durationDisplay,
+    showScarcity: promo.showScarcity,
+    scarcityUnits: promo.scarcityUnits,
+    scarcityType: promo.scarcityType,
+    scarcityInitial: promo.scarcityInitial,
+    scarcitySold: promo.scarcitySold,
+    showProgressBar: promo.showProgressBar,
+    urgencyType: promo.urgencyType,
+    sessionMinutes: promo.sessionMinutes,
+  };
+
+  const hydratedProduct: Product | null = product
+    ? {
+        ...product,
+        promotion: visibility.isVisiblePublicly ? promoAsProductPromotion : product.promotion,
+        promotions: visibility.isVisiblePublicly
+          ? [promoAsProductPromotion]
+          : product.promotions,
+      }
+    : promo.product
+      ? {
+          id: promo.product.id,
+          name: promo.product.name,
+          description: promo.product.description || promo.description || "",
+          price: basePrice,
+          imageUrl: promo.product.imageUrl || promo.bannerImageUrl || "",
+          isAvailable: promo.product.isAvailable ?? true,
+          isCombo: promo.product.isCombo ?? false,
+          addonGroupIds: promo.product.addonGroupIds ?? [],
+          promotion: visibility.isVisiblePublicly ? promoAsProductPromotion : null,
+          promotions: visibility.isVisiblePublicly ? [promoAsProductPromotion] : [],
+        }
+      : null;
+
+  const hasCustomization = Boolean(
+    hydratedProduct?.isCombo ||
+      (hydratedProduct?.addonGroups && hydratedProduct.addonGroups.length > 0) ||
+      (hydratedProduct?.addonGroupIds && hydratedProduct.addonGroupIds.length > 0)
+  );
+
+  const gradStart = promo.gradientStart || "#9306CF";
+  const gradEnd = promo.gradientEnd || "#881BAA";
+  const coverImage = promo.bannerImageUrl || hydratedProduct?.imageUrl || promo.productImage || null;
+  const productDisplayName = hydratedProduct?.name || promo.productName || promo.title;
+
+  const handlePrimaryAction = () => {
+    if (!hydratedProduct || !visibility.isVisiblePublicly) return;
+
+    if (hasCustomization) {
+      setModalOpen(true);
+      return;
+    }
+
+    addItem({
+      productId: hydratedProduct.id,
+      name: hydratedProduct.name,
+      price: pricing.finalPrice,
+      originalPrice: pricing.originalPrice,
+      quantity: 1,
+      imageUrl: hydratedProduct.imageUrl || promo.bannerImageUrl || undefined,
+      promotionId: promo.id,
+      promotionTitle: promo.title,
+      isCombo: hydratedProduct.isCombo,
+    });
+
+    setAddedFeedback(true);
+    showToast({
+      type: "success",
+      title: "Adicionado à sacola!",
+      message: `${hydratedProduct.name} com preço promocional aplicado.`,
+    });
+    setTimeout(() => setAddedFeedback(false), 2600);
+  };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans pb-28">
-      {/* Header Fixo */}
-      <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-background/90 border-b-2 border-border px-4 py-3 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="p-1.5 rounded-xl hover:bg-muted border-2 border-transparent hover:border-border transition-colors cursor-pointer active:scale-95"
-            title="Voltar à tela anterior"
-            aria-label="Voltar à tela anterior"
-          >
-            <ChevronLeft className="w-6 h-6 text-primary" />
-          </button>
+    <div className="min-h-screen bg-background text-foreground pb-16">
+      {/* Navbar moderna */}
+      <header className="sticky top-0 z-30 border-b border-border/50 bg-background/85 backdrop-blur-md">
+        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-card text-foreground hover:bg-muted transition-colors"
+              aria-label="Voltar ao cardápio"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+            <BrandHomeLink textSizeClass="text-2xl" />
+          </div>
 
           <Link
-            href="/"
-            className="p-1.5 rounded-xl hover:bg-muted border-2 border-transparent hover:border-border transition-colors cursor-pointer active:scale-95"
-            title="Ir para a Página Inicial"
-            aria-label="Página Inicial"
+            href="/carrinho"
+            className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-4 py-2 text-xs font-bold text-foreground hover:border-primary/40 hover:bg-primary/5 transition-all shadow-xs"
           >
-            <Home className="w-5 h-5 text-primary" />
-          </Link>
-
-          <Link href="/" className="hover:opacity-85 transition-opacity">
-            <span className="text-lg font-heading font-black tracking-tighter uppercase text-foreground">
-              Pop<span className="text-primary">Club</span>
-            </span>
+            <ShoppingBag className="w-4 h-4 text-primary" />
+            <span>Sacola</span>
+            {totalItems > 0 && (
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-white">
+                {totalItems}
+              </span>
+            )}
           </Link>
         </div>
-
-        <Link
-          href="/carrinho"
-          className="flex items-center gap-2 border-2 border-primary bg-primary/10 text-primary px-3 py-1.5 hover:bg-primary hover:text-white transition-colors font-mono text-xs uppercase tracking-widest font-bold"
-        >
-          <ShoppingBag className="w-4 h-4" />
-          <span>Carrinho ({totalItems})</span>
-        </Link>
       </header>
 
-      <main className="flex-1 w-full max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Banner Hero Imersivo */}
-        <div
-          className="w-full rounded-none border-2 border-border p-8 relative overflow-hidden shadow-md flex flex-col justify-end min-h-[220px]"
-          style={{ background: bgGradient }}
+      <main className="max-w-5xl mx-auto px-4 pt-6 sm:pt-8 space-y-6">
+        {/* Alerta caso promoção não esteja ativa no momento */}
+        {!visibility.isVisiblePublicly && (
+          <div
+            role="status"
+            className="rounded-2xl border border-amber-300/70 dark:border-amber-800/50 bg-amber-50/90 dark:bg-amber-950/30 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+          >
+            <div className="flex items-start gap-3">
+              <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-amber-900 dark:text-amber-200">
+                  Oferta indisponível no momento ({visibility.label})
+                </p>
+                <p className="text-xs text-amber-800/80 dark:text-amber-300/80">
+                  {visibility.reason}
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 px-4 py-2 text-xs font-bold text-white transition-colors shrink-0"
+            >
+              Ver ofertas ativas
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        )}
+
+        {/* Hero Banner Card Moderno */}
+        <section
+          className="relative overflow-hidden rounded-3xl border border-white/15 shadow-xl"
+          style={{
+            background: `linear-gradient(135deg, ${gradStart} 0%, ${gradEnd} 100%)`,
+          }}
         >
-          {promo.bannerImageUrl && (
-            <div className="absolute inset-0 z-0 opacity-30">
+          {coverImage && (
+            <div className="absolute inset-0 z-0 opacity-25">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={promo.bannerImageUrl}
+                src={coverImage}
                 alt={promo.title}
                 className="w-full h-full object-cover"
               />
             </div>
           )}
+          <div
+            className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-r from-black/75 via-black/45 to-black/25"
+            aria-hidden="true"
+          />
 
-          <div className="relative z-10 max-w-xl">
-            <span className="bg-background text-foreground text-xs font-mono uppercase px-3 py-1 tracking-widest mb-3 inline-block font-bold">
-              {promo.badge}
-            </span>
-            <h1 className="font-heading text-3xl md:text-4xl font-extrabold uppercase tracking-tight text-white leading-tight mb-2">
-              {promo.title}
-            </h1>
-            <p className="text-sm md:text-base text-white/90 font-sans">
-              {promo.description}
-            </p>
-          </div>
-
-          <div className="absolute right-4 bottom-4 opacity-20 pointer-events-none hidden md:block">
-            <Tag className="w-48 h-48 text-white" />
-          </div>
-        </div>
-
-        {/* Itens Inclusos na Promoção */}
-        <section className="bg-card border-2 border-border p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-6 border-b border-border pb-4">
-            <Sparkles className="w-5 h-5 text-primary" />
-            <h2 className="font-heading text-xl font-bold uppercase tracking-wide">
-              Produto em Oferta
-            </h2>
-          </div>
-
-          <div className="space-y-4">
-            {promo.product ? (
-              <div
-                key={promo.product.id}
-                className="flex items-center gap-4 bg-background border-2 border-border p-4 transition-all hover:border-accent"
-              >
-                <div className="w-20 h-20 bg-muted border border-border shrink-0 overflow-hidden relative flex items-center justify-center">
-                  {promo.product.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={promo.product.imageUrl}
-                      alt={promo.product.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-muted-foreground font-mono text-xs">AÇAÍ</span>
-                  )}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="bg-primary/20 text-primary px-2 py-0.5 font-mono text-xs font-bold">
-                      1x
-                    </span>
-                    <h3 className="font-heading font-bold text-foreground text-lg truncate">
-                      {promo.product.name}
-                    </h3>
-                  </div>
-                  <p className="text-muted-foreground text-xs mt-1 line-clamp-2">
-                    {promo.product.description}
-                  </p>
-                </div>
+          <div className="relative z-10 p-6 sm:p-10 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-center">
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="badge-clay inline-flex items-center gap-1.5 rounded-full bg-white text-brand-acai-base px-3.5 py-1 text-[11px] font-bold uppercase tracking-wider shadow-sm">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  {promo.badge || "PROMOÇÃO"}
+                </span>
+                {pricing.isPromotional && (
+                  <span className="rounded-full bg-emerald-500 text-white px-3 py-1 text-xs font-bold shadow-sm">
+                    {pricing.discountPercent}% DE DESCONTO
+                  </span>
+                )}
               </div>
-            ) : (
-              <p className="text-sm font-mono text-muted-foreground">
-                Nenhum produto individual listado nesta promoção.
-              </p>
+
+              <h1 className="font-heading text-3xl sm:text-4xl font-black tracking-tight text-white leading-tight">
+                {promo.title}
+              </h1>
+
+              {promo.description && (
+                <p className="text-sm sm:text-base text-white/90 max-w-2xl leading-relaxed">
+                  {promo.description}
+                </p>
+              )}
+            </div>
+
+            {hydratedProduct?.imageUrl && (
+              <div className="hidden md:block w-44 h-44 rounded-3xl overflow-hidden border-2 border-white/25 bg-black/20 shadow-2xl shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={hydratedProduct.imageUrl}
+                  alt={productDisplayName}
+                  className="w-full h-full object-cover"
+                />
+              </div>
             )}
           </div>
         </section>
 
-        {/* Resumo Financeiro & Desconto */}
-        <section className="bg-card border-2 border-border p-6 shadow-sm">
-          <h3 className="font-heading text-lg font-bold uppercase tracking-wide mb-4">
-            Resumo do Desconto
-          </h3>
+        {/* Urgência e Escassez Unificada */}
+        {hydratedProduct && visibility.isVisiblePublicly && (
+          <UrgencyScarcityBanner product={hydratedProduct} />
+        )}
 
-          <div className="space-y-3 font-mono text-sm border-b border-border pb-4">
-            <div className="flex justify-between text-muted-foreground">
-              <span>Valor Original do Produto:</span>
-              <span>R$ {originalPrice.toFixed(2).replace(".", ",")}</span>
-            </div>
-
-            <div className="flex justify-between text-success font-bold">
-              <span className="flex items-center gap-1">
-                Desconto da Promoção ({promo.discountType === "percentage" ? `${promo.discountValue}%` : `R$ ${promo.discountValue}`}):
+        {/* Detalhes do Produto Vinculado e Preço De/Por */}
+        <section className="rounded-3xl border border-border/60 bg-card/90 backdrop-blur-xs p-6 sm:p-8 shadow-lg grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-6 items-center">
+          <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-5">
+            {coverImage && (
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border border-border/50 bg-muted shrink-0 shadow-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={coverImage}
+                  alt={productDisplayName}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+            <div className="space-y-2">
+              <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-0.5 text-[11px] font-bold uppercase tracking-wider text-primary">
+                {hydratedProduct?.isCombo ? "Combo Especial" : "Item em Oferta"}
               </span>
-              <span>
-                - R$ {discountAmount.toFixed(2).replace(".", ",")}
-              </span>
+              <h2 className="font-heading text-xl sm:text-2xl font-bold text-foreground">
+                {productDisplayName}
+              </h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {hydratedProduct?.description ||
+                  promo.description ||
+                  "Delícia preparada na hora com ingredientes selecionados Pop Shake."}
+              </p>
+              {hydratedProduct?.servesText && (
+                <p className="text-xs font-medium text-primary/90">
+                  {hydratedProduct.servesText}
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="pt-4 flex justify-between items-baseline">
-            <span className="font-mono text-sm uppercase tracking-wider text-muted-foreground font-bold">
-              Preço Final do Produto:
-            </span>
-            <div className="text-right">
-              <span className="font-heading text-3xl font-black text-primary">
-                R$ {finalPrice.toFixed(2).replace(".", ",")}
-              </span>
-              <span className="block text-[10px] font-mono text-success uppercase font-bold">
-                Economia de R$ {discountAmount.toFixed(2).replace(".", ",")}
-              </span>
+          <div className="rounded-2xl border border-border/60 bg-muted/35 p-5 space-y-4">
+            <div className="space-y-1">
+              {pricing.isPromotional && (
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Preço normal</span>
+                  <span className="line-through">
+                    R$ {pricing.originalPrice.toFixed(2).replace(".", ",")}
+                  </span>
+                </div>
+              )}
+
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Valor na oferta
+                </span>
+                <span className="font-heading text-3xl font-black text-primary">
+                  R$ {pricing.finalPrice.toFixed(2).replace(".", ",")}
+                </span>
+              </div>
+
+              {pricing.discountAmount > 0 && (
+                <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 text-right">
+                  Você economiza R$ {pricing.discountAmount.toFixed(2).replace(".", ",")}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2.5 pt-1">
+              <button
+                type="button"
+                disabled={!hydratedProduct || !visibility.isVisiblePublicly}
+                onClick={handlePrimaryAction}
+                className="btn-clay w-full rounded-2xl py-3.5 px-5 text-sm font-bold text-white flex items-center justify-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {addedFeedback ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Adicionado à Sacola!
+                  </>
+                ) : hasCustomization ? (
+                  <>
+                    <SlidersHorizontal className="w-4 h-4" />
+                    Personalizar e Adicionar
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag className="w-4 h-4" />
+                    Adicionar à Sacola
+                  </>
+                )}
+              </button>
+
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => router.push("/")}
+                  className="flex-1 rounded-xl border border-border/60 bg-background hover:bg-muted py-2.5 px-3 text-xs font-semibold text-foreground transition-colors cursor-pointer"
+                >
+                  Continuar comprando
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push("/carrinho")}
+                  className="flex-1 rounded-xl border border-primary/30 bg-primary/8 hover:bg-primary/15 py-2.5 px-3 text-xs font-bold text-primary transition-colors cursor-pointer"
+                >
+                  Ir para Sacola
+                </button>
+              </div>
             </div>
           </div>
         </section>
       </main>
 
-      {/* Barra Flutuante de Ação */}
-      <div className="fixed bottom-0 left-0 w-full bg-card border-t-2 border-border p-4 z-40 shadow-xl">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
-          <div>
-            <span className="text-[10px] font-mono uppercase text-muted-foreground block">
-              Total com Desconto
-            </span>
-            <span className="font-heading text-2xl font-bold text-primary">
-              R$ {finalPrice.toFixed(2).replace(".", ",")}
-            </span>
-          </div>
-
-          <div className="flex gap-3">
-            {added ? (
-              <Button
-                onClick={() => router.push("/carrinho")}
-                className="h-12 bg-success text-white hover:bg-success/90 rounded-none font-mono text-xs uppercase tracking-wider font-bold px-6 flex items-center gap-2"
-              >
-                <Check className="w-5 h-5" /> Adicionado! Ir para o Carrinho <ArrowRight className="w-4 h-4" />
-              </Button>
-            ) : (
-              <Button
-                onClick={handleAddPromoToCart}
-                className="h-12 bg-primary text-primary-foreground hover:bg-primary/90 rounded-none font-heading text-base uppercase tracking-wider font-bold px-6 flex items-center gap-2 shadow-lg"
-              >
-                <ShoppingBag className="w-5 h-5" />
-                Adicionar Oferta ao Carrinho
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
+      {hydratedProduct && (
+        <ProductDetailModal
+          product={hydratedProduct}
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

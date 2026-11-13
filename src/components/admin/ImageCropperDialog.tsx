@@ -28,6 +28,7 @@ export function ImageCropperDialog({
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [cropError, setCropError] = useState<string | null>(null);
 
   const onCropChange = (newCrop: { x: number; y: number }) => {
     setCrop(newCrop);
@@ -45,12 +46,13 @@ export function ImageCropperDialog({
     if (!imageSrc || !croppedAreaPixels) return;
 
     setProcessing(true);
+    setCropError(null);
     try {
-      const croppedFile = await getCroppedImg(imageSrc, croppedAreaPixels, "popclub-crop.webp");
+      const croppedFile = await getCroppedImg(imageSrc, croppedAreaPixels, "popshake-crop.webp");
       onCropComplete(croppedFile);
     } catch (err) {
       console.error("Erro ao recortar imagem:", err);
-      alert("Erro ao recortar a imagem. Tente novamente.");
+      setCropError("Não foi possível processar o recorte da imagem. Tente novamente.");
     } finally {
       setProcessing(false);
     }
@@ -60,32 +62,44 @@ export function ImageCropperDialog({
 
   return (
     <Dialog open={open} onOpenChange={(val) => !val && onCancel()}>
-      <DialogContent className="max-w-[700px] w-full p-6 bg-background border-2 border-border rounded-none shadow-[12px_12px_0px_0px_rgba(147,6,207,0.3)]">
-        <DialogHeader className="mb-2">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="font-heading text-2xl uppercase tracking-tight flex items-center gap-2">
-              <Crop className="w-5 h-5 text-primary" />
-              Recorte & Enquadramento da Imagem
+      <DialogContent className="max-w-[700px] w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto p-6 bg-background/95 backdrop-blur-xl border border-border/60 rounded-3xl shadow-2xl">
+        <DialogHeader className="mb-1">
+          <div className="flex items-center justify-between gap-3">
+            <DialogTitle className="font-heading text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2.5 text-foreground">
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Crop className="w-5 h-5" />
+              </span>
+              Recorte e enquadramento da imagem
             </DialogTitle>
           </div>
         </DialogHeader>
 
         {/* Aviso de Proporção e Limites */}
-        <div className="bg-primary/10 border-l-4 border-primary p-3 mb-3 text-xs font-mono flex items-start gap-2">
+        <div className="bg-primary/8 border border-primary/20 rounded-2xl p-3.5 text-xs flex items-start gap-2.5">
           <AlertCircle className="w-4 h-4 text-primary shrink-0 mt-0.5" />
           <div className="space-y-0.5">
-            <p>
+            <p className="text-foreground">
               <strong>Proporção recomendada:</strong>{" "}
               <span className="text-primary font-bold">{aspectLabel}</span>
             </p>
-            <p className="text-muted-foreground text-[11px]">
-              Formatos aceitos: JPEG, PNG, WebP (máx. 10MB). A imagem será convertida para WebP otimizado.
+            <p className="text-muted-foreground text-[11px] leading-relaxed">
+              Formatos aceitos: JPEG, PNG e WebP (máx. 10MB). A imagem será convertida automaticamente para WebP otimizado.
             </p>
           </div>
         </div>
 
+        {cropError && (
+          <div
+            role="alert"
+            className="bg-destructive/10 border border-destructive/30 text-destructive rounded-2xl p-3 text-xs font-medium flex items-center gap-2"
+          >
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{cropError}</span>
+          </div>
+        )}
+
         {/* Área Interativa de Recorte */}
-        <div className="relative w-full h-[360px] bg-black border-2 border-border overflow-hidden">
+        <div className="relative w-full h-[320px] sm:h-[360px] bg-zinc-950 border border-border/60 rounded-2xl overflow-hidden shadow-inner">
           <Cropper
             image={imageSrc}
             crop={crop}
@@ -99,10 +113,16 @@ export function ImageCropperDialog({
         </div>
 
         {/* Controle de Zoom */}
-        <div className="mt-4 flex items-center gap-3 bg-card border border-border p-3">
-          <ZoomIn className="w-4 h-4 text-muted-foreground shrink-0" />
-          <span className="font-mono text-xs uppercase text-muted-foreground">Zoom:</span>
+        <div className="flex items-center gap-3 bg-muted/40 border border-border/50 rounded-2xl p-3.5">
+          <ZoomIn className="w-4 h-4 text-primary shrink-0" />
+          <label
+            htmlFor="image-cropper-zoom"
+            className="text-xs font-semibold text-muted-foreground shrink-0"
+          >
+            Zoom
+          </label>
           <input
+            id="image-cropper-zoom"
             type="range"
             min={1}
             max={3}
@@ -111,18 +131,18 @@ export function ImageCropperDialog({
             onChange={(e) => setZoom(parseFloat(e.target.value))}
             className="flex-1 accent-primary cursor-pointer"
           />
-          <span className="font-mono text-xs text-primary font-bold w-12 text-right">
+          <span className="text-xs text-primary font-bold tabular-nums w-12 text-right">
             {zoom.toFixed(1)}x
           </span>
         </div>
 
-        <DialogFooter className="mt-4 flex justify-end gap-2">
+        <DialogFooter className="mt-2 flex flex-col-reverse sm:flex-row justify-end gap-2.5">
           <Button
             type="button"
             variant="outline"
             onClick={onCancel}
             disabled={processing}
-            className="rounded-none font-mono text-xs uppercase flex items-center gap-1.5"
+            className="rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 h-10 px-4"
           >
             <X className="w-3.5 h-3.5" /> Cancelar
           </Button>
@@ -130,7 +150,7 @@ export function ImageCropperDialog({
             type="button"
             onClick={handleConfirmCrop}
             disabled={processing}
-            className="rounded-none bg-primary hover:bg-primary/90 text-primary-foreground font-mono text-xs uppercase font-bold flex items-center gap-1.5 px-6"
+            className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold flex items-center justify-center gap-1.5 h-10 px-6 shadow-md"
           >
             {processing ? (
               <>
@@ -140,7 +160,7 @@ export function ImageCropperDialog({
             ) : (
               <>
                 <Check className="w-4 h-4 mr-1" />
-                Confirmar Recorte
+                Confirmar recorte
               </>
             )}
           </Button>

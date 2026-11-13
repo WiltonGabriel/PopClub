@@ -22,6 +22,7 @@ import {
   CouponDomainService,
   StockDomainService,
   AddonDomainService,
+  PromotionDomainService,
 } from "@/domain/services";
 import { AddonOrganizationService } from "@/domain/services/AddonOrganizationService";
 import {
@@ -571,16 +572,13 @@ export async function POST(request: Request) {
             item.quantity
           );
 
-          let discountOnBase = 0;
-          if (promo.discountType === "percentage") {
-            const pct = Number(promo.discountValue);
-            discountOnBase = Number((baseOriginalPrice * (pct / 100)).toFixed(2));
-          } else {
-            const fixed = Number(promo.discountValue);
-            discountOnBase = Math.min(baseOriginalPrice, fixed);
-          }
-          effectiveBasePrice = Math.max(0, baseOriginalPrice - discountOnBase);
-          promoDiscountOnProduct = discountOnBase;
+          const promoPricing = PromotionDomainService.calculatePromotionPricing(
+            baseOriginalPrice,
+            promo.discountType,
+            Number(promo.discountValue)
+          );
+          effectiveBasePrice = promoPricing.finalPrice;
+          promoDiscountOnProduct = promoPricing.discountAmount;
         }
       }
 
