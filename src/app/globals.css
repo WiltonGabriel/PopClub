@@ -216,12 +216,15 @@ a {
 
   /* Botão de Ação / CTA verde */
   .btn-clay {
+    background-color: var(--color-folha-acai);
+    color: #ffffff;
     box-shadow:
       0 6px 0 var(--color-folha-acai-dk),
       0 8px 24px rgba(53, 163, 64, 0.35);
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.15s ease;
   }
   .btn-clay:hover {
+    background-color: var(--color-folha-acai-dk);
     transform: translateY(-2px);
     box-shadow:
       0 8px 0 var(--color-folha-acai-dk),
@@ -232,6 +235,11 @@ a {
     box-shadow:
       0 2px 0 var(--color-folha-acai-dk),
       0 4px 12px rgba(53, 163, 64, 0.3);
+  }
+  @media (forced-colors: active) {
+    .btn-clay {
+      border: 2px solid ButtonText;
+    }
   }
 
   /* Chips / Tags selecionáveis */

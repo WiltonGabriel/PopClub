@@ -119,7 +119,7 @@ export default function PromoDetailPage({ params }: { params: Promise<{ id: stri
             </div>
             <Link
               href="/"
-              className="btn-clay inline-flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold text-white"
+              className="btn-clay inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-folha-acai hover:bg-brand-folha-acai-dk py-3.5 text-sm font-bold text-white"
             >
               Explorar Cardápio Pop Shake
               <ArrowRight className="w-4 h-4" />
@@ -418,7 +418,7 @@ export default function PromoDetailPage({ params }: { params: Promise<{ id: stri
                 type="button"
                 disabled={!hydratedProduct || !visibility.isVisiblePublicly}
                 onClick={handlePrimaryAction}
-                className="btn-clay w-full rounded-2xl py-3.5 px-5 text-sm font-bold text-white flex items-center justify-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="btn-clay w-full rounded-2xl bg-brand-folha-acai hover:bg-brand-folha-acai-dk py-3.5 px-5 text-sm font-bold text-white flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {addedFeedback ? (
                   <>
