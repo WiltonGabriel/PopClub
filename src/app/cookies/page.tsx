@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft,
   Cookie,
   ShieldCheck,
   Lock,
@@ -18,6 +17,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { privacyService, CookieConsentPreferences } from "@/services/privacyService";
+import { SmartBackButton } from "@/components/ui/SmartBackButton";
 
 export default function PoliticaCookiesPage() {
   const [currentConsent, setCurrentConsent] = useState<CookieConsentPreferences | null>(null);
@@ -43,13 +43,7 @@ export default function PoliticaCookiesPage() {
       <main className="max-w-4xl mx-auto space-y-10">
         {/* Navegação Superior */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 dark:border-zinc-800 pb-5">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Voltar ao Cardápio
-          </Link>
+          <SmartBackButton />
 
           <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
             <span>Última revisão: Novembro/2026</span>

@@ -15,6 +15,7 @@ import { AddressModal } from "@/components/storefront/AddressModal";
 import { CookieConsentBanner } from "@/components/ui/CookieConsentBanner";
 import { InstallPwaBanner } from "@/components/ui/InstallPwaBanner";
 import { GlobalBackgroundSync } from "@/components/ui/GlobalBackgroundSync";
+import { RouteHistoryTracker } from "@/components/ui/RouteHistoryTracker";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk", display: "swap" });
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
@@ -93,6 +94,7 @@ export default function RootLayout({
           storageKey="popshake-theme"
         >
           <GlobalBackgroundSync />
+          <RouteHistoryTracker />
           <AuthProvider>
             <ToastProvider>
               <AccessibilityProvider>

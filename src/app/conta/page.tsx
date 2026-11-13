@@ -55,6 +55,7 @@ import {
 } from "lucide-react";
 import { privacyService, CookieConsentPreferences } from "@/services/privacyService";
 import { pwaInstallService } from "@/services/pwaInstallService";
+import { navigationHistoryService } from "@/services/navigationHistoryService";
 import { notificationService, AppNotification } from "../../services/notificationService";
 import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -288,6 +289,9 @@ export default function AccountPage() {
     setActiveSection(sectionId);
     setCurrentView(sectionId as AccountView);
     if (typeof window !== "undefined") {
+      const nextUrl = `${window.location.pathname}?section=${encodeURIComponent(sectionId)}`;
+      window.history.replaceState(window.history.state, "", nextUrl);
+      navigationHistoryService.replaceCurrent(nextUrl);
       window.scrollTo({ top: 0, behavior: "instant" });
     }
   };
@@ -296,13 +300,12 @@ export default function AccountPage() {
     // No mobile dentro de qualquer sub-tela, volta imediatamente para o menu
     if (typeof window !== "undefined" && window.innerWidth < 768 && currentView !== "menu") {
       setCurrentView("menu");
+      const baseUrl = window.location.pathname;
+      window.history.replaceState(window.history.state, "", baseUrl);
+      navigationHistoryService.replaceCurrent(baseUrl);
       window.scrollTo({ top: 0, behavior: "instant" });
     } else {
-      if (typeof window !== "undefined" && window.history.length > 1) {
-        router.back();
-      } else {
-        router.push("/");
-      }
+      navigationHistoryService.goBack(router, "/");
     }
   };
 

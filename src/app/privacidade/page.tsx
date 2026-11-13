@@ -4,7 +4,6 @@ import React from "react";
 import Link from "next/link";
 import {
   ShieldCheck,
-  ArrowLeft,
   Lock,
   Cookie,
   UserCheck,
@@ -17,6 +16,7 @@ import {
   Database,
 } from "lucide-react";
 import { privacyService } from "@/services/privacyService";
+import { SmartBackButton } from "@/components/ui/SmartBackButton";
 
 export default function PoliticaPrivacidadePage() {
   return (
@@ -24,13 +24,7 @@ export default function PoliticaPrivacidadePage() {
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Navegação Superior */}
         <div className="flex items-center justify-between">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-zinc-600 dark:text-zinc-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Voltar ao Cardápio
-          </Link>
+          <SmartBackButton className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-zinc-600 dark:text-zinc-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors cursor-pointer" />
 
           <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
             Atualizado: Outubro/2026
