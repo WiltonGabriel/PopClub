@@ -134,7 +134,7 @@ O container de produção executa em modo **Next.js Standalone**, minimizando o 
 1. **Healthcheck de Rede:** O script aguarda a porta 5432 do PostgreSQL responder ativamente (via `nc` com fallback nativo em Node.js).
 2. **Sincronização Segura de Schema:** Executa `./node_modules/.bin/prisma migrate deploy` quando o diretório `prisma/migrations` está presente ou realiza sincronização segura via `prisma db push` (com bloqueio preventivo contra `DROP TABLE`, `DROP COLUMN` e `TRUNCATE` via `prisma migrate diff`), garantindo integridade antes de abrir portas HTTP.
 3. **Execução do Runtime:** Inicia `exec node server.js` sob usuário não-privilegiado `nextjs:nodejs` (UID 1001).
-4. **Tempo Real (SSE) e Qualidade:** A esteira operacional em `/admin/pedidos` e o acompanhamento de pedidos consomem o canal Server-Sent Events (`/api/orders/events`), e toda a base de código é coberta por **363 testes automatizados (54 arquivos)** em Vitest.
+4. **Tempo Real (SSE) e Qualidade:** A esteira operacional em `/admin/pedidos` e o acompanhamento de pedidos consomem o canal Server-Sent Events (`/api/orders/events`), e toda a base de código é coberta por **354 testes automatizados (49 arquivos)** em Vitest.
 
 ---
 

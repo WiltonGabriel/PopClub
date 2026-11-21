@@ -163,7 +163,7 @@ async function main() {
     }
   } else {
     console.log("\n👉 Para enviar esses dados ao PostgreSQL da VPS, execute:");
-    console.log(`   REMOTE_DATABASE_URL="postgresql://postgres:postgrespassword@SEU_IP_VPS:5432/popclub?schema=public" node scripts/transfer-db.mjs\n`);
+    console.log(`   REMOTE_DATABASE_URL="postgresql://postgres:SUA_SENHA_AQUI@SEU_IP_VPS:5432/popclub?schema=public" node scripts/utils/transfer-db.mjs\n`);
   }
 
   await localPrisma.$disconnect();

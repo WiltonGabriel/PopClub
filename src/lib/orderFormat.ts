@@ -34,6 +34,7 @@ export function formatOrder(o: DbOrderPayload, shiftCode?: string | null) {
     status: o.status,
     subtotal: Number(o.subtotal),
     discount_amount: Number(o.discountAmount),
+    coupon_code: o.couponCode || null,
     delivery_fee: Number(o.deliveryFee || 0),
     total_amount: Number(o.totalAmount),
     payment_method_type: o.paymentMethodType,

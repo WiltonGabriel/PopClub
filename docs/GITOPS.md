@@ -39,7 +39,7 @@ Antes de qualquer envio para o repositório remoto, o desenvolvedor deve executa
    ```bash
    npx prisma generate
    ```
-2. **Suíte de Testes Automatizados (Vitest — 54 arquivos / 363 testes):**
+2. **Suíte de Testes Automatizados (Vitest — 49 arquivos / 354 testes):**
    ```bash
    npm test
    ```

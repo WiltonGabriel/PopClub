@@ -10,7 +10,7 @@
 ![Traefik](https://img.shields.io/badge/Traefik-v3-24A1C1?style=for-the-badge&logo=traefik&logoColor=white)
 ![Tailscale](https://img.shields.io/badge/Tailscale-Mesh%20VPN-49647C?style=for-the-badge&logo=tailscale&logoColor=white)
 ![Projeto Extensionista](https://img.shields.io/badge/Projeto%20Extensionista-UNIVAG%20TADS-8A2BE2?style=for-the-badge)
-![Vitest](https://img.shields.io/badge/Vitest-366%20Passed-449C44?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-354%20Passed-449C44?style=for-the-badge&logo=vitest&logoColor=white)
 ![LGPD](https://img.shields.io/badge/LGPD-Compliant-00B4D8?style=for-the-badge&logo=privatedivision&logoColor=white)
 ![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue?style=for-the-badge)
 [![Google Drive](https://img.shields.io/badge/Google%20Drive-Documentos%20Oficiais-4285F4?style=for-the-badge&logo=googledrive&logoColor=white)](https://drive.google.com/drive/folders/1iw4oxwSWsKvCcCP9YZipzOM0B2B7JmdR?usp=sharing)
@@ -96,7 +96,12 @@ A plataforma é executada em ambiente conteinerizado através da seguinte cadeia
 4. **Pipeline CI/CD Contínuo:** A cada commit na branch `main`, o GitHub Actions executa os testes (`npm test`), linter (`npm run lint`), compila a imagem Docker multi-stage e a publica no **GitHub Container Registry (GHCR)** sob a tag `ghcr.io/wiltongabriel/popclub:latest`.
 5. **Banco de Dados Isolado:** Instância PostgreSQL 16 Alpine protegida em rede privada bridge (`popshake_internal`), sem exposição para a internet pública. O acesso administrativo remoto ocorre exclusivamente via VPN **Tailscale**.
 
-Para aprofundamento das decisões arquiteturais e fluxos de rede, consulte [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Para aprofundamento das decisões arquiteturais, fluxos de rede, segurança e contratos da API, consulte:
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — Topologia, stack e pipeline de deploy
+- [docs/API_REFERENCE.md](docs/API_REFERENCE.md) — Referência de endpoints REST, SSE e RBAC
+- [docs/SECURITY.md](docs/SECURITY.md) — Zero Trust, JWT, Rate Limiting e LGPD
+- [docs/ANALYTICS_KPIS.md](docs/ANALYTICS_KPIS.md) — Fórmulas de KPIs, SLA e gráficos operacionais
+- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) — Padrões de arquitetura, testes e contribuição
 
 ---
 
@@ -222,7 +227,7 @@ npm run dev
 | `npm run dev` | Inicia o servidor local Next.js com live reload em todas as interfaces de rede. |
 | `npm run build` | Compilação estrita de produção (TypeScript check, bundler Webpack e modo standalone). |
 | `npm run lint` | Executa a análise estática com o ESLint configurado para Next.js (0 erros). |
-| `npm test` | **Suíte de Testes Automatizados (Vitest)**: executa 366 testes em 55 arquivos (unitários e de integração: LGPD, cookies, IDOR, horários, RBAC, AppSec, estoque, esteira, SSE e financeiro). |
+| `npm test` | **Suíte de Testes Automatizados (Vitest)**: executa 354 testes em 49 arquivos (unitários e de integração: LGPD, cookies, IDOR, horários, RBAC, AppSec, estoque, esteira, SSE, analytics e financeiro). |
 | `npm run test:watch` | Executa a suíte Vitest em modo interativo contínuo (TDD). |
 | `npm run test:coverage` | Gera o relatório de cobertura de código automatizado (`@vitest/coverage-v8`). |
 | `npx tsc --noEmit` | **Typecheck Estrito**: valida 100% da tipagem estática sem emitir artefatos. |
@@ -290,13 +295,13 @@ O repositório opera sob as diretrizes documentadas em [docs/GITOPS.md](docs/GIT
 - **Controle de Sessões de Caixa:** Abertura e fechamento de turnos com contagem cega por forma de pagamento (Dinheiro, PIX e Cartão).
 - **Bloqueio de Fechamento com Pedidos Ativos:** Impede o encerramento do turno enquanto houver comandas não finalizadas (`PENDING_ORDERS_ACTIVE`).
 
-### 5. Painel Administrativo
-- **Métricas & Desempenho:** Gráficos com volume de vendas, faturamento diário e itens mais vendidos.
+### 5. Painel Administrativo & Analytics
+- **Métricas & Desempenho ([docs/ANALYTICS_KPIS.md](docs/ANALYTICS_KPIS.md)):** Faturamento e volume combinados (`ComposedChart`), horários de pico e dias da semana, SLA real de cozinha/rota, retenção/recompra, mix por categoria, attach rate de adicionais, cupons, entregadores e auditoria de cancelamentos/ocorrências.
 - **Gestão de Horários Semanais:** Configuração de abertura e fechamento por dia da semana com validação de fuso horário.
 - **Identidade Visual & Personalização:** Customização de splash screen, avatares, banners e zonas de entrega.
 
 ### 6. Engenharia de Qualidade, AppSec & Exceções de Domínio
-- **Suíte de Testes Automatizados (Vitest):** 366 testes em 55 arquivos validando LGPD, cookies, isolamento IDOR, horários, estoques, precificação, RBAC, auditoria e esteira.
+- **Suíte de Testes Automatizados (Vitest):** 354 testes em 49 arquivos validando LGPD, cookies, isolamento IDOR, horários, estoques, precificação, RBAC, auditoria, esteira e analytics.
 - **Exceções de Domínio:** Tratamento padronizado (`DomainException`, `handleApiError`) com sanitização de logs.
 - **Segurança Defensiva Zero Trust:** Rate limiting em rotas sensíveis e validação estrita com Zod.
 

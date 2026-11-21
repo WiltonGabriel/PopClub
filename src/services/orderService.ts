@@ -51,6 +51,7 @@ export interface Order {
   status: OrderStatus;
   subtotal?: number;
   discount_amount?: number;
+  coupon_code?: string | null;
   delivery_fee?: number;
   total_amount: number;
   payment_method_type?: string;
