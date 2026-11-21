@@ -285,8 +285,14 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Se o evento tem destinatário específico, só atualiza se for o mesmo usuário ou se for admin
-      if (payload.targetUserId && currentUserId && payload.targetUserId !== currentUserId && user?.role !== "admin") {
+      // Se o evento tem destinatário específico, só atualiza se for o mesmo usuário ou se for membro da equipe (admin/editor)
+      if (
+        payload.targetUserId &&
+        currentUserId &&
+        payload.targetUserId !== currentUserId &&
+        user?.role !== "admin" &&
+        user?.role !== "editor"
+      ) {
         return;
       }
 

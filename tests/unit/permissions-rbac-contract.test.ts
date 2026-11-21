@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import fs from "fs";
+import path from "path";
 import {
   PERMISSION_KEYS,
   PERMISSION_DEFINITIONS,
@@ -11,6 +13,7 @@ import {
   isValidPermissionKey,
   validatePermissionsInput,
 } from "@/lib/permissions";
+import { getAuthorizedAdminFallbackRoute } from "@/lib/adminNavigation";
 import { isValidSafeAssetUrl } from "@/lib/urlValidation";
 import { toCourierDispatchDto } from "@/services/courierDispatchProjection";
 
@@ -129,5 +132,51 @@ describe("Contrato RBAC, Permissões por Domínio, URLs e Projeção de Entregad
       isActive: true,
     });
     expect("pixKey" in dto).toBe(false);
+  });
+
+  it("permite que tanto ADMIN quanto EDITOR acessem o AdminLayout (/admin e /admin/pedidos) sem redirecionar Editor Modular para '/'", () => {
+    const adminLayoutPath = path.join(process.cwd(), "src/app/admin/layout.tsx");
+    const layoutSource = fs.readFileSync(adminLayoutPath, "utf-8");
+
+    expect(layoutSource).toContain("const isStaff = isAdmin || isEditor");
+    expect(layoutSource).not.toContain("if (!loading && !isAdmin)");
+    expect(layoutSource).not.toMatch(/if\s*\(\s*!isAdmin\s*\)\s*\{\s*return\s+null/);
+  });
+
+  it("calcula rotas seguras de fallback em getAuthorizedAdminFallbackRoute evitando loops para Editores Modulares", () => {
+    const editorOnlyKanban = {
+      role: "editor",
+      permissions: ["ORDERS_KANBAN"],
+    };
+    expect(getAuthorizedAdminFallbackRoute(editorOnlyKanban, "/admin")).toBe(
+      "/admin/pedidos?unauthorized=true"
+    );
+    expect(getAuthorizedAdminFallbackRoute(editorOnlyKanban, "/admin/pedidos")).toBe(
+      "/conta?unauthorized=true"
+    );
+
+    const editorOnlyCoupons = {
+      role: "editor",
+      permissions: ["coupons_manage"],
+    };
+    expect(getAuthorizedAdminFallbackRoute(editorOnlyCoupons, "/admin/pedidos")).toBe(
+      "/admin?unauthorized=true"
+    );
+
+    const editorOnlyHistory = {
+      role: "editor",
+      permissions: ["ORDERS_HISTORY"],
+    };
+    expect(getAuthorizedAdminFallbackRoute(editorOnlyHistory, "/admin")).toBe(
+      "/admin/historico?unauthorized=true"
+    );
+
+    const editorOnlyUsers = {
+      role: "editor",
+      permissions: ["users_manage"],
+    };
+    expect(getAuthorizedAdminFallbackRoute(editorOnlyUsers, "/admin/pedidos")).toBe(
+      "/admin/usuarios?unauthorized=true"
+    );
   });
 });

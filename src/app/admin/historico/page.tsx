@@ -36,6 +36,7 @@ import { printThermalReceipt } from "@/lib/thermalPrinter";
 import { useToast } from "../../../components/ui/ToastNotification";
 import { MobileOrientationBanner } from "@/components/admin/MobileOrientationBanner";
 import { useAuth } from "@/contexts/AuthContext";
+import { getAuthorizedAdminFallbackRoute, getVisibleAdminGroups } from "@/lib/adminNavigation";
 
 type DateRangeOption = "today" | "yesterday" | "last7days" | "last30days" | "custom" | "all";
 type ViewMode = "shifts" | "individual";
@@ -60,6 +61,12 @@ export default function AdminHistoricoPage() {
   const router = useRouter();
   const { showToast } = useToast();
 
+  const canViewHistory = isAdmin || canAccess("ORDERS_HISTORY");
+  const canManageKanban = isAdmin || canAccess("ORDERS_KANBAN");
+  const canManageStock = isAdmin || canAccess("STOCK_CONTROL") || canAccess("menu_manage");
+  const canAccessPedidos = canManageKanban || canManageStock;
+  const hasOperationalPanel = isAdmin || getVisibleAdminGroups(user).length > 0;
+
   // Guard de Acesso: Apenas Admin ou Editor com ORDERS_HISTORY
   useEffect(() => {
     if (authLoading) return;
@@ -67,10 +74,10 @@ export default function AdminHistoricoPage() {
       router.push("/login?redirect=/admin/historico");
       return;
     }
-    if (!isAdmin && !canAccess("ORDERS_HISTORY")) {
-      router.push("/admin/pedidos?unauthorized=true");
+    if (!canViewHistory) {
+      router.push(getAuthorizedAdminFallbackRoute(user, "/admin/historico"));
     }
-  }, [user, authLoading, isAdmin, canAccess, router]);
+  }, [user, authLoading, canViewHistory, router]);
 
   // Modo de visualização: Turnos vs Pedidos Individuais
   const [viewMode, setViewMode] = useState<ViewMode>("shifts");
@@ -354,23 +361,25 @@ export default function AdminHistoricoPage() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          {(isAdmin || canAccess("ORDERS_KANBAN")) && (
+          {canAccessPedidos && (
             <Link
               href="/admin/pedidos"
               className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 hover:text-primary border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
             >
               <LayoutDashboard className="w-4 h-4 text-primary" />
-              <span className="hidden sm:inline">Central da Esteira</span>
+              <span className="hidden sm:inline">{canManageKanban ? "Central da Esteira" : "Controle de Estoque"}</span>
             </Link>
           )}
 
-          <Link
-            href="/admin"
-            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 hover:text-primary border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-          >
-            <TrendingUp className="w-4 h-4 text-primary" />
-            <span className="hidden sm:inline">Painel Operacional</span>
-          </Link>
+          {hasOperationalPanel && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 hover:text-primary border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            >
+              <TrendingUp className="w-4 h-4 text-primary" />
+              <span className="hidden sm:inline">Painel Operacional</span>
+            </Link>
+          )}
 
           <Link
             href="/conta"

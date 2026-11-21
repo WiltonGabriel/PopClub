@@ -74,6 +74,7 @@ import {
   AdminGroupId,
   AdminTabId,
   getAdminTabMeta,
+  getAuthorizedAdminFallbackRoute,
   getDefaultAdminSelection,
   getVisibleAdminGroups,
   resolveAdminTabParam,
@@ -322,7 +323,19 @@ export default function AdminDashboard() {
       const resolved = resolveAdminTabParam(tabParam, navUser);
       if (resolved.valid) {
         if (resolved.unauthorized) {
-          router.push("/admin/pedidos?unauthorized=true");
+          const fallback = getDefaultAdminSelection(navUser);
+          if (fallback) {
+            setActiveGroup(fallback.groupId);
+            setActiveTab(fallback.tabId);
+            showToast({
+              type: "error",
+              title: "Acesso Não Autorizado",
+              message: "Seu perfil não possui permissão para acessar esta aba.",
+            });
+            router.replace(`/admin?tab=${fallback.tabId}`, { scroll: false });
+          } else {
+            router.push(getAuthorizedAdminFallbackRoute(navUser, "/admin"));
+          }
           return;
         }
         if (resolved.groupId && resolved.tabId) {
@@ -341,7 +354,7 @@ export default function AdminDashboard() {
         setActiveGroup(fallback.groupId);
         setActiveTab(fallback.tabId);
       } else {
-        router.push("/admin/pedidos?unauthorized=true");
+        router.push(getAuthorizedAdminFallbackRoute(navUser, "/admin"));
       }
     } else {
       const currentMeta = getAdminTabMeta(activeTab);
@@ -349,7 +362,7 @@ export default function AdminDashboard() {
         setActiveGroup(currentMeta.groupId);
       }
     }
-  }, [user, authLoading, isAdmin, activeTab, activeGroup, searchParams, router]);
+  }, [user, authLoading, isAdmin, activeTab, activeGroup, searchParams, router, showToast]);
 
   const handleSelectGroup = (groupId: AdminGroupId) => {
     const group = visibleGroups.find((g) => g.id === groupId);
@@ -539,7 +552,7 @@ export default function AdminDashboard() {
             </Link>
           )}
 
-          {(isAdmin || canAccess("ORDERS_KANBAN") || canAccess("STOCK_CONTROL")) && (
+          {(isAdmin || canAccess("ORDERS_KANBAN") || canAccess("STOCK_CONTROL") || canAccess("menu_manage")) && (
             <Link
               href="/admin/pedidos"
               className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-primary to-accent hover:opacity-95 rounded-xl px-2.5 lg:px-3.5 py-2 shadow-sm shadow-primary/20 transition-all"

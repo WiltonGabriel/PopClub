@@ -52,7 +52,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { getVisibleAdminGroups } from "@/lib/adminNavigation";
+import { getAuthorizedAdminFallbackRoute, getVisibleAdminGroups } from "@/lib/adminNavigation";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { orderService, Order, OrderStatus } from "../../../services/orderService";
 import { playKitchenBellSound, initAudioUnlock } from "../../../lib/sound";
@@ -103,9 +103,9 @@ export default function AdminPedidosPage() {
       return;
     }
     if (!canAccessPedidosPage) {
-      router.push(hasOperationalPanel ? "/admin?unauthorized=true" : "/conta?unauthorized=true");
+      router.push(getAuthorizedAdminFallbackRoute(user, "/admin/pedidos"));
     }
-  }, [user, authLoading, canAccessPedidosPage, hasOperationalPanel, router]);
+  }, [user, authLoading, canAccessPedidosPage, router]);
 
   const [orders, setOrders] = useState<Order[]>([]);
   const ordersRef = useRef<Order[]>([]);

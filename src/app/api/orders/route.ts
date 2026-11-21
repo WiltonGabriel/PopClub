@@ -345,7 +345,7 @@ export async function PATCH(request: Request) {
     if (status === "cancelled") {
       const cleanReason = cancellationReason ? sanitizeText(cancellationReason) : "";
       dataToUpdate.cancellationReason =
-        cleanReason || (isAdmin ? "Cancelado pela administração" : "Cancelado pelo cliente");
+        cleanReason || (canManageOrders || isAdmin ? "Cancelado pela administração" : "Cancelado pelo cliente");
       dataToUpdate.cancelledAt = new Date();
     } else if (status === "completed") {
       dataToUpdate.deliveredAt = new Date();

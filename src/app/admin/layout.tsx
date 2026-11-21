@@ -6,14 +6,20 @@ import { useAuth } from "../../hooks/useAuth";
 import { Loader2 } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { isAdmin, loading } = useAuth();
+  const { user, isAdmin, isEditor, loading } = useAuth();
   const router = useRouter();
+  const isStaff = isAdmin || isEditor;
 
   useEffect(() => {
-    if (!loading && !isAdmin) {
+    if (loading) return;
+    if (!user) {
+      router.push("/login?redirect=/admin");
+      return;
+    }
+    if (!isStaff) {
       router.push("/");
     }
-  }, [isAdmin, loading, router]);
+  }, [user, isStaff, loading, router]);
 
   if (loading) {
     return (
@@ -23,7 +29,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  if (!isAdmin) {
+  if (!user || !isStaff) {
     return null; // Will redirect
   }
 

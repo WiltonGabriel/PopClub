@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
-import { getVisibleAdminGroups } from "@/lib/adminNavigation";
+import { getAuthorizedAdminFallbackRoute, getVisibleAdminGroups } from "@/lib/adminNavigation";
 import { UsersManagementSection } from "@/components/admin/UsersManagementSection";
 import { MobileOrientationBanner } from "@/components/admin/MobileOrientationBanner";
 
@@ -29,7 +29,7 @@ export default function AdminUsuariosPage() {
   const hasOperationalPanel = isAdmin || getVisibleAdminGroups(user).length > 0;
   const canViewHistory = isAdmin || canAccess("ORDERS_HISTORY");
   const canManageKanban = isAdmin || canAccess("ORDERS_KANBAN");
-  const canManageStock = isAdmin || canAccess("STOCK_CONTROL");
+  const canManageStock = isAdmin || canAccess("STOCK_CONTROL") || canAccess("menu_manage");
   const canAccessPedidos = canManageKanban || canManageStock;
 
   useEffect(() => {
@@ -37,10 +37,10 @@ export default function AdminUsuariosPage() {
       if (!user) {
         router.push("/login?redirect=/admin/usuarios");
       } else if (!canAccessUsers) {
-        router.push(canAccessPedidos ? "/admin/pedidos?unauthorized=true" : "/conta?unauthorized=true");
+        router.push(getAuthorizedAdminFallbackRoute(user, "/admin/usuarios"));
       }
     }
-  }, [user, loading, canAccessUsers, canAccessPedidos, router]);
+  }, [user, loading, canAccessUsers, router]);
 
   if (loading || !user || !canAccessUsers) {
     return (

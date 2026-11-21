@@ -210,18 +210,50 @@ export async function GET() {
   }
 }
 
+const KANBAN_ALLOWED_SETTINGS_KEYS = new Set([
+  "estimatedDeliveryTime",
+  "estimatedTimePresets",
+  "rejectionReasonPresets",
+]);
+
+const LOGISTICS_ALLOWED_SETTINGS_KEYS = new Set([
+  "deliveryFee",
+  "freeDeliveryThreshold",
+  "maxDeliveryRadiusKm",
+  "storeAddress",
+  "storeLatitude",
+  "storeLongitude",
+  "latitude",
+  "longitude",
+  "businessHours",
+  "openingHoursText",
+]);
+
 export async function PUT(request: Request) {
   try {
     const user = await getAuthUser(request);
-    if (!hasPermission(user, "settings_manage")) {
-      return apiError("Acesso negado. Permissão para alterar configurações da loja necessária.", 403, "FORBIDDEN");
-    }
 
     let body: unknown;
     try {
       body = await request.json();
     } catch {
       return apiError("Formato de requisição inválido ou corpo vazio.", 400);
+    }
+
+    const bodyKeys =
+      body && typeof body === "object" && !Array.isArray(body) ? Object.keys(body) : [];
+    const hasSettingsManage = hasPermission(user, "settings_manage");
+    const isKanbanScopedUpdate =
+      bodyKeys.length > 0 &&
+      bodyKeys.every((k) => KANBAN_ALLOWED_SETTINGS_KEYS.has(k)) &&
+      hasPermission(user, "ORDERS_KANBAN");
+    const isLogisticsScopedUpdate =
+      bodyKeys.length > 0 &&
+      bodyKeys.every((k) => LOGISTICS_ALLOWED_SETTINGS_KEYS.has(k)) &&
+      hasPermission(user, "logistics_manage");
+
+    if (!user || (!hasSettingsManage && !isKanbanScopedUpdate && !isLogisticsScopedUpdate)) {
+      return apiError("Acesso negado. Permissão para alterar configurações da loja necessária.", 403, "FORBIDDEN");
     }
 
     const parsed = settingsUpdateSchema.safeParse(body);

@@ -311,3 +311,39 @@ export function resolveAdminTabParam(
   }
   return { valid: true, unauthorized: false, groupId: meta.groupId, tabId: meta.id };
 }
+
+/**
+ * Determina a rota administrativa segura de fallback para um membro da equipe (ADMIN ou EDITOR)
+ * quando ele tenta acessar uma página ou módulo para o qual não possui permissão,
+ * evitando loops de redirecionamento entre /admin, /admin/pedidos, /admin/historico e /admin/usuarios.
+ */
+export function getAuthorizedAdminFallbackRoute(
+  user: NavUserContext | null | undefined,
+  excludePath?: string
+): string {
+  if (!user) return "/login";
+
+  const canAccessPedidos =
+    isUserAdmin(user) ||
+    hasPermission(user, "ORDERS_KANBAN") ||
+    hasPermission(user, "STOCK_CONTROL") ||
+    hasPermission(user, "menu_manage");
+  const canAccessPanel = isUserAdmin(user) || getVisibleAdminGroups(user).length > 0;
+  const canAccessHistorico = isUserAdmin(user) || hasPermission(user, "ORDERS_HISTORY");
+  const canAccessUsuarios = isUserAdmin(user) || hasPermission(user, "users_manage");
+
+  const candidates: Array<{ path: string; allowed: boolean }> = [
+    { path: "/admin/pedidos", allowed: canAccessPedidos },
+    { path: "/admin", allowed: canAccessPanel },
+    { path: "/admin/historico", allowed: canAccessHistorico },
+    { path: "/admin/usuarios", allowed: canAccessUsuarios },
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate.allowed && candidate.path !== excludePath) {
+      return `${candidate.path}?unauthorized=true`;
+    }
+  }
+
+  return "/conta?unauthorized=true";
+}

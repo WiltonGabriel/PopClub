@@ -1127,7 +1127,7 @@ export default function Storefront() {
                       ) : isEditor ? (() => {
                         const hasOperationalPanel = getVisibleAdminGroups(user).length > 0;
                         const canManageKanban = canAccess("ORDERS_KANBAN");
-                        const canManageStock = canAccess("STOCK_CONTROL");
+                        const canManageStock = canAccess("STOCK_CONTROL") || canAccess("menu_manage");
                         const canManageOrdersOrStock = canManageKanban || canManageStock;
                         const canViewHistory = canAccess("ORDERS_HISTORY");
                         const canManageUsers = canAccess("users_manage");
