@@ -2,9 +2,14 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword, signToken, setSessionCookies, isRequestHttps, type CookieResponseTarget } from "@/lib/auth";
+import { hasPermission, isUserAdmin } from "@/lib/permissions";
 import { sanitizeAndNormalizePhone } from "@/lib/validations/auth";
 import { cookies } from "next/headers";
 import { authLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
+
+type LoginUserWithRole = Prisma.UserGetPayload<{
+  include: { customRole: { select: { permissions: true } } };
+}>;
 
 export async function POST(request: Request) {
   try {
@@ -36,7 +41,7 @@ export async function POST(request: Request) {
     }
 
     // Busca usuário por e-mail, username ou telefone de forma segura
-    let user: Awaited<ReturnType<typeof prisma.user.findFirst>> = null;
+    let user: LoginUserWithRole | null = null;
     try {
       const trimmedId = identifier.trim();
       const withoutAt = trimmedId.replace(/^@+/, "");
@@ -63,6 +68,13 @@ export async function POST(request: Request) {
       user = await prisma.user.findFirst({
         where: {
           OR: orConditions,
+        },
+        include: {
+          customRole: {
+            select: {
+              permissions: true,
+            },
+          },
         },
       });
     } catch (dbErr: unknown) {
@@ -98,6 +110,26 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!user.isActive || user.deletedAt) {
+      return NextResponse.json(
+        { error: "Esta conta foi desativada. Entre em contato com o suporte." },
+        { status: 403 }
+      );
+    }
+
+    if (user.isBlocked) {
+      return NextResponse.json(
+        {
+          error: user.blockReason
+            ? `Esta conta está bloqueada: ${user.blockReason}`
+            : "Esta conta está bloqueada administrativamente.",
+        },
+        { status: 403 }
+      );
+    }
+
+    const canManageUsers = isUserAdmin(user) || hasPermission(user, "users_manage");
+
     let token: string;
     try {
       token = signToken({
@@ -108,6 +140,7 @@ export async function POST(request: Request) {
         name: user.fullName,
         role: user.role,
         isRegistered: Boolean(user.isRegistered),
+        canManageUsers,
         tokenVersion: user.tokenVersion ?? 1,
       });
     } catch (tokenErr: unknown) {

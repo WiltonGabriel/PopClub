@@ -46,6 +46,43 @@ function hasSameOriginReferrer(): boolean {
   }
 }
 
+export function sanitizeSafeInternalRoute(route: string | null | undefined): string | null {
+  if (typeof route !== "string") return null;
+  const trimmed = route.trim();
+  if (!trimmed || !trimmed.startsWith("/")) return null;
+  if (trimmed.startsWith("//") || trimmed.startsWith("/\\")) return null;
+  if (/[\r\n\0]/.test(trimmed)) return null;
+  const lower = trimmed.toLowerCase();
+  if (lower.includes("javascript:") || lower.includes("data:") || lower.includes("vbscript:")) {
+    return null;
+  }
+  return trimmed;
+}
+
+function getQueryFromRoute(currentFullUrl: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const candidate = sanitizeSafeInternalRoute(params.get("from"));
+    if (!candidate || candidate === currentFullUrl) return null;
+    return candidate;
+  } catch {
+    return null;
+  }
+}
+
+function getSameOriginReferrerRoute(currentFullUrl: string): string | null {
+  if (!hasSameOriginReferrer()) return null;
+  try {
+    const refUrl = new URL(document.referrer);
+    const candidate = sanitizeSafeInternalRoute(`${refUrl.pathname}${refUrl.search}`);
+    if (!candidate || candidate === currentFullUrl) return null;
+    return candidate;
+  } catch {
+    return null;
+  }
+}
+
 export const navigationHistoryService = {
   recordNavigation(route: string): void {
     const normalized = normalizeRoute(route);
@@ -116,7 +153,15 @@ export const navigationHistoryService = {
   goBack(router: NavigationRouter, fallback = "/"): void {
     const current = this.getCurrentFullUrl();
     const previousRoute = this.getPreviousRoute(current);
+    const fromRoute = getQueryFromRoute(current);
     const hasHistory = typeof window !== "undefined" && window.history.length > 1;
+
+    // Quando não há rota anterior nesta aba mas há ?from= explícito (ex.: aba nova), prioriza o retorno contextual
+    if (previousRoute === null && fromRoute) {
+      this.popCurrent();
+      router.push(fromRoute);
+      return;
+    }
 
     if (hasHistory && (previousRoute !== null || hasSameOriginReferrer())) {
       this.popCurrent();
@@ -127,6 +172,19 @@ export const navigationHistoryService = {
     if (previousRoute) {
       this.popCurrent();
       router.replace(previousRoute);
+      return;
+    }
+
+    if (fromRoute) {
+      this.popCurrent();
+      router.push(fromRoute);
+      return;
+    }
+
+    const referrerRoute = getSameOriginReferrerRoute(current);
+    if (referrerRoute) {
+      this.popCurrent();
+      router.push(referrerRoute);
       return;
     }
 

@@ -44,9 +44,9 @@ export async function GET(
     // 2. Blindagem de Autorização em Nível de Objeto (BOLA / IDOR - OWASP API1)
     const authUser = await getAuthUser(request);
     const isStaff =
-      hasPermission(authUser, "ORDERS_READ") ||
       hasPermission(authUser, "ORDERS_KANBAN") ||
-      hasPermission(authUser, "ORDERS_HISTORY");
+      hasPermission(authUser, "ORDERS_HISTORY") ||
+      hasPermission(authUser, "metrics_view");
 
     const isOwner = Boolean(authUser?.id && order.userId && authUser.id === order.userId);
     const hasValidTrackingToken = Boolean(

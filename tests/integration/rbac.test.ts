@@ -174,6 +174,22 @@ describe("Controle de Acesso Baseado em Papéis (RBAC)", () => {
       expect(res.headers.get("location")).toContain("/admin/pedidos?unauthorized=true");
     });
 
+    it("permite EDITOR com claim canManageUsers=true em /admin/usuarios sem redirecionamento", async () => {
+      const editorUsersManageToken = auth.signToken({
+        userId: "editor-users-mod-1",
+        role: "editor",
+        isRegistered: true,
+        canManageUsers: true,
+      });
+
+      const req = new NextRequest("http://localhost:3000/admin/usuarios", {
+        headers: { cookie: `popshake_session=${editorUsersManageToken}` },
+      });
+
+      const res = await proxy(req);
+      expect(res.headers.get("location")).toBeNull();
+    });
+
     it("concede acesso a ADMIN em /admin/usuarios sem redirecionamento", async () => {
       const adminToken = auth.signToken({
         userId: "admin-id-1",

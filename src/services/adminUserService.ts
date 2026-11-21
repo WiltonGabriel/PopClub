@@ -111,6 +111,16 @@ export interface UserDossier {
   orders: UserHistoryItem[];
 }
 
+export interface UsersSummary {
+  activeAdminsCount: number;
+  maxAdmins: number;
+  teamCount: number;
+  clientsCount: number;
+  blockedCount: number;
+  customRolesCount: number;
+  maxCustomRoles: number;
+}
+
 export interface GetUsersParams {
   page?: number;
   limit?: number;
@@ -123,6 +133,7 @@ export interface GetUsersParams {
   minMonths?: number;
   maxMonths?: number;
   loyaltyBadgeLevel?: number;
+  includeSummary?: boolean;
 }
 
 export interface GetUsersResponse {
@@ -133,6 +144,7 @@ export interface GetUsersResponse {
     limit: number;
     totalPages: number;
   };
+  summary?: UsersSummary;
 }
 
 export const adminUserService = {
@@ -149,6 +161,7 @@ export const adminUserService = {
     if (params.minMonths !== undefined) searchParams.set("minMonths", String(params.minMonths));
     if (params.maxMonths !== undefined) searchParams.set("maxMonths", String(params.maxMonths));
     if (params.loyaltyBadgeLevel !== undefined) searchParams.set("loyaltyBadgeLevel", String(params.loyaltyBadgeLevel));
+    if (params.includeSummary !== false) searchParams.set("includeSummary", "true");
 
     const res = await fetch(`/api/admin/users?${searchParams.toString()}`);
     const data = await res.json();

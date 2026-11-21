@@ -27,6 +27,9 @@ import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../contexts/ThemeContext";
 import { formatPhoneInput } from "@/components/auth/FastAccessModal";
 import { PasswordRecoveryRescueModal } from "@/components/auth/PasswordRecoveryRescueModal";
+import { navigationHistoryService } from "@/services/navigationHistoryService";
+
+const REGISTER_DRAFT_STORAGE_KEY = "popshake_register_draft";
 
 interface MaskedAddressInfo {
   addressId?: string;
@@ -136,6 +139,20 @@ function AuthPageInner() {
   const rawTab = searchParams?.get("tab");
   const initialTab = rawTab === "password" ? "password" : rawTab === "register" ? "register" : "fast";
   const [activeTab, setActiveTab] = useState<"fast" | "password" | "register">(initialTab);
+
+  const handleSwitchTab = (nextTab: "fast" | "password" | "register") => {
+    setActiveTab(nextTab);
+    if (nextTab === "fast") {
+      setIsVerifyingDevice(false);
+    }
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      params.set("tab", nextTab);
+      const nextUrl = `/login?${params.toString()}`;
+      window.history.replaceState(null, "", nextUrl);
+      navigationHistoryService.replaceCurrent(nextUrl);
+    }
+  };
 
   // Redireciona usuários autenticados para a home ou página alvo
   useEffect(() => {
@@ -316,8 +333,54 @@ function AuthPageInner() {
   const [registerPassword, setRegisterPassword] = useState("");
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [registerDraftHydrated, setRegisterDraftHydrated] = useState(false);
   const [registerLoading, setRegisterLoading] = useState(false);
   const [registerError, setRegisterError] = useState<string | null>(null);
+
+  // Preserva rascunho não sensível do cadastro em sessionStorage ao navegar para /termos ou /privacidade
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const rawDraft = window.sessionStorage.getItem(REGISTER_DRAFT_STORAGE_KEY);
+      if (rawDraft) {
+        const parsed = JSON.parse(rawDraft) as {
+          fullName?: unknown;
+          email?: unknown;
+          phone?: unknown;
+          acceptedTerms?: unknown;
+        };
+        if (typeof parsed.fullName === "string") setRegisterFullName(parsed.fullName);
+        if (typeof parsed.email === "string") setRegisterEmail(parsed.email);
+        if (typeof parsed.phone === "string") setRegisterPhone(parsed.phone);
+        if (typeof parsed.acceptedTerms === "boolean") setAcceptedTerms(parsed.acceptedTerms);
+      }
+    } catch {
+      // Ignora rascunho inválido
+    } finally {
+      setRegisterDraftHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!registerDraftHydrated || typeof window === "undefined") return;
+    try {
+      if (!registerFullName && !registerEmail && !registerPhone && !acceptedTerms) {
+        window.sessionStorage.removeItem(REGISTER_DRAFT_STORAGE_KEY);
+        return;
+      }
+      window.sessionStorage.setItem(
+        REGISTER_DRAFT_STORAGE_KEY,
+        JSON.stringify({
+          fullName: registerFullName,
+          email: registerEmail,
+          phone: registerPhone,
+          acceptedTerms,
+        })
+      );
+    } catch {
+      // Ignora falhas de sessionStorage em modo privado restrito
+    }
+  }, [registerDraftHydrated, registerFullName, registerEmail, registerPhone, acceptedTerms]);
 
   /* ── Handlers de Login com Senha ── */
   const handlePasswordLoginSubmit = async (e: React.FormEvent) => {
@@ -378,6 +441,13 @@ function AuthPageInner() {
         password: registerPassword,
         acceptedTerms: true,
       });
+      if (typeof window !== "undefined") {
+        try {
+          window.sessionStorage.removeItem(REGISTER_DRAFT_STORAGE_KEY);
+        } catch {
+          // Ignora falha ao limpar rascunho
+        }
+      }
       window.location.replace(redirectTarget);
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : (err as { message?: string })?.message;
@@ -420,13 +490,7 @@ function AuthPageInner() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => {
-              if (typeof window !== "undefined" && window.history.length > 1) {
-                router.back();
-              } else {
-                router.push(redirectTarget || "/");
-              }
-            }}
+            onClick={() => navigationHistoryService.goBack(router, redirectTarget || "/")}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-zinc-700 dark:text-zinc-200 hover:text-foreground dark:hover:text-white bg-white/80 dark:bg-zinc-900/80 border border-gray-200/90 dark:border-zinc-800 backdrop-blur-md shadow-xs hover:bg-white dark:hover:bg-zinc-800 transition-all text-xs sm:text-sm font-semibold group cursor-pointer"
             aria-label="Voltar à tela anterior"
           >
@@ -489,10 +553,7 @@ function AuthPageInner() {
             <button
               role="tab"
               aria-selected={activeTab === "fast"}
-              onClick={() => {
-                setActiveTab("fast");
-                setIsVerifyingDevice(false);
-              }}
+              onClick={() => handleSwitchTab("fast")}
               className={`
                 flex-1 h-10 rounded-xl text-xs sm:text-sm font-bold
                 transition-all duration-200 cursor-pointer
@@ -508,7 +569,7 @@ function AuthPageInner() {
             <button
               role="tab"
               aria-selected={activeTab === "password"}
-              onClick={() => setActiveTab("password")}
+              onClick={() => handleSwitchTab("password")}
               className={`
                 flex-1 h-10 rounded-xl text-xs sm:text-sm font-bold
                 transition-all duration-200 cursor-pointer
@@ -524,7 +585,7 @@ function AuthPageInner() {
             <button
               role="tab"
               aria-selected={activeTab === "register"}
-              onClick={() => setActiveTab("register")}
+              onClick={() => handleSwitchTab("register")}
               className={`
                 flex-1 h-10 rounded-xl text-xs sm:text-sm font-bold
                 transition-all duration-200 cursor-pointer
@@ -814,7 +875,7 @@ function AuthPageInner() {
 
                       <button
                         type="button"
-                        onClick={() => setActiveTab("password")}
+                        onClick={() => handleSwitchTab("password")}
                         className="w-full h-10 rounded-xl text-xs font-semibold text-primary dark:text-muted-foreground border border-gray-200 dark:border-border/40 hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
                       >
                         Entrar com senha em vez disso
@@ -929,14 +990,14 @@ function AuthPageInner() {
               <div className="pt-2 text-center space-y-1">
                 <button
                   type="button"
-                  onClick={() => setActiveTab("register")}
+                  onClick={() => handleSwitchTab("register")}
                   className="text-xs text-[#7A587D] dark:text-muted-foreground hover:underline cursor-pointer block w-full"
                 >
                   Não tem uma conta? <strong>Criar Conta / Cadastro</strong>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveTab("fast")}
+                  onClick={() => handleSwitchTab("fast")}
                   className="text-xs text-[#7A587D] dark:text-muted-foreground hover:underline cursor-pointer block w-full"
                 >
                   Prefere entrar sem senha? <strong>Usar Acesso Rápido</strong>
@@ -1063,18 +1124,22 @@ function AuthPageInner() {
                     <span>
                       Li e aceito os{" "}
                       <Link
-                        href="/termos"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href={`/termos?from=${encodeURIComponent(
+                          redirectTarget && redirectTarget !== "/"
+                            ? `/login?tab=register&redirect=${encodeURIComponent(redirectTarget)}`
+                            : "/login?tab=register"
+                        )}`}
                         className="font-semibold text-primary hover:underline"
                       >
                         Termos de Uso
                       </Link>{" "}
                       e a{" "}
                       <Link
-                        href="/privacidade"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href={`/privacidade?from=${encodeURIComponent(
+                          redirectTarget && redirectTarget !== "/"
+                            ? `/login?tab=register&redirect=${encodeURIComponent(redirectTarget)}`
+                            : "/login?tab=register"
+                        )}`}
                         className="font-semibold text-primary hover:underline"
                       >
                         Política de Privacidade
@@ -1117,14 +1182,14 @@ function AuthPageInner() {
               <div className="pt-2 text-center space-y-1">
                 <button
                   type="button"
-                  onClick={() => setActiveTab("password")}
+                  onClick={() => handleSwitchTab("password")}
                   className="text-xs text-[#7A587D] dark:text-muted-foreground hover:underline cursor-pointer block w-full"
                 >
                   Já possui uma conta? <strong>Entrar com Senha</strong>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveTab("fast")}
+                  onClick={() => handleSwitchTab("fast")}
                   className="text-xs text-[#7A587D] dark:text-muted-foreground hover:underline cursor-pointer block w-full"
                 >
                   Prefere entrar sem senha? <strong>Usar Acesso Rápido</strong>
@@ -1149,7 +1214,7 @@ function AuthPageInner() {
         onSuccess={({ email }) => {
           if (email) {
             setLoginId(email);
-            setActiveTab("password");
+            handleSwitchTab("password");
           }
         }}
       />

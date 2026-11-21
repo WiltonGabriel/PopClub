@@ -22,7 +22,16 @@ function getProxyJwtSecrets(): string[] {
 /**
  * Validação criptográfica de token JWT via Web Crypto API nativa (compatível com Edge e Node.js).
  */
-async function verifyJwtEdge(token: string, secret: string): Promise<{ userId: string; role: string } | null> {
+async function verifyJwtEdge(
+  token: string,
+  secret: string
+): Promise<{
+  userId: string;
+  role: string;
+  isRegistered?: boolean;
+  canManageUsers?: boolean;
+  exp?: number;
+} | null> {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
@@ -85,12 +94,12 @@ export async function proxy(request: NextRequest) {
         payload = await verifyJwtEdge(token, secret);
         if (payload) break;
       }
-      if (payload && (payload as any).isRegistered !== false) {
+      if (payload && payload.isRegistered !== false) {
         const role = payload.role?.toLowerCase();
-        
-        // A rota /admin/usuarios é estritamente exclusiva para Administradores
+
+        // A rota /admin/usuarios é restrita a Administradores ou Editores com users_manage
         if (pathname.startsWith("/admin/usuarios")) {
-          if (role === "admin") {
+          if (role === "admin" || (role === "editor" && payload.canManageUsers === true)) {
             isAuthorized = true;
           } else if (role === "editor") {
             const forbiddenRedirect = new URL("/admin/pedidos?unauthorized=true", request.url);

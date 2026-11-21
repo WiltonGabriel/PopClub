@@ -20,6 +20,8 @@ import {
   Sun,
   Moon,
   User,
+  Users,
+  Boxes,
   Archive,
   RotateCcw,
   CheckCircle2,
@@ -527,13 +529,27 @@ export default function AdminDashboard() {
             </Link>
           )}
 
-          {(isAdmin || canAccess("ORDERS_KANBAN")) && (
+          {(isAdmin || canAccess("users_manage")) && (
+            <Link
+              href="/admin/usuarios"
+              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            >
+              <Users className="w-4 h-4 text-primary" />
+              <span className="hidden sm:inline">{isAdmin ? "Usuários" : "Clientes"}</span>
+            </Link>
+          )}
+
+          {(isAdmin || canAccess("ORDERS_KANBAN") || canAccess("STOCK_CONTROL")) && (
             <Link
               href="/admin/pedidos"
               className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-primary to-accent hover:opacity-95 rounded-xl px-3.5 py-2 shadow-sm shadow-primary/20 transition-all"
             >
-              <LayoutDashboard className="w-4 h-4" />
-              <span>Gerenciar Pedidos</span>
+              {isAdmin || canAccess("ORDERS_KANBAN") ? (
+                <LayoutDashboard className="w-4 h-4" />
+              ) : (
+                <Boxes className="w-4 h-4" />
+              )}
+              <span>{isAdmin || canAccess("ORDERS_KANBAN") ? "Gerenciar Pedidos" : "Estoque"}</span>
             </Link>
           )}
 

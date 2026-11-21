@@ -46,9 +46,13 @@ import {
   Ban,
   ArrowRight,
   ClipboardList,
+  Boxes,
+  Users,
+  Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { getVisibleAdminGroups } from "@/lib/adminNavigation";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { orderService, Order, OrderStatus } from "../../../services/orderService";
 import { playKitchenBellSound, initAudioUnlock } from "../../../lib/sound";
@@ -86,17 +90,22 @@ export default function AdminPedidosPage() {
   const { user, loading: authLoading, isAdmin, canAccess } = useAuth();
   const router = useRouter();
 
-  // Guard de Acesso para a Esteira (Admin ou Editor com ORDERS_KANBAN)
+  const canManageKanban = isAdmin || canAccess("ORDERS_KANBAN");
+  const canManageStock = isAdmin || canAccess("STOCK_CONTROL") || canAccess("menu_manage");
+  const canAccessPedidosPage = canManageKanban || canManageStock;
+  const hasOperationalPanel = isAdmin || getVisibleAdminGroups(user).length > 0;
+
+  // Guard de Acesso para a Esteira / Controle de Estoque
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
       router.push("/login?redirect=/admin/pedidos");
       return;
     }
-    if (!isAdmin && !canAccess("ORDERS_KANBAN")) {
-      router.push("/admin?unauthorized=true");
+    if (!canAccessPedidosPage) {
+      router.push(hasOperationalPanel ? "/admin?unauthorized=true" : "/conta?unauthorized=true");
     }
-  }, [user, authLoading, isAdmin, canAccess, router]);
+  }, [user, authLoading, canAccessPedidosPage, hasOperationalPanel, router]);
 
   const [orders, setOrders] = useState<Order[]>([]);
   const ordersRef = useRef<Order[]>([]);
@@ -699,6 +708,7 @@ export default function AdminPedidosPage() {
 
   // Carga inicial e sincronização contínua (SSE em tempo real + heartbeat ativo + visibilidade + eventos locais)
   useEffect(() => {
+    if (authLoading || !user || !canManageKanban) return;
     fetchOrders();
 
     // SSE em tempo real: connectOrderEventsSSE já dispara dispatchOrderEvent internamente
@@ -795,7 +805,7 @@ export default function AdminPedidosPage() {
       stopHeartbeat();
       unsubscribe();
     };
-  }, [fetchOrders, showToast]);
+  }, [authLoading, user, canManageKanban, fetchOrders, showToast]);
 
   // Abertura automática de pedido via Query Param (?orderId=...)
   useEffect(() => {
@@ -1756,6 +1766,17 @@ export default function AdminPedidosPage() {
     );
   };
 
+  if (authLoading || !user || !canAccessPedidosPage) {
+    return (
+      <div className="flex-1 flex items-center justify-center min-h-screen bg-transparent">
+        <div className="text-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+          <p className="text-xs text-muted-foreground">Verificando permissões de acesso...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen min-h-[100dvh] flex flex-col font-sans pb-16 bg-transparent text-foreground transition-colors duration-200 w-full max-w-full min-w-0 overflow-x-clip">
       {/* Alerta Não-Bloqueante de Orientação Mobile */}
@@ -1764,12 +1785,12 @@ export default function AdminPedidosPage() {
       {/* Header Dedicado de Gestão de Pedidos */}
       <header className="bg-white/85 dark:bg-[#1F0B22]/90 backdrop-blur-xl border-b border-gray-200 dark:border-border/40 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center sticky top-0 z-40 shadow-sm">
         <div className="flex items-center gap-2 sm:gap-3">
-          <Link href="/" className="font-heading font-black text-lg sm:text-xl tracking-tight flex items-center gap-1.5 select-none hover:opacity-85 transition-opacity">
+          <Link href={hasOperationalPanel ? "/admin" : "/"} className="font-heading font-black text-lg sm:text-xl tracking-tight flex items-center gap-1.5 select-none hover:opacity-85 transition-opacity">
             <div className="flex items-center gap-0.5 font-heading font-black text-xl tracking-tight">
               <span className="text-foreground">Pop</span>
               <span className="text-primary font-black drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]">Shake</span>
               <span className="ml-1 text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                Gestão
+                {canManageKanban ? "Gestão" : "Estoque"}
               </span>
             </div>
           </Link>
@@ -1787,13 +1808,25 @@ export default function AdminPedidosPage() {
             </Link>
           )}
 
-          <Link
-            href="/admin"
-            className="hidden sm:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-          >
-            <BarChart3 className="w-4 h-4 text-primary" />
-            <span>Painel Operacional</span>
-          </Link>
+          {(isAdmin || canAccess("users_manage")) && (
+            <Link
+              href="/admin/usuarios"
+              className="hidden sm:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            >
+              <Users className="w-4 h-4 text-primary" />
+              <span>{isAdmin ? "Usuários" : "Clientes"}</span>
+            </Link>
+          )}
+
+          {hasOperationalPanel && (
+            <Link
+              href="/admin"
+              className="hidden sm:flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            >
+              <BarChart3 className="w-4 h-4 text-primary" />
+              <span>Painel Operacional</span>
+            </Link>
+          )}
 
           <Link
             href="/conta"
@@ -1837,22 +1870,36 @@ export default function AdminPedidosPage() {
 
             {mobileMenuOpen && (
               <div className="absolute right-0 top-10 z-50 w-52 bg-white dark:bg-background border border-gray-200 dark:border-border/60 rounded-2xl p-2 shadow-2xl space-y-1 animate-in fade-in zoom-in-95 duration-150">
-                <Link
-                  href="/admin/historico"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary"
-                >
-                  <History className="w-4 h-4 text-primary" />
-                  <span>Histórico</span>
-                </Link>
-                <Link
-                  href="/admin"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary"
-                >
-                  <BarChart3 className="w-4 h-4 text-primary" />
-                  <span>Painel Operacional</span>
-                </Link>
+                {(isAdmin || canAccess("ORDERS_HISTORY")) && (
+                  <Link
+                    href="/admin/historico"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary"
+                  >
+                    <History className="w-4 h-4 text-primary" />
+                    <span>Histórico</span>
+                  </Link>
+                )}
+                {(isAdmin || canAccess("users_manage")) && (
+                  <Link
+                    href="/admin/usuarios"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary"
+                  >
+                    <Users className="w-4 h-4 text-primary" />
+                    <span>{isAdmin ? "Usuários" : "Clientes"}</span>
+                  </Link>
+                )}
+                {hasOperationalPanel && (
+                  <Link
+                    href="/admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary"
+                  >
+                    <BarChart3 className="w-4 h-4 text-primary" />
+                    <span>Painel Operacional</span>
+                  </Link>
+                )}
                 <Link
                   href="/conta"
                   onClick={() => setMobileMenuOpen(false)}
@@ -1876,8 +1923,10 @@ export default function AdminPedidosPage() {
       </header>
 
       <main className="flex-1 p-4 sm:p-6 max-w-[1600px] mx-auto w-full max-w-full min-w-0 space-y-6">
-        {/* Widget de Status e Switch da Esteira */}
-        <StoreStatusTopWidget onStatusChange={() => fetchOrders(false)} />
+        {canManageKanban ? (
+          <>
+            {/* Widget de Status e Switch da Esteira */}
+            <StoreStatusTopWidget onStatusChange={() => fetchOrders(false)} />
 
         {/* Barra de Ações do Board */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -2248,11 +2297,35 @@ export default function AdminPedidosPage() {
           {renderKanbanColumn("Concluídos", ["completed"], "#10B981", "concluidos")}
           {renderKanbanColumn("Cancelados", ["cancelled"], "#EF4444", "cancelados", true)}
         </section>
+          </>
+        ) : (
+          <div className="bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/40 rounded-2xl p-5 sm:p-6 shadow-xs flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <Boxes className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="font-heading text-lg sm:text-xl font-bold uppercase tracking-wide text-foreground">
+                Controle de Estoque & Cozinha
+              </h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Pause itens esgotados na cozinha e ajuste quantidades em estoque em tempo real.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Seção Dedicada: Controle Rápido de Estoque & Itens à Venda */}
-        <StockControlSection activeDemandMap={activeDemandMap} refreshTrigger={stockRefreshTrigger} />
+        {canManageStock ? (
+          <StockControlSection activeDemandMap={canManageKanban ? activeDemandMap : {}} refreshTrigger={stockRefreshTrigger} />
+        ) : canManageKanban ? (
+          <p className="text-xs text-muted-foreground text-center py-2">
+            Módulo de Controle Rápido de Estoque oculto — permissão STOCK_CONTROL não habilitada para este perfil.
+          </p>
+        ) : null}
       </main>
 
+      {canManageKanban && (
+        <>
       {/* Gaveta / Drawer Lateral com a Ficha Completa do Pedido */}
       <OrderDetailDrawer
         order={selectedOrderForDrawer}
@@ -2917,6 +2990,8 @@ export default function AdminPedidosPage() {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

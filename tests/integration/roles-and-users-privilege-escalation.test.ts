@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prisma } from "@/lib/prisma";
 import * as authLib from "@/lib/auth";
+import { authLimiter } from "@/lib/rateLimit";
+import { GET as listUsers, POST as createUser } from "@/app/api/admin/users/route";
 import { GET as listRoles, POST as createRole } from "@/app/api/admin/roles/route";
 import { PATCH as updateRole, DELETE as deleteRole } from "@/app/api/admin/roles/[id]/route";
-import { POST as createUser } from "@/app/api/admin/users/route";
 import { PATCH as updateUser, DELETE as deleteUser } from "@/app/api/admin/users/[id]/route";
+import { GET as listOrders } from "@/app/api/orders/route";
+import { POST as loginUser } from "@/app/api/auth/login/route";
 
 describe("Segurança de Cargos e Prevenção de Escalonamento de Privilégios", () => {
   beforeEach(() => {
@@ -208,6 +211,252 @@ describe("Segurança de Cargos e Prevenção de Escalonamento de Privilégios", 
         { params: Promise.resolve({ id: "editor-peer-2" }) }
       );
       expect(okRes.status).toBe(200);
+    });
+
+    it("exige e-mail ou WhatsApp e preserva permissions: [] explícito ao criar EDITOR", async () => {
+      vi.spyOn(authLib, "getAuthUser").mockResolvedValue(fullAdmin as any);
+
+      const missingContactRes = await createUser(
+        new Request("http://localhost:3000/api/admin/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fullName: "Sem Contato",
+            password: "Password123!",
+            role: "EDITOR",
+          }),
+        })
+      );
+      expect(missingContactRes.status).toBe(400);
+
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue(null);
+      const createSpy = vi.spyOn(prisma.user, "create").mockResolvedValue({
+        id: "ed-empty",
+        fullName: "Editor Restrito",
+        email: "restrito@popclub.com",
+        role: "EDITOR",
+        permissions: [],
+        customRoleId: null,
+      } as any);
+
+      const emptyPermsRes = await createUser(
+        new Request("http://localhost:3000/api/admin/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fullName: "Editor Restrito",
+            email: "restrito@popclub.com",
+            password: "Password123!",
+            role: "EDITOR",
+            permissions: [],
+          }),
+        })
+      );
+      expect(emptyPermsRes.status).toBe(201);
+      expect(createSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            permissions: [],
+          }),
+        })
+      );
+    });
+
+    it("não incrementa tokenVersion (evita auto-logout) quando ADMIN edita o próprio perfil sem trocar cargo", async () => {
+      vi.spyOn(authLib, "getAuthUser").mockResolvedValue(fullAdmin as any);
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
+        id: "admin-root-1",
+        role: "ADMIN",
+        fullName: "Admin Original",
+        email: "admin@popclub.com",
+        permissions: [],
+        customRoleId: null,
+        customRole: null,
+        isActive: true,
+        isBlocked: false,
+      } as any);
+      const updateSpy = vi.spyOn(prisma.user, "update").mockResolvedValue({
+        id: "admin-root-1",
+        role: "ADMIN",
+        fullName: "Admin Atualizado",
+        email: "admin@popclub.com",
+      } as any);
+
+      const res = await updateUser(
+        new Request("http://localhost:3000/api/admin/users/admin-root-1", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fullName: "Admin Atualizado",
+            role: "ADMIN",
+            customRoleId: null,
+          }),
+        }),
+        { params: Promise.resolve({ id: "admin-root-1" }) }
+      );
+
+      expect(res.status).toBe(200);
+      const updateCall = updateSpy.mock.calls[0]?.[0];
+      expect(updateCall?.data).not.toHaveProperty("tokenVersion");
+    });
+
+    it("filtra deletedAt: null em filter=blocked, retorna summary global para ADMIN e restringe EDITOR a CLIENT", async () => {
+      vi.spyOn(authLib, "getAuthUser").mockResolvedValue(fullAdmin as any);
+      const countSpy = vi
+        .spyOn(prisma.user, "count")
+        .mockResolvedValueOnce(1) // activeAdminsCount
+        .mockResolvedValueOnce(3) // teamCount
+        .mockResolvedValueOnce(12) // clientsCount
+        .mockResolvedValueOnce(2) // blockedCount
+        .mockResolvedValueOnce(0); // list total
+      vi.spyOn(prisma.customRole, "count").mockResolvedValue(2);
+      vi.spyOn(prisma.user, "findMany").mockResolvedValue([]);
+
+      const blockedRes = await listUsers(
+        new Request("http://localhost:3000/api/admin/users?filter=blocked&includeSummary=true")
+      );
+      expect(blockedRes.status).toBe(200);
+      const blockedJson = await blockedRes.json();
+      expect(blockedJson.summary).toEqual({
+        activeAdminsCount: 1,
+        maxAdmins: 2,
+        teamCount: 3,
+        clientsCount: 12,
+        blockedCount: 2,
+        customRolesCount: 2,
+        maxCustomRoles: 4,
+      });
+      // O 5º call (list total) deve filtrar isBlocked: true e deletedAt: null
+      expect(countSpy.mock.calls[4]?.[0]?.where).toEqual(
+        expect.objectContaining({
+          isBlocked: true,
+          deletedAt: null,
+        })
+      );
+
+      // Editor com users_manage é sempre restrito a Role.CLIENT
+      vi.restoreAllMocks();
+      vi.spyOn(prisma.adminAuditLog, "create").mockResolvedValue({} as any);
+      vi.spyOn(authLib, "getAuthUser").mockResolvedValue(editorWithUsersManage as any);
+      const editorFindMany = vi.spyOn(prisma.user, "findMany").mockResolvedValue([]);
+      vi.spyOn(prisma.user, "count").mockResolvedValue(0);
+
+      const editorListRes = await listUsers(
+        new Request("http://localhost:3000/api/admin/users?filter=admin")
+      );
+      expect(editorListRes.status).toBe(200);
+      expect(editorFindMany.mock.calls[0]?.[0]?.where).toEqual(
+        expect.objectContaining({
+          role: "CLIENT",
+          deletedAt: null,
+        })
+      );
+    });
+  });
+
+  describe("Contratos Operacionais (metrics_view em /api/orders e Bloqueio no Login)", () => {
+    it("permite que EDITOR apenas com metrics_view liste todos os pedidos via GET /api/orders?all=true", async () => {
+      vi.spyOn(authLib, "getAuthUser").mockResolvedValue({
+        id: "editor-metrics",
+        role: "editor",
+        permissions: ["metrics_view"],
+      } as any);
+      const findManySpy = vi.spyOn(prisma.order, "findMany").mockResolvedValue([]);
+
+      const res = await listOrders(new Request("http://localhost:3000/api/orders?all=true"));
+      expect(res.status).toBe(200);
+      // Não pode restringir ao userId pessoal quando metrics_view está ativo
+      expect(findManySpy.mock.calls[0]?.[0]?.where).toEqual({ isArchived: false });
+    });
+
+    it("bloqueia login (403) para contas bloqueadas ou desativadas e emite canManageUsers no JWT", async () => {
+      vi.spyOn(authLimiter, "check").mockReturnValue({
+        success: true,
+        limit: 10,
+        remaining: 9,
+        reset: Date.now() + 60000,
+        retryAfter: 0,
+      });
+
+      const passwordHash = await authLib.hashPassword("SenhaForte123!");
+
+      // Conta bloqueada -> 403 com motivo
+      vi.spyOn(prisma.user, "findFirst").mockResolvedValueOnce({
+        id: "cli-blocked",
+        email: "bloqueado@popclub.com",
+        passwordHash,
+        role: "CLIENT",
+        permissions: [],
+        customRole: null,
+        isActive: true,
+        deletedAt: null,
+        isBlocked: true,
+        blockReason: "Fraude confirmada",
+        isRegistered: true,
+        tokenVersion: 1,
+      } as any);
+
+      const blockedRes = await loginUser(
+        new Request("http://localhost:3000/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ identifier: "bloqueado@popclub.com", password: "SenhaForte123!" }),
+        })
+      );
+      expect(blockedRes.status).toBe(403);
+      const blockedBody = await blockedRes.json();
+      expect(blockedBody.error).toContain("Fraude confirmada");
+
+      // Conta desativada -> 403
+      vi.spyOn(prisma.user, "findFirst").mockResolvedValueOnce({
+        id: "cli-inactive",
+        email: "inativo@popclub.com",
+        passwordHash,
+        role: "CLIENT",
+        permissions: [],
+        customRole: null,
+        isActive: false,
+        deletedAt: new Date(),
+        isBlocked: false,
+        isRegistered: true,
+        tokenVersion: 1,
+      } as any);
+
+      const inactiveRes = await loginUser(
+        new Request("http://localhost:3000/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ identifier: "inativo@popclub.com", password: "SenhaForte123!" }),
+        })
+      );
+      expect(inactiveRes.status).toBe(403);
+
+      // Editor com users_manage via customRole recebe token com canManageUsers: true
+      vi.spyOn(prisma.user, "findFirst").mockResolvedValueOnce({
+        id: "ed-mod-custom",
+        email: "mod@popclub.com",
+        passwordHash,
+        role: "EDITOR",
+        permissions: [],
+        customRole: { permissions: ["users_manage"] },
+        isActive: true,
+        deletedAt: null,
+        isBlocked: false,
+        isRegistered: true,
+        tokenVersion: 2,
+      } as any);
+
+      const okRes = await loginUser(
+        new Request("http://localhost:3000/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ identifier: "mod@popclub.com", password: "SenhaForte123!" }),
+        })
+      );
+      expect(okRes.status).toBe(200);
+      const okBody = await okRes.json();
+      const verified = authLib.verifyToken(okBody.token);
+      expect(verified?.canManageUsers).toBe(true);
     });
   });
 });

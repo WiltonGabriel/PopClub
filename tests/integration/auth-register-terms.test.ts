@@ -99,8 +99,8 @@ describe("Cadastro de Conta e Aceite de Termos/Privacidade", () => {
     const content = fs.readFileSync(loginPagePath, "utf8");
 
     expect(content).toContain("registerAcceptTerms");
-    expect(content).toContain('href="/termos"');
-    expect(content).toContain('href="/privacidade"');
+    expect(content).toContain("/termos?from=");
+    expect(content).toContain("/privacidade?from=");
     expect(content).toContain("acceptedTerms: true");
   });
 });

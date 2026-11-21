@@ -108,9 +108,17 @@ describe("Arquitetura de Navegação em 2 Níveis e UX/UI do Painel (/admin)", (
     expect(blockedAudit.unauthorized).toBe(true);
   });
 
-  it("elimina alert() e confirm() nativos nas 6 áreas auditadas e no shell /admin/page.tsx", () => {
+  it("elimina alert() e confirm() nativos nas áreas auditadas, no shell /admin/page.tsx e na gestão de usuários", () => {
+    const usersSubcomponentsDir = path.resolve(process.cwd(), "src/components/admin/users");
+    const usersSubcomponents = fs
+      .readdirSync(usersSubcomponentsDir)
+      .filter((name) => name.endsWith(".ts") || name.endsWith(".tsx"))
+      .map((name) => `src/components/admin/users/${name}`);
+
     const auditedFiles = [
       "src/app/admin/page.tsx",
+      "src/components/admin/UsersManagementSection.tsx",
+      ...usersSubcomponents,
       "src/components/admin/LogisticsAndCouriersSection.tsx",
       "src/components/admin/DeliveryFeeSettings.tsx",
       "src/components/admin/OrderFlowSettings.tsx",

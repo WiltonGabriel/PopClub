@@ -52,7 +52,9 @@ import {
   ShieldAlert,
   Trash2,
   Smartphone,
+  Boxes,
 } from "lucide-react";
+import { getVisibleAdminGroups } from "../../lib/adminNavigation";
 import { privacyService, CookieConsentPreferences } from "@/services/privacyService";
 import { pwaInstallService } from "@/services/pwaInstallService";
 import { navigationHistoryService } from "@/services/navigationHistoryService";
@@ -1148,113 +1150,128 @@ export default function AccountPage() {
                 </Link>
               </div>
             </div>
-          ) : isEditor ? (
-            <div className="mb-4 p-3.5 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-indigo-500/10 dark:from-indigo-950/40 dark:via-[#1E2538] dark:to-indigo-950/40 border border-indigo-500/30 dark:border-zinc-800 rounded-2xl shadow-sm">
-              <div className="flex items-center justify-between mb-2.5 px-0.5">
-                <div className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-indigo-500" />
-                  <span className="font-heading font-bold text-xs uppercase tracking-wider text-zinc-900 dark:text-zinc-100">
-                    Gestão da Loja
+          ) : isEditor ? (() => {
+            const hasOperationalPanel = getVisibleAdminGroups(user).length > 0;
+            const canManageKanban = canAccess("ORDERS_KANBAN");
+            const canManageStock = canAccess("STOCK_CONTROL");
+            const canManageOrdersOrStock = canManageKanban || canManageStock;
+            const canViewHistory = canAccess("ORDERS_HISTORY");
+            const canManageUsers = canAccess("users_manage");
+
+            if (!hasOperationalPanel && !canManageOrdersOrStock && !canViewHistory && !canManageUsers) {
+              return null;
+            }
+
+            return (
+              <div className="mb-4 p-3.5 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-indigo-500/10 dark:from-indigo-950/40 dark:via-[#1E2538] dark:to-indigo-950/40 border border-indigo-500/30 dark:border-zinc-800 rounded-2xl shadow-sm">
+                <div className="flex items-center justify-between mb-2.5 px-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-indigo-500" />
+                    <span className="font-heading font-bold text-xs uppercase tracking-wider text-zinc-900 dark:text-zinc-100">
+                      Gestão da Loja
+                    </span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-600 text-white shadow-xs">
+                    Acesso Editor
                   </span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-600 text-white shadow-xs">
-                  Acesso Editor
-                </span>
+
+                <div className="flex flex-col gap-2">
+                  {/* 1. Painel Operacional / PDV (se houver abas liberadas) */}
+                  {hasOperationalPanel && (
+                    <Link
+                      href="/admin"
+                      className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all active:scale-[0.99]"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform shrink-0">
+                          <LayoutDashboard className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-heading font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
+                            Painel Operacional
+                          </p>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            Acesso aos módulos liberados
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+                    </Link>
+                  )}
+
+                  {/* 2. Gerenciar Pedidos / Controle de Estoque */}
+                  {canManageOrdersOrStock && (
+                    <Link
+                      href="/admin/pedidos"
+                      className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all active:scale-[0.99]"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="p-2 rounded-lg bg-pink-100 dark:bg-pink-950/60 text-[#940068] dark:text-pink-300 group-hover:scale-105 transition-transform shrink-0">
+                          {canManageKanban ? <ClipboardList className="w-4 h-4" /> : <Boxes className="w-4 h-4" />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-heading font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
+                            {canManageKanban ? "Gerenciar Pedidos" : "Controle de Estoque"}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {canManageKanban ? "Fila ao vivo, cozinha e despacho" : "Pausar itens e ajustar estoque em tempo real"}
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#940068] group-hover:translate-x-0.5 transition-all shrink-0" />
+                    </Link>
+                  )}
+
+                  {/* 3. Histórico de Pedidos (se permitido) */}
+                  {canViewHistory && (
+                    <Link
+                      href="/admin/historico"
+                      className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all active:scale-[0.99]"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform shrink-0">
+                          <History className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-heading font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
+                            Histórico de Vendas
+                          </p>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            Relatório geral de pedidos da loja
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+                    </Link>
+                  )}
+
+                  {/* 4. Moderação de Clientes (se permitido via users_manage) */}
+                  {canManageUsers && (
+                    <Link
+                      href="/admin/usuarios"
+                      className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 hover:border-amber-500/50 dark:hover:border-amber-500/50 hover:shadow-md transition-all active:scale-[0.99]"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="p-2 rounded-lg bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30 group-hover:scale-105 transition-transform shrink-0">
+                          <Users className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-heading font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
+                            Moderação de Clientes
+                          </p>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            Consultar histórico e moderar contas de clientes
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+                    </Link>
+                  )}
+                </div>
               </div>
-
-              <div className="flex flex-col gap-2">
-                {/* 1. Painel Operacional / PDV */}
-                <Link
-                  href="/admin"
-                  className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all active:scale-[0.99]"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform shrink-0">
-                      <LayoutDashboard className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-heading font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
-                        Painel Operacional
-                      </p>
-                      <p className="text-[11px] text-muted-foreground truncate">
-                        Acesso aos módulos liberados
-                      </p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all shrink-0" />
-                </Link>
-
-                {/* 2. Gerenciar Pedidos (se permitido) */}
-                {canAccess("ORDERS_KANBAN") && (
-                  <Link
-                    href="/admin/pedidos"
-                    className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all active:scale-[0.99]"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="p-2 rounded-lg bg-pink-100 dark:bg-pink-950/60 text-[#940068] dark:text-pink-300 group-hover:scale-105 transition-transform shrink-0">
-                        <ClipboardList className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-heading font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
-                          Gerenciar Pedidos
-                        </p>
-                        <p className="text-[11px] text-muted-foreground truncate">
-                          Fila ao vivo, cozinha e despacho
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#940068] group-hover:translate-x-0.5 transition-all shrink-0" />
-                  </Link>
-                )}
-
-                {/* 3. Histórico de Pedidos (se permitido) */}
-                {canAccess("ORDERS_HISTORY") && (
-                  <Link
-                    href="/admin/historico"
-                    className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all active:scale-[0.99]"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform shrink-0">
-                        <History className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-heading font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
-                          Histórico de Vendas
-                        </p>
-                        <p className="text-[11px] text-muted-foreground truncate">
-                          Relatório geral de pedidos da loja
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all shrink-0" />
-                  </Link>
-                )}
-
-                {/* 4. Gestão de Usuários & Equipe (Soberania Administrativa) */}
-                {isAdmin && (
-                  <Link
-                    href="/admin/usuarios"
-                    className="group flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 hover:border-amber-500/50 dark:hover:border-amber-500/50 hover:shadow-md transition-all active:scale-[0.99]"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="p-2 rounded-lg bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30 group-hover:scale-105 transition-transform shrink-0">
-                        <Users className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-heading font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate">
-                          Usuários & Equipe
-                        </p>
-                        <p className="text-[11px] text-muted-foreground truncate">
-                          Controle de acessos e colaboradores
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all shrink-0" />
-                  </Link>
-                )}
-              </div>
-            </div>
-          ) : null}
+            );
+          })() : null}
 
           {/* Banner de Incentivo para Completar Cadastro */}
           {user && !user.isRegistered && (

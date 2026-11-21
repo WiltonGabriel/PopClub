@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "fs";
 import path from "path";
-import { navigationHistoryService, NavigationRouter } from "@/services/navigationHistoryService";
+import { navigationHistoryService, NavigationRouter, sanitizeSafeInternalRoute } from "@/services/navigationHistoryService";
 
 describe("NavigationHistoryService & Botão Voltar (Cookies / Privacidade / Conta)", () => {
   let mockSessionStorage: Record<string, string>;
@@ -131,10 +131,70 @@ describe("NavigationHistoryService & Botão Voltar (Cookies / Privacidade / Cont
     expect(routerMock.replace).not.toHaveBeenCalled();
   });
 
-  it("garante que /cookies, /privacidade, /conta e RootLayout utilizam a navegação de retorno contextual", () => {
+  it("retorna para /login?tab=register via ?from= quando /termos ou /privacidade é aberto em nova aba ou sem pilha prévia", () => {
+    navigationHistoryService.recordNavigation(
+      "/termos?from=%2Flogin%3Ftab%3Dregister"
+    );
+
+    mockLocation.pathname = "/termos";
+    mockLocation.search = "?from=%2Flogin%3Ftab%3Dregister";
+    mockHistory.length = 1;
+
+    navigationHistoryService.goBack(routerMock, "/");
+
+    expect(routerMock.push).toHaveBeenCalledWith("/login?tab=register");
+    expect(routerMock.back).not.toHaveBeenCalled();
+  });
+
+  it("prioriza ?from= quando opened em nova aba com history.length > 1 mas sem rota prévia na sessão da aba", () => {
+    mockLocation.pathname = "/privacidade";
+    mockLocation.search = "?from=%2Flogin%3Ftab%3Dregister";
+    mockHistory.length = 2;
+    mockDocument.referrer = "https://popshake.com.br/login";
+
+    navigationHistoryService.goBack(routerMock, "/");
+
+    expect(routerMock.push).toHaveBeenCalledWith("/login?tab=register");
+    expect(routerMock.back).not.toHaveBeenCalled();
+  });
+
+  it("retorna corretamente de /termos para /login?tab=register na mesma aba usando router.back()", () => {
+    navigationHistoryService.recordNavigation("/");
+    navigationHistoryService.recordNavigation("/login");
+    navigationHistoryService.replaceCurrent("/login?tab=register");
+    navigationHistoryService.recordNavigation("/termos?from=%2Flogin%3Ftab%3Dregister");
+
+    mockLocation.pathname = "/termos";
+    mockLocation.search = "?from=%2Flogin%3Ftab%3Dregister";
+    mockHistory.length = 4;
+
+    navigationHistoryService.goBack(routerMock, "/");
+
+    expect(routerMock.back).toHaveBeenCalledTimes(1);
+    expect(routerMock.push).not.toHaveBeenCalled();
+  });
+
+  it("rejeita redirecionamento externo ou perigoso em ?from= (Anti Open-Redirect)", () => {
+    expect(sanitizeSafeInternalRoute("https://evil.com/phish")).toBeNull();
+    expect(sanitizeSafeInternalRoute("//evil.com/phish")).toBeNull();
+    expect(sanitizeSafeInternalRoute("javascript:alert(1)")).toBeNull();
+    expect(sanitizeSafeInternalRoute("/login?tab=register")).toBe("/login?tab=register");
+
+    mockLocation.pathname = "/termos";
+    mockLocation.search = "?from=https%3A%2F%2Fevil.com";
+    mockHistory.length = 1;
+
+    navigationHistoryService.goBack(routerMock, "/");
+
+    expect(routerMock.push).toHaveBeenCalledWith("/");
+  });
+
+  it("garante que /cookies, /privacidade, /termos, /login, /conta e RootLayout utilizam navegação de retorno contextual", () => {
     const root = process.cwd();
     const cookiesSource = fs.readFileSync(path.join(root, "src/app/cookies/page.tsx"), "utf-8");
     const privacidadeSource = fs.readFileSync(path.join(root, "src/app/privacidade/page.tsx"), "utf-8");
+    const termosSource = fs.readFileSync(path.join(root, "src/app/termos/page.tsx"), "utf-8");
+    const loginSource = fs.readFileSync(path.join(root, "src/app/login/page.tsx"), "utf-8");
     const contaSource = fs.readFileSync(path.join(root, "src/app/conta/page.tsx"), "utf-8");
     const layoutSource = fs.readFileSync(path.join(root, "src/app/layout.tsx"), "utf-8");
 
@@ -143,6 +203,13 @@ describe("NavigationHistoryService & Botão Voltar (Cookies / Privacidade / Cont
 
     expect(privacidadeSource).toContain("SmartBackButton");
     expect(privacidadeSource).not.toContain("Voltar ao Cardápio");
+
+    expect(termosSource).toContain("SmartBackButton");
+
+    expect(loginSource).toContain("navigationHistoryService.replaceCurrent");
+    expect(loginSource).toContain("navigationHistoryService.goBack");
+    expect(loginSource).not.toMatch(/href=\{`\/termos[\s\S]{0,120}target="_blank"/);
+    expect(loginSource).not.toMatch(/href=\{`\/privacidade[\s\S]{0,120}target="_blank"/);
 
     expect(contaSource).toContain("navigationHistoryService.replaceCurrent");
     expect(contaSource).toContain("navigationHistoryService.goBack");

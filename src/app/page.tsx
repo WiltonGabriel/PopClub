@@ -74,7 +74,9 @@ import {
   Clock,
   Users,
   ShieldCheck,
+  Boxes,
 } from "lucide-react";
+import { getVisibleAdminGroups } from "../lib/adminNavigation";
 
 export type HomeSectionId = "highlight_banner" | "products_catalog";
 
@@ -985,48 +987,79 @@ export default function Storefront() {
                             <span>Gestão de Usuários</span>
                           </Link>
                         </div>
-                      ) : isEditor ? (
-                        <div className="border border-indigo-200/80 dark:border-indigo-950 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl p-1.5 shadow-xs space-y-0.5">
-                          <div className="flex items-center justify-between px-2 py-0.5">
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">
-                              Gestão da Loja
-                            </span>
-                            <span className="text-[8px] font-extrabold uppercase tracking-wider bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-1 py-0.2 rounded">
-                              Editor
-                            </span>
+                      ) : isEditor ? (() => {
+                        const hasOperationalPanel = getVisibleAdminGroups(user).length > 0;
+                        const canManageKanban = canAccess("ORDERS_KANBAN");
+                        const canManageStock = canAccess("STOCK_CONTROL");
+                        const canManageOrdersOrStock = canManageKanban || canManageStock;
+                        const canViewHistory = canAccess("ORDERS_HISTORY");
+                        const canManageUsers = canAccess("users_manage");
+
+                        if (!hasOperationalPanel && !canManageOrdersOrStock && !canViewHistory && !canManageUsers) {
+                          return null;
+                        }
+
+                        return (
+                          <div className="border border-indigo-200/80 dark:border-indigo-950 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl p-1.5 shadow-xs space-y-0.5">
+                            <div className="flex items-center justify-between px-2 py-0.5">
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block">
+                                Gestão da Loja
+                              </span>
+                              <span className="text-[8px] font-extrabold uppercase tracking-wider bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-1 py-0.2 rounded">
+                                Editor
+                              </span>
+                            </div>
+
+                            {hasOperationalPanel && (
+                              <Link
+                                href="/admin"
+                                onClick={() => setUserMenuOpen(false)}
+                                className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
+                              >
+                                <LayoutDashboard className="w-4 h-4 text-indigo-500 shrink-0" />
+                                <span>Painel Operacional</span>
+                              </Link>
+                            )}
+
+                            {canManageOrdersOrStock && (
+                              <Link
+                                href="/admin/pedidos"
+                                onClick={() => setUserMenuOpen(false)}
+                                className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
+                              >
+                                {canManageKanban ? (
+                                  <ClipboardList className="w-4 h-4 text-indigo-500 shrink-0" />
+                                ) : (
+                                  <Boxes className="w-4 h-4 text-indigo-500 shrink-0" />
+                                )}
+                                <span>{canManageKanban ? "Gerenciar Pedidos" : "Controle de Estoque"}</span>
+                              </Link>
+                            )}
+
+                            {canViewHistory && (
+                              <Link
+                                href="/admin/historico"
+                                onClick={() => setUserMenuOpen(false)}
+                                className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
+                              >
+                                <History className="w-4 h-4 text-indigo-500 shrink-0" />
+                                <span>Histórico de Pedidos</span>
+                              </Link>
+                            )}
+
+                            {canManageUsers && (
+                              <Link
+                                href="/admin/usuarios"
+                                onClick={() => setUserMenuOpen(false)}
+                                className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
+                              >
+                                <Users className="w-4 h-4 text-indigo-500 shrink-0" />
+                                <span>Moderação de Clientes</span>
+                              </Link>
+                            )}
                           </div>
-                          <Link
-                            href="/admin"
-                            onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
-                          >
-                            <LayoutDashboard className="w-4 h-4 text-indigo-500 shrink-0" />
-                            <span>Painel Operacional</span>
-                          </Link>
-
-                          {canAccess("ORDERS_KANBAN") && (
-                            <Link
-                              href="/admin/pedidos"
-                              onClick={() => setUserMenuOpen(false)}
-                              className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
-                            >
-                              <ClipboardList className="w-4 h-4 text-indigo-500 shrink-0" />
-                              <span>Gerenciar Pedidos</span>
-                            </Link>
-                          )}
-
-                          {canAccess("ORDERS_HISTORY") && (
-                            <Link
-                              href="/admin/historico"
-                              onClick={() => setUserMenuOpen(false)}
-                              className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary/10 hover:text-primary dark:hover:text-white transition-colors"
-                            >
-                              <History className="w-4 h-4 text-indigo-500 shrink-0" />
-                              <span>Histórico de Pedidos</span>
-                            </Link>
-                          )}
-                        </div>
-                      ) : null}
+                        );
+                      })() : null}
 
                       {/* Seção Pessoal do Usuário */}
                       <div className="pt-1 space-y-0.5">

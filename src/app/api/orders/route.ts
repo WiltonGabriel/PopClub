@@ -99,7 +99,10 @@ export async function GET(request: Request) {
 
     let whereClause: Prisma.OrderWhereInput = {};
 
-    const canViewAll = hasPermission(authUser, "ORDERS_KANBAN") || hasPermission(authUser, "ORDERS_HISTORY");
+    const canViewAll =
+      hasPermission(authUser, "ORDERS_KANBAN") ||
+      hasPermission(authUser, "ORDERS_HISTORY") ||
+      hasPermission(authUser, "metrics_view");
     if (canViewAll && all) {
       whereClause = {};
       if (!includeArchived) {

@@ -34,6 +34,7 @@ export interface TokenPayload {
   name?: string | null;
   role: "client" | "admin" | "editor" | string;
   isRegistered?: boolean;
+  canManageUsers?: boolean;
   tokenVersion?: number;
 }
 
