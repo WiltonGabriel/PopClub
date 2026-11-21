@@ -10,7 +10,7 @@ import {
   validatePermissionsInput,
 } from "@/lib/permissions";
 
-export const MAX_ACTIVE_ADMINS = 2;
+export const MAX_ACTIVE_ADMINS = 6;
 export const MAX_CUSTOM_ROLES = 4;
 export const MAX_MEMBERS_PER_CUSTOM_ROLE = 4;
 

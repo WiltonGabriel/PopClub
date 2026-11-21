@@ -873,11 +873,11 @@ export default function AccountPage() {
     }
   };
 
-  // Ação: Redefinir Senha com Senha Atual e Nova Senha
+  // Ação: Definir ou Redefinir Senha (contas Google sem senha não exigem senha atual)
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (!currentPasswordInput) {
+    if (hasAccountPassword && !currentPasswordInput) {
       showToast({ type: "error", title: "Senha Atual", message: "Informe sua senha atual." });
       return;
     }
@@ -891,10 +891,10 @@ export default function AccountPage() {
     }
     setIsSubmittingPassword(true);
     try {
-      const updated = await userService.updateProfile(user.id, {
-        new_password: newPasswordInput,
-        current_password: currentPasswordInput,
-      });
+      const payload = hasAccountPassword
+        ? { new_password: newPasswordInput, current_password: currentPasswordInput }
+        : { new_password: newPasswordInput };
+      const updated = await userService.updateProfile(user.id, payload);
       setProfile(updated);
       await refreshUser();
       setIsPasswordModalOpen(false);
@@ -903,14 +903,16 @@ export default function AccountPage() {
       setConfirmPasswordInput("");
       showToast({
         type: "success",
-        title: "Senha Redefinida!",
-        message: "Sua senha de acesso foi redefinida com sucesso.",
+        title: hasAccountPassword ? "Senha Redefinida!" : "Senha Definida!",
+        message: hasAccountPassword
+          ? "Sua senha de acesso foi redefinida com sucesso."
+          : "Sua senha local foi definida com sucesso e já pode autorizar operações administrativas.",
       });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Não foi possível redefinir a senha.";
+      const message = err instanceof Error ? err.message : "Não foi possível atualizar a senha.";
       showToast({
         type: "error",
-        title: "Erro ao redefinir senha",
+        title: "Erro ao salvar senha",
         message,
       });
     } finally {
@@ -1834,7 +1836,12 @@ export default function AccountPage() {
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
-                      {passwordRotationInfo.isExpired ? (
+                      {!hasAccountPassword ? (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-semibold">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          <span>Sem senha local definida</span>
+                        </div>
+                      ) : passwordRotationInfo.isExpired ? (
                         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-semibold">
                           <AlertCircle className="w-3.5 h-3.5" />
                           <span>Rotação recomendada (+90 dias)</span>
@@ -1869,7 +1876,7 @@ export default function AccountPage() {
                         }}
                         className="h-8 px-3 rounded-xl border-gray-200 dark:border-zinc-700 hover:border-primary text-xs font-bold text-zinc-700 dark:text-zinc-200 hover:text-primary transition-all cursor-pointer flex items-center gap-1.5"
                       >
-                        <KeyRound className="w-3 h-3" /> Redefinir Senha
+                        <KeyRound className="w-3 h-3" /> {hasAccountPassword ? "Redefinir Senha" : "Definir Senha"}
                       </Button>
 
                       <button
@@ -3475,10 +3482,12 @@ export default function AccountPage() {
                 </div>
                 <div>
                   <h3 className="font-heading font-bold text-base text-zinc-900 dark:text-zinc-100">
-                    Redefinir Senha
+                    {hasAccountPassword ? "Redefinir Senha" : "Definir Senha Local"}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    Exige sua senha atual e nova senha de 8+ caracteres.
+                    {hasAccountPassword
+                      ? "Exige sua senha atual e nova senha de 8+ caracteres."
+                      : "Crie uma senha local de 8+ caracteres para autenticar ações administrativas."}
                   </p>
                 </div>
               </div>
@@ -3492,40 +3501,42 @@ export default function AccountPage() {
             </div>
 
             <form onSubmit={handleResetPassword} className="space-y-4">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                    Senha Atual
-                  </Label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsPasswordModalOpen(false);
-                      setIsRescueModalOpen(true);
-                    }}
-                    className="text-[11px] font-semibold text-primary hover:underline cursor-pointer"
-                  >
-                    Esqueceu a senha?
-                  </button>
+              {hasAccountPassword && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                      Senha Atual
+                    </Label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsPasswordModalOpen(false);
+                        setIsRescueModalOpen(true);
+                      }}
+                      className="text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                    >
+                      Esqueceu a senha?
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      type={showPasswordCurrent ? "text" : "password"}
+                      required
+                      value={currentPasswordInput}
+                      onChange={(e) => setCurrentPasswordInput(e.target.value)}
+                      placeholder="Sua senha atual"
+                      className="h-11 rounded-xl bg-gray-50 dark:bg-[#151A28] border-gray-200 dark:border-zinc-800 text-sm pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswordCurrent(!showPasswordCurrent)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
+                    >
+                      {showPasswordCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
-                <div className="relative">
-                  <Input
-                    type={showPasswordCurrent ? "text" : "password"}
-                    required
-                    value={currentPasswordInput}
-                    onChange={(e) => setCurrentPasswordInput(e.target.value)}
-                    placeholder="Sua senha atual"
-                    className="h-11 rounded-xl bg-gray-50 dark:bg-[#151A28] border-gray-200 dark:border-zinc-800 text-sm pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswordCurrent(!showPasswordCurrent)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
-                  >
-                    {showPasswordCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
+              )}
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
@@ -3575,7 +3586,7 @@ export default function AccountPage() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isSubmittingPassword || !currentPasswordInput || newPasswordInput.length < 8}
+                  disabled={isSubmittingPassword || (hasAccountPassword && !currentPasswordInput) || newPasswordInput.length < 8}
                   className="h-10 px-5 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs flex items-center gap-2 shadow-xs cursor-pointer"
                 >
                   {isSubmittingPassword ? (
@@ -3583,7 +3594,7 @@ export default function AccountPage() {
                       <Loader2 className="w-3.5 h-3.5 animate-spin" /> Atualizando...
                     </>
                   ) : (
-                    <>Confirmar Nova Senha</>
+                    <>{hasAccountPassword ? "Confirmar Nova Senha" : "Salvar Nova Senha"}</>
                   )}
                 </Button>
               </div>

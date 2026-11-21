@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Users, UserPlus, Shield, RefreshCw, ShoppingBag } from "lucide-react";
 import { adminUserService, AdminUserListItem, CustomRoleItem, UsersSummary } from "@/services/adminUserService";
 import { loyaltyBadgeService, LoyaltyBadgeConfig, DEFAULT_LOYALTY_BADGES } from "@/services/loyaltyBadgeService";
-import { MAX_CUSTOM_ROLES } from "@/domain/services/RbacDomainService";
+import { MAX_ACTIVE_ADMINS, MAX_CUSTOM_ROLES } from "@/domain/services/RbacDomainService";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -293,7 +293,7 @@ export function UsersManagementSection() {
         isAdmin={isAdmin}
         customRoles={customRoles}
         activeAdminsCount={activeAdminsCount}
-        maxAdmins={summary?.maxAdmins ?? 2}
+        maxAdmins={summary?.maxAdmins ?? MAX_ACTIVE_ADMINS}
         initialOpenPromote={dossierPromoteMode}
         onPromoted={refreshAll}
       />

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prisma } from "@/lib/prisma";
 import * as authLib from "@/lib/auth";
 import { repairMojibake } from "@/lib/sanitize";
+import { MAX_ACTIVE_ADMINS } from "@/domain/services/RbacDomainService";
 import { authLimiter } from "@/lib/rateLimit";
 import { GET as listUsers, POST as createUser } from "@/app/api/admin/users/route";
 import { GET as listRoles, POST as createRole } from "@/app/api/admin/roles/route";
@@ -320,13 +321,14 @@ describe("Segurança de Cargos e Prevenção de Escalonamento de Privilégios", 
       const blockedJson = await blockedRes.json();
       expect(blockedJson.summary).toEqual({
         activeAdminsCount: 1,
-        maxAdmins: 2,
+        maxAdmins: 6,
         teamCount: 3,
         clientsCount: 12,
         blockedCount: 2,
         customRolesCount: 2,
         maxCustomRoles: 4,
       });
+      expect(MAX_ACTIVE_ADMINS).toBe(6);
       // O 5º call (list total) deve filtrar isBlocked: true e deletedAt: null
       expect(countSpy.mock.calls[4]?.[0]?.where).toEqual(
         expect.objectContaining({
@@ -413,7 +415,24 @@ describe("Segurança de Cargos e Prevenção de Escalonamento de Privilégios", 
       );
       expect(noPassRes.status).toBe(400);
 
-      // 4. Tentativa por ADMIN com adminPassword incorreta -> 401
+      // 4. Tentativa por ADMIN sem senha local definida (conta Google) -> 400 orientando ir em Meu Perfil
+      vi.spyOn(prisma.user, "findUnique")
+        .mockResolvedValueOnce(registeredClient as any)
+        .mockResolvedValueOnce({ id: "admin-root-1", passwordHash: null } as any);
+
+      const noHashRes = await updateUser(
+        new Request("http://localhost:3000/api/admin/users/client-reg-1", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: "ADMIN", adminPassword: "QualquerSenha123!" }),
+        }),
+        { params: Promise.resolve({ id: "client-reg-1" }) }
+      );
+      expect(noHashRes.status).toBe(400);
+      const noHashBody = await noHashRes.json();
+      expect(noHashBody.error).toContain("Meu Perfil");
+
+      // 5. Tentativa por ADMIN com adminPassword incorreta -> 401
       vi.spyOn(prisma.user, "findUnique")
         .mockResolvedValueOnce(registeredClient as any)
         .mockResolvedValueOnce({ id: "admin-root-1", passwordHash: adminPasswordHash } as any);
@@ -428,7 +447,7 @@ describe("Segurança de Cargos e Prevenção de Escalonamento de Privilégios", 
       );
       expect(wrongPassRes.status).toBe(401);
 
-      // 5. Tentativa por ADMIN em cliente de Acesso Rápido (isRegistered: false) -> 400
+      // 6. Tentativa por ADMIN em cliente de Acesso Rápido (isRegistered: false) -> 400
       vi.spyOn(prisma.user, "findUnique").mockResolvedValueOnce({
         ...registeredClient,
         isRegistered: false,

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { X, History, RefreshCw, Lock, ShoppingBag, ShieldCheck, KeyRound, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { AdminUserListItem, CustomRoleItem, UserDossier, adminUserService } from "@/services/adminUserService";
+import { MAX_ACTIVE_ADMINS } from "@/domain/services/RbacDomainService";
 import { useToast } from "@/components/ui/ToastNotification";
 import { Button } from "@/components/ui/button";
 import { formatShortDate } from "./roleColorStyles";
@@ -27,7 +28,7 @@ export function UserDossierDrawer({
   isAdmin = false,
   customRoles = [],
   activeAdminsCount = 1,
-  maxAdmins = 2,
+  maxAdmins = MAX_ACTIVE_ADMINS,
   initialOpenPromote = false,
   onPromoted,
 }: UserDossierDrawerProps) {
@@ -286,7 +287,7 @@ export function UserDossierDrawer({
                       htmlFor="promote-admin-password"
                       className="block text-[11px] font-bold uppercase tracking-wider text-foreground"
                     >
-                      Sua Senha Atual de Administrador
+                      Sua Senha Atual (Administrador Logado) *
                     </label>
                     <div className="relative">
                       <KeyRound className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -299,7 +300,7 @@ export function UserDossierDrawer({
                           setAdminPassword(e.target.value);
                           if (promoteError) setPromoteError(null);
                         }}
-                        placeholder="Digite sua senha de administrador..."
+                        placeholder="Digite a senha da sua conta de administrador logada..."
                         className="w-full h-10 pl-9 pr-10 rounded-xl bg-white dark:bg-background border border-gray-200 dark:border-border/50 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-primary"
                       />
                       <button

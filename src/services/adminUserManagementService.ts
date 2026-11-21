@@ -722,13 +722,18 @@ export async function updateAdminUser(
         select: { passwordHash: true },
       });
 
-      const isPasswordValid =
-        Boolean(adminRecord?.passwordHash) &&
-        (await verifyPassword(parsed.adminPassword, adminRecord!.passwordHash!));
+      if (!adminRecord?.passwordHash) {
+        throw new AdminUserServiceError(
+          "Sua conta de administrador (login via Google) ainda não possui senha local definida. Acesse Meu Perfil → Definir Senha para criar uma senha antes de autorizar promoções.",
+          400
+        );
+      }
+
+      const isPasswordValid = await verifyPassword(parsed.adminPassword, adminRecord.passwordHash);
 
       if (!isPasswordValid) {
         throw new AdminUserServiceError(
-          "Senha de administrador incorreta. Promoção não autorizada.",
+          "Senha do administrador logado incorreta. Promoção não autorizada.",
           401
         );
       }
