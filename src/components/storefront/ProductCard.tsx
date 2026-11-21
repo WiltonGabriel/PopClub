@@ -117,12 +117,13 @@ export function ProductCard({
         border-b md:border border-border/40 dark:border-zinc-800 last:border-b-0 md:last:border-b md:rounded-2xl
         transition-all duration-200
         ${isOutOfStock ? "opacity-80 cursor-not-allowed" : "cursor-pointer hover:bg-muted/30 md:hover:bg-card md:hover:shadow-lg md:hover:border-primary/40 md:hover:-translate-y-0.5"}
+        ${isAdmin ? "ring-1 ring-primary/30" : ""}
         ${featured ? "md:col-span-2" : ""}
       `}
     >
       {/* Admin Controls */}
       {isAdmin && (
-        <div className="absolute top-2 left-2 z-20 flex gap-1 bg-white/90 dark:bg-card/90 backdrop-blur-sm p-1 rounded-lg shadow-sm border border-primary/20 dark:border-primary/80/60 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-2 left-2 z-20 flex gap-1 bg-white/95 dark:bg-card/95 backdrop-blur-sm p-1 rounded-lg shadow-sm border border-primary/25 dark:border-primary/80/60 opacity-95 group-hover:opacity-100 transition-opacity">
           <button
             onClick={(e) => {
               e.stopPropagation();

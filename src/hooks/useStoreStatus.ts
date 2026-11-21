@@ -75,23 +75,18 @@ export function useStoreStatus(pollingIntervalMs: number = 20000): UseStoreStatu
   }, []);
 
   const toggleConveyor = useCallback(async (targetState?: boolean): Promise<boolean> => {
-    try {
-      const body = typeof targetState === "boolean" ? JSON.stringify({ isOpen: targetState }) : "{}";
-      const res = await fetch("/api/admin/conveyor/toggle", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body,
-      });
-      if (res.ok) {
-        const data = await res.json();
-        await fetchStatus();
-        return data.isOpen;
-      }
-      return false;
-    } catch (err) {
-      console.error("Erro ao alternar esteira:", err);
-      return false;
+    const body = typeof targetState === "boolean" ? JSON.stringify({ isOpen: targetState }) : "{}";
+    const res = await fetch("/api/admin/conveyor/toggle", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body,
+    });
+    const data = await res.json().catch(() => ({} as { isOpen?: boolean; error?: string }));
+    if (!res.ok) {
+      throw new Error(data?.error || "Não foi possível alternar o status da esteira.");
     }
+    await fetchStatus();
+    return Boolean(data.isOpen);
   }, [fetchStatus]);
 
   useEffect(() => {

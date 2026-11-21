@@ -505,8 +505,8 @@ export default function AdminDashboard() {
       <MobileOrientationBanner />
 
       {/* Header do Painel */}
-      <header className="bg-white/80 dark:bg-[#1F0B22]/90 backdrop-blur-xl border-b border-gray-200 dark:border-border/40 px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
-        <div className="flex items-center gap-3">
+      <header className="bg-white/80 dark:bg-[#1F0B22]/90 backdrop-blur-xl border-b border-gray-200 dark:border-border/40 px-4 lg:px-6 py-3 lg:py-4 flex flex-wrap justify-between items-center gap-2 sticky top-0 z-50 shadow-sm min-w-0">
+        <div className="flex items-center gap-3 min-w-0">
           <Link href="/" className="font-heading font-black text-xl tracking-tight flex items-center gap-1.5 select-none hover:opacity-85 transition-opacity">
             <div className="flex items-center gap-0.5 font-heading font-black text-xl tracking-tight">
               <span className="text-foreground">Pop</span>
@@ -518,11 +518,11 @@ export default function AdminDashboard() {
           </Link>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-1.5 lg:gap-2.5 flex-wrap">
           {(isAdmin || canAccess("ORDERS_HISTORY")) && (
             <Link
               href="/admin/historico"
-              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-2.5 lg:px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
             >
               <History className="w-4 h-4 text-primary" />
               <span className="hidden sm:inline">Histórico</span>
@@ -532,7 +532,7 @@ export default function AdminDashboard() {
           {(isAdmin || canAccess("users_manage")) && (
             <Link
               href="/admin/usuarios"
-              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-2.5 lg:px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
             >
               <Users className="w-4 h-4 text-primary" />
               <span className="hidden sm:inline">{isAdmin ? "Usuários" : "Clientes"}</span>
@@ -542,7 +542,7 @@ export default function AdminDashboard() {
           {(isAdmin || canAccess("ORDERS_KANBAN") || canAccess("STOCK_CONTROL")) && (
             <Link
               href="/admin/pedidos"
-              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-primary to-accent hover:opacity-95 rounded-xl px-3.5 py-2 shadow-sm shadow-primary/20 transition-all"
+              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-primary to-accent hover:opacity-95 rounded-xl px-2.5 lg:px-3.5 py-2 shadow-sm shadow-primary/20 transition-all"
             >
               {isAdmin || canAccess("ORDERS_KANBAN") ? (
                 <LayoutDashboard className="w-4 h-4" />
@@ -555,7 +555,7 @@ export default function AdminDashboard() {
 
           <Link
             href="/conta"
-            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-2.5 lg:px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
           >
             <User className="w-4 h-4 text-primary" />
             <span className="hidden sm:inline">Meu Perfil</span>
@@ -563,7 +563,7 @@ export default function AdminDashboard() {
 
           <Link
             href="/"
-            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-muted-foreground border border-gray-200 dark:border-border/40 rounded-xl px-2.5 lg:px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
           >
             <Store className="w-4 h-4 text-primary" />
             <span className="hidden sm:inline">Página Inicial</span>
@@ -586,7 +586,13 @@ export default function AdminDashboard() {
 
       <main className="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full max-w-full min-w-0 space-y-8">
         {/* Widget de Status da Loja em Tempo Real */}
-        <StoreStatusTopWidget />
+        <StoreStatusTopWidget
+          activeOrdersCount={orders.filter((o) => !["completed", "cancelled"].includes(o.status)).length}
+          onStatusChange={() => {
+            storeSettingsService.getSettings().then(setStoreSettings).catch(() => null);
+            fetchOrders();
+          }}
+        />
 
         {/* Mini Esteira Live (Monitor Compacto no Topo) */}
         {(() => {

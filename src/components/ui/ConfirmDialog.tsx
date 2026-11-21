@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { AlertTriangle, Loader2, ShieldAlert, Trash2, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, ShieldAlert, Trash2, X } from "lucide-react";
 import { Button } from "./button";
 
 export interface ConfirmDialogProps {
@@ -11,7 +11,7 @@ export interface ConfirmDialogProps {
   description: string;
   confirmLabel?: string;
   cancelLabel?: string;
-  variant?: "danger" | "warning" | "primary";
+  variant?: "danger" | "warning" | "primary" | "success";
   loading?: boolean;
   onConfirm: () => void | Promise<void>;
 }
@@ -49,6 +49,8 @@ export function ConfirmDialog({
       ? "bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400"
       : variant === "warning"
       ? "bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400"
+      : variant === "success"
+      ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400"
       : "bg-primary/10 text-primary";
 
   const confirmBtnStyle =
@@ -56,6 +58,8 @@ export function ConfirmDialog({
       ? "bg-red-600 hover:bg-red-700 text-white"
       : variant === "warning"
       ? "bg-amber-600 hover:bg-amber-700 text-white"
+      : variant === "success"
+      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
       : "bg-primary hover:bg-primary/90 text-white";
 
   const Icon =
@@ -63,10 +67,13 @@ export function ConfirmDialog({
       ? Trash2
       : variant === "warning"
       ? AlertTriangle
+      : variant === "success"
+      ? CheckCircle2
       : ShieldAlert;
 
   return (
     <div
+      data-testid="confirm-dialog"
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
       role="dialog"
       aria-modal="true"
@@ -116,6 +123,7 @@ export function ConfirmDialog({
           <Button
             type="button"
             variant="outline"
+            data-testid="confirm-dialog-cancel"
             disabled={loading}
             onClick={() => onOpenChange(false)}
             className="rounded-xl min-h-[44px] px-4 text-xs font-semibold cursor-pointer"
@@ -124,6 +132,7 @@ export function ConfirmDialog({
           </Button>
           <Button
             type="button"
+            data-testid="confirm-dialog-confirm"
             disabled={loading}
             onClick={onConfirm}
             className={`rounded-xl min-h-[44px] px-5 text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 cursor-pointer ${confirmBtnStyle}`}

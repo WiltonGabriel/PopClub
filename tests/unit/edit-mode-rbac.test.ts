@@ -172,4 +172,35 @@ describe("Modo Edição na Vitrine — RBAC & Segurança de Inicialização", ()
     expect(promoSrc).toContain("canUseEditMode");
     expect(promoSrc).toContain('canAccess("promotions_manage")');
   });
+
+  it("garante diálogos acessíveis, índice visível na reordenação, barra de status do Modo Edição e visibilidade de controles na vitrine", () => {
+    const pagePath = path.resolve(process.cwd(), "src/app/page.tsx");
+    const pageSrc = fs.readFileSync(pagePath, "utf-8");
+
+    expect(pageSrc).toContain("ConfirmDialog");
+    expect(pageSrc).not.toContain("window.confirm(");
+    expect(pageSrc).not.toContain("if (confirm(");
+    expect(pageSrc).toContain("{catIndex + 1}/{visibleCategories.length}");
+    expect(pageSrc).toContain("disabled={catIndex === visibleCategories.length - 1}");
+    expect(pageSrc).toContain("Modo Edição Ativo");
+    expect(pageSrc).toContain("Sair do Modo Edição");
+    expect(pageSrc).toContain("setEditMode(false)");
+    expect(pageSrc).toContain('canAccess("promotions_manage")');
+    expect(pageSrc).toContain("Apenas reordenação de seções liberada para este perfil");
+
+    const productCardPath = path.resolve(
+      process.cwd(),
+      "src/components/storefront/ProductCard.tsx"
+    );
+    const productCardSrc = fs.readFileSync(productCardPath, "utf-8");
+    expect(productCardSrc).toContain("opacity-95");
+    expect(productCardSrc).not.toContain("opacity-0");
+
+    const categoryRailPath = path.resolve(
+      process.cwd(),
+      "src/components/storefront/CategoryRail.tsx"
+    );
+    const categoryRailSrc = fs.readFileSync(categoryRailPath, "utf-8");
+    expect(categoryRailSrc).toContain("pt-5 pb-2.5");
+  });
 });

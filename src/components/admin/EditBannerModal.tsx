@@ -63,8 +63,9 @@ export function EditBannerModal({
         message: "A faixa de destaque da página inicial foi alterada com sucesso.",
         type: "success",
       });
-    } catch (err: any) {
-      setError(err.message || "Erro ao salvar alterações do banner.");
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Erro ao salvar alterações do banner.";
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }

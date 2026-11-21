@@ -136,7 +136,9 @@ export function CategoryRail({
         <div
           ref={scrollRef}
           onWheel={handleWheel}
-          className="flex overflow-x-auto gap-2 no-scrollbar items-center py-2.5 px-0.5 snap-x snap-mandatory scroll-smooth touch-pan-x overscroll-contain-x w-full min-w-0 [-webkit-overflow-scrolling:touch]"
+          className={`flex overflow-x-auto gap-2 no-scrollbar items-center px-0.5 snap-x snap-mandatory scroll-smooth touch-pan-x overscroll-contain-x w-full min-w-0 [-webkit-overflow-scrolling:touch] ${
+            canEdit ? "pt-5 pb-2.5" : "py-2.5"
+          }`}
         >
           {loading && categories.length === 0 ? (
             <>
@@ -177,6 +179,8 @@ export function CategoryRail({
                   <div
                     key={cat.id}
                     className={`relative group shrink-0 snap-start transition-transform ${
+                      canEdit ? "rounded-full ring-1 ring-dashed ring-primary/35" : ""
+                    } ${
                       draggedCatIndex === catIdx ? "opacity-40 scale-95" : ""
                     }`}
                   >
@@ -199,7 +203,7 @@ export function CategoryRail({
 
                     {/* Admin controls on chip */}
                     {canEdit && (
-                      <div className="absolute -top-3 -right-2 hidden group-hover:flex items-center gap-0.5 bg-white dark:bg-card shadow-lg border border-primary/20 dark:border-primary/80 rounded-full p-1 z-30 transition-all scale-95">
+                      <div className="absolute -top-3 right-0 hidden group-hover:flex group-focus-within:flex items-center gap-0.5 bg-white dark:bg-card shadow-lg border border-primary/20 dark:border-primary/80 rounded-full p-1 z-30 transition-all scale-95">
                         {/* Mover para esquerda */}
                         {catIdx > 0 && onMoveCategory && (
                           <button

@@ -33,6 +33,8 @@ import {
   LOADING_UPDATED_EVENT,
 } from "../services/loadingSettingsService";
 import { LogoutConfirmModal } from "../components/ui/LogoutConfirmModal";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { useToast } from "../components/ui/ToastNotification";
 
 // Admin components (unchanged)
 import { CategoryFormDialog } from "../components/admin/CategoryFormDialog";
@@ -90,6 +92,42 @@ const SECTION_LABELS: Record<HomeSectionId, string> = {
   products_catalog: "Catálogo de Produtos & Categorias",
 };
 
+function buildReorderedCategoryList(
+  allCategories: Category[],
+  visibleCategories: Category[],
+  reorderedVisible: Category[]
+): Category[] {
+  const visibleIds = new Set(visibleCategories.map((c) => c.id));
+  let cursor = 0;
+
+  return allCategories
+    .map((cat) => (visibleIds.has(cat.id) ? (reorderedVisible[cursor++] ?? cat) : cat))
+    .map((cat, idx) => ({ ...cat, order: idx }));
+}
+
+function formatEditModePermissionsSummary(capabilities: {
+  canEditCatalog: boolean;
+  canEditPromotions: boolean;
+  canEditHighlightBanner: boolean;
+  canReorderSections: boolean;
+}): string {
+  const contentPermissions = [
+    capabilities.canEditCatalog ? "Catálogo" : null,
+    capabilities.canEditPromotions ? "Promoções" : null,
+    capabilities.canEditHighlightBanner ? "Faixa de Destaque" : null,
+  ].filter((label): label is string => Boolean(label));
+
+  if (contentPermissions.length === 0) {
+    return "Apenas reordenação de seções liberada para este perfil";
+  }
+
+  const allPermissions = capabilities.canReorderSections
+    ? [...contentPermissions, "Reordenar Seções"]
+    : contentPermissions;
+
+  return allPermissions.join(" • ");
+}
+
 function SectionPositionControlBar({
   title,
   index,
@@ -145,11 +183,19 @@ function SectionPositionControlBar({
 
 export default function Storefront() {
   const { isAdmin, isEditor, canAccess, user, refreshUser } = useAuth();
-  const { isEditMode, canUseEditMode } = useEditMode();
+  const { isEditMode, canUseEditMode, setEditMode } = useEditMode();
+  const { showToast } = useToast();
   const canEditStorefront = canUseEditMode && isEditMode;
   const canEditCatalog = canEditStorefront && (isAdmin || canAccess("menu_manage"));
+  const canEditPromotions = canEditStorefront && (isAdmin || canAccess("promotions_manage"));
   const canEditHighlightBanner = canEditStorefront && (isAdmin || canAccess("theme_manage"));
   const canReorderSections = canEditStorefront;
+  const editPermissionsSummary = formatEditModePermissionsSummary({
+    canEditCatalog,
+    canEditPromotions,
+    canEditHighlightBanner,
+    canReorderSections,
+  });
   const { totalItems, itemsTotal } = useCart();
   const { theme, toggleTheme, resolvedTheme } = useTheme();
   const { activeOrders } = useOrders();
@@ -233,6 +279,12 @@ export default function Storefront() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [prodDialogOpen, setProdDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editDeleteConfirm, setEditDeleteConfirm] = useState<{
+    type: "category" | "product";
+    id: string;
+    name: string;
+  } | null>(null);
+  const [editDeleteLoading, setEditDeleteLoading] = useState(false);
 
   // Faixa de Destaque Promocional
   const [highlightBanner, setHighlightBanner] = useState<HighlightBannerData>({
@@ -402,75 +454,6 @@ export default function Storefront() {
     });
   };
 
-  // Reordenação de categorias via botões de seta com persistência direta
-  const handleMoveCategory = async (index: number, direction: "left" | "right" | "up" | "down") => {
-    const isBackward = direction === "left" || direction === "up";
-    const targetIndex = isBackward ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= categories.length) return;
-
-    const next = [...categories];
-    const temp = next[index];
-    next[index] = next[targetIndex];
-    next[targetIndex] = temp;
-
-    const payload = next.map((cat, idx) => ({ id: cat.id, order: idx }));
-    setCategories(next.map((c, idx) => ({ ...c, order: idx })));
-
-    try {
-      await categoryService.reorderCategories(payload);
-    } catch (err) {
-      console.error("Erro ao persistir ordem de categorias:", err);
-    }
-  };
-
-  // Drag & drop de categorias com persistência direta
-  const handleDragStart = (index: number) => {
-    setDraggedCatIndex(index);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = async (targetIndex: number) => {
-    if (draggedCatIndex === null || draggedCatIndex === targetIndex) return;
-    const next = [...categories];
-    const [moved] = next.splice(draggedCatIndex, 1);
-    next.splice(targetIndex, 0, moved);
-
-    const payload = next.map((cat, idx) => ({ id: cat.id, order: idx }));
-    setCategories(next.map((c, idx) => ({ ...c, order: idx })));
-    setDraggedCatIndex(null);
-
-    try {
-      await categoryService.reorderCategories(payload);
-    } catch (err) {
-      console.error("Erro ao persistir ordem de categorias:", err);
-    }
-  };
-
-  // Admin handlers
-  const handleDeleteCategory = async (id: string) => {
-    if (confirm("Deletar esta categoria? Produtos associados perderão o vínculo.")) {
-      await categoryService.deleteCategory(id);
-      setCategories((prev) => {
-        const next = prev.filter((c) => c.id !== id);
-        try {
-          localStorage.setItem("popshake_category_order", JSON.stringify(next.map((c) => c.id)));
-        } catch {}
-        return next;
-      });
-    }
-  };
-
-  const handleDeleteProduct = async (id: string) => {
-    if (confirm("Tem certeza que deseja deletar este produto?")) {
-      await productService.deleteProduct(id);
-      setProducts((prev) => prev.filter((p) => p.id !== id));
-    }
-  };
-
-
   // Salva posição de scroll da vitrine para restaurar ao voltar da categoria dedicada no mobile
   const savedScrollYRef = useRef<number>(0);
   const [mobileCategoryView, setMobileCategoryView] = useState<Category | null>(null);
@@ -604,6 +587,152 @@ export default function Storefront() {
   const visibleCategories = useMemo(() => {
     return categories.filter((c) => (c.isActive !== false) && isTimeWindowActive(c));
   }, [categories, isTimeWindowActive]);
+
+  // Persistência otimista de reordenação mantendo categorias ocultas/fora de horário nos seus slots
+  const persistCategoryOrder = async (reorderedVisible: Category[]) => {
+    const previousCategories = categories;
+    const nextCategories = buildReorderedCategoryList(
+      categories,
+      visibleCategories,
+      reorderedVisible
+    );
+    const payload = nextCategories.map((cat, idx) => ({ id: cat.id, order: idx }));
+    setCategories(nextCategories);
+
+    try {
+      await categoryService.reorderCategories(payload);
+    } catch (err) {
+      console.error("Erro ao persistir ordem de categorias:", err);
+      setCategories(previousCategories);
+      showToast({
+        title: "Erro ao reordenar categorias",
+        message: err instanceof Error ? err.message : "Não foi possível salvar a nova ordem.",
+        type: "error",
+      });
+    }
+  };
+
+  // Reordenação de categorias via botões de seta com persistência direta sobre visibleCategories
+  const handleMoveCategory = async (
+    visibleIndex: number,
+    direction: "left" | "right" | "up" | "down"
+  ) => {
+    const isBackward = direction === "left" || direction === "up";
+    const targetIndex = isBackward ? visibleIndex - 1 : visibleIndex + 1;
+    if (
+      visibleIndex < 0 ||
+      visibleIndex >= visibleCategories.length ||
+      targetIndex < 0 ||
+      targetIndex >= visibleCategories.length
+    ) {
+      return;
+    }
+
+    const reorderedVisible = [...visibleCategories];
+    const temp = reorderedVisible[visibleIndex];
+    reorderedVisible[visibleIndex] = reorderedVisible[targetIndex];
+    reorderedVisible[targetIndex] = temp;
+
+    await persistCategoryOrder(reorderedVisible);
+  };
+
+  // Drag & drop de categorias com persistência direta sobre visibleCategories
+  const handleDragStart = (visibleIndex: number) => {
+    setDraggedCatIndex(visibleIndex);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = async (targetVisibleIndex: number) => {
+    const sourceIndex = draggedCatIndex;
+    setDraggedCatIndex(null);
+
+    if (
+      sourceIndex === null ||
+      sourceIndex === targetVisibleIndex ||
+      sourceIndex < 0 ||
+      sourceIndex >= visibleCategories.length ||
+      targetVisibleIndex < 0 ||
+      targetVisibleIndex >= visibleCategories.length
+    ) {
+      return;
+    }
+
+    const reorderedVisible = [...visibleCategories];
+    const [moved] = reorderedVisible.splice(sourceIndex, 1);
+    reorderedVisible.splice(targetVisibleIndex, 0, moved);
+
+    await persistCategoryOrder(reorderedVisible);
+  };
+
+  // Admin handlers
+  const handleDeleteCategory = (id: string) => {
+    const targetCategory = categories.find((c) => c.id === id);
+    setEditDeleteConfirm({
+      type: "category",
+      id,
+      name: targetCategory?.name || "esta categoria",
+    });
+  };
+
+  const handleDeleteProduct = (id: string) => {
+    const targetProduct = products.find((p) => p.id === id);
+    setEditDeleteConfirm({
+      type: "product",
+      id,
+      name: targetProduct?.name || "este produto",
+    });
+  };
+
+  const handleConfirmEditDelete = async () => {
+    if (!editDeleteConfirm) return;
+    setEditDeleteLoading(true);
+    try {
+      if (editDeleteConfirm.type === "category") {
+        await categoryService.deleteCategory(editDeleteConfirm.id);
+        setCategories((prev) => {
+          const next = prev.filter((c) => c.id !== editDeleteConfirm.id);
+          try {
+            localStorage.setItem("popshake_category_order", JSON.stringify(next.map((c) => c.id)));
+          } catch {}
+          return next;
+        });
+        if (activeCategory === editDeleteConfirm.id) {
+          setActiveCategory(null);
+        }
+        if (mobileCategoryView?.id === editDeleteConfirm.id) {
+          setMobileCategoryView(null);
+        }
+        showToast({
+          title: "Categoria excluída",
+          message: `"${editDeleteConfirm.name}" foi removida da vitrine.`,
+          type: "success",
+        });
+      } else {
+        await productService.deleteProduct(editDeleteConfirm.id);
+        setProducts((prev) => prev.filter((p) => p.id !== editDeleteConfirm.id));
+        showToast({
+          title: "Produto excluído",
+          message: `"${editDeleteConfirm.name}" foi removido do cardápio.`,
+          type: "success",
+        });
+      }
+      setEditDeleteConfirm(null);
+    } catch (err) {
+      showToast({
+        title:
+          editDeleteConfirm.type === "category"
+            ? "Erro ao excluir categoria"
+            : "Erro ao excluir produto",
+        message: err instanceof Error ? err.message : "Tente novamente em alguns instantes.",
+        type: "error",
+      });
+    } finally {
+      setEditDeleteLoading(false);
+    }
+  };
 
   // Helper para obter produtos de uma categoria (estática ou dinâmica com 5 regras automatizadas)
   const getCategoryProducts = useCallback((cat: Category, prodsList: Product[]) => {
@@ -1195,6 +1324,32 @@ export default function Storefront() {
           MAIN CONTENT
       ───────────────────────────────────────── */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-6 space-y-8 relative z-10">
+        {canEditStorefront && (
+          <div
+            data-testid="edit-mode-status-bar"
+            className="rounded-2xl border border-primary/25 bg-white/90 dark:bg-[#1F0B22]/90 backdrop-blur-md px-4 py-2.5 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs"
+          >
+            <div className="flex flex-wrap items-center gap-2.5 min-w-0">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 text-primary dark:text-violet-300 border border-primary/25 px-2.5 py-0.5 font-bold uppercase tracking-wider text-[11px] shrink-0">
+                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                Modo Edição Ativo
+              </span>
+              <span className="text-muted-foreground font-medium">
+                {editPermissionsSummary}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setEditMode(false)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-primary/25 bg-primary/10 hover:bg-primary/20 text-primary dark:text-violet-300 px-3 py-1.5 text-xs font-bold transition-colors cursor-pointer shrink-0"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Sair do Modo Edição</span>
+            </button>
+          </div>
+        )}
+
         {/* ── VISUALIZAÇÃO DEDICADA DE CATEGORIA NO MOBILE ── */}
         {mobileCategoryView ? (
           <div className="space-y-5 animate-in fade-in duration-200">
@@ -1399,7 +1554,7 @@ export default function Storefront() {
                               {canEditCatalog && !activeCategory && (
                                 <div className="inline-flex items-center gap-1.5 bg-white/95 dark:bg-background/95 backdrop-blur-md border border-primary/30/80 dark:border-primary/80 rounded-xl px-2.5 py-1 text-xs shadow-xs">
                                   <span className="text-[10px] text-muted-foreground font-mono">
-                                    {catIndex + 1}/{categories.length}
+                                    {catIndex + 1}/{visibleCategories.length}
                                   </span>
                                   <div className="h-3 w-px bg-primary/20 dark:bg-primary/80" />
                                   <button
@@ -1415,10 +1570,10 @@ export default function Storefront() {
                                   </button>
                                   <button
                                     type="button"
-                                    disabled={catIndex === categories.length - 1}
+                                    disabled={catIndex === visibleCategories.length - 1}
                                     onClick={() => handleMoveCategory(catIndex, "down")}
                                     className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-bold text-primary dark:text-muted-foreground hover:bg-primary/10 dark:hover:bg-primary/90/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
-                                    title={catIndex === categories.length - 1 ? "Última categoria" : "Descer categoria"}
+                                    title={catIndex === visibleCategories.length - 1 ? "Última categoria" : "Descer categoria"}
                                     aria-label={`Descer categoria ${cat.name}`}
                                   >
                                     <ArrowDown className="w-3 h-3" />
@@ -1609,6 +1764,29 @@ export default function Storefront() {
         onOpenChange={setEditBannerModalOpen}
         currentBanner={highlightBanner}
         onSaved={(updated) => setHighlightBanner(updated)}
+      />
+      <ConfirmDialog
+        open={Boolean(editDeleteConfirm)}
+        onOpenChange={(open) => {
+          if (!open && !editDeleteLoading) {
+            setEditDeleteConfirm(null);
+          }
+        }}
+        title={
+          editDeleteConfirm?.type === "category"
+            ? "Excluir categoria"
+            : "Excluir produto"
+        }
+        description={
+          editDeleteConfirm?.type === "category"
+            ? `Tem certeza que deseja excluir a categoria "${editDeleteConfirm.name}"? Produtos associados perderão o vínculo.`
+            : `Tem certeza que deseja excluir o produto "${editDeleteConfirm?.name || ""}"? Esta ação não pode ser desfeita.`
+        }
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        variant="danger"
+        loading={editDeleteLoading}
+        onConfirm={handleConfirmEditDelete}
       />
 
       {/* Modal de Detalhes & Personalização do Produto (estilo iFood) */}
