@@ -41,6 +41,8 @@ services:
       EMAIL_FROM: ${EMAIL_FROM:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+    volumes:
+      - popshake_uploads:/app/public/uploads
     networks:
       - popshake_internal
       - proxy_network
@@ -62,3 +64,4 @@ networks:
 
 volumes:
   popshake_db_data:
+  popshake_uploads:

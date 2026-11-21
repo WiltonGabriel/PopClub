@@ -31,6 +31,7 @@ import { ProductDetailModal } from "../../components/storefront/ProductDetailMod
 import { useCart } from "../../hooks/useCart";
 import { useTheme } from "../../contexts/ThemeContext";
 import { Button } from "../../components/ui/button";
+import { navigationHistoryService } from "@/services/navigationHistoryService";
 
 function SearchContent() {
   const searchParams = useSearchParams();
@@ -38,11 +39,7 @@ function SearchContent() {
   const initialQ = searchParams.get("q") || "";
 
   const handleBack = () => {
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push("/");
-    }
+    navigationHistoryService.goBack(router, "/");
   };
 
   const [searchTerm, setSearchTerm] = useState(initialQ);

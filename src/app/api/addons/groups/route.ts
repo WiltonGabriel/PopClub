@@ -5,6 +5,9 @@ import { addonCrudLimiter, getIpFromRequest } from "@/lib/rateLimit";
 import { hasPermission } from "@/lib/permissions";
 import { AddonOrganizationService } from "@/domain/services/AddonOrganizationService";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const groups = await prisma.addonGroup.findMany({

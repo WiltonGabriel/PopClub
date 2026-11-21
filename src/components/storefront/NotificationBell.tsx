@@ -117,7 +117,11 @@ export function NotificationBell() {
     navigator.clipboard.writeText(code);
     setCopiedCouponId(notification.id);
     playDingSound();
-    showToast(`Cupom ${code} copiado com sucesso!`, "success");
+    showToast({
+      type: "success",
+      title: "Cupom copiado!",
+      message: `Cupom ${code} copiado com sucesso!`,
+    });
     handleMarkAsRead(notification);
     setTimeout(() => setCopiedCouponId(null), 2500);
   };
@@ -126,7 +130,11 @@ export function NotificationBell() {
     e.stopPropagation();
     handleMarkAsRead(notification);
     setIsOpen(false);
-    showToast(`Cupom ${code} pronto para uso no carrinho!`, "success");
+    showToast({
+      type: "success",
+      title: "Cupom aplicado!",
+      message: `Cupom ${code} pronto para uso no carrinho!`,
+    });
     // Salva no storage de cupom ativo para o checkout resgatar
     try {
       localStorage.setItem("popclub_applied_coupon", code);
@@ -141,7 +149,11 @@ export function NotificationBell() {
       await notificationService.markAllAsRead();
       setNotifications([]);
       setUnreadCount(0);
-      showToast("Todas as notificações foram marcadas como lidas.", "info");
+      showToast({
+        type: "info",
+        title: "Notificações lidas",
+        message: "Todas as notificações foram marcadas como lidas.",
+      });
     } catch (err) {
       console.error(err);
     } finally {
@@ -182,9 +194,9 @@ export function NotificationBell() {
 
       {/* Dropdown / Gaveta Flutuante de Novas e Não Lidas */}
       {isOpen && (
-        <div className="absolute right-0 sm:right-auto sm:left-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/50 shadow-2xl z-[120] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="fixed left-3 right-3 top-14 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 max-h-[calc(100dvh-5rem)] sm:max-h-[min(78dvh,480px)] flex flex-col rounded-2xl bg-white dark:bg-[#230E26] border border-gray-200 dark:border-border/50 shadow-2xl z-[120] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
           {/* Topo da Gaveta */}
-          <div className="p-3.5 sm:p-4 border-b border-gray-100 dark:border-border/30 flex items-center justify-between bg-gray-50/70 dark:bg-background/80">
+          <div className="shrink-0 p-3.5 sm:p-4 border-b border-gray-100 dark:border-border/30 flex items-center justify-between bg-gray-50/70 dark:bg-background/80">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-primary/15 text-primary dark:text-muted-foreground flex items-center justify-center">
                 <Bell className="w-3.5 h-3.5" />
@@ -213,7 +225,7 @@ export function NotificationBell() {
 
           {/* Card de Boas-vindas para clientes em Acesso Rápido */}
           {user && !user.isRegistered && (
-            <div className="p-3.5 bg-gradient-to-r from-primary/10 via-pink-500/10 to-amber-500/10 border-b border-primary/20/50 dark:border-primary/90/40 flex flex-col gap-2">
+            <div className="shrink-0 p-3.5 bg-gradient-to-r from-primary/10 via-pink-500/10 to-amber-500/10 border-b border-primary/20/50 dark:border-primary/90/40 flex flex-col gap-2">
               <p className="text-xs text-foreground leading-relaxed">
                 🎁 <strong>Seja bem-vindo ao PopShake!</strong> Complete seu cadastro adicionando e-mail e senha para liberar cupons de desconto e ofertas exclusivas.
               </p>
@@ -234,7 +246,7 @@ export function NotificationBell() {
           )}
 
           {/* Lista de Não Lidas */}
-          <div className="max-h-[380px] overflow-y-auto divide-y divide-gray-100 dark:divide-border/20">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain divide-y divide-gray-100 dark:divide-border/20">
             {notifications.length === 0 ? (
               <div className="p-6 text-center space-y-2">
                 <div className="w-12 h-12 mx-auto rounded-full bg-primary/5 dark:bg-primary/95/30 flex items-center justify-center text-primary dark:text-muted-foreground">
@@ -321,7 +333,7 @@ export function NotificationBell() {
           </div>
 
           {/* Rodapé com Link Direto para Meu Perfil */}
-          <div className="p-3 bg-gray-50/80 dark:bg-background/90 border-t border-gray-100 dark:border-border/30 text-center">
+          <div className="shrink-0 p-3 bg-gray-50/80 dark:bg-background/90 border-t border-gray-100 dark:border-border/30 text-center">
             <Link
               href="/conta?tab=notificacoes"
               onClick={() => setIsOpen(false)}

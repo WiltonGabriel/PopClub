@@ -53,6 +53,7 @@ export interface CreateAddonItemInput {
 export const addonService = {
   async getGroups(): Promise<AddonGroup[]> {
     const res = await fetch("/api/addons/groups", {
+      cache: "no-store",
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) {

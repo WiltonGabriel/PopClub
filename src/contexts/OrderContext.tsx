@@ -21,10 +21,25 @@ interface OrderContextType {
   activeOrders: Order[];
   historyOrders: Order[];
   loading: boolean;
+  guestOrdersHydrated: boolean;
   refreshOrders: (silent?: boolean) => Promise<void>;
   cancelOrder: (orderId: string, reason?: string) => Promise<void>;
   trackGuestOrder: (orderId: string) => void;
   guestOrderIds: string[];
+}
+
+function readStoredGuestOrderIds(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const saved = localStorage.getItem(GUEST_ORDERS_STORAGE_KEY);
+    if (!saved) return [];
+    const parsed = JSON.parse(saved);
+    return Array.isArray(parsed)
+      ? parsed.filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+      : [];
+  } catch {
+    return [];
+  }
 }
 
 const OrderContext = createContext<OrderContextType | null>(null);
@@ -36,7 +51,8 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [guestOrderIds, setGuestOrderIds] = useState<string[]>([]);
+  const [guestOrderIds, setGuestOrderIds] = useState<string[]>(() => readStoredGuestOrderIds());
+  const [guestOrdersHydrated, setGuestOrdersHydrated] = useState<boolean>(false);
 
   // Refs mutáveis para evitar re-criação de timers e listeners
   const ordersRef = useRef<Order[]>(orders);
@@ -65,17 +81,8 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
   // Carrega IDs de pedidos de visitante salvos no dispositivo
   useEffect(() => {
     if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem(GUEST_ORDERS_STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            setGuestOrderIds(parsed);
-          }
-        }
-      } catch (e) {
-        console.warn("Falha ao recuperar IDs de pedidos de visitante:", e);
-      }
+      setGuestOrderIds(readStoredGuestOrderIds());
+      setGuestOrdersHydrated(true);
     }
   }, []);
 
@@ -102,11 +109,19 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
       const currentUserId = userId;
 
       if (currentUserId) {
-        // Usuário logado: busca exclusivamente os pedidos atrelados ao seu userId
+        // Usuário logado ou em Acesso Rápido: busca os pedidos atrelados ao seu userId
         data = await orderService.getOrdersByUser();
         // Salva cache isolado deste usuário (0ms na próxima visualização)
         try {
           localStorage.setItem(getUserOrdersKey(currentUserId), JSON.stringify(data));
+          // Se estiver em Acesso Rápido (não registrado), sincroniza os IDs no storage local do dispositivo
+          if (user && user.isRegistered === false && Array.isArray(data) && data.length > 0) {
+            const fastOrderIds = Array.from(
+              new Set([...readStoredGuestOrderIds(), ...data.map((o) => o.id)])
+            ).slice(0, 20);
+            localStorage.setItem(GUEST_ORDERS_STORAGE_KEY, JSON.stringify(fastOrderIds));
+            setGuestOrderIds(fastOrderIds);
+          }
         } catch {}
       } else if (guestOrderIds.length > 0) {
         // Visitante não autenticado: busca estritamente os pedidos da sua lista de tracking anônima
@@ -179,10 +194,10 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
     return unsubscribe;
   }, [user?.id, guestOrderIds, authLoading, refreshOrders]);
 
-  // Reconciliação intencional: quando um usuário loga e possui pedidos de visitante pendentes
+  // Reconciliação intencional: quando um usuário registrado loga e possui pedidos de visitante pendentes
   useEffect(() => {
     const claimPendingGuestOrders = async () => {
-      if (user?.id && guestOrderIds.length > 0) {
+      if (user?.id && user.isRegistered !== false && guestOrderIds.length > 0) {
         try {
           const res = await orderService.claimGuestOrders(guestOrderIds);
           if (res.claimedCount > 0) {
@@ -193,7 +208,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
               duration: 8000,
             });
           }
-          // Limpa a lista local de tracking de visitante após vinculação
+          // Limpa a lista local de tracking de visitante após vinculação à conta definitiva
           localStorage.removeItem(GUEST_ORDERS_STORAGE_KEY);
           setGuestOrderIds([]);
           refreshOrders(false);
@@ -204,7 +219,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
     };
 
     claimPendingGuestOrders();
-  }, [user?.id, guestOrderIds, refreshOrders, showToast]);
+  }, [user?.id, user?.isRegistered, guestOrderIds, refreshOrders, showToast]);
 
   // ISOLAMENTO DE SESSÃO: Limpeza imediata no logout ou na troca de usuário
   useEffect(() => {
@@ -304,6 +319,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
         activeOrders,
         historyOrders,
         loading,
+        guestOrdersHydrated,
         refreshOrders,
         cancelOrder,
         trackGuestOrder,

@@ -1,6 +1,6 @@
 import { Prisma, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { hashPassword } from "@/lib/auth";
+import { hashPassword, verifyPassword } from "@/lib/auth";
 import {
   DEFAULT_EDITOR_PERMISSIONS,
   hasPermission,
@@ -672,25 +672,66 @@ export async function updateAdminUser(
   }
   const parsed = parsedResult.data;
 
-  // Regra de segurança 1: Imutabilidade de contas de clientes
+  // Regra de segurança 1: Proteção e promoção controlada de contas de clientes
+  const isPromotingClient =
+    targetRoleUpper === "CLIENT" &&
+    ((parsed.role !== undefined && parsed.role !== "CLIENT") ||
+      (parsed.customRoleId !== undefined && parsed.customRoleId !== null));
+
   if (targetRoleUpper === "CLIENT") {
-    if (parsed.role !== undefined && parsed.role !== "CLIENT") {
+    const hasClientPrivilegeChangeAttempt =
+      isPromotingClient ||
+      (parsed.permissions !== undefined && parsed.permissions.length > 0);
+
+    if (hasClientPrivilegeChangeAttempt && !isAdmin) {
       throw new AdminUserServiceError(
-        "Contas de clientes são exclusivas para consumo e não podem ser convertidas em cargos operacionais.",
+        "Apenas administradores podem promover clientes ou alterar cargos.",
+        403
+      );
+    }
+
+    if (!isPromotingClient && parsed.permissions !== undefined && parsed.permissions.length > 0) {
+      throw new AdminUserServiceError(
+        "Contas de clientes são exclusivas para consumo e não podem receber permissões operacionais sem promoção de cargo.",
         400
       );
     }
-    if (parsed.customRoleId !== undefined && parsed.customRoleId !== null) {
-      throw new AdminUserServiceError(
-        "Contas de clientes são exclusivas para consumo e não podem ser convertidas em cargos operacionais.",
-        400
-      );
-    }
-    if (parsed.permissions !== undefined && parsed.permissions.length > 0) {
-      throw new AdminUserServiceError(
-        "Contas de clientes são exclusivas para consumo e não podem receber permissões operacionais.",
-        400
-      );
+
+    if (isPromotingClient) {
+      if (!targetUser.isRegistered) {
+        throw new AdminUserServiceError(
+          "Apenas clientes com cadastro completo (e-mail/conta registrada) podem ser promovidos.",
+          400
+        );
+      }
+      if (targetUser.deletedAt || !targetUser.isActive || targetUser.isBlocked) {
+        throw new AdminUserServiceError(
+          "Não é possível promover uma conta de cliente bloqueada ou desativada.",
+          400
+        );
+      }
+      if (!parsed.adminPassword) {
+        throw new AdminUserServiceError(
+          "Verificação de segurança obrigatória: informe sua senha atual de administrador para autorizar a promoção deste cliente.",
+          400
+        );
+      }
+
+      const adminRecord = await prisma.user.findUnique({
+        where: { id: authUser.id },
+        select: { passwordHash: true },
+      });
+
+      const isPasswordValid =
+        Boolean(adminRecord?.passwordHash) &&
+        (await verifyPassword(parsed.adminPassword, adminRecord!.passwordHash!));
+
+      if (!isPasswordValid) {
+        throw new AdminUserServiceError(
+          "Senha de administrador incorreta. Promoção não autorizada.",
+          401
+        );
+      }
     }
   }
 
@@ -740,14 +781,22 @@ export async function updateAdminUser(
         }
         dataToUpdate.role = Role.ADMIN;
         dataToUpdate.customRoleId = null;
+        dataToUpdate.permissions = [];
         shouldInvalidateSession = true;
       } else if (parsed.role === "EDITOR" && targetRoleUpper !== "EDITOR") {
         dataToUpdate.role = Role.EDITOR;
+        if (isPromotingClient && parsed.permissions === undefined && !parsed.customRoleId) {
+          dataToUpdate.permissions = [...DEFAULT_EDITOR_PERMISSIONS];
+        }
         shouldInvalidateSession = true;
       }
     }
 
-    if (parsed.customRoleId !== undefined && targetRoleUpper !== "ADMIN" && targetRoleUpper !== "CLIENT") {
+    if (
+      parsed.customRoleId !== undefined &&
+      targetRoleUpper !== "ADMIN" &&
+      (targetRoleUpper !== "CLIENT" || isPromotingClient)
+    ) {
       const currentCustomRoleId = targetUser.customRoleId ?? null;
       const nextCustomRoleId = parsed.customRoleId ?? null;
 
@@ -798,7 +847,12 @@ export async function updateAdminUser(
       );
     }
 
-    if (targetRoleUpper !== "CLIENT" && targetRoleUpper !== "ADMIN" && !customRoleChangedToAssigned) {
+    if (
+      (targetRoleUpper !== "CLIENT" || isPromotingClient) &&
+      targetRoleUpper !== "ADMIN" &&
+      parsed.role !== "ADMIN" &&
+      !customRoleChangedToAssigned
+    ) {
       dataToUpdate.permissions = parsed.permissions;
       if (!arePermissionSetsEqual(targetUser.permissions, parsed.permissions)) {
         shouldInvalidateSession = true;
@@ -904,12 +958,20 @@ export async function updateAdminUser(
 
   await recordAdminAudit({
     actor: { id: authUser.id, role: authUser.role },
-    action: "UPDATE_USER",
+    action: isPromotingClient ? "PROMOTE_CLIENT_TO_STAFF" : "UPDATE_USER",
     resourceType: "user",
     resourceId: updatedUser.id,
-    summary: `Atualizou conta (${updatedUser.role}).`,
+    summary: isPromotingClient
+      ? `Promoveu conta de cliente para ${updatedUser.role} mediante confirmação de senha.`
+      : `Atualizou conta (${updatedUser.role}).`,
     diffKeys: Object.keys(dataToUpdate),
-    metadata: { targetRole: updatedUser.role, isBlocked: updatedUser.isBlocked, isSelf },
+    metadata: {
+      previousRole: targetUser.role,
+      targetRole: updatedUser.role,
+      isPromotedFromClient: isPromotingClient,
+      isBlocked: updatedUser.isBlocked,
+      isSelf,
+    },
   });
 
   return updatedUser;

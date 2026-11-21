@@ -9,6 +9,7 @@ export interface HighlightBannerData {
 export const bannerService = {
   async getHighlightBanner(): Promise<HighlightBannerData> {
     const res = await fetch("/api/banner", {
+      cache: "no-store",
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) {
@@ -29,6 +30,12 @@ export const bannerService = {
       throw new Error(err.error || "Erro ao atualizar o banner de destaque.");
     }
 
-    return await res.json();
+    const updated = (await res.json()) as HighlightBannerData;
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("popclub:highlight-banner-updated", { detail: updated })
+      );
+    }
+    return updated;
   },
 };

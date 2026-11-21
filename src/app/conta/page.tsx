@@ -346,6 +346,7 @@ export default function AccountPage() {
   const [isExportingData, setIsExportingData] = useState(false);
   const [isAnonymizeModalOpen, setIsAnonymizeModalOpen] = useState(false);
   const [anonymizePassword, setAnonymizePassword] = useState("");
+  const [anonymizePasswordConfirm, setAnonymizePasswordConfirm] = useState("");
   const [isAnonymizing, setIsAnonymizing] = useState(false);
   const [anonymizeError, setAnonymizeError] = useState<string | null>(null);
 
@@ -382,9 +383,22 @@ export default function AccountPage() {
   const handleConfirmAnonymization = async (e: React.FormEvent) => {
     e.preventDefault();
     setAnonymizeError(null);
+    if (requiresPasswordForProfileChange) {
+      if (!anonymizePassword || !anonymizePasswordConfirm) {
+        setAnonymizeError("Informe e confirme sua senha atual nos dois campos.");
+        return;
+      }
+      if (anonymizePassword !== anonymizePasswordConfirm) {
+        setAnonymizeError("As duas senhas informadas não conferem.");
+        return;
+      }
+    }
     setIsAnonymizing(true);
     try {
-      const res = await privacyService.requestAnonymization(anonymizePassword);
+      const res = await privacyService.requestAnonymization(
+        anonymizePassword,
+        anonymizePasswordConfirm
+      );
       showToast({
         type: "success",
         title: "Conta Anonimizada",
@@ -539,14 +553,36 @@ export default function AccountPage() {
         }
       };
 
+      const handleAccountResetMenu = () => {
+        setCurrentView("menu");
+        const baseUrl = window.location.pathname;
+        window.history.replaceState(window.history.state, "", baseUrl);
+        navigationHistoryService.replaceCurrent(baseUrl);
+      };
+
+      const handlePopState = () => {
+        const paramsNow = new URLSearchParams(window.location.search);
+        const tabNow = paramsNow.get("tab") || paramsNow.get("section");
+        if (tabNow && validSections.includes(tabNow)) {
+          setActiveSection(tabNow);
+          setCurrentView(tabNow as AccountView);
+        } else {
+          setCurrentView("menu");
+        }
+      };
+
       window.addEventListener("popshake:pwa-prompt-preference-changed", handlePwaPref as EventListener);
       window.addEventListener("popshake:pwa-prompt-dismissed", handlePwaDismissed as EventListener);
       window.addEventListener("popclub:cookie-consent-updated", handleConsentUpdated as EventListener);
+      window.addEventListener("popclub:account-reset-menu", handleAccountResetMenu);
+      window.addEventListener("popstate", handlePopState);
 
       return () => {
         window.removeEventListener("popshake:pwa-prompt-preference-changed", handlePwaPref as EventListener);
         window.removeEventListener("popshake:pwa-prompt-dismissed", handlePwaDismissed as EventListener);
         window.removeEventListener("popclub:cookie-consent-updated", handleConsentUpdated as EventListener);
+        window.removeEventListener("popclub:account-reset-menu", handleAccountResetMenu);
+        window.removeEventListener("popstate", handlePopState);
       };
     }
   }, []);
@@ -3090,6 +3126,7 @@ export default function AccountPage() {
                     type="button"
                     onClick={() => {
                       setAnonymizePassword("");
+                      setAnonymizePasswordConfirm("");
                       setAnonymizeError(null);
                       setIsAnonymizeModalOpen(true);
                     }}
@@ -3604,20 +3641,57 @@ export default function AccountPage() {
             )}
 
             <form onSubmit={handleConfirmAnonymization} className="space-y-4">
-              {user?.isRegistered && (
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                    Confirme sua senha de acesso *
-                  </Label>
-                  <Input
-                    type="password"
-                    placeholder="Digite sua senha atual"
-                    value={anonymizePassword}
-                    onChange={(e) => setAnonymizePassword(e.target.value)}
-                    required
-                    className="h-10 text-xs rounded-xl"
-                    disabled={isAnonymizing}
-                  />
+              {requiresPasswordForProfileChange && (
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="anonymize-password-input"
+                      className="text-xs font-semibold text-gray-700 dark:text-gray-300"
+                    >
+                      1. Informe sua senha atual *
+                    </Label>
+                    <Input
+                      id="anonymize-password-input"
+                      type="password"
+                      placeholder="Digite sua senha atual"
+                      value={anonymizePassword}
+                      onChange={(e) => {
+                        setAnonymizePassword(e.target.value);
+                        if (anonymizeError) setAnonymizeError(null);
+                      }}
+                      required
+                      className="h-10 text-xs rounded-xl"
+                      disabled={isAnonymizing}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="anonymize-password-confirm-input"
+                      className="text-xs font-semibold text-gray-700 dark:text-gray-300"
+                    >
+                      2. Confirme sua senha novamente *
+                    </Label>
+                    <Input
+                      id="anonymize-password-confirm-input"
+                      type="password"
+                      placeholder="Repita sua senha atual para confirmar"
+                      value={anonymizePasswordConfirm}
+                      onChange={(e) => {
+                        setAnonymizePasswordConfirm(e.target.value);
+                        if (anonymizeError) setAnonymizeError(null);
+                      }}
+                      required
+                      className="h-10 text-xs rounded-xl"
+                      disabled={isAnonymizing}
+                    />
+                    {anonymizePasswordConfirm.length > 0 &&
+                      anonymizePassword !== anonymizePasswordConfirm && (
+                        <p className="text-[11px] font-medium text-red-600 dark:text-red-400">
+                          As senhas digitadas não coincidem.
+                        </p>
+                      )}
+                  </div>
                 </div>
               )}
 
@@ -3633,7 +3707,13 @@ export default function AccountPage() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isAnonymizing}
+                  disabled={
+                    isAnonymizing ||
+                    (requiresPasswordForProfileChange &&
+                      (!anonymizePassword ||
+                        !anonymizePasswordConfirm ||
+                        anonymizePassword !== anonymizePasswordConfirm))
+                  }
                   className="h-10 px-4 text-xs font-semibold rounded-xl bg-red-600 hover:bg-red-700 text-white flex items-center gap-1.5"
                 >
                   {isAnonymizing ? (

@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { Search, X, RefreshCw, History, Key, Lock, Unlock, Trash2, Info } from "lucide-react";
+import { Search, X, RefreshCw, History, Key, Lock, Unlock, Trash2, Info, ShieldCheck } from "lucide-react";
 import { AdminUserListItem } from "@/services/adminUserService";
 import { LoyaltyBadgeConfig, formatLoyaltyBadgeRequirement } from "@/services/loyaltyBadgeService";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ interface ClientsTabProps {
   onPageChange: (page: number) => void;
   onClearFilters: () => void;
   onViewDossier: (user: AdminUserListItem) => void;
+  onPromoteClient?: (user: AdminUserListItem) => void;
   onResetPassword: (user: AdminUserListItem) => void;
   onToggleBlock: (user: AdminUserListItem) => void;
   onDeactivate: (user: AdminUserListItem) => void;
@@ -58,6 +59,7 @@ export function ClientsTab({
   onPageChange,
   onClearFilters,
   onViewDossier,
+  onPromoteClient,
   onResetPassword,
   onToggleBlock,
   onDeactivate,
@@ -259,6 +261,18 @@ export function ClientsTab({
 
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1 whitespace-nowrap">
+                          {isAdmin && isClientAccount && u.isRegistered && !u.isBlocked && u.isActive && onPromoteClient && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => onPromoteClient(u)}
+                              title="Promover cliente para Administrador ou Equipe"
+                              className="min-h-[44px] px-3 rounded-xl text-xs font-bold gap-1.5 border-primary/30 text-primary hover:bg-primary/10 cursor-pointer"
+                            >
+                              <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                              <span>Promover</span>
+                            </Button>
+                          )}
                           <Button type="button" variant="outline" onClick={() => onViewDossier(u)} className="min-h-[44px] px-3 rounded-xl text-xs font-bold gap-1.5 cursor-pointer">
                             <History className="w-3.5 h-3.5 text-primary" /><span>Dossiê & Pedidos</span>
                           </Button>

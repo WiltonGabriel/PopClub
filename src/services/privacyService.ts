@@ -176,11 +176,17 @@ export const privacyService = {
   /**
    * Solicita a anonimização irreversível dos dados cadastrais (Art. 18, VI e Art. 16, I)
    */
-  async requestAnonymization(password?: string): Promise<{ success: boolean; message: string }> {
+  async requestAnonymization(
+    password?: string,
+    confirmPassword?: string
+  ): Promise<{ success: boolean; message: string }> {
     const res = await fetch("/api/users/privacy", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({
+        password,
+        confirmPassword: confirmPassword ?? password,
+      }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));

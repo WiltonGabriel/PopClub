@@ -93,6 +93,10 @@ export function BottomNav({
                   e.preventDefault();
                   window.scrollTo({ top: 0, behavior: "smooth" });
                   if (onHomeClick) onHomeClick();
+                } else if (id === "profile" && (pathname === "/conta" || pathname === "/perfil")) {
+                  e.preventDefault();
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                  window.dispatchEvent(new CustomEvent("popclub:account-reset-menu"));
                 } else if (id === "search" && onSearchClick && pathname === "/") {
                   // Se fornecido um modal de busca na home, pode abrir o modal
                   // ou navegar diretamente para /busca

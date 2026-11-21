@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prisma } from "@/lib/prisma";
 import * as authLib from "@/lib/auth";
+import { repairMojibake } from "@/lib/sanitize";
 import { authLimiter } from "@/lib/rateLimit";
 import { GET as listUsers, POST as createUser } from "@/app/api/admin/users/route";
 import { GET as listRoles, POST as createRole } from "@/app/api/admin/roles/route";
@@ -350,6 +351,138 @@ describe("Segurança de Cargos e Prevenção de Escalonamento de Privilégios", 
           role: "CLIENT",
           deletedAt: null,
         })
+      );
+    });
+
+    it("exige verificação de senha do ADMIN (step-up auth) para promover CLIENT registrado a ADMIN e bloqueia EDITOR/CLIENT ou senha incorreta", async () => {
+      const adminPasswordHash = await authLib.hashPassword("AdminMaster123!");
+      const registeredClient = {
+        id: "client-reg-1",
+        role: "CLIENT",
+        fullName: "Cliente Fiel",
+        email: "cliente@popclub.com",
+        isRegistered: true,
+        isActive: true,
+        isBlocked: false,
+        deletedAt: null,
+        permissions: [],
+        customRoleId: null,
+        customRole: null,
+      };
+
+      // 1. Tentativa por EDITOR com users_manage -> 403
+      vi.spyOn(authLib, "getAuthUser").mockResolvedValue(editorWithUsersManage as any);
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue(registeredClient as any);
+
+      const editorPromoteRes = await updateUser(
+        new Request("http://localhost:3000/api/admin/users/client-reg-1", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: "ADMIN", adminPassword: "AdminMaster123!" }),
+        }),
+        { params: Promise.resolve({ id: "client-reg-1" }) }
+      );
+      expect(editorPromoteRes.status).toBe(403);
+
+      // 2. Tentativa pelo próprio CLIENT -> 403
+      vi.spyOn(authLib, "getAuthUser").mockResolvedValue({
+        id: "client-reg-1",
+        role: "client",
+        permissions: [],
+      } as any);
+
+      const selfPromoteRes = await updateUser(
+        new Request("http://localhost:3000/api/admin/users/client-reg-1", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: "ADMIN", adminPassword: "AdminMaster123!" }),
+        }),
+        { params: Promise.resolve({ id: "client-reg-1" }) }
+      );
+      expect(selfPromoteRes.status).toBe(403);
+
+      // 3. Tentativa por ADMIN sem informar adminPassword -> 400
+      vi.spyOn(authLib, "getAuthUser").mockResolvedValue(fullAdmin as any);
+      const noPassRes = await updateUser(
+        new Request("http://localhost:3000/api/admin/users/client-reg-1", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: "ADMIN" }),
+        }),
+        { params: Promise.resolve({ id: "client-reg-1" }) }
+      );
+      expect(noPassRes.status).toBe(400);
+
+      // 4. Tentativa por ADMIN com adminPassword incorreta -> 401
+      vi.spyOn(prisma.user, "findUnique")
+        .mockResolvedValueOnce(registeredClient as any)
+        .mockResolvedValueOnce({ id: "admin-root-1", passwordHash: adminPasswordHash } as any);
+
+      const wrongPassRes = await updateUser(
+        new Request("http://localhost:3000/api/admin/users/client-reg-1", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: "ADMIN", adminPassword: "SenhaErrada999!" }),
+        }),
+        { params: Promise.resolve({ id: "client-reg-1" }) }
+      );
+      expect(wrongPassRes.status).toBe(401);
+
+      // 5. Tentativa por ADMIN em cliente de Acesso Rápido (isRegistered: false) -> 400
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValueOnce({
+        ...registeredClient,
+        isRegistered: false,
+      } as any);
+
+      const fastAccessRes = await updateUser(
+        new Request("http://localhost:3000/api/admin/users/client-reg-1", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: "ADMIN", adminPassword: "AdminMaster123!" }),
+        }),
+        { params: Promise.resolve({ id: "client-reg-1" }) }
+      );
+      expect(fastAccessRes.status).toBe(400);
+
+      // 6. Promoção autorizada por ADMIN com adminPassword válida -> 200
+      vi.spyOn(prisma.user, "findUnique")
+        .mockResolvedValueOnce(registeredClient as any)
+        .mockResolvedValueOnce({ id: "admin-root-1", passwordHash: adminPasswordHash } as any);
+      vi.spyOn(prisma.user, "count").mockResolvedValueOnce(1);
+      const updateSpy = vi.spyOn(prisma.user, "update").mockResolvedValueOnce({
+        ...registeredClient,
+        role: "ADMIN",
+        tokenVersion: 2,
+      } as any);
+
+      const okPromoteRes = await updateUser(
+        new Request("http://localhost:3000/api/admin/users/client-reg-1", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: "ADMIN", adminPassword: "AdminMaster123!" }),
+        }),
+        { params: Promise.resolve({ id: "client-reg-1" }) }
+      );
+      expect(okPromoteRes.status).toBe(200);
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "client-reg-1" },
+          data: expect.objectContaining({
+            role: "ADMIN",
+            customRoleId: null,
+            permissions: [],
+            tokenVersion: { increment: 1 },
+          }),
+        })
+      );
+    });
+
+    it("repara strings com mojibake UTF-8/Latin-1 mantendo acentuação legítima intacta", () => {
+      expect(repairMojibake("Oi Wilton! JÃ¡ pediu seu aÃ§aÃ­ cremoso hoje?")).toBe(
+        "Oi Wilton! Já pediu seu açaí cremoso hoje?"
+      );
+      expect(repairMojibake("Já pediu seu açaí cremoso hoje? 🍧")).toBe(
+        "Já pediu seu açaí cremoso hoje? 🍧"
       );
     });
   });

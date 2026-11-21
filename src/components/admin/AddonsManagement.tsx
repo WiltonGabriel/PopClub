@@ -701,18 +701,17 @@ export function AddonsManagement() {
                             }`}
                           >
                             <div className="flex items-center gap-3 min-w-0">
-                              {/* Miniatura 160x160 WebP (exibida em 44x44 na lista) */}
-                              <div className="w-11 h-11 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-border/50 shrink-0 overflow-hidden flex items-center justify-center">
+                              {/* Miniatura 160x160 WebP (exibida em 44x44 na lista; fundo escuro limpo quando sem imagem) */}
+                              <div className="w-11 h-11 rounded-xl bg-zinc-900 dark:bg-[#0D1017] border border-zinc-800/80 shrink-0 overflow-hidden flex items-center justify-center">
                                 {item.imageUrl ? (
                                   /* eslint-disable-next-line @next/next/no-img-element */
                                   <img
+                                    key={item.imageUrl}
                                     src={item.imageUrl}
                                     alt={item.name}
                                     className="w-full h-full object-cover"
                                   />
-                                ) : (
-                                  <Utensils className="w-4 h-4 text-muted-foreground/60" />
-                                )}
+                                ) : null}
                               </div>
 
                               <div className="min-w-0">
@@ -958,19 +957,18 @@ export function AddonsManagement() {
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Miniatura do Ingrediente (160x160 WebP)</Label>
                 <div className="flex items-center gap-3">
-                  <div className="w-20 h-20 rounded-2xl bg-zinc-100 dark:bg-zinc-800 border-2 border-dashed border-border/60 overflow-hidden relative flex items-center justify-center shrink-0">
+                  <div className="w-20 h-20 rounded-2xl bg-zinc-900 dark:bg-[#0D1017] border-2 border-zinc-800 overflow-hidden relative flex items-center justify-center shrink-0">
                     {uploadingImage ? (
                       <Loader2 className="w-5 h-5 animate-spin text-primary" />
                     ) : itemForm.imageUrl ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
+                        key={itemForm.imageUrl}
                         src={itemForm.imageUrl}
                         alt="Miniatura"
                         className="w-full h-full object-cover"
                       />
-                    ) : (
-                      <ImageIcon className="w-6 h-6 text-muted-foreground/50" />
-                    )}
+                    ) : null}
                   </div>
 
                   <div className="space-y-1.5 flex-1">
@@ -981,19 +979,35 @@ export function AddonsManagement() {
                       className="hidden"
                       onChange={handleImageFileChange}
                     />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploadingImage}
-                      className="w-full rounded-xl text-xs h-9 font-semibold border-zinc-200 dark:border-zinc-700 cursor-pointer"
-                    >
-                      <Upload className="w-3.5 h-3.5 mr-1 text-primary" />
-                      {uploadingImage ? "Processando..." : itemForm.imageUrl ? "Substituir Foto" : "Enviar Foto"}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingImage}
+                        className="flex-1 rounded-xl text-xs h-9 font-semibold border-zinc-200 dark:border-zinc-700 cursor-pointer"
+                      >
+                        <Upload className="w-3.5 h-3.5 mr-1 text-primary" />
+                        {uploadingImage ? "Processando..." : itemForm.imageUrl ? "Substituir Foto" : "Enviar Foto"}
+                      </Button>
+                      {itemForm.imageUrl && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={uploadingImage}
+                          onClick={() => setItemForm((prev) => ({ ...prev, imageUrl: "" }))}
+                          title="Remover foto do complemento"
+                          className="rounded-xl text-xs h-9 px-3 font-semibold border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-1" />
+                          Remover
+                        </Button>
+                      )}
+                    </div>
                     <p className="text-[10px] text-muted-foreground leading-tight">
-                      PNG, JPG ou WebP até 2MB. Convertido e redimensionado automaticamente para WebP 160x160 px.
+                      PNG, JPG ou WebP até 2MB. Sem imagem cadastrada, o espaço permanece escuro e limpo.
                     </p>
                   </div>
                 </div>

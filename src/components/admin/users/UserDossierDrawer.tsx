@@ -2,21 +2,59 @@
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import { X, History, RefreshCw, Lock, ShoppingBag } from "lucide-react";
-import { AdminUserListItem, UserDossier, adminUserService } from "@/services/adminUserService";
+import { X, History, RefreshCw, Lock, ShoppingBag, ShieldCheck, KeyRound, Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { AdminUserListItem, CustomRoleItem, UserDossier, adminUserService } from "@/services/adminUserService";
 import { useToast } from "@/components/ui/ToastNotification";
+import { Button } from "@/components/ui/button";
 import { formatShortDate } from "./roleColorStyles";
 
 interface UserDossierDrawerProps {
   open: boolean;
   user: AdminUserListItem | null;
   onClose: () => void;
+  isAdmin?: boolean;
+  customRoles?: CustomRoleItem[];
+  activeAdminsCount?: number;
+  maxAdmins?: number;
+  initialOpenPromote?: boolean;
+  onPromoted?: () => Promise<void> | void;
 }
 
-export function UserDossierDrawer({ open, user, onClose }: UserDossierDrawerProps) {
+export function UserDossierDrawer({
+  open,
+  user,
+  onClose,
+  isAdmin = false,
+  customRoles = [],
+  activeAdminsCount = 1,
+  maxAdmins = 2,
+  initialOpenPromote = false,
+  onPromoted,
+}: UserDossierDrawerProps) {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [dossier, setDossier] = useState<UserDossier | null>(null);
+
+  const [isPromoteOpen, setIsPromoteOpen] = useState(false);
+  const [targetRoleChoice, setTargetRoleChoice] = useState<string>("ADMIN");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [promoting, setPromoting] = useState(false);
+  const [promoteError, setPromoteError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open && user) {
+      setIsPromoteOpen(Boolean(initialOpenPromote));
+      setTargetRoleChoice(activeAdminsCount >= maxAdmins ? "EDITOR" : "ADMIN");
+      setAdminPassword("");
+      setShowAdminPassword(false);
+      setPromoteError(null);
+    } else {
+      setIsPromoteOpen(false);
+      setAdminPassword("");
+      setPromoteError(null);
+    }
+  }, [open, user, initialOpenPromote, activeAdminsCount, maxAdmins]);
 
   useEffect(() => {
     if (!open || !user) {
@@ -62,6 +100,46 @@ export function UserDossierDrawer({ open, user, onClose }: UserDossierDrawerProp
   if (!open || !user) return null;
 
   const displayName = user.fullName || user.username || "Usuário";
+  const isClientAccount = String(user.role).toUpperCase() === "CLIENT";
+  const canPromoteClient = isAdmin && isClientAccount && user.isRegistered && user.isActive && !user.isBlocked;
+  const adminLimitReached = activeAdminsCount >= maxAdmins;
+
+  const handleConfirmPromote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminPassword.trim()) {
+      setPromoteError("Informe sua senha atual de administrador para autorizar a promoção.");
+      return;
+    }
+
+    setPromoting(true);
+    setPromoteError(null);
+    try {
+      const isCustomRole = targetRoleChoice.startsWith("custom:");
+      const customRoleId = isCustomRole ? targetRoleChoice.replace("custom:", "") : null;
+      const role = isCustomRole ? "EDITOR" : targetRoleChoice;
+
+      await adminUserService.updateUser(user.id, {
+        role,
+        customRoleId,
+        adminPassword: adminPassword.trim(),
+      });
+
+      showToast({
+        type: "success",
+        title: "Conta promovida com sucesso!",
+        message: `${displayName} agora faz parte da equipe (${role === "ADMIN" ? "Administrador" : "Equipe / Operação"}).`,
+      });
+
+      if (onPromoted) {
+        await onPromoted();
+      }
+      onClose();
+    } catch (err: unknown) {
+      setPromoteError(err instanceof Error ? err.message : "Não foi possível promover a conta.");
+    } finally {
+      setPromoting(false);
+    }
+  };
 
   return (
     <div
@@ -133,6 +211,139 @@ export function UserDossierDrawer({ open, user, onClose }: UserDossierDrawerProp
           {user.isBlocked && user.blockReason && (
             <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-700 dark:text-red-300">
               <strong>Motivo do bloqueio:</strong> {user.blockReason}
+            </div>
+          )}
+
+          {/* Seção Exclusiva para Administradores: Promover Conta de Cliente Registrado */}
+          {isAdmin && isClientAccount && (
+            <div className="rounded-2xl border border-primary/25 bg-primary/5 dark:bg-primary/10 p-4 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                    <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
+                    <span>Promover Conta (Admin / Equipe)</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    {user.isRegistered
+                      ? "Converte este cliente registrado em Administrador ou membro operacional com verificação de segurança."
+                      : "Apenas clientes com cadastro completo (e-mail e senha registrados) podem ser promovidos."}
+                  </p>
+                </div>
+
+                {canPromoteClient && !isPromoteOpen && (
+                  <Button
+                    type="button"
+                    onClick={() => setIsPromoteOpen(true)}
+                    className="min-h-[40px] px-3.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white text-xs font-bold gap-1.5 shrink-0 cursor-pointer shadow-xs"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Promover Conta</span>
+                  </Button>
+                )}
+              </div>
+
+              {canPromoteClient && isPromoteOpen && (
+                <form
+                  onSubmit={handleConfirmPromote}
+                  className="pt-3 border-t border-primary/20 space-y-3.5 animate-in fade-in duration-150"
+                >
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-start gap-2 text-[11px] text-amber-800 dark:text-amber-200">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Verificação de Segurança Obrigatória:</strong> Esta operação concede acesso ao painel administrativo. Confirme o cargo de destino e digite sua senha atual de administrador.
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="promote-role-select"
+                      className="block text-[11px] font-bold uppercase tracking-wider text-foreground"
+                    >
+                      Cargo de Destino
+                    </label>
+                    <select
+                      id="promote-role-select"
+                      value={targetRoleChoice}
+                      onChange={(e) => setTargetRoleChoice(e.target.value)}
+                      className="w-full h-10 px-3 rounded-xl bg-white dark:bg-background border border-gray-200 dark:border-border/50 text-xs font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-primary"
+                    >
+                      <option value="ADMIN" disabled={adminLimitReached}>
+                        👑 Administrador (Acesso Total){adminLimitReached ? ` — Limite (${activeAdminsCount}/${maxAdmins})` : ""}
+                      </option>
+                      <option value="EDITOR">
+                        🛠️ Editor / Operação (Permissões Padrão)
+                      </option>
+                      {customRoles.map((cr) => (
+                        <option key={cr.id} value={`custom:${cr.id}`}>
+                          🛡️ Cargo: {cr.name} ({cr.permissions.length} permissões)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="promote-admin-password"
+                      className="block text-[11px] font-bold uppercase tracking-wider text-foreground"
+                    >
+                      Sua Senha Atual de Administrador
+                    </label>
+                    <div className="relative">
+                      <KeyRound className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        id="promote-admin-password"
+                        type={showAdminPassword ? "text" : "password"}
+                        autoComplete="current-password"
+                        value={adminPassword}
+                        onChange={(e) => {
+                          setAdminPassword(e.target.value);
+                          if (promoteError) setPromoteError(null);
+                        }}
+                        placeholder="Digite sua senha de administrador..."
+                        className="w-full h-10 pl-9 pr-10 rounded-xl bg-white dark:bg-background border border-gray-200 dark:border-border/50 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-primary"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAdminPassword((p) => !p)}
+                        aria-label={showAdminPassword ? "Ocultar senha" : "Mostrar senha"}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        {showAdminPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {promoteError && (
+                    <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/25 text-xs font-semibold text-red-600 dark:text-red-400">
+                      {promoteError}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-end gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={promoting}
+                      onClick={() => {
+                        setIsPromoteOpen(false);
+                        setAdminPassword("");
+                        setPromoteError(null);
+                      }}
+                      className="min-h-[38px] px-3 rounded-xl text-xs font-semibold cursor-pointer"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={promoting || !adminPassword.trim()}
+                      className="min-h-[38px] px-4 rounded-xl bg-gradient-to-r from-primary to-accent text-white text-xs font-bold gap-1.5 cursor-pointer"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>{promoting ? "Verificando e Promovendo..." : "Confirmar Promoção"}</span>
+                    </Button>
+                  </div>
+                </form>
+              )}
             </div>
           )}
 

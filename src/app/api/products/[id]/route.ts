@@ -6,6 +6,9 @@ import { productInclude, formatProduct } from "@/lib/productHelper";
 import { resolveOrderedAddonGroupIds } from "@/lib/addonPersistenceHelper";
 import { hasPermission } from "@/lib/permissions";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

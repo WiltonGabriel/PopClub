@@ -188,7 +188,12 @@ export default function Storefront() {
   const canEditStorefront = canUseEditMode && isEditMode;
   const canEditCatalog = canEditStorefront && (isAdmin || canAccess("menu_manage"));
   const canEditPromotions = canEditStorefront && (isAdmin || canAccess("promotions_manage"));
-  const canEditHighlightBanner = canEditStorefront && (isAdmin || canAccess("theme_manage"));
+  const canEditHighlightBanner =
+    canEditStorefront &&
+    (isAdmin ||
+      canAccess("theme_manage") ||
+      canAccess("promotions_manage") ||
+      canAccess("storefront_edit"));
   const canReorderSections = canEditStorefront;
   const editPermissionsSummary = formatEditModePermissionsSummary({
     canEditCatalog,
@@ -1434,7 +1439,18 @@ export default function Storefront() {
                   }`}
                 >
                   <div className="flex items-center gap-3.5">
-                    <span className="text-3xl shrink-0">{highlightBanner.icon || "🥣"}</span>
+                    {highlightBanner.icon &&
+                    (highlightBanner.icon.startsWith("/") ||
+                      /^https?:\/\//i.test(highlightBanner.icon)) ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={highlightBanner.icon}
+                        alt=""
+                        className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-cover shrink-0 border border-primary/20 shadow-xs"
+                      />
+                    ) : (
+                      <span className="text-3xl shrink-0">{highlightBanner.icon || "🥣"}</span>
+                    )}
                     <div>
                       <p className="font-heading text-sm sm:text-base text-foreground dark:text-zinc-100 font-semibold">
                         {highlightBanner.title || "Monte do seu jeito: escolha o tamanho e adicione seus acompanhamentos favoritos"}

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { recordAdminAudit } from "@/services/auditLogService";
+import { repairMojibake } from "@/lib/sanitize";
 
 const DEFAULT_TEMPLATES = [
   {
@@ -67,7 +68,13 @@ export async function GET(request: Request) {
       });
     }
 
-    return NextResponse.json(templates);
+    const sanitizedTemplates = templates.map((t) => ({
+      ...t,
+      title: repairMojibake(t.title),
+      message: repairMojibake(t.message),
+    }));
+
+    return NextResponse.json(sanitizedTemplates);
   } catch (error: unknown) {
     console.error("Erro ao listar modelos de notificação:", error);
     return NextResponse.json({ error: "Erro ao buscar templates." }, { status: 500 });
@@ -117,8 +124,8 @@ export async function POST(request: Request) {
 
     const created = await prisma.notificationTemplate.create({
       data: {
-        title: parsed.data.title,
-        message: parsed.data.message,
+        title: repairMojibake(parsed.data.title),
+        message: repairMojibake(parsed.data.message),
         category: parsed.data.category,
         couponId: parsed.data.couponId ?? null,
       },

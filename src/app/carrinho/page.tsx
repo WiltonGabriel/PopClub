@@ -56,17 +56,14 @@ import { CompleteRegistrationModal } from "@/components/auth/CompleteRegistratio
 import { PasswordRecoveryRescueModal } from "@/components/auth/PasswordRecoveryRescueModal";
 import { VALID_BRAZILIAN_DDDS } from "@/lib/validations/auth";
 import { GpsInteractiveMapModal, GpsLocationConfirmedData } from "@/components/storefront/GpsInteractiveMapModal";
+import { navigationHistoryService } from "@/services/navigationHistoryService";
 
 export default function CarrinhoPage() {
   const router = useRouter();
   const { user, fastAccess, signOut, refreshUser } = useAuth();
 
   const handleBack = () => {
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push("/");
-    }
+    navigationHistoryService.goBack(router, "/");
   };
   const { trackGuestOrder } = useOrders();
   const {

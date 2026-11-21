@@ -5,6 +5,7 @@ import { getAuthUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { getTargetClients, VALID_TARGET_AUDIENCES } from "./helpers";
 import { recordAdminAudit } from "@/services/auditLogService";
+import { repairMojibake } from "@/lib/sanitize";
 
 const dispatchNotificationSchema = z.object({
   title: z
@@ -81,11 +82,13 @@ export async function GET(request: Request) {
       },
     });
 
-    const clientFirstName = (dbUser?.fullName?.trim().split(" ")[0] || dbUser?.username || "Cliente");
+    const clientFirstName = repairMojibake(
+      dbUser?.fullName?.trim().split(" ")[0] || dbUser?.username || "Cliente"
+    );
 
     const notifications = userNotifications.map((un) => {
       const coupon = un.notification.coupon;
-      let finalMessage = un.notification.message;
+      let finalMessage = repairMojibake(un.notification.message);
 
       // Personaliza variáveis dinâmicas {NOME} e {CUPOM}
       finalMessage = finalMessage.replace(/\{NOME\}/gi, clientFirstName);
@@ -95,10 +98,15 @@ export async function GET(request: Request) {
         finalMessage = finalMessage.replace(/\{CUPOM\}/gi, "");
       }
 
+      const finalTitle = repairMojibake(un.notification.title).replace(
+        /\{NOME\}/gi,
+        clientFirstName
+      );
+
       return {
         id: un.id,
         notificationId: un.notificationId,
-        title: un.notification.title.replace(/\{NOME\}/gi, clientFirstName),
+        title: finalTitle,
         message: finalMessage,
         type: un.notification.type,
         targetAudience: un.notification.targetAudience,
@@ -211,10 +219,12 @@ export async function POST(request: Request) {
     }
 
     // Cria o registro principal de Notificação
+    const cleanTitle = repairMojibake(title.trim());
+    const cleanMessage = repairMojibake(message.trim());
     const notification = await prisma.notification.create({
       data: {
-        title: title.trim(),
-        message: message.trim(),
+        title: cleanTitle,
+        message: cleanMessage,
         type: finalType,
         targetAudience,
         couponId: couponId || null,

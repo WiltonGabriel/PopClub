@@ -189,6 +189,18 @@ describe("NavigationHistoryService & Botão Voltar (Cookies / Privacidade / Cont
     expect(routerMock.push).toHaveBeenCalledWith("/");
   });
 
+  it("evita loop de navegação no mobile/PWA quando o usuário navega entre sub-seções de /conta ou /perfil", () => {
+    navigationHistoryService.recordNavigation("/");
+    navigationHistoryService.recordNavigation("/perfil");
+    navigationHistoryService.recordNavigation("/conta");
+    navigationHistoryService.recordNavigation("/conta?section=perfil");
+    navigationHistoryService.recordNavigation("/conta?tab=notificacoes");
+
+    // A rota anterior a /conta nunca pode ser outra variante de /conta ou /perfil
+    expect(navigationHistoryService.getPreviousRoute("/conta")).toBe("/");
+    expect(navigationHistoryService.getPreviousRoute("/conta?section=perfil")).toBe("/");
+  });
+
   it("garante que /cookies, /privacidade, /termos, /login, /conta e RootLayout utilizam navegação de retorno contextual", () => {
     const root = process.cwd();
     const cookiesSource = fs.readFileSync(path.join(root, "src/app/cookies/page.tsx"), "utf-8");

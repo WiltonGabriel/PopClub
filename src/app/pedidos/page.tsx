@@ -29,6 +29,7 @@ import { BottomNav } from "../../components/storefront/BottomNav";
 import { initAudioUnlock } from "../../lib/sound";
 import { NotificationPermissionBanner } from "../../components/storefront/NotificationPermissionBanner";
 import { CompleteRegistrationModal } from "@/components/auth/CompleteRegistrationModal";
+import { navigationHistoryService } from "@/services/navigationHistoryService";
 
 const STORE_WHATSAPP = process.env.NEXT_PUBLIC_STORE_WHATSAPP || "5584999999999";
 
@@ -94,11 +95,7 @@ export default function PedidosPage() {
   const router = useRouter();
 
   const handleBack = () => {
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push("/");
-    }
+    navigationHistoryService.goBack(router, "/");
   };
   const { showToast } = useToast();
   const { addItem } = useCart();
@@ -107,6 +104,7 @@ export default function PedidosPage() {
     activeOrders,
     historyOrders,
     loading: ordersLoading,
+    guestOrdersHydrated,
     refreshOrders,
     cancelOrder,
     guestOrderIds,
@@ -159,14 +157,14 @@ export default function PedidosPage() {
     refreshOrders(true);
   }, [refreshOrders]);
 
-  // Redireciona caso não haja sessão nem pedidos anônimos
+  // Redireciona caso não haja sessão (nem conta registrada nem acesso rápido) nem pedidos de acesso rápido no dispositivo
   useEffect(() => {
-    if (!authLoading && !user && guestOrderIds.length === 0) {
+    if (!authLoading && guestOrdersHydrated && !user && guestOrderIds.length === 0) {
       router.push("/login?redirect=/pedidos");
     }
-  }, [user, authLoading, guestOrderIds, router]);
+  }, [user, authLoading, guestOrdersHydrated, guestOrderIds, router]);
 
-  if (authLoading || (ordersLoading && orders.length === 0)) {
+  if (authLoading || !guestOrdersHydrated || (ordersLoading && orders.length === 0)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />

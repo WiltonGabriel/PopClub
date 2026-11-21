@@ -53,6 +53,7 @@ export function UsersManagementSection() {
   const [staffModal, setStaffModal] = useState<{ open: boolean; mode: "create" | "edit"; user: AdminUserListItem | null; initialRoleId?: string | null }>({ open: false, mode: "create", user: null });
   const [roleModal, setRoleModal] = useState<{ open: boolean; role: CustomRoleItem | null }>({ open: false, role: null });
   const [dossierUser, setDossierUser] = useState<AdminUserListItem | null>(null);
+  const [dossierPromoteMode, setDossierPromoteMode] = useState(false);
   const [passwordUser, setPasswordUser] = useState<AdminUserListItem | null>(null);
   const [blockUser, setBlockUser] = useState<AdminUserListItem | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
@@ -250,7 +251,7 @@ export function UsersManagementSection() {
           onPageChange={setPage}
           onClearFilters={() => { setSearch(""); setTeamFilter("team"); setStatusFilter("all"); setSort("recent"); setPage(1); }}
           onManageUser={(u) => setStaffModal({ open: true, mode: "edit", user: u })}
-          onViewDossier={setDossierUser} onResetPassword={setPasswordUser} onToggleBlock={setBlockUser} onDeactivate={handleRequestDeactivateUser}
+          onViewDossier={(u) => { setDossierPromoteMode(false); setDossierUser(u); }} onResetPassword={setPasswordUser} onToggleBlock={setBlockUser} onDeactivate={handleRequestDeactivateUser}
         />
       )}
 
@@ -272,7 +273,9 @@ export function UsersManagementSection() {
           onProfileLoyaltyChange={(val) => { setProfileLoyalty(val); setPage(1); }} onSortChange={(val) => { setSort(val); setPage(1); }}
           onPageChange={setPage}
           onClearFilters={() => { setSearch(""); setClientFilter("clients"); setProfileLoyalty("all"); setSort("recent"); setPage(1); }}
-          onViewDossier={setDossierUser} onResetPassword={setPasswordUser} onToggleBlock={setBlockUser} onDeactivate={handleRequestDeactivateUser}
+          onViewDossier={(u) => { setDossierPromoteMode(false); setDossierUser(u); }}
+          onPromoteClient={(u) => { setDossierPromoteMode(true); setDossierUser(u); }}
+          onResetPassword={setPasswordUser} onToggleBlock={setBlockUser} onDeactivate={handleRequestDeactivateUser}
         />
       )}
 
@@ -283,7 +286,17 @@ export function UsersManagementSection() {
         onEditLinkedRole={(role) => setRoleModal({ open: true, role })}
       />
       <CustomRoleDrawer open={roleModal.open} onClose={() => setRoleModal({ open: false, role: null })} roleToEdit={roleModal.role} onSuccess={refreshAll} />
-      <UserDossierDrawer open={Boolean(dossierUser)} user={dossierUser} onClose={() => setDossierUser(null)} />
+      <UserDossierDrawer
+        open={Boolean(dossierUser)}
+        user={dossierUser}
+        onClose={() => { setDossierUser(null); setDossierPromoteMode(false); }}
+        isAdmin={isAdmin}
+        customRoles={customRoles}
+        activeAdminsCount={activeAdminsCount}
+        maxAdmins={summary?.maxAdmins ?? 2}
+        initialOpenPromote={dossierPromoteMode}
+        onPromoted={refreshAll}
+      />
       <PasswordResetModal open={Boolean(passwordUser)} user={passwordUser} onClose={() => setPasswordUser(null)} />
       <BlockUserModal open={Boolean(blockUser)} user={blockUser} onClose={() => setBlockUser(null)} onSuccess={refreshAll} />
       <ConfirmDialog open={Boolean(confirmState)} onOpenChange={(isOpen) => { if (!isOpen && !confirmBusy) setConfirmState(null); }} title={confirmState?.title || ""} description={confirmState?.description || ""} confirmLabel={confirmState?.confirmLabel || "Confirmar"} cancelLabel="Cancelar" variant="danger" loading={confirmBusy} onConfirm={handleConfirmAction} />

@@ -23,7 +23,7 @@ RUN apt-get update && apt-get install -y openssl netcat-traditional && rm -rf /v
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
@@ -33,7 +33,7 @@ COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 # Garante que o Prisma Client gerado no stage builder esteja atualizado para o schema atual
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 COPY --chown=nextjs:nodejs entrypoint.sh ./entrypoint.sh
-RUN chmod +x ./entrypoint.sh && mkdir -p /app/backups && chown -R nextjs:nodejs /app/backups
+RUN chmod +x ./entrypoint.sh && mkdir -p /app/backups /app/public/uploads/addons && chown -R nextjs:nodejs /app/backups /app/public/uploads
 
 USER nextjs
 EXPOSE 3000

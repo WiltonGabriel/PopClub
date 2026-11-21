@@ -353,6 +353,10 @@ export const updateAdminUserSchema = z.object({
   phone: nullableOptionalPhoneSchema,
   cpf: nullableOptionalCpfSchema,
   password: optionalUpdatePasswordSchema,
+  adminPassword: z
+    .string({ message: "Senha de autorização do administrador é obrigatória." })
+    .min(1, "Senha de autorização do administrador é obrigatória.")
+    .optional(),
   role: updateRoleSchema,
   customRoleId: nullableOptionalCustomRoleIdSchema,
   permissions: permissionsArraySchema.optional(),

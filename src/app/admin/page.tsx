@@ -1344,7 +1344,18 @@ export default function AdminDashboard() {
                     {/* Preview da Faixa */}
                     <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-primary/10 via-accent/10 to-[#10B981]/10 border border-primary/20 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left shadow-xs">
                       <div className="flex items-center gap-3.5 min-w-0">
-                        <span className="text-3xl sm:text-4xl shrink-0">{highlightBanner.icon || "🥣"}</span>
+                        {highlightBanner.icon &&
+                        (highlightBanner.icon.startsWith("/") ||
+                          /^https?:\/\//i.test(highlightBanner.icon)) ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={highlightBanner.icon}
+                            alt=""
+                            className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-cover shrink-0 border border-primary/20 shadow-xs"
+                          />
+                        ) : (
+                          <span className="text-3xl sm:text-4xl shrink-0">{highlightBanner.icon || "🥣"}</span>
+                        )}
                         <div className="min-w-0">
                           <p className="font-heading font-bold text-sm sm:text-base text-foreground dark:text-foreground">
                             {highlightBanner.title || "Monte do seu jeito: escolha o tamanho e adicione seus acompanhamentos favoritos"}

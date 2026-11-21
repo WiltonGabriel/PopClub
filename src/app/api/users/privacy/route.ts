@@ -178,19 +178,37 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
     }
 
-    // Se o usuário possui senha cadastrada, exige verificação de segurança antes da exclusão
+    // Se o usuário possui senha cadastrada, exige verificação de segurança em duas etapas antes da exclusão
     if (user.isRegistered && user.passwordHash) {
       let password = "";
+      let confirmPassword: string | undefined;
       try {
-        const body = (await request.json()) as { password?: string };
+        const body = (await request.json()) as {
+          password?: string;
+          confirmPassword?: string;
+        };
         password = body?.password || "";
+        confirmPassword = body?.confirmPassword;
       } catch {
         // Sem corpo
       }
 
       if (!password) {
         return NextResponse.json(
-          { error: "Informe sua senha para confirmar a exclusão e anonimização da conta.", code: "PASSWORD_REQUIRED" },
+          {
+            error: "Informe sua senha para confirmar a exclusão e anonimização da conta.",
+            code: "PASSWORD_REQUIRED",
+          },
+          { status: 400 }
+        );
+      }
+
+      if (confirmPassword !== undefined && password !== confirmPassword) {
+        return NextResponse.json(
+          {
+            error: "As duas senhas informadas não conferem. Digite a mesma senha nos dois campos.",
+            code: "PASSWORD_MISMATCH",
+          },
           { status: 400 }
         );
       }

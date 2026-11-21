@@ -32,6 +32,7 @@ import {
   startOrderPollingHeartbeat,
 } from "@/lib/orderEvents";
 import { notifyOrderStatusChange } from "@/lib/notifications";
+import { navigationHistoryService } from "@/services/navigationHistoryService";
 
 // Carregamento dinâmico estritamente no cliente para evitar erros de SSR do Leaflet
 const LeafletDeliveryMap = dynamic(
@@ -73,11 +74,7 @@ function TrackingContent() {
   const orderId = searchParams.get("id");
 
   const handleBack = () => {
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push("/pedidos");
-    }
+    navigationHistoryService.goBack(router, "/pedidos");
   };
 
   const [order, setOrder] = useState<Order | null>(null);

@@ -131,6 +131,34 @@ describe("Conformidade Integral à LGPD (Lei nº 13.709/2018) e Diretrizes da AN
       expect(json.code).toBe("PASSWORD_REQUIRED");
     });
 
+    it("rejeita a anonimização se a confirmação de senha em duas etapas divergir (PASSWORD_MISMATCH)", async () => {
+      vi.spyOn(auth, "getAuthUser").mockResolvedValue({
+        id: "user-uuid-123",
+        username: "maria65",
+        role: "CLIENT",
+        isRegistered: true,
+        tokenVersion: 1,
+      } as any);
+
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
+        id: "user-uuid-123",
+        passwordHash: "$argon2id$mockedhash",
+        isRegistered: true,
+        tokenVersion: 1,
+      } as any);
+
+      const reqMismatch = new Request("http://localhost:3000/api/users/privacy", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: "senhaCorreta123", confirmPassword: "outraSenhaDiferente" }),
+      });
+
+      const res = await deletePrivacyData(reqMismatch);
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.code).toBe("PASSWORD_MISMATCH");
+    });
+
     it("rejeita a anonimização se a senha informada estiver incorreta", async () => {
       vi.spyOn(auth, "getAuthUser").mockResolvedValue({
         id: "user-uuid-123",

@@ -1,13 +1,19 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Loader2, Sparkles, Check, X } from "lucide-react";
+import { Loader2, Sparkles, Check, Upload, Trash2 } from "lucide-react";
 import { bannerService, HighlightBannerData } from "../../services/bannerService";
 import { useToast } from "../ui/ToastNotification";
+
+function isBannerIconImageUrl(iconValue: string | undefined | null): boolean {
+  if (!iconValue) return false;
+  const trimmed = iconValue.trim();
+  return trimmed.startsWith("/") || /^https?:\/\//i.test(trimmed);
+}
 
 interface EditBannerModalProps {
   open: boolean;
@@ -27,9 +33,38 @@ export function EditBannerModal({
   const [subtitle, setSubtitle] = useState(currentBanner.subtitle || "");
   const [badge, setBadge] = useState(currentBanner.badge || "");
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { showToast } = useToast();
+  const isImageIcon = isBannerIconImageUrl(icon);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setUploadingImage(true);
+    setError("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", "product");
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || "Falha ao enviar imagem do banner.");
+      }
+      setIcon(data.url);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro ao enviar imagem.");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   // Sincroniza o estado interno sempre que o banner atual mudar ou ao abrir
   useEffect(() => {
@@ -97,7 +132,16 @@ export function EditBannerModal({
           </Label>
           <div className="p-4 rounded-2xl bg-gradient-to-r from-primary/10 via-accent/10 to-[#10B981]/10 border border-primary/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-xs transition-all">
             <div className="flex items-center gap-3">
-              <span className="text-3xl shrink-0">{icon || "🥣"}</span>
+              {isImageIcon ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={icon}
+                  alt="Imagem do banner"
+                  className="w-12 h-12 rounded-xl object-cover shrink-0 border border-primary/20 shadow-xs"
+                />
+              ) : (
+                <span className="text-3xl shrink-0">{icon || "🥣"}</span>
+              )}
               <div className="min-w-0">
                 <p className="font-heading font-bold text-xs sm:text-sm text-foreground dark:text-foreground leading-snug">
                   {title || "Monte do seu jeito: escolha o tamanho e adicione seus acompanhamentos favoritos"}
@@ -117,20 +161,70 @@ export function EditBannerModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5">
-            {/* Campo Ícone / Emoji */}
+            {/* Campo Ícone / Emoji ou Upload de Imagem */}
             <div className="sm:col-span-1 space-y-1.5">
               <Label htmlFor="banner-icon" className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                Ícone / Emoji
+                Ícone / Imagem
               </Label>
-              <Input
-                id="banner-icon"
-                value={icon}
-                onChange={(e) => setIcon(e.target.value)}
-                className="h-11 text-center text-xl rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-card dark:border-border/50 dark:text-white focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
-                placeholder="🥣"
-                maxLength={8}
-                required
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                className="hidden"
+                onChange={handleImageUpload}
               />
+              {isImageIcon ? (
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={uploadingImage}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="h-11 flex-1 rounded-xl text-[11px] font-bold cursor-pointer"
+                  >
+                    <Upload className="w-3.5 h-3.5 mr-1" />
+                    Trocar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIcon("🥣")}
+                    title="Remover imagem e usar emoji"
+                    className="h-11 px-2.5 rounded-xl text-rose-500 hover:text-rose-600 cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    id="banner-icon"
+                    value={icon}
+                    onChange={(e) => setIcon(e.target.value)}
+                    className="h-11 text-center text-xl rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-card dark:border-border/50 dark:text-white focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
+                    placeholder="🥣"
+                    maxLength={8}
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={uploadingImage}
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Enviar imagem para o banner"
+                    className="h-11 px-2.5 rounded-xl shrink-0 cursor-pointer"
+                  >
+                    {uploadingImage ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4 text-primary" />
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Campo Tag / Badge Lateral */}

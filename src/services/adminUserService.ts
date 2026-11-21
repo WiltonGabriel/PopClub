@@ -136,6 +136,19 @@ export interface GetUsersParams {
   includeSummary?: boolean;
 }
 
+export interface UpdateUserInput {
+  role?: string;
+  customRoleId?: string | null;
+  permissions?: string[];
+  password?: string;
+  adminPassword?: string;
+  isBlocked?: boolean;
+  blockReason?: string | null;
+  fullName?: string;
+  email?: string | null;
+  phone?: string | null;
+  cpf?: string | null;
+}
 export interface GetUsersResponse {
   users: AdminUserListItem[];
   pagination: {
@@ -195,18 +208,7 @@ export const adminUserService = {
 
   async updateUser(
     id: string,
-    payload: {
-      role?: string;
-      customRoleId?: string | null;
-      permissions?: string[];
-      password?: string;
-      isBlocked?: boolean;
-      blockReason?: string | null;
-      fullName?: string;
-      email?: string | null;
-      phone?: string | null;
-      cpf?: string | null;
-    }
+    payload: UpdateUserInput
   ): Promise<AdminUserListItem> {
     const res = await fetch(`/api/admin/users/${id}`, {
       method: "PATCH",

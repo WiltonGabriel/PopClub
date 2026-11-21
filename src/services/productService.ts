@@ -90,6 +90,7 @@ export const productService = {
 
   async getProducts(): Promise<Product[]> {
     const res = await fetch("/api/products", {
+      cache: "no-store",
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) {
@@ -145,6 +146,7 @@ export const productService = {
 
   async getProductById(id: string): Promise<Product> {
     const res = await fetch(`/api/products/${id}`, {
+      cache: "no-store",
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) {

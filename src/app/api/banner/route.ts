@@ -4,9 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { recordAdminAudit } from "@/services/auditLogService";
+import { repairMojibake } from "@/lib/sanitize";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const bannerUpdateSchema = z.object({
-  icon: z.string().trim().max(32).optional(),
+  icon: z.string().trim().max(500).optional(),
   title: z.string().trim().max(200).optional(),
   subtitle: z.string().trim().max(400).optional(),
   badge: z.string().trim().max(80).optional(),
@@ -36,10 +40,10 @@ export async function GET() {
 
     return NextResponse.json({
       id: banner.id,
-      icon: banner.icon || DEFAULT_BANNER.icon,
-      title: banner.title || DEFAULT_BANNER.title,
-      subtitle: banner.subtitle || DEFAULT_BANNER.subtitle,
-      badge: banner.badge || DEFAULT_BANNER.badge,
+      icon: repairMojibake(banner.icon || DEFAULT_BANNER.icon),
+      title: repairMojibake(banner.title || DEFAULT_BANNER.title),
+      subtitle: repairMojibake(banner.subtitle || DEFAULT_BANNER.subtitle),
+      badge: repairMojibake(banner.badge || DEFAULT_BANNER.badge),
     });
   } catch (error) {
     console.error("Erro ao buscar banner de destaque:", error);
@@ -54,7 +58,11 @@ export async function PUT(request: Request) {
     if (!user) {
       return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     }
-    if (!hasPermission(user, "theme_manage")) {
+    if (
+      !hasPermission(user, "theme_manage") &&
+      !hasPermission(user, "promotions_manage") &&
+      !hasPermission(user, "storefront_edit")
+    ) {
       return NextResponse.json(
         { error: "Acesso negado. Permissão theme_manage necessária para editar o banner." },
         { status: 403 }

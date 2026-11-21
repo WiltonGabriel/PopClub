@@ -91,6 +91,36 @@ class ProductModalErrorBoundary extends React.Component<ErrorBoundaryProps, { ha
 
 type RawAddonGroup = AddonGroup & { group?: AddonGroup; addonItems?: AddonItem[] };
 
+function AddonItemThumbnail({
+  imageUrl,
+  name,
+}: {
+  imageUrl?: string | null;
+  name: string;
+}) {
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const cleanUrl = typeof imageUrl === "string" ? imageUrl.trim() : "";
+  const showImage = Boolean(cleanUrl) && failedUrl !== cleanUrl;
+
+  return (
+    <div
+      data-testid="addon-item-thumbnail"
+      className="w-10 h-10 rounded-xl bg-zinc-900 dark:bg-[#0D1017] border border-zinc-800/80 shrink-0 overflow-hidden flex items-center justify-center"
+    >
+      {showImage ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          key={cleanUrl}
+          src={cleanUrl}
+          alt={name}
+          className="w-full h-full object-cover"
+          onError={() => setFailedUrl(cleanUrl)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
 function ProductDetailModalContent({
   product,
   isOpen,
@@ -232,53 +262,61 @@ function ProductDetailModalContent({
       setNotes("");
 
       if (product.isCombo) {
-        if (product.comboItems && product.comboItems.length > 0) {
-          processComboUnits(product.comboItems, product.addonGroups as RawAddonGroup[]);
+        const hasInitialCombo = Boolean(product.comboItems && product.comboItems.length > 0);
+        if (hasInitialCombo) {
+          processComboUnits(product.comboItems!, product.addonGroups as RawAddonGroup[]);
         } else {
           setLoadingAddons(true);
-          productService
-            .getProductById(product.id)
-            .then((fullProduct) => {
-              if (fullProduct.comboItems && fullProduct.comboItems.length > 0) {
-                processComboUnits(fullProduct.comboItems, fullProduct.addonGroups as RawAddonGroup[]);
-              } else {
-                setComboUnits([]);
-                const fallbackGroups = normalizeRawGroups(fullProduct.addonGroups as RawAddonGroup[]);
-                setGroups(fallbackGroups);
-                initSelections(fallbackGroups);
-              }
-            })
-            .catch((err) => {
+        }
+        productService
+          .getProductById(product.id)
+          .then((fullProduct) => {
+            if (fullProduct.comboItems && fullProduct.comboItems.length > 0) {
+              processComboUnits(fullProduct.comboItems, fullProduct.addonGroups as RawAddonGroup[]);
+            } else if (!hasInitialCombo) {
+              setComboUnits([]);
+              const fallbackGroups = normalizeRawGroups(fullProduct.addonGroups as RawAddonGroup[]);
+              setGroups(fallbackGroups);
+              initSelections(fallbackGroups);
+            }
+          })
+          .catch((err) => {
+            if (!hasInitialCombo) {
               console.warn("Aviso ao carregar itens do combo:", err);
               setComboUnits([]);
               setGroups([]);
-            })
-            .finally(() => {
-              setLoadingAddons(false);
-            });
-        }
+            }
+          })
+          .finally(() => {
+            setLoadingAddons(false);
+          });
       } else {
-        if (product.addonGroups && product.addonGroups.length > 0) {
+        const hasInitialGroups = Boolean(product.addonGroups && product.addonGroups.length > 0);
+        if (hasInitialGroups) {
           const normGroups = normalizeRawGroups(product.addonGroups as RawAddonGroup[]);
           setGroups(normGroups);
           initSelections(normGroups);
         } else {
           setLoadingAddons(true);
-          productService
-            .getProductById(product.id)
-            .then((fullProduct) => {
-              const loadedGroups = normalizeRawGroups(fullProduct.addonGroups as RawAddonGroup[]);
-              setGroups(loadedGroups);
+        }
+        productService
+          .getProductById(product.id)
+          .then((fullProduct) => {
+            const loadedGroups = normalizeRawGroups(fullProduct.addonGroups as RawAddonGroup[]);
+            setGroups(loadedGroups);
+            if (!hasInitialGroups) {
               initSelections(loadedGroups);
-            })
-            .catch((err) => {
+            }
+          })
+          .catch((err) => {
+            if (!hasInitialGroups) {
               console.warn("Aviso ao carregar complementos reais do produto:", err);
               setGroups([]);
-            })
-            .finally(() => {
-              setLoadingAddons(false);
-            });
-        }
+            }
+          })
+          .finally(() => {
+            setLoadingAddons(false);
+          });
       }
     } else {
       setGroups([]);
@@ -973,6 +1011,7 @@ function ProductDetailModalContent({
                                     `}
                                   >
                                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                      <AddonItemThumbnail imageUrl={item.imageUrl} name={item.name} />
                                       {/* Indicador de Seleção / Radio / Checkbox */}
                                       {!allowsQuantity ? (
                                         <div
@@ -1179,6 +1218,7 @@ function ProductDetailModalContent({
                               }`}
                             >
                               <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                <AddonItemThumbnail imageUrl={item.imageUrl} name={item.name} />
                                 {!allowsQuantity && (
                                   <div
                                     className={`w-3.5 h-3.5 rounded-${isSingleChoice ? "full" : "sm"} border flex items-center justify-center shrink-0 ${
@@ -1382,18 +1422,7 @@ function ProductDetailModalContent({
                       `}
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-border/50 shrink-0 overflow-hidden flex items-center justify-center">
-                          {item.imageUrl ? (
-                            /* eslint-disable-next-line @next/next/no-img-element */
-                            <img
-                              src={item.imageUrl}
-                              alt={item.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <Utensils className="w-4 h-4 text-muted-foreground/50" />
-                          )}
-                        </div>
+                        <AddonItemThumbnail imageUrl={item.imageUrl} name={item.name} />
 
                         {!allowsQuantity ? (
                           <div
