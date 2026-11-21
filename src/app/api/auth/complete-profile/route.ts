@@ -1,8 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthUser, signToken, setSessionCookies, hashPassword, isRequestHttps } from "@/lib/auth";
+import {
+  getAuthUser,
+  signToken,
+  setSessionCookies,
+  hashPassword,
+  isRequestHttps,
+  type CookieResponseTarget,
+} from "@/lib/auth";
 import { completeProfileSchema } from "@/lib/validations/auth";
 import { cookies } from "next/headers";
+import {
+  createEmailVerificationPayload,
+  dispatchEmailVerification,
+} from "@/services/emailVerificationService";
 
 export async function POST(request: Request) {
   try {
@@ -14,7 +25,7 @@ export async function POST(request: Request) {
       );
     }
 
-    let body: any;
+    let body: unknown;
     try {
       body = await request.json();
     } catch {
@@ -31,11 +42,12 @@ export async function POST(request: Request) {
     }
 
     const { email, password } = parsed.data;
+    const cleanEmail = email.toLowerCase().trim();
 
     // Verifica se o e-mail já está sendo utilizado por outra conta
     const existingEmailUser = await prisma.user.findFirst({
       where: {
-        email: email.toLowerCase(),
+        email: cleanEmail,
         id: { not: authUser.id },
       },
     });
@@ -48,9 +60,11 @@ export async function POST(request: Request) {
     }
 
     const passwordHash = await hashPassword(password);
+    const { code: emailVerificationCode, expiresAt: emailVerificationExpires } =
+      createEmailVerificationPayload();
 
     // Se o usuário não tiver username, podemos gerar um identificador amigável a partir do e-mail
-    const emailPrefix = email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "");
+    const emailPrefix = cleanEmail.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "");
     let generatedUsername = authUser.username;
     if (!generatedUsername) {
       const existingWithUsername = await prisma.user.findUnique({
@@ -64,12 +78,29 @@ export async function POST(request: Request) {
     const updatedUser = await prisma.user.update({
       where: { id: authUser.id },
       data: {
-        email: email.toLowerCase(),
+        email: cleanEmail,
         passwordHash,
         username: generatedUsername,
         isRegistered: true,
+        emailVerified: false,
+        emailVerificationCode,
+        emailVerificationExpires,
       },
     });
+
+    let emailVerificationSent = false;
+    try {
+      const sendResult = await dispatchEmailVerification({
+        userId: updatedUser.id,
+        email: cleanEmail,
+        name: updatedUser.fullName || generatedUsername,
+        code: emailVerificationCode,
+        request,
+      });
+      emailVerificationSent = sendResult.success;
+    } catch (emailErr: unknown) {
+      console.error("[complete-profile] Erro ao disparar verificação de e-mail:", emailErr);
+    }
 
     const isHttps = isRequestHttps(request);
 
@@ -81,7 +112,7 @@ export async function POST(request: Request) {
       name: updatedUser.fullName,
       role: updatedUser.role,
       isRegistered: true,
-      tokenVersion: (updatedUser as any).tokenVersion ?? 1,
+      tokenVersion: updatedUser.tokenVersion ?? 1,
     });
 
     const response = NextResponse.json({
@@ -95,18 +126,22 @@ export async function POST(request: Request) {
         fullName: updatedUser.fullName,
         role: updatedUser.role,
         isRegistered: true,
+        emailVerified: Boolean(updatedUser.emailVerified),
       },
       token,
+      emailVerificationSent,
     });
 
     setSessionCookies(response, token, isHttps);
     try {
       const cookieStore = await cookies();
-      setSessionCookies({ cookies: cookieStore } as any, token, isHttps);
-    } catch {}
+      setSessionCookies({ cookies: cookieStore } as CookieResponseTarget, token, isHttps);
+    } catch {
+      // Ignora erro caso o cookie store não esteja disponível no contexto atual
+    }
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("❌ [API /api/auth/complete-profile] Erro:", error);
     return NextResponse.json(
       { error: "Erro interno no servidor ao completar cadastro." },

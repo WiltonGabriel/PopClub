@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Role, type User } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { hashPassword, signToken, setSessionCookies, type CookieResponseTarget } from "@/lib/auth";
 import { cleanCpf, validateCpf } from "@/lib/cpf";
 import { cookies } from "next/headers";
 import { authLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
+import {
+  createEmailVerificationPayload,
+  dispatchEmailVerification,
+} from "@/services/emailVerificationService";
 
 interface RegisteredUser {
   id: string;
@@ -15,6 +19,8 @@ interface RegisteredUser {
   cpf: string | null;
   role: Role;
   isRegistered: boolean;
+  emailVerified?: boolean;
+  tokenVersion?: number;
 }
 
 export async function POST(request: Request) {
@@ -124,6 +130,8 @@ export async function POST(request: Request) {
     }
 
     const passwordHash = await hashPassword(password);
+    const { code: emailVerificationCode, expiresAt: emailVerificationExpires } =
+      createEmailVerificationPayload();
 
     // Se houver um usuário guest/acesso rápido pelo telefone, promove a conta
     let user: RegisteredUser | null = null;
@@ -151,6 +159,9 @@ export async function POST(request: Request) {
             cpf: cleanedCpf || existingPhoneUser.cpf,
             role: Role.CLIENT,
             isRegistered: true,
+            emailVerified: false,
+            emailVerificationCode,
+            emailVerificationExpires,
           },
           select: {
             id: true,
@@ -161,6 +172,7 @@ export async function POST(request: Request) {
             cpf: true,
             role: true,
             isRegistered: true,
+            emailVerified: true,
             tokenVersion: true,
           },
         });
@@ -179,6 +191,9 @@ export async function POST(request: Request) {
             fullName: cleanName,
             role: Role.CLIENT,
             isRegistered: true,
+            emailVerified: false,
+            emailVerificationCode,
+            emailVerificationExpires,
           },
           select: {
             id: true,
@@ -189,11 +204,16 @@ export async function POST(request: Request) {
             cpf: true,
             role: true,
             isRegistered: true,
+            emailVerified: true,
             tokenVersion: true,
           },
         });
-      } catch (createErr: any) {
-        if (createErr?.code === "P2002") {
+      } catch (createErr: unknown) {
+        const prismaErrorCode =
+          typeof createErr === "object" && createErr !== null && "code" in createErr
+            ? (createErr as { code?: unknown }).code
+            : undefined;
+        if (prismaErrorCode === "P2002") {
           return NextResponse.json(
             { error: "Este número de WhatsApp ou e-mail já possui uma conta cadastrada. Faça login." },
             { status: 409 }
@@ -207,6 +227,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Erro ao criar usuário." }, { status: 500 });
     }
 
+    let emailVerificationSent = false;
+    try {
+      const sendResult = await dispatchEmailVerification({
+        userId: user.id,
+        email: cleanEmail,
+        name: cleanName,
+        code: emailVerificationCode,
+        request,
+      });
+      emailVerificationSent = sendResult.success;
+    } catch (emailErr: unknown) {
+      console.error("[register] Erro ao disparar verificação de e-mail:", emailErr);
+    }
+
     const token = signToken({
       userId: user.id,
       email: user.email,
@@ -215,7 +249,7 @@ export async function POST(request: Request) {
       name: user.fullName,
       role: user.role,
       isRegistered: true,
-      tokenVersion: (user as any).tokenVersion ?? 1,
+      tokenVersion: user.tokenVersion ?? 1,
     });
 
     let isHttps = false;
@@ -226,7 +260,17 @@ export async function POST(request: Request) {
       isHttps = false;
     }
 
-    const response = NextResponse.json({ success: true, user, token });
+    const normalizedUser = {
+      ...user,
+      emailVerified: Boolean((user as { emailVerified?: boolean }).emailVerified),
+    };
+
+    const response = NextResponse.json({
+      success: true,
+      user: normalizedUser,
+      token,
+      emailVerificationSent,
+    });
 
     setSessionCookies(response, token, isHttps);
     try {

@@ -209,6 +209,11 @@ export function PermissionMatrixEditor({
                               Apenas Clientes
                             </span>
                           )}
+                          {perm.id === "storefront_edit" && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30">
+                              Vitrine (/)
+                            </span>
+                          )}
                         </div>
                         <span className="text-[11px] text-muted-foreground block mt-0.5 leading-snug">{perm.description}</span>
                       </div>

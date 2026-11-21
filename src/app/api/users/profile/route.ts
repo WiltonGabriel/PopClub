@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser, verifyPassword, hashPassword } from "@/lib/auth";
 import { calculateAccountAgeMonths } from "@/services/loyaltyBadgeService";
 import { avatarLimiter, getRateLimitKey, createRateLimitResponse } from "@/lib/rateLimit";
+import {
+  createEmailVerificationPayload,
+  dispatchEmailVerification,
+} from "@/services/emailVerificationService";
 
 const DEFAULT_AVATAR = "/avatars/avatar-sorvete.svg";
 const GUEST_DEFAULT_AVATAR = "/avatars/avatar-guest-user.svg";
@@ -29,6 +33,9 @@ export async function GET(request: Request) {
         id: true,
         username: true,
         email: true,
+        emailVerified: true,
+        googleId: true,
+        passwordHash: true,
         role: true,
         fullName: true,
         avatarUrl: true,
@@ -65,6 +72,9 @@ export async function GET(request: Request) {
       id: profile.id,
       username: profile.username,
       email: profile.email,
+      emailVerified: Boolean(profile.emailVerified),
+      hasGoogleLinked: Boolean(profile.googleId),
+      hasPassword: Boolean(profile.passwordHash),
       role: profile.role,
       full_name: profile.fullName,
       avatar_url: avatar,
@@ -132,6 +142,8 @@ async function handleUpdateProfile(request: Request) {
         id: true,
         fullName: true,
         email: true,
+        emailVerified: true,
+        googleId: true,
         passwordHash: true,
         isRegistered: true,
         createdAt: true,
@@ -248,6 +260,7 @@ async function handleUpdateProfile(request: Request) {
     }
 
     // 2. Alteração de E-mail
+    let pendingEmailVerification: { email: string; code: string } | null = null;
     if (body?.email !== undefined) {
       const nextEmail = body.email.trim().toLowerCase();
       if (nextEmail !== (current?.email || "").toLowerCase()) {
@@ -289,8 +302,15 @@ async function handleUpdateProfile(request: Request) {
           );
         }
 
+        const { code: verificationCode, expiresAt: verificationExpires } =
+          createEmailVerificationPayload();
+
         dataToUpdate.email = nextEmail;
         dataToUpdate.lastEmailChangedAt = new Date();
+        dataToUpdate.emailVerified = false;
+        dataToUpdate.emailVerificationCode = verificationCode;
+        dataToUpdate.emailVerificationExpires = verificationExpires;
+        pendingEmailVerification = { email: nextEmail, code: verificationCode };
       }
     }
 
@@ -359,6 +379,23 @@ async function handleUpdateProfile(request: Request) {
       data: dataToUpdate,
     });
 
+    let emailVerificationSent: boolean | undefined;
+    if (pendingEmailVerification) {
+      try {
+        const sendResult = await dispatchEmailVerification({
+          userId: updated.id,
+          email: pendingEmailVerification.email,
+          name: updated.fullName || updated.username,
+          code: pendingEmailVerification.code,
+          request,
+        });
+        emailVerificationSent = sendResult.success;
+      } catch (emailErr: unknown) {
+        console.error("[profile] Erro ao enviar confirmação para o novo e-mail:", emailErr);
+        emailVerificationSent = false;
+      }
+    }
+
     const defaultAvatar = updated.isRegistered === false ? GUEST_DEFAULT_AVATAR : DEFAULT_AVATAR;
     const avatar = updated.avatarUrl || defaultAvatar;
     const updatedRaw = (updated.accessibilitySettings as Record<string, unknown>) || {};
@@ -378,6 +415,10 @@ async function handleUpdateProfile(request: Request) {
       id: updated.id,
       username: updated.username,
       email: updated.email,
+      emailVerified: Boolean(updated.emailVerified),
+      hasGoogleLinked: Boolean(updated.googleId),
+      hasPassword: Boolean(updated.passwordHash),
+      ...(emailVerificationSent !== undefined ? { emailVerificationSent } : {}),
       role: updated.role,
       full_name: updated.fullName,
       avatar_url: avatar,

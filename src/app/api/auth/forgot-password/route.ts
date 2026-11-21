@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { forgotPasswordLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
 import { emailService } from "@/lib/emailService";
+import { generateSixDigitCode, resolveAppBaseUrl } from "@/services/emailVerificationService";
 
 export async function POST(request: Request) {
   try {
@@ -67,8 +68,8 @@ export async function POST(request: Request) {
         newBlockedUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 1 semana
       }
 
-      // Generate a 6-digit code
-      const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+      // Gera código seguro de 6 dígitos (CSPRNG)
+      const resetCode = generateSixDigitCode();
       const resetCodeExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
       await prisma.user.update({
@@ -81,17 +82,29 @@ export async function POST(request: Request) {
         },
       });
 
+      const targetEmail = user.email || cleanEmail;
+      const resetUrl = `${resolveAppBaseUrl(request)}/recuperar-senha?email=${encodeURIComponent(targetEmail)}`;
+
       // Disparo via serviço modular de e-mail (simulação ou provedor de produção)
-      await emailService.sendPasswordResetCode({
-        to: user.email || cleanEmail,
+      const sendResult = await emailService.sendPasswordResetCode({
+        to: targetEmail,
         name: user.fullName || user.username,
         code: resetCode,
+        resetUrl,
         expiresMinutes: 15,
         idempotencyKey: `pwd_reset_${user.id}_${resetCode}`,
       });
 
-      // Modo de simulação ativo quando não há credenciais de provedor externo configuradas
-      const isSimulation = !process.env.RESEND_API_KEY && !process.env.SMTP_HOST;
+      if (!sendResult.success) {
+        console.error("[forgot-password] Falha ao enviar e-mail de recuperação:", {
+          userId: user.id,
+          error: sendResult.error,
+        });
+      }
+
+      // Nunca expõe devCode em produção, mesmo quando nenhum provedor externo estiver configurado
+      const allowDevCode =
+        process.env.NODE_ENV !== "production" && sendResult.mode === "simulation";
 
       if (newBlockedUntil) {
         const msRemaining = newBlockedUntil.getTime() - Date.now();
@@ -101,14 +114,14 @@ export async function POST(request: Request) {
           message: `Código enviado. Atenção: limite de solicitações atingido. Próxima solicitação bloqueada por ${hoursRemaining > 24 ? "1 semana" : `${hoursRemaining}h`}.`,
           warning: "RATE_LIMIT_COOLDOWN_STARTED",
           blockedUntil: newBlockedUntil.toISOString(),
-          ...(isSimulation ? { devCode: resetCode } : {}),
+          ...(allowDevCode ? { devCode: resetCode } : {}),
         });
       }
 
       return NextResponse.json({
         success: true,
         message: "Se o e-mail estiver cadastrado, um código foi enviado.",
-        ...(isSimulation ? { devCode: resetCode } : {}),
+        ...(allowDevCode ? { devCode: resetCode } : {}),
       });
     }
 

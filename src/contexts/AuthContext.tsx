@@ -22,6 +22,9 @@ export interface AppUser {
   avatarUrl?: string | null;
   avatar?: string | null;
   isRegistered?: boolean;
+  emailVerified?: boolean;
+  hasGoogleLinked?: boolean;
+  hasPassword?: boolean;
   isActive?: boolean;
   isBlocked?: boolean;
   accessibilitySettings?: Record<string, unknown> | null;
@@ -127,6 +130,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           avatarUrl: avatar,
           avatar: avatar,
           isRegistered: Boolean(current.isRegistered),
+          emailVerified:
+            typeof current.emailVerified === "boolean" ? current.emailVerified : undefined,
+          hasGoogleLinked:
+            typeof current.hasGoogleLinked === "boolean" ? current.hasGoogleLinked : undefined,
+          hasPassword:
+            typeof current.hasPassword === "boolean" ? current.hasPassword : undefined,
           isActive: current.isActive !== false,
           isBlocked: Boolean(current.isBlocked),
           accessibilitySettings: current.accessibilitySettings,
@@ -170,6 +179,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           avatarUrl: avatar,
           avatar: avatar,
           isRegistered: Boolean(u.isRegistered),
+          emailVerified:
+            typeof u.emailVerified === "boolean" ? u.emailVerified : undefined,
+          hasGoogleLinked:
+            typeof u.hasGoogleLinked === "boolean" ? u.hasGoogleLinked : undefined,
+          hasPassword:
+            typeof u.hasPassword === "boolean" ? u.hasPassword : undefined,
           isActive: u.isActive !== false,
           isBlocked: Boolean(u.isBlocked),
           accessibilitySettings: u.accessibilitySettings || null,

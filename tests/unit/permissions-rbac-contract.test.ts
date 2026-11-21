@@ -20,6 +20,8 @@ describe("Contrato RBAC, Permissões por Domínio, URLs e Projeção de Entregad
     expect(keyValues).toContain("logistics_manage");
     expect(keyValues).toContain("notifications_manage");
     expect(keyValues).toContain("loyalty_manage");
+    expect(keyValues).toContain("storefront_edit");
+    expect(DEFAULT_EDITOR_PERMISSIONS).not.toContain("storefront_edit");
 
     expect(ALL_PERMISSIONS).toHaveLength(keyValues.length);
     for (const key of keyValues) {

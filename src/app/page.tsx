@@ -145,8 +145,11 @@ function SectionPositionControlBar({
 
 export default function Storefront() {
   const { isAdmin, isEditor, canAccess, user, refreshUser } = useAuth();
-  const { isEditMode } = useEditMode();
-  const canEdit = isAdmin && isEditMode;
+  const { isEditMode, canUseEditMode } = useEditMode();
+  const canEditStorefront = canUseEditMode && isEditMode;
+  const canEditCatalog = canEditStorefront && (isAdmin || canAccess("menu_manage"));
+  const canEditHighlightBanner = canEditStorefront && (isAdmin || canAccess("theme_manage"));
+  const canReorderSections = canEditStorefront;
   const { totalItems, itemsTotal } = useCart();
   const { theme, toggleTheme, resolvedTheme } = useTheme();
   const { activeOrders } = useOrders();
@@ -769,8 +772,8 @@ export default function Storefront() {
           {/* ── DIREITA: Actions Desktop ── */}
           <div className="flex items-center gap-1.5 xl:gap-2 shrink-0">
 
-            {/* 1. [ Modo de Edição / Cliente ] — exclusivo para Administrador no Desktop (à esquerda de Pedidos) */}
-            {isAdmin && <AdminEditModeToggle />}
+            {/* 1. [ Modo de Edição / Cliente ] — visível no Desktop conforme RBAC (ADMIN ou storefront_edit) */}
+            {canUseEditMode && <AdminEditModeToggle />}
 
             {/* 2. [ Meus Pedidos ] — Desktop only: Apenas ícone com badge dinâmico */}
             <Link
@@ -1171,7 +1174,7 @@ export default function Storefront() {
         activeCategory={activeCategory}
         onSelectCategory={handleSelectCategory}
         loading={loading}
-        canEdit={canEdit}
+        canEdit={canEditCatalog}
         onEditCategory={(cat) => {
           setEditingCategory(cat);
           setCatDialogOpen(true);
@@ -1227,7 +1230,7 @@ export default function Storefront() {
                     product={product}
                     onAddToCart={handleOpenProductModal}
                     onOpenDetails={handleOpenProductModal}
-                    isAdmin={canEdit}
+                    isAdmin={canEditCatalog}
                     onEdit={(p) => { setEditingProduct(p); setProdDialogOpen(true); }}
                     onDelete={handleDeleteProduct}
                   />
@@ -1260,7 +1263,7 @@ export default function Storefront() {
           if (sectionId === "highlight_banner") {
             return (
               <section key="highlight_banner" className="relative group/sec">
-                {canEdit && (
+                {canReorderSections && (
                   <SectionPositionControlBar
                     title={SECTION_LABELS.highlight_banner}
                     index={sectionIndex}
@@ -1272,7 +1275,7 @@ export default function Storefront() {
                 {/* Banner Comercial de Destaque e Apelo de Sabor */}
                 <div
                   className={`p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-primary/10 via-accent/10 to-[#10B981]/10 dark:from-[#181D2D] dark:via-[#181D2D] dark:to-[#1E2538] border border-primary/20 dark:border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-sm ${
-                    canEdit ? "group relative" : ""
+                    canEditHighlightBanner ? "group relative" : ""
                   }`}
                 >
                   <div className="flex items-center gap-3.5">
@@ -1292,8 +1295,8 @@ export default function Storefront() {
                       {highlightBanner.badge || "Refrescância Artesanal"}
                     </span>
 
-                    {/* Botão flutuante para administradores editarem a faixa */}
-                    {canEdit && (
+                    {/* Botão flutuante para editar a faixa promocional (ADMIN ou theme_manage) */}
+                    {canEditHighlightBanner && (
                       <button
                         type="button"
                         onClick={() => setEditBannerModalOpen(true)}
@@ -1313,7 +1316,7 @@ export default function Storefront() {
           if (sectionId === "products_catalog") {
             return (
               <section key="products_catalog" className="relative group/sec">
-                {canEdit && (
+                {canReorderSections && (
                   <SectionPositionControlBar
                     title={SECTION_LABELS.products_catalog}
                     index={sectionIndex}
@@ -1353,7 +1356,7 @@ export default function Storefront() {
 
                       const catProducts = getCategoryProducts(cat, filteredProducts);
 
-                      if (catProducts.length === 0 && !canEdit) return null;
+                      if (catProducts.length === 0 && !canEditCatalog) return null;
 
                       // Modo Prévia (na Home) vs Modo Completo
                       const isPreview = !activeCategory && !search;
@@ -1393,7 +1396,7 @@ export default function Storefront() {
                               </div>
 
                               {/* Controles de posição da seção da categoria no Modo Edição */}
-                              {canEdit && !activeCategory && (
+                              {canEditCatalog && !activeCategory && (
                                 <div className="inline-flex items-center gap-1.5 bg-white/95 dark:bg-background/95 backdrop-blur-md border border-primary/30/80 dark:border-primary/80 rounded-xl px-2.5 py-1 text-xs shadow-xs">
                                   <span className="text-[10px] text-muted-foreground font-mono">
                                     {catIndex + 1}/{categories.length}
@@ -1457,15 +1460,15 @@ export default function Storefront() {
                                 product={product}
                                 onAddToCart={handleOpenProductModal}
                                 onOpenDetails={handleOpenProductModal}
-                                isAdmin={canEdit}
+                                isAdmin={canEditCatalog}
                                 onEdit={(p) => { setEditingProduct(p); setProdDialogOpen(true); }}
                                 onDelete={handleDeleteProduct}
                                 featured={hasFeatured && prodIndex === 0}
                               />
                             ))}
 
-                            {/* Admin: add product */}
-                            {canEdit && (
+                            {/* Admin / Editor com menu_manage: add product */}
+                            {canEditCatalog && (
                               <button
                                 onClick={() => { setEditingProduct(null); setProdDialogOpen(true); }}
                                 className="

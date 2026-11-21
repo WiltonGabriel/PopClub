@@ -5,9 +5,9 @@ import { useEditMode } from "../../contexts/EditModeContext";
 import { Pencil, Eye } from "lucide-react";
 
 export function AdminEditModeToggle() {
-  const { isEditMode, isDesktop, toggleEditMode } = useEditMode();
+  const { isEditMode, isDesktop, canUseEditMode, toggleEditMode } = useEditMode();
 
-  if (!isDesktop) {
+  if (!isDesktop || !canUseEditMode) {
     return null;
   }
 

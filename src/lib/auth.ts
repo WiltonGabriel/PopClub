@@ -155,6 +155,8 @@ interface AuthDbUserRecord {
   id: string;
   cpf: string | null;
   email: string | null;
+  emailVerified?: boolean;
+  googleId?: string | null;
   username: string | null;
   role: string;
   permissions: unknown;
@@ -184,6 +186,8 @@ export async function getAuthUser(request?: Request): Promise<{
   id: string;
   cpf: string | null;
   email: string | null;
+  emailVerified?: boolean;
+  hasGoogleLinked?: boolean;
   username: string | null;
   role: "client" | "admin" | "editor" | string;
   permissions: string[];
@@ -253,6 +257,8 @@ export async function getAuthUser(request?: Request): Promise<{
           id: true,
           cpf: true,
           email: true,
+          emailVerified: true,
+          googleId: true,
           username: true,
           role: true,
           permissions: true,
@@ -341,6 +347,8 @@ export async function getAuthUser(request?: Request): Promise<{
       id: user.id,
       cpf: user.cpf || null,
       email: user.email || null,
+      emailVerified: Boolean(user.emailVerified),
+      hasGoogleLinked: Boolean(user.googleId),
       username: user.username || null,
       role: normalizedRole,
       permissions: Array.isArray(user.permissions)

@@ -93,10 +93,11 @@ function getPromoCountdownBadge(promo: Promotion, nowMs: number) {
 }
 
 export function PromoBanner() {
-  const { isAdmin } = useAuth();
-  const { isEditMode } = useEditMode();
+  const { isAdmin, canAccess } = useAuth();
+  const { isEditMode, canUseEditMode } = useEditMode();
   const { showToast } = useToast();
-  const canEdit = isAdmin && isEditMode;
+  const canEdit =
+    canUseEditMode && isEditMode && (isAdmin || canAccess("promotions_manage"));
 
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);

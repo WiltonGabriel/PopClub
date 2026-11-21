@@ -94,6 +94,16 @@ export async function POST(request: Request) {
     }
 
     if (!user.passwordHash) {
+      if (user.googleId) {
+        return NextResponse.json(
+          {
+            error:
+              "Esta conta utiliza login com Google. Clique em 'Continuar com Google' ou use 'Esqueceu a senha?' para definir uma senha.",
+            code: "GOOGLE_ACCOUNT_NO_PASSWORD",
+          },
+          { status: 401 }
+        );
+      }
       console.error(`❌ [API /api/auth/login] Usuário ID ${user.id} sem hash de senha configurado.`);
       return NextResponse.json(
         { error: "Conta sem senha definida. Utilize a recuperação de senha." },

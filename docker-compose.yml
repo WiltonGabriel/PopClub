@@ -36,6 +36,11 @@ services:
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-${JWT_SECRET}}
       NEXTAUTH_URL: https://${APP_DOMAIN}
       NEXT_PUBLIC_APP_URL: https://${APP_DOMAIN}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     networks:
       - popshake_internal
       - proxy_network

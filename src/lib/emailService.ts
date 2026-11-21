@@ -55,8 +55,23 @@ class ConsoleSimulationEmailProvider implements EmailProvider {
   }
 }
 
+export function escapeHtml(value: string): string {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+export function isEmailProviderConfigured(): boolean {
+  const providerType = process.env.EMAIL_PROVIDER?.trim().toLowerCase();
+  const resendApiKey = process.env.RESEND_API_KEY?.trim();
+  return Boolean(resendApiKey) && providerType !== "console";
+}
+
 /**
- * Provedor Resend (Exemplo de integração externa para produção)
+ * Provedor Resend (Integração externa para produção)
  */
 class ResendEmailProvider implements EmailProvider {
   name = "Resend";
@@ -68,7 +83,7 @@ class ResendEmailProvider implements EmailProvider {
 
   async sendEmail(message: EmailMessage): Promise<EmailSendResult> {
     try {
-      const from = process.env.EMAIL_FROM || "PopClub <nao-responda@popclub.com.br>";
+      const from = process.env.EMAIL_FROM?.trim() || "PopClub <nao-responda@popclub.com.br>";
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -84,24 +99,32 @@ class ResendEmailProvider implements EmailProvider {
         }),
       });
 
-      const data = await res.json();
+      let data: { id?: string; message?: string; error?: string } | null = null;
+      try {
+        data = (await res.json()) as { id?: string; message?: string; error?: string };
+      } catch {
+        data = null;
+      }
+
       if (!res.ok) {
+        const detail = data?.message || data?.error || `HTTP ${res.status} ${res.statusText}`.trim();
         return {
           success: false,
-          error: data?.message || "Falha ao enviar e-mail via Resend.",
+          error: `Falha ao enviar e-mail via Resend (${res.status}): ${detail}`,
           mode: "production",
         };
       }
 
       return {
         success: true,
-        messageId: data.id,
+        messageId: data?.id,
         mode: "production",
       };
-    } catch (err) {
+    } catch (err: unknown) {
+      const detail = err instanceof Error ? err.message : "Erro inesperado ao conectar com Resend.";
       return {
         success: false,
-        error: err instanceof Error ? err.message : "Erro inesperado ao conectar com Resend.",
+        error: `Erro de rede ao enviar e-mail via Resend: ${detail}`,
         mode: "production",
       };
     }
@@ -112,10 +135,8 @@ class ResendEmailProvider implements EmailProvider {
  * Fábrica do Provedor de E-mail
  */
 function getEmailProvider(): EmailProvider {
-  const providerType = process.env.EMAIL_PROVIDER?.toLowerCase();
-  const resendApiKey = process.env.RESEND_API_KEY;
-
-  if (providerType === "resend" && resendApiKey) {
+  if (isEmailProviderConfigured()) {
+    const resendApiKey = process.env.RESEND_API_KEY?.trim() || "";
     return new ResendEmailProvider(resendApiKey);
   }
 
@@ -205,41 +226,68 @@ export const emailService = {
     to,
     name,
     code,
+    resetUrl,
     expiresMinutes = 15,
     idempotencyKey,
   }: {
     to: string;
     name?: string | null;
     code: string;
+    resetUrl?: string | null;
     expiresMinutes?: number;
     idempotencyKey?: string | null;
   }): Promise<EmailSendResult> {
-    const recipientName = name ? name.split(" ")[0] : "Cliente";
+    const rawName = name?.trim() ? name.trim().split(/\s+/)[0] : "Cliente";
+    const safeName = escapeHtml(rawName);
+    const safeCode = escapeHtml(code);
+    const cleanResetUrl = typeof resetUrl === "string" && resetUrl.trim() ? resetUrl.trim() : null;
+    const safeResetUrl = cleanResetUrl ? escapeHtml(cleanResetUrl) : null;
     const subject = `Seu código de recuperação PopClub: ${code}`;
 
-    const text = [
-      `Olá, ${recipientName}!`,
+    const textLines = [
+      `Olá, ${rawName}!`,
       ``,
       `Você solicitou a redefinição da sua senha de acesso na PopClub / Pop Shake Sorveteria.`,
       ``,
       `Seu código de segurança de 6 dígitos é:`,
       `[ ${code} ]`,
+    ];
+
+    if (cleanResetUrl) {
+      textLines.push(``, `Você também pode acessar diretamente:`, cleanResetUrl);
+    }
+
+    textLines.push(
       ``,
       `Este código é válido por ${expiresMinutes} minutos.`,
       `Se você não fez esta solicitação, por favor desconsidere este e-mail com segurança.`,
       ``,
       `Atenciosamente,`,
-      `Equipe PopClub`,
-    ].join("\n");
+      `Equipe PopClub`
+    );
+
+    const text = textLines.join("\n");
+
+    const resetButtonHtml = safeResetUrl
+      ? `
+            <div style="text-align: center; margin: 24px 0 16px;">
+              <a href="${safeResetUrl}" style="display: inline-block; background-color: #7c3aed; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 14px; padding: 12px 24px; border-radius: 12px;">
+                Redefinir minha senha
+              </a>
+            </div>
+            <p style="font-size: 12px; color: #64748b; word-break: break-all;">Se preferir, copie e cole este link no navegador: <a href="${safeResetUrl}" style="color: #7c3aed;">${safeResetUrl}</a></p>
+      `
+      : "";
 
     const html = `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; color: #1e293b; padding: 20px; }
-            .container { max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; color: #1e293b; padding: 20px; margin: 0; }
+            .container { max-width: 480px; width: 100%; margin: 0 auto; background: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; padding: 32px; box-sizing: border-box; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
             .brand { font-size: 20px; font-weight: 800; color: #7c3aed; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 24px; text-align: center; }
             .code-box { background: #f3e8ff; border: 2px dashed #9333ea; border-radius: 12px; padding: 18px; text-align: center; margin: 24px 0; }
             .code { font-family: monospace; font-size: 32px; font-weight: 900; letter-spacing: 6px; color: #6b21a8; }
@@ -249,11 +297,12 @@ export const emailService = {
         <body>
           <div class="container">
             <div class="brand">🍨 PopClub Sorveteria</div>
-            <p>Olá, <strong>${recipientName}</strong>!</p>
+            <p>Olá, <strong>${safeName}</strong>!</p>
             <p>Recebemos uma solicitação para redefinir sua senha de acesso. Utilize o código temporário abaixo para concluir a alteração:</p>
             <div class="code-box">
-              <span class="code">${code}</span>
+              <span class="code">${safeCode}</span>
             </div>
+            ${resetButtonHtml}
             <p style="font-size: 13px; color: #64748b;">⏱️ Este código expira em <strong>${expiresMinutes} minutos</strong>.</p>
             <p style="font-size: 13px; color: #64748b;">Se você não solicitou a alteração, ignore este e-mail com segurança.</p>
             <div class="footer">
@@ -270,6 +319,109 @@ export const emailService = {
       text,
       html,
       idempotencyKey: idempotencyKey || `pwd_reset_${to.toLowerCase().trim()}_${code}`,
+    });
+  },
+
+  /**
+   * Envia o código de 6 dígitos e link direto para confirmação de e-mail do usuário.
+   */
+  async sendEmailVerificationCode({
+    to,
+    name,
+    code,
+    verifyUrl,
+    expiresMinutes = 30,
+    idempotencyKey,
+  }: {
+    to: string;
+    name?: string | null;
+    code: string;
+    verifyUrl?: string | null;
+    expiresMinutes?: number;
+    idempotencyKey?: string | null;
+  }): Promise<EmailSendResult> {
+    const rawName = name?.trim() ? name.trim().split(/\s+/)[0] : "Cliente";
+    const safeName = escapeHtml(rawName);
+    const safeCode = escapeHtml(code);
+    const cleanVerifyUrl = typeof verifyUrl === "string" && verifyUrl.trim() ? verifyUrl.trim() : null;
+    const safeVerifyUrl = cleanVerifyUrl ? escapeHtml(cleanVerifyUrl) : null;
+    const subject = `Confirme seu e-mail no PopClub: ${code}`;
+
+    const textLines = [
+      `Olá, ${rawName}!`,
+      ``,
+      `Falta só um passo para confirmar o seu e-mail na PopClub / Pop Shake Sorveteria.`,
+      ``,
+      `Seu código de confirmação de 6 dígitos é:`,
+      `[ ${code} ]`,
+    ];
+
+    if (cleanVerifyUrl) {
+      textLines.push(``, `Ou confirme clicando diretamente no link:`, cleanVerifyUrl);
+    }
+
+    textLines.push(
+      ``,
+      `Este código é válido por ${expiresMinutes} minutos.`,
+      `Se você não criou ou atualizou uma conta no PopClub, ignore este e-mail com segurança.`,
+      ``,
+      `Atenciosamente,`,
+      `Equipe PopClub`
+    );
+
+    const text = textLines.join("\n");
+
+    const verifyButtonHtml = safeVerifyUrl
+      ? `
+            <div style="text-align: center; margin: 24px 0 16px;">
+              <a href="${safeVerifyUrl}" style="display: inline-block; background-color: #7c3aed; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 15px; padding: 13px 26px; border-radius: 12px;">
+                Confirmar meu e-mail
+              </a>
+            </div>
+            <p style="font-size: 12px; color: #64748b; word-break: break-all;">Se preferir, copie e cole este link no navegador: <a href="${safeVerifyUrl}" style="color: #7c3aed;">${safeVerifyUrl}</a></p>
+      `
+      : "";
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; color: #1e293b; padding: 20px; margin: 0; }
+            .container { max-width: 480px; width: 100%; margin: 0 auto; background: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; padding: 32px; box-sizing: border-box; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+            .brand { font-size: 20px; font-weight: 800; color: #7c3aed; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 24px; text-align: center; }
+            .code-box { background: #f3e8ff; border: 2px dashed #9333ea; border-radius: 12px; padding: 18px; text-align: center; margin: 24px 0; }
+            .code { font-family: monospace; font-size: 34px; font-weight: 900; letter-spacing: 6px; color: #6b21a8; }
+            .footer { font-size: 12px; color: #64748b; text-align: center; margin-top: 24px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="brand">🍨 PopClub Sorveteria</div>
+            <p>Olá, <strong>${safeName}</strong>!</p>
+            <p>Para confirmar que este e-mail é seu e proteger sua conta, informe o código de 6 dígitos abaixo ou clique no botão de confirmação:</p>
+            <div class="code-box">
+              <span class="code">${safeCode}</span>
+            </div>
+            ${verifyButtonHtml}
+            <p style="font-size: 13px; color: #64748b;">⏱️ Este código expira em <strong>${expiresMinutes} minutos</strong>.</p>
+            <p style="font-size: 13px; color: #64748b;">Se você não solicitou esta confirmação, pode ignorar este e-mail com segurança.</p>
+            <div class="footer">
+              &copy; ${new Date().getFullYear()} Pop Shake Sorveteria &bull; Várzea Grande, MT
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    return this.send({
+      to,
+      subject,
+      text,
+      html,
+      idempotencyKey: idempotencyKey || `email_verify_${to.toLowerCase().trim()}_${code}`,
     });
   },
 };

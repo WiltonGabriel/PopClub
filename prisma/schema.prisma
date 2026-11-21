@@ -51,6 +51,10 @@ model User {
   cpf                   String?            @unique
   username              String?            @unique
   email                 String?            @unique
+  googleId              String?            @unique @map("google_id")
+  emailVerified         Boolean            @default(false) @map("email_verified")
+  emailVerificationCode String?            @map("email_verification_code")
+  emailVerificationExpires DateTime?       @map("email_verification_expires")
   passwordHash          String?            @map("password_hash")
   role                  Role               @default(CLIENT)
   permissions           String[]           @default([])

@@ -11,7 +11,10 @@ export interface UserProfile {
   id: string;
   username: string;
   email: string;
-  role: 'client' | 'admin';
+  role: 'client' | 'admin' | 'editor';
+  emailVerified?: boolean;
+  hasGoogleLinked?: boolean;
+  hasPassword?: boolean;
   full_name: string | null;
   avatar_url: string | null;
   avatar?: string | null;

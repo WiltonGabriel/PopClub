@@ -1,3 +1,5 @@
+import { sanitizeSafeInternalRoute } from "./navigationHistoryService";
+
 export interface AuthUser {
   id: string;
   email?: string | null;
@@ -16,6 +18,9 @@ export interface AuthUser {
   avatarUrl?: string | null;
   avatar?: string | null;
   isRegistered?: boolean;
+  emailVerified?: boolean;
+  hasGoogleLinked?: boolean;
+  hasPassword?: boolean;
   isActive?: boolean;
   isBlocked?: boolean;
   accessibilitySettings?: Record<string, unknown> | null;
@@ -25,6 +30,17 @@ export interface AuthUser {
   default_change_for?: number | null;
   createdAt?: string | null;
   created_at?: string | null;
+}
+
+export interface AuthProvidersStatus {
+  googleEnabled: boolean;
+  emailConfigured: boolean;
+}
+
+export interface EmailVerificationResponse {
+  success: boolean;
+  alreadyVerified?: boolean;
+  message: string;
 }
 
 export const authService = {
@@ -198,8 +214,76 @@ export const authService = {
     return user ? { user } : null;
   },
 
-  async signInWithGoogle() {
-    throw new Error("O login via Google não está disponível. Por favor, use seu usuário e senha.");
+  async getAuthProviders(): Promise<AuthProvidersStatus> {
+    try {
+      const res = await fetch("/api/auth/providers", {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!res.ok) {
+        return { googleEnabled: false, emailConfigured: false };
+      }
+      const data = await res.json();
+      return {
+        googleEnabled: Boolean(data?.googleEnabled),
+        emailConfigured: Boolean(data?.emailConfigured),
+      };
+    } catch {
+      return { googleEnabled: false, emailConfigured: false };
+    }
+  },
+
+  async signInWithGoogle(redirect?: string) {
+    if (typeof window === "undefined") {
+      throw new Error("O login via Google requer um navegador ativo.");
+    }
+    const safeRedirect = sanitizeSafeInternalRoute(redirect) || "/";
+    // OAuth requer navegação completa do navegador para permitir o redirect externo ao Google
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.assign(`/api/auth/google?redirect=${encodeURIComponent(safeRedirect)}`);
+  },
+
+  async verifyEmail(code: string, email?: string): Promise<EmailVerificationResponse> {
+    const payload: { code: string; email?: string } = {
+      code: code.trim(),
+    };
+    if (email?.trim()) {
+      payload.email = email.trim().toLowerCase();
+    }
+
+    const res = await fetch("/api/auth/verify-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = new Error(data.error || "Não foi possível confirmar o e-mail.") as Error & {
+        code?: string;
+      };
+      if (typeof data.code === "string") {
+        err.code = data.code;
+      }
+      throw err;
+    }
+    return data as EmailVerificationResponse;
+  },
+
+  async resendVerificationEmail(email?: string): Promise<EmailVerificationResponse> {
+    const payload: { email?: string } = {};
+    if (email?.trim()) {
+      payload.email = email.trim().toLowerCase();
+    }
+
+    const res = await fetch("/api/auth/resend-verification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || "Não foi possível reenviar o código de verificação.");
+    }
+    return data as EmailVerificationResponse;
   },
 
   async requestPasswordReset(email: string) {

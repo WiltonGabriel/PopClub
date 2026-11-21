@@ -60,6 +60,7 @@ import { pwaInstallService } from "@/services/pwaInstallService";
 import { navigationHistoryService } from "@/services/navigationHistoryService";
 import { notificationService, AppNotification } from "../../services/notificationService";
 import { useAuth } from "../../hooks/useAuth";
+import { authService } from "../../services/authService";
 import { useTheme } from "../../contexts/ThemeContext";
 import { 
   useAccessibility, 
@@ -326,6 +327,11 @@ export default function AccountPage() {
   const [emailPasswordInput, setEmailPasswordInput] = useState("");
   const [isSubmittingEmail, setIsSubmittingEmail] = useState(false);
 
+  const [emailVerifyCode, setEmailVerifyCode] = useState("");
+  const [isVerifyingEmailCode, setIsVerifyingEmailCode] = useState(false);
+  const [isResendingEmailCode, setIsResendingEmailCode] = useState(false);
+  const [emailResendCooldown, setEmailResendCooldown] = useState(0);
+
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [currentPasswordInput, setCurrentPasswordInput] = useState("");
   const [newPasswordInput, setNewPasswordInput] = useState("");
@@ -398,6 +404,20 @@ export default function AccountPage() {
   // Carência de 14 Dias (2 Semanas) para Nome e E-mail
   const nameDaysRemaining = getDaysRemaining(profile?.lastNameChangedAt || user?.lastNameChangedAt);
   const emailDaysRemaining = getDaysRemaining(profile?.lastEmailChangedAt || user?.lastEmailChangedAt);
+
+  // Estado de verificação do e-mail e exigência de senha para contas com senha (ex.: OAuth Google sem senha)
+  const currentEmail = (profile?.email || user?.email || "").trim();
+  const isEmailVerified = Boolean(profile?.emailVerified ?? user?.emailVerified);
+  const hasAccountPassword = (profile?.hasPassword ?? user?.hasPassword) !== false;
+  const requiresPasswordForProfileChange = Boolean(user?.isRegistered) && hasAccountPassword;
+
+  useEffect(() => {
+    if (emailResendCooldown <= 0) return;
+    const timer = setTimeout(() => {
+      setEmailResendCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [emailResendCooldown]);
 
   // Política de Rotação e Segurança de Senha (Ciclo Recomendado de 90 Dias)
   const rawLastPasswordDate =
@@ -677,7 +697,7 @@ export default function AccountPage() {
       showToast({ type: "error", title: "Nome Obrigatório", message: "Informe seu novo nome completo." });
       return;
     }
-    if (user.isRegistered && !namePasswordInput) {
+    if (requiresPasswordForProfileChange && !namePasswordInput) {
       showToast({ type: "error", title: "Senha Necessária", message: "Informe sua senha atual para confirmar a alteração." });
       return;
     }
@@ -717,7 +737,7 @@ export default function AccountPage() {
       showToast({ type: "error", title: "E-mail Inválido", message: "Informe um e-mail válido." });
       return;
     }
-    if (user.isRegistered && !emailPasswordInput) {
+    if (requiresPasswordForProfileChange && !emailPasswordInput) {
       showToast({ type: "error", title: "Senha Necessária", message: "Informe sua senha atual para confirmar a alteração." });
       return;
     }
@@ -745,6 +765,75 @@ export default function AccountPage() {
       });
     } finally {
       setIsSubmittingEmail(false);
+    }
+  };
+
+  const handleVerifyInlineEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanCode = emailVerifyCode.replace(/\D/g, "").slice(0, 6);
+    if (cleanCode.length !== 6) {
+      showToast({
+        type: "error",
+        title: "Código inválido",
+        message: "Informe o código numérico de 6 dígitos.",
+      });
+      return;
+    }
+    setIsVerifyingEmailCode(true);
+    try {
+      const result = await authService.verifyEmail(cleanCode, currentEmail || undefined);
+      setEmailVerifyCode("");
+      setProfile((prev) => (prev ? { ...prev, emailVerified: true } : prev));
+      await refreshUser();
+      showToast({
+        type: "success",
+        title: "E-mail confirmado!",
+        message: result.message || "Seu endereço de e-mail foi verificado.",
+      });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Não foi possível validar o código.";
+      showToast({
+        type: "error",
+        title: "Falha na confirmação",
+        message,
+      });
+    } finally {
+      setIsVerifyingEmailCode(false);
+    }
+  };
+
+  const handleResendInlineVerification = async () => {
+    if (isResendingEmailCode || emailResendCooldown > 0 || !currentEmail) return;
+    setIsResendingEmailCode(true);
+    try {
+      const result = await authService.resendVerificationEmail(currentEmail);
+      if (result.alreadyVerified) {
+        setProfile((prev) => (prev ? { ...prev, emailVerified: true } : prev));
+        await refreshUser();
+        showToast({
+          type: "success",
+          title: "E-mail já verificado",
+          message: result.message || "Seu e-mail já está confirmado.",
+        });
+        return;
+      }
+      setEmailResendCooldown(60);
+      showToast({
+        type: "success",
+        title: "Código reenviado!",
+        message: result.message || "Confira sua caixa de entrada ou spam.",
+      });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Não foi possível reenviar o código.";
+      showToast({
+        type: "error",
+        title: "Erro ao reenviar",
+        message,
+      });
+    } finally {
+      setIsResendingEmailCode(false);
     }
   };
 
@@ -1553,9 +1642,24 @@ export default function AccountPage() {
                 <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#1E2538] border border-gray-200 dark:border-zinc-800 shadow-xs transition-all">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-2.5">
                     <div>
-                      <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
-                        <AtSign className="w-3.5 h-3.5 text-primary" /> E-mail
-                      </Label>
+                      <div className="flex items-center flex-wrap gap-2">
+                        <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+                          <AtSign className="w-3.5 h-3.5 text-primary" /> E-mail
+                        </Label>
+                        {currentEmail && (
+                          isEmailVerified ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
+                              <CheckCircle2 className="w-3 h-3" />
+                              E-mail verificado
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-[10px] font-bold">
+                              <AlertCircle className="w-3 h-3" />
+                              Confirmação pendente
+                            </span>
+                          )
+                        )}
+                      </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         Utilizado para acesso ao PopClub e avisos transacionais.
                       </p>
@@ -1594,6 +1698,67 @@ export default function AccountPage() {
                       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                       Dado alterado recentemente. Próxima alteração permitida em {emailDaysRemaining} {emailDaysRemaining === 1 ? "dia" : "dias"}.
                     </p>
+                  )}
+
+                  {currentEmail && !isEmailVerified && (
+                    <form
+                      onSubmit={handleVerifyInlineEmail}
+                      className="mt-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/25 space-y-2.5"
+                    >
+                      <p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium">
+                        Confirme seu e-mail informando o código de 6 dígitos enviado para{" "}
+                        <strong>{currentEmail}</strong>.
+                      </p>
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        <label htmlFor="account-email-verify-code" className="sr-only">
+                          Código de confirmação de e-mail
+                        </label>
+                        <Input
+                          id="account-email-verify-code"
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          pattern="\d{6}"
+                          maxLength={6}
+                          value={emailVerifyCode}
+                          onChange={(e) =>
+                            setEmailVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                          }
+                          placeholder="Código (6 dígitos)"
+                          className="h-9 sm:w-44 rounded-lg bg-white dark:bg-[#151A28] border-gray-200 dark:border-zinc-700 font-mono text-sm tracking-widest"
+                        />
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="submit"
+                            size="sm"
+                            disabled={isVerifyingEmailCode || emailVerifyCode.length !== 6}
+                            className="h-9 px-3.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-bold cursor-pointer"
+                          >
+                            {isVerifyingEmailCode ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              "Confirmar"
+                            )}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={isResendingEmailCode || emailResendCooldown > 0}
+                            onClick={handleResendInlineVerification}
+                            className="h-9 px-3 rounded-lg border-gray-200 dark:border-zinc-700 text-xs font-semibold cursor-pointer"
+                          >
+                            {isResendingEmailCode ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : emailResendCooldown > 0 ? (
+                              `Reenviar (${emailResendCooldown}s)`
+                            ) : (
+                              "Reenviar código"
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </form>
                   )}
                 </div>
 
@@ -3118,7 +3283,7 @@ export default function AccountPage() {
                 />
               </div>
 
-              {user?.isRegistered && (
+              {requiresPasswordForProfileChange && (
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
                     Sua Senha Atual
@@ -3207,7 +3372,7 @@ export default function AccountPage() {
                 />
               </div>
 
-              {user?.isRegistered && (
+              {requiresPasswordForProfileChange && (
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
                     Sua Senha Atual

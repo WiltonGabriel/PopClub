@@ -1,10 +1,57 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { useAuth } from "../hooks/useAuth";
+import { hasPermission, isUserAdmin, PERMISSION_KEYS } from "../lib/permissions";
+
+export interface EditModeUserLike {
+  id?: string | null;
+  role?: string | null;
+  permissions?: string[] | null;
+  customRole?: { permissions?: string[] } | null;
+}
+
+export interface EditModeCapabilities {
+  canUseEditMode: boolean;
+  canEditStorefront: boolean;
+  canEditCatalog: boolean;
+  canEditPromotions: boolean;
+  canEditHighlightBanner: boolean;
+  canReorderSections: boolean;
+}
+
+export function canUserAccessEditMode(
+  user: EditModeUserLike | null | undefined
+): boolean {
+  if (!user) return false;
+  return isUserAdmin(user) || hasPermission(user, PERMISSION_KEYS.storefront_edit);
+}
+
+export function resolveEditModeCapabilities(
+  user: EditModeUserLike | null | undefined,
+  isEditMode: boolean,
+  isDesktop = true
+): EditModeCapabilities {
+  const canUseEditMode = Boolean(isDesktop && canUserAccessEditMode(user));
+  const canEditStorefront = Boolean(canUseEditMode && isEditMode);
+  const admin = isUserAdmin(user);
+
+  return {
+    canUseEditMode,
+    canEditStorefront,
+    canEditCatalog: canEditStorefront && (admin || hasPermission(user, PERMISSION_KEYS.menu_manage)),
+    canEditPromotions:
+      canEditStorefront && (admin || hasPermission(user, PERMISSION_KEYS.promotions_manage)),
+    canEditHighlightBanner:
+      canEditStorefront && (admin || hasPermission(user, PERMISSION_KEYS.theme_manage)),
+    canReorderSections: canEditStorefront,
+  };
+}
 
 interface EditModeContextType {
   isEditMode: boolean;
   isDesktop: boolean;
+  canUseEditMode: boolean;
   toggleEditMode: () => void;
   setEditMode: (enabled: boolean) => void;
 }
@@ -12,6 +59,7 @@ interface EditModeContextType {
 const EditModeContext = createContext<EditModeContextType>({
   isEditMode: false,
   isDesktop: false,
+  canUseEditMode: false,
   toggleEditMode: () => {},
   setEditMode: () => {},
 });
@@ -19,10 +67,13 @@ const EditModeContext = createContext<EditModeContextType>({
 const STORAGE_KEY = "popclub-admin-edit-mode";
 
 export function EditModeProvider({ children }: { children: React.ReactNode }) {
-  // Padrão como true para administradores no Desktop
-  const [isEditModeState, setIsEditModeState] = useState<boolean>(true);
+  const { user } = useAuth();
+  const [isEditModeState, setIsEditModeState] = useState<boolean>(false);
   const [isMounted, setIsMounted] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+
+  const hasEditPermission = canUserAccessEditMode(user);
+  const canUseEditMode = isMounted && isDesktop && hasEditPermission;
 
   useEffect(() => {
     setIsMounted(true);
@@ -30,19 +81,18 @@ export function EditModeProvider({ children }: { children: React.ReactNode }) {
     const checkViewport = () => {
       const desktop = typeof window !== "undefined" && window.innerWidth >= 768;
       setIsDesktop(desktop);
+      if (!desktop) {
+        setIsEditModeState(false);
+      }
     };
 
     checkViewport();
     window.addEventListener("resize", checkViewport);
 
+    // Limpa qualquer persistência legada para garantir que a vitrine nunca abra em Modo Edição automaticamente
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved !== null) {
-        setIsEditModeState(saved === "true");
-      }
-    } catch (e) {
-      console.error("Erro ao ler modo de edição do localStorage:", e);
-    }
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {}
 
     const handleSignOut = () => {
       setIsEditModeState(false);
@@ -59,34 +109,35 @@ export function EditModeProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Todo login, troca de usuário, logout ou mudança de permissão inicia com Modo Edição DESATIVADO
+  useEffect(() => {
+    setIsEditModeState(false);
+  }, [user?.id, hasEditPermission]);
+
   const setEditMode = (enabled: boolean) => {
-    // Se a tela for mobile (< 768px), o modo de edição não pode ser ativado
-    if (typeof window !== "undefined" && window.innerWidth < 768) {
+    if (!canUseEditMode || (typeof window !== "undefined" && window.innerWidth < 768)) {
       setIsEditModeState(false);
       return;
     }
-
-    setIsEditModeState(enabled);
-    try {
-      localStorage.setItem(STORAGE_KEY, String(enabled));
-    } catch (e) {
-      console.error("Erro ao salvar modo de edição no localStorage:", e);
-    }
+    setIsEditModeState(Boolean(enabled));
   };
 
   const toggleEditMode = () => {
-    if (!isDesktop) return;
-    setEditMode(!isEditModeState);
+    if (!canUseEditMode) {
+      setIsEditModeState(false);
+      return;
+    }
+    setIsEditModeState((prev) => !prev);
   };
 
-  // Trava de segurança: somente ativo se montado no cliente E em tela Desktop (>= 768px)
-  const effectiveEditMode = isMounted && isDesktop ? isEditModeState : false;
+  const effectiveEditMode = canUseEditMode ? isEditModeState : false;
 
   return (
     <EditModeContext.Provider
       value={{
         isEditMode: effectiveEditMode,
         isDesktop,
+        canUseEditMode,
         toggleEditMode,
         setEditMode,
       }}

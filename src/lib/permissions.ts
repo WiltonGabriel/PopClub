@@ -24,6 +24,7 @@ export const PERMISSION_KEYS = {
   theme_manage: "theme_manage",
   settings_manage: "settings_manage",
   users_manage: "users_manage",
+  storefront_edit: "storefront_edit",
 } as const;
 
 export type PermissionKey = keyof typeof PERMISSION_KEYS;
@@ -130,6 +131,13 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     description: "Visualizar lista de clientes, moderar bloqueios e consultar perfis.",
     category: "estrategico",
     iconName: "Users",
+  },
+  {
+    id: "storefront_edit",
+    label: "Modo Edição na Vitrine",
+    description: "Permite ativar o Modo Edição na página inicial (/) para editar itens diretamente na vitrine (conforme permissões de catálogo, promoções ou tema).",
+    category: "estrategico",
+    iconName: "Pencil",
   },
 ];
 

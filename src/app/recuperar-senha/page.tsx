@@ -1,10 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Home, Mail, Lock, Loader2, Eye, EyeOff, Check, X, KeyRound } from "lucide-react";
 import { authService } from "../../services/authService";
+import { navigationHistoryService } from "@/services/navigationHistoryService";
+
+function extractErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message) {
+    return err.message;
+  }
+  if (typeof err === "object" && err !== null && "message" in err) {
+    const maybeMessage = (err as { message?: unknown }).message;
+    if (typeof maybeMessage === "string" && maybeMessage.trim()) {
+      return maybeMessage;
+    }
+  }
+  return fallback;
+}
 
 /* ─── Shared UI Components ─── */
 function ValidationItem({ isValid, label }: { isValid: boolean; label: string }) {
@@ -26,12 +40,27 @@ interface AuthInputProps {
   placeholder: string;
   required?: boolean;
   autoComplete?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  pattern?: string;
   leftIcon: React.ReactNode;
   rightSlot?: React.ReactNode;
   maxLength?: number;
 }
 
-function AuthInput({ id, type, value, onChange, placeholder, required, autoComplete, leftIcon, rightSlot, maxLength }: AuthInputProps) {
+function AuthInput({
+  id,
+  type,
+  value,
+  onChange,
+  placeholder,
+  required,
+  autoComplete,
+  inputMode,
+  pattern,
+  leftIcon,
+  rightSlot,
+  maxLength,
+}: AuthInputProps) {
   return (
     <div className="relative flex items-center">
       <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7A587D] dark:text-[#957498] pointer-events-none">
@@ -45,6 +74,8 @@ function AuthInput({ id, type, value, onChange, placeholder, required, autoCompl
         placeholder={placeholder}
         required={required}
         autoComplete={autoComplete}
+        inputMode={inputMode}
+        pattern={pattern}
         maxLength={maxLength}
         className="
           w-full h-12 rounded-xl
@@ -89,8 +120,10 @@ function ErrorBanner({ message }: { message: string }) {
 }
 
 /* ─── Main Page ─── */
-export default function RecuperarSenhaPage() {
+function RecuperarSenhaInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialEmail = searchParams?.get("email")?.trim() || "";
   
   // Flow State: 1 = Request Code, 2 = Verify Code & Reset, 3 = Success
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -98,11 +131,18 @@ export default function RecuperarSenhaPage() {
   const [loading, setLoading] = useState(false);
 
   // Form State
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail);
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    const paramEmail = searchParams?.get("email")?.trim();
+    if (paramEmail) {
+      setEmail((prev) => prev || paramEmail);
+    }
+  }, [searchParams]);
 
   // Password Validation
   const hasMinLen = newPassword.length >= 8;
@@ -124,8 +164,8 @@ export default function RecuperarSenhaPage() {
       // Proceed to next step regardless to prevent email enumeration,
       // but the API will return success either way.
       setStep(2);
-    } catch (err: any) {
-      setError(err.message || "Erro ao solicitar o código.");
+    } catch (err: unknown) {
+      setError(extractErrorMessage(err, "Erro ao solicitar o código."));
     } finally {
       setLoading(false);
     }
@@ -145,8 +185,8 @@ export default function RecuperarSenhaPage() {
     try {
       await authService.resetPassword(email.trim(), code.trim(), newPassword);
       setStep(3);
-    } catch (err: any) {
-      setError(err.message || "Erro ao redefinir a senha.");
+    } catch (err: unknown) {
+      setError(extractErrorMessage(err, "Erro ao redefinir a senha."));
     } finally {
       setLoading(false);
     }
@@ -164,13 +204,7 @@ export default function RecuperarSenhaPage() {
       <div className="absolute top-6 left-6 right-6 flex items-center justify-between z-20 pointer-events-auto">
         <button
           type="button"
-          onClick={() => {
-            if (typeof window !== "undefined" && window.history.length > 1) {
-              router.back();
-            } else {
-              router.push("/login");
-            }
-          }}
+          onClick={() => navigationHistoryService.goBack(router, "/login")}
           className="flex items-center gap-1.5 text-[#7A587D] dark:text-muted-foreground hover:text-foreground dark:hover:text-foreground transition-colors text-sm font-medium group cursor-pointer p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5"
           aria-label="Voltar para a tela anterior"
         >
@@ -256,6 +290,9 @@ export default function RecuperarSenhaPage() {
                 <AuthInput
                   id="code"
                   type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="\d{6}"
                   maxLength={6}
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, ''))}
@@ -367,5 +404,19 @@ export default function RecuperarSenhaPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RecuperarSenhaPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-transparent flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        </div>
+      }
+    >
+      <RecuperarSenhaInner />
+    </Suspense>
   );
 }

@@ -95,8 +95,13 @@ export const PERMISSION_UI_GROUPS: PermissionUiGroup[] = [
   {
     id: "sistema",
     label: "Vitrine, Sistema & Moderação",
-    description: "Identidade visual, atendimento, configurações e moderação de clientes.",
-    permissions: pickDefinitionsByIds(["theme_manage", "settings_manage", "users_manage"]),
+    description: "Modo Edição na vitrine, identidade visual, atendimento, configurações e moderação de clientes.",
+    permissions: pickDefinitionsByIds([
+      "storefront_edit",
+      "theme_manage",
+      "settings_manage",
+      "users_manage",
+    ]),
   },
 ];
 
@@ -232,6 +237,13 @@ const OPERATIONAL_AREAS: Array<{
     route: "/admin?tab=canais_atendimento",
     detail: "WhatsApp, CNPJ, horários e canais de atendimento.",
     requiredAny: ["settings_manage"],
+  },
+  {
+    id: "storefront_edit",
+    title: "Modo Edição na Vitrine",
+    route: "/",
+    detail: "Ativar o botão de edição visual direta na página inicial.",
+    requiredAny: ["storefront_edit"],
   },
 ];
 

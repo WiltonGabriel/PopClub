@@ -148,6 +148,10 @@ export const phoneCheckLimiter = new RateLimiter(60 * 1000, 10);
 export const forgotPasswordLimiter = new RateLimiter(15 * 60 * 1000, 5);
 export const passwordResetLimiter = new RateLimiter(15 * 60 * 1000, 5);
 
+// Confirmação de E-mail: 5 envios e 10 validações a cada 15 minutos
+export const emailVerificationSendLimiter = new RateLimiter(15 * 60 * 1000, 5);
+export const emailVerificationCheckLimiter = new RateLimiter(15 * 60 * 1000, 10);
+
 // Validação Geral de Cupons de Desconto (Navegação/Digitação): 30 consultas por minuto
 export const couponLimiter = new RateLimiter(60 * 1000, 30);
 

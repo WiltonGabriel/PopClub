@@ -58,9 +58,14 @@ describe("RbacDomainService & Validações Administrativas", () => {
     const adminAreas = describeAccessibleAreas("ADMIN", []);
     expect(adminAreas.some((area) => area.id === "team_rbac")).toBe(true);
     expect(adminAreas.some((area) => area.id === "kanban")).toBe(true);
+    expect(adminAreas.some((area) => area.id === "storefront_edit")).toBe(true);
 
     const stockOnlyAreas = describeAccessibleAreas("EDITOR", ["STOCK_CONTROL"]);
     expect(stockOnlyAreas.map((a) => a.id)).toEqual(["stock"]);
+
+    const storefrontOnlyAreas = describeAccessibleAreas("EDITOR", ["storefront_edit"]);
+    expect(storefrontOnlyAreas.map((a) => a.id)).toEqual(["storefront_edit"]);
+    expect(storefrontOnlyAreas[0]?.route).toBe("/");
 
     const metricsAndUsersAreas = describeAccessibleAreas("EDITOR", [
       "metrics_view",
@@ -69,7 +74,7 @@ describe("RbacDomainService & Validações Administrativas", () => {
     expect(metricsAndUsersAreas.map((a) => a.id)).toEqual(["metrics", "clients_mod"]);
   });
 
-  it("cobre todas as 13 permissões em PERMISSION_UI_GROUPS sem duplicatas nem omissões", () => {
+  it("cobre todas as 14 permissões em PERMISSION_UI_GROUPS sem duplicatas nem omissões", () => {
     const groupedIds = PERMISSION_UI_GROUPS.flatMap((g) => g.permissions.map((p) => p.id));
     expect(groupedIds).toHaveLength(PERMISSION_DEFINITIONS.length);
     expect(new Set(groupedIds).size).toBe(ALL_PERMISSIONS.length);

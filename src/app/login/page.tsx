@@ -31,6 +31,32 @@ import { navigationHistoryService } from "@/services/navigationHistoryService";
 
 const REGISTER_DRAFT_STORAGE_KEY = "popshake_register_draft";
 
+const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+  google_not_configured:
+    "O login com Google não está configurado no momento. Entre com e-mail/usuário e senha ou use o Acesso Rápido.",
+  google_cancelled:
+    "Autenticação com o Google cancelada. Tente novamente ou entre usando sua senha.",
+  invalid_state:
+    "Sessão de login com o Google expirada ou inválida. Tente novamente.",
+  email_not_verified:
+    "O e-mail da sua conta Google não está verificado. Utilize outra conta ou entre com senha.",
+  account_blocked:
+    "Sua conta está bloqueada. Entre em contato com o atendimento da loja.",
+  account_deactivated:
+    "Esta conta está desativada e não pode ser acessada.",
+  staff_password_required:
+    "Contas da equipe (Administrador/Editor) devem entrar utilizando e-mail/usuário e senha.",
+  oauth_failed:
+    "Não foi possível concluir o login com o Google. Tente novamente em instantes.",
+};
+
+function resolveOAuthErrorMessage(code: string): string {
+  return (
+    OAUTH_ERROR_MESSAGES[code] ||
+    "Não foi possível concluir o login com o Google. Tente novamente."
+  );
+}
+
 interface MaskedAddressInfo {
   addressId?: string;
   street?: string;
@@ -137,8 +163,16 @@ function AuthPageInner() {
 
   const redirectTarget = searchParams?.get("redirect") || "/";
   const rawTab = searchParams?.get("tab");
-  const initialTab = rawTab === "password" ? "password" : rawTab === "register" ? "register" : "fast";
+  const oauthErrorParam = searchParams?.get("oauth_error")?.trim() || "";
+  const initialTab = oauthErrorParam
+    ? "password"
+    : rawTab === "password"
+      ? "password"
+      : rawTab === "register"
+        ? "register"
+        : "fast";
   const [activeTab, setActiveTab] = useState<"fast" | "password" | "register">(initialTab);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleSwitchTab = (nextTab: "fast" | "password" | "register") => {
     setActiveTab(nextTab);
@@ -187,6 +221,13 @@ function AuthPageInner() {
   // Regra de 2 Tentativas de Senha & Modal de Resgate via WhatsApp / Email
   const [failedPasswordAttempts, setFailedPasswordAttempts] = useState(0);
   const [isRescueModalOpen, setIsRescueModalOpen] = useState(false);
+
+  // Sincroniza erros de callback OAuth da URL e força a aba de login com senha/social
+  useEffect(() => {
+    if (!oauthErrorParam) return;
+    setActiveTab("password");
+    setLoginError(resolveOAuthErrorMessage(oauthErrorParam));
+  }, [oauthErrorParam]);
 
   // Reconhecimento de cliente cadastrado na aba de Acesso Rápido
   const [fastRegisteredDetected, setFastRegisteredDetected] = useState(false);
@@ -448,7 +489,12 @@ function AuthPageInner() {
           // Ignora falha ao limpar rascunho
         }
       }
-      window.location.replace(redirectTarget);
+      const verifyUrl = `/verificar-email?email=${encodeURIComponent(cleanMail)}&justRegistered=1${
+        redirectTarget && redirectTarget !== "/"
+          ? `&redirect=${encodeURIComponent(redirectTarget)}`
+          : ""
+      }`;
+      window.location.replace(verifyUrl);
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : (err as { message?: string })?.message;
       setRegisterError(errorMsg || "Erro ao realizar cadastro.");
@@ -458,11 +504,20 @@ function AuthPageInner() {
   };
 
   const handleGoogleLogin = async () => {
+    setLoginError(null);
+    setRegisterError(null);
+    setGoogleLoading(true);
     try {
-      await authService.signInWithGoogle();
+      await authService.signInWithGoogle(redirectTarget);
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : (err as { message?: string })?.message;
-      setLoginError(errorMsg || "Erro ao conectar com Google.");
+      const message = errorMsg || "Erro ao conectar com Google.";
+      if (activeTab === "register") {
+        setRegisterError(message);
+      } else {
+        setLoginError(message);
+      }
+      setGoogleLoading(false);
     }
   };
 
@@ -970,22 +1025,11 @@ function AuthPageInner() {
               </div>
 
               {/* Google */}
-              <button
-                type="button"
+              <GoogleContinueButton
+                loading={googleLoading}
+                disabled={loginLoading}
                 onClick={handleGoogleLogin}
-                className="
-                  w-full h-12 rounded-xl
-                  flex items-center justify-center gap-3
-                  border border-gray-200 dark:border-border/60
-                  bg-transparent hover:bg-black/5 dark:hover:bg-white/5
-                  text-foreground dark:text-[#E2D2E4] text-sm font-medium
-                  transition-all duration-200 cursor-pointer
-                  active:scale-[0.98]
-                "
-              >
-                <GoogleIcon />
-                Continuar com Google
-              </button>
+              />
 
               <div className="pt-2 text-center space-y-1">
                 <button
@@ -1179,6 +1223,47 @@ function AuthPageInner() {
                 </button>
               </form>
 
+              {/* Divider */}
+              <div className="flex items-center gap-3 my-1">
+                <div className="flex-1 h-px bg-gray-200 dark:bg-border/50" />
+                <span className="text-[#7A587D] dark:text-[#957498] text-xs font-medium">OU</span>
+                <div className="flex-1 h-px bg-gray-200 dark:bg-border/50" />
+              </div>
+
+              {/* Google na aba Criar Conta */}
+              <div className="space-y-2">
+                <GoogleContinueButton
+                  loading={googleLoading}
+                  disabled={registerLoading}
+                  onClick={handleGoogleLogin}
+                />
+                <p className="text-[11px] text-center text-[#7A587D] dark:text-[#957498] leading-relaxed">
+                  Ao continuar com o Google, você concorda com os{" "}
+                  <Link
+                    href={`/termos?from=${encodeURIComponent(
+                      redirectTarget && redirectTarget !== "/"
+                        ? `/login?tab=register&redirect=${encodeURIComponent(redirectTarget)}`
+                        : "/login?tab=register"
+                    )}`}
+                    className="font-semibold text-primary hover:underline"
+                  >
+                    Termos de Uso
+                  </Link>{" "}
+                  e a{" "}
+                  <Link
+                    href={`/privacidade?from=${encodeURIComponent(
+                      redirectTarget && redirectTarget !== "/"
+                        ? `/login?tab=register&redirect=${encodeURIComponent(redirectTarget)}`
+                        : "/login?tab=register"
+                    )}`}
+                    className="font-semibold text-primary hover:underline"
+                  >
+                    Política de Privacidade
+                  </Link>
+                  .
+                </p>
+              </div>
+
               <div className="pt-2 text-center space-y-1">
                 <button
                   type="button"
@@ -1219,6 +1304,38 @@ function AuthPageInner() {
         }}
       />
     </div>
+  );
+}
+
+/* ─── Google button component ─── */
+function GoogleContinueButton({
+  loading,
+  disabled,
+  onClick,
+}: {
+  loading: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled || loading}
+      className="
+        w-full h-12 rounded-xl
+        flex items-center justify-center gap-3
+        border border-gray-200 dark:border-border/60
+        bg-transparent hover:bg-black/5 dark:hover:bg-white/5
+        text-foreground dark:text-[#E2D2E4] text-sm font-medium
+        transition-all duration-200 cursor-pointer
+        active:scale-[0.98]
+        disabled:opacity-60 disabled:cursor-not-allowed
+      "
+    >
+      {loading ? <Loader2 className="w-5 h-5 animate-spin shrink-0" /> : <GoogleIcon />}
+      <span>{loading ? "Conectando com Google..." : "Continuar com Google"}</span>
+    </button>
   );
 }
 

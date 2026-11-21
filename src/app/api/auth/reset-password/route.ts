@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { passwordResetLimiter, getRateLimitKey, createRateLimitResponse } from "@/lib/rateLimit";
+import { safeCompareCode } from "@/services/emailVerificationService";
 
 export async function POST(request: Request) {
   try {
@@ -17,11 +18,19 @@ export async function POST(request: Request) {
       newPassword?: string;
     };
 
-    if (!email || !code || !newPassword) {
+    if (
+      typeof email !== "string" ||
+      typeof code !== "string" ||
+      typeof newPassword !== "string" ||
+      !email.trim() ||
+      !code.trim() ||
+      !newPassword
+    ) {
       return NextResponse.json({ error: "Todos os campos são obrigatórios." }, { status: 400 });
     }
 
     const cleanEmail = email.toLowerCase().trim();
+    const cleanCode = code.trim();
 
     const limitKey = getRateLimitKey(request, "reset-password", cleanEmail);
     const limitCheck = passwordResetLimiter.check(limitKey);
@@ -37,7 +46,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Código inválido ou expirado." }, { status: 400 });
     }
 
-    if (user.resetCode !== code) {
+    if (!user.resetCode || !safeCompareCode(user.resetCode, cleanCode)) {
       return NextResponse.json({ error: "Código inválido." }, { status: 400 });
     }
 
@@ -72,6 +81,10 @@ export async function POST(request: Request) {
         recoveryBlockedUntil: null,
         lastPasswordChangedAt: new Date(),
         passwordUpdatedAt: new Date(),
+        tokenVersion: { increment: 1 },
+        emailVerified: true,
+        emailVerificationCode: null,
+        emailVerificationExpires: null,
       },
     });
 
