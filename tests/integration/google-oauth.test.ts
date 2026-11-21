@@ -11,6 +11,11 @@ import { GET as providersHandler } from "@/app/api/auth/providers/route";
 import { GET as googleInitHandler } from "@/app/api/auth/google/route";
 import { GET as googleCallbackHandler } from "@/app/api/auth/google/callback/route";
 import { POST as loginHandler } from "@/app/api/auth/login/route";
+import { GET as avatarsHandler } from "@/app/api/avatars/route";
+import {
+  extractGoogleAvatarUrl,
+  validateAndPrepareUserPhone,
+} from "@/services/googleAuthService";
 
 function extractCookieValue(setCookieHeader: string | null, name: string): string | null {
   if (!setCookieHeader) return null;
@@ -390,5 +395,106 @@ describe("Google OAuth 2.0 (PKCE), Provedores e Proteção Anti-Takeover", () =>
     expect(res.status).toBe(401);
     expect(body.error).toContain("Continuar com Google");
     expect(authLib.verifyToken("invalid")).toBeNull();
+  });
+
+  it("extractGoogleAvatarUrl e GET /api/avatars disponibilizam opção Google (Padrão) somente para usuários com login Google", async () => {
+    expect(
+      extractGoogleAvatarUrl({
+        googleId: "google-sub-123",
+        avatarUrl: "/avatars/avatar-sorvete.svg",
+        accessibilitySettings: {
+          googleAvatarUrl: "https://lh3.googleusercontent.com/a/user-photo.png",
+        },
+      })
+    ).toBe("https://lh3.googleusercontent.com/a/user-photo.png");
+
+    expect(
+      extractGoogleAvatarUrl({
+        googleId: null,
+        avatarUrl: "/avatars/avatar-sorvete.svg",
+        accessibilitySettings: {
+          googleAvatarUrl: "https://lh3.googleusercontent.com/a/user-photo.png",
+        },
+      })
+    ).toBeNull();
+
+    vi.spyOn(authLib, "getAuthUser").mockResolvedValueOnce({
+      id: "google-user-1",
+      role: "CLIENT",
+      isRegistered: true,
+    } as never);
+    vi.spyOn(prisma.user, "findUnique").mockResolvedValueOnce({
+      createdAt: new Date(),
+      googleId: "google-sub-123",
+      avatarUrl: "/avatars/avatar-acai.svg",
+      accessibilitySettings: {
+        googleAvatarUrl: "https://lh3.googleusercontent.com/a/user-photo.png",
+      },
+    } as never);
+    vi.spyOn(prisma.order, "count").mockResolvedValueOnce(0);
+    vi.spyOn(prisma.avatarPreset, "findMany").mockResolvedValueOnce([
+      {
+        id: "preset_1",
+        name: "Sundae Amora",
+        description: "Clássico",
+        imageUrl: "/avatars/avatar-sorvete.svg",
+        category: "Sobremesas",
+        order: 1,
+        minMonths: 0,
+        minOrders: 0,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ] as never);
+
+    const googleRes = await avatarsHandler(new Request("http://localhost:3000/api/avatars"));
+    const googleAvatars = await googleRes.json();
+    expect(googleAvatars[0]).toEqual(
+      expect.objectContaining({
+        id: "google_profile",
+        name: "Google",
+        description: "Padrão",
+        imageUrl: "https://lh3.googleusercontent.com/a/user-photo.png",
+        isUnlocked: true,
+      })
+    );
+  });
+
+  it("validateAndPrepareUserPhone exige telefone válido, bloqueia conflito com conta cadastrada e mescla registro de Acesso Rápido", async () => {
+    await expect(validateAndPrepareUserPhone("u-1", "123")).rejects.toThrow(
+      /10 ou 11 dígitos/i
+    );
+
+    // Conflito com conta já cadastrada
+    vi.spyOn(prisma.user, "findFirst").mockResolvedValueOnce({
+      id: "registered-other",
+      isRegistered: true,
+      passwordHash: "hash",
+      googleId: null,
+      role: Role.CLIENT,
+    } as never);
+    await expect(validateAndPrepareUserPhone("u-1", "(65) 99911-2233")).rejects.toThrow(
+      /já está vinculado a outra conta/i
+    );
+
+    // Mesclagem de registro temporário de Acesso Rápido (isRegistered: false)
+    vi.spyOn(prisma.user, "findFirst").mockResolvedValueOnce({
+      id: "guest-phone-user",
+      isRegistered: false,
+      passwordHash: null,
+      googleId: null,
+      role: Role.CLIENT,
+    } as never);
+    vi.spyOn(prisma.order, "updateMany").mockResolvedValueOnce({ count: 2 } as never);
+    vi.spyOn(prisma.userLocation, "updateMany").mockResolvedValueOnce({ count: 1 } as never);
+    vi.spyOn(prisma.userNotification, "updateMany").mockResolvedValueOnce({ count: 0 } as never);
+    vi.spyOn(prisma.couponRedemption, "updateMany").mockResolvedValueOnce({ count: 0 } as never);
+    vi.spyOn(prisma.user, "delete").mockResolvedValueOnce({ id: "guest-phone-user" } as never);
+    const txSpy = vi.spyOn(prisma, "$transaction").mockResolvedValueOnce([] as never);
+
+    const normalized = await validateAndPrepareUserPhone("u-1", "(65) 99888-7766");
+    expect(normalized).toBe("65998887766");
+    expect(txSpy).toHaveBeenCalledTimes(1);
   });
 });

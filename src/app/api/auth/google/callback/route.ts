@@ -25,6 +25,8 @@ const OAUTH_ERROR_MAP: Record<GoogleAuthErrorCode, string> = {
   ACCOUNT_DEACTIVATED: "account_deactivated",
   STAFF_PASSWORD_REQUIRED: "staff_password_required",
   INVALID_PROFILE: "oauth_failed",
+  INVALID_PHONE: "oauth_failed",
+  PHONE_IN_USE: "oauth_failed",
 };
 
 function clearOAuthStateCookie(response: NextResponse, isHttps: boolean): void {

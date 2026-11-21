@@ -8,6 +8,11 @@ import {
   createEmailVerificationPayload,
   dispatchEmailVerification,
 } from "@/services/emailVerificationService";
+import {
+  extractGoogleAvatarUrl,
+  GoogleAuthError,
+  validateAndPrepareUserPhone,
+} from "@/services/googleAuthService";
 
 const DEFAULT_AVATAR = "/avatars/avatar-sorvete.svg";
 const GUEST_DEFAULT_AVATAR = "/avatars/avatar-guest-user.svg";
@@ -144,6 +149,8 @@ async function handleUpdateProfile(request: Request) {
         email: true,
         emailVerified: true,
         googleId: true,
+        avatarUrl: true,
+        phone: true,
         passwordHash: true,
         isRegistered: true,
         createdAt: true,
@@ -155,9 +162,15 @@ async function handleUpdateProfile(request: Request) {
       },
     });
 
+    const userGoogleAvatarUrl = extractGoogleAvatarUrl(current);
+
     // Gating e Desbloqueio de Avatar (por Meses de Conta e Compras Concluídas)
     const requestedAvatar = body?.avatar_url || body?.avatar;
-    if (requestedAvatar && requestedAvatar !== GUEST_DEFAULT_AVATAR) {
+    if (
+      requestedAvatar &&
+      requestedAvatar !== GUEST_DEFAULT_AVATAR &&
+      requestedAvatar !== userGoogleAvatarUrl
+    ) {
       if (!authUser.isRegistered) {
         return NextResponse.json(
           {
@@ -347,12 +360,36 @@ async function handleUpdateProfile(request: Request) {
 
     if (body?.avatar_url !== undefined) dataToUpdate.avatarUrl = body.avatar_url;
     if (body?.avatar !== undefined) dataToUpdate.avatarUrl = body.avatar;
-    if (body?.phone !== undefined) dataToUpdate.phone = body.phone;
+    if (body?.phone !== undefined) {
+      const nextPhoneRaw = String(body.phone || "").trim();
+      const currentPhoneDigits = String(current?.phone || "").replace(/\D/g, "");
+      const nextPhoneDigits = nextPhoneRaw.replace(/\D/g, "");
+      if (nextPhoneDigits !== currentPhoneDigits) {
+        try {
+          const validatedPhone = await validateAndPrepareUserPhone(
+            authUser.id,
+            nextPhoneRaw
+          );
+          dataToUpdate.phone = validatedPhone;
+        } catch (err: unknown) {
+          if (err instanceof GoogleAuthError) {
+            return NextResponse.json(
+              { error: err.message, code: err.code },
+              { status: err.code === "PHONE_IN_USE" ? 409 : 400 }
+            );
+          }
+          throw err;
+        }
+      }
+    }
     if (body?.notificationsEnabled !== undefined) dataToUpdate.notificationsEnabled = Boolean(body.notificationsEnabled);
     if (body?.notifications_enabled !== undefined) dataToUpdate.notificationsEnabled = Boolean(body.notifications_enabled);
 
     const currentSettings = (current?.accessibilitySettings as Record<string, unknown>) || {};
     let newSettings: Record<string, unknown> = { ...currentSettings };
+    if (userGoogleAvatarUrl && !newSettings.googleAvatarUrl) {
+      newSettings.googleAvatarUrl = userGoogleAvatarUrl;
+    }
 
     if (body?.accessibilitySettings !== undefined) {
       newSettings = { ...newSettings, ...body.accessibilitySettings };

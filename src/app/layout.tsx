@@ -16,6 +16,7 @@ import { CookieConsentBanner } from "@/components/ui/CookieConsentBanner";
 import { InstallPwaBanner } from "@/components/ui/InstallPwaBanner";
 import { GlobalBackgroundSync } from "@/components/ui/GlobalBackgroundSync";
 import { RouteHistoryTracker } from "@/components/ui/RouteHistoryTracker";
+import { MandatoryPhoneModal } from "@/components/auth/MandatoryPhoneModal";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk", display: "swap" });
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
@@ -103,6 +104,7 @@ export default function RootLayout({
                     <AddressProvider>
                       <OrderProvider>
                         {children}
+                        <MandatoryPhoneModal />
                         <AddressModal />
                         <CookieConsentBanner />
                         <InstallPwaBanner />

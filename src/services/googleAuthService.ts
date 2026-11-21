@@ -11,7 +11,9 @@ export type GoogleAuthErrorCode =
   | "ACCOUNT_DEACTIVATED"
   | "ACCOUNT_BLOCKED"
   | "STAFF_PASSWORD_REQUIRED"
-  | "INVALID_PROFILE";
+  | "INVALID_PROFILE"
+  | "INVALID_PHONE"
+  | "PHONE_IN_USE";
 
 export class GoogleAuthError extends Error {
   readonly code: GoogleAuthErrorCode;
@@ -47,6 +49,37 @@ function getSafeGoogleAvatarUrl(picture: string | undefined): string | null {
   if (typeof picture !== "string") return null;
   const trimmed = picture.trim();
   return isValidSafeAssetUrl(trimmed, false) ? trimmed : null;
+}
+
+export function extractGoogleAvatarUrl(
+  user:
+    | {
+        googleId?: string | null;
+        avatarUrl?: string | null;
+        accessibilitySettings?: unknown;
+      }
+    | null
+    | undefined
+): string | null {
+  if (!user?.googleId) return null;
+  const settings =
+    user.accessibilitySettings && typeof user.accessibilitySettings === "object"
+      ? (user.accessibilitySettings as Record<string, unknown>)
+      : {};
+  const savedGoogleAvatar =
+    typeof settings.googleAvatarUrl === "string" ? settings.googleAvatarUrl.trim() : "";
+  if (savedGoogleAvatar && isValidSafeAssetUrl(savedGoogleAvatar, false)) {
+    return savedGoogleAvatar;
+  }
+  const currentAvatar = typeof user.avatarUrl === "string" ? user.avatarUrl.trim() : "";
+  if (
+    currentAvatar &&
+    /^https?:\/\//i.test(currentAvatar) &&
+    isValidSafeAssetUrl(currentAvatar, false)
+  ) {
+    return currentAvatar;
+  }
+  return null;
 }
 
 function isStaffRole(role: Role | string): boolean {
@@ -134,7 +167,27 @@ export async function resolveOrCreateGoogleUser(
       updateData.fullName = cleanProfileName;
     }
 
-    if (isDefaultOrEmptyAvatar(existing.avatarUrl) && safePicture) {
+    const existingSettings =
+      existing.accessibilitySettings && typeof existing.accessibilitySettings === "object"
+        ? (existing.accessibilitySettings as Record<string, unknown>)
+        : {};
+    const prevGoogleAvatar =
+      typeof existingSettings.googleAvatarUrl === "string"
+        ? existingSettings.googleAvatarUrl
+        : null;
+
+    if (safePicture) {
+      updateData.accessibilitySettings = {
+        ...existingSettings,
+        googleAvatarUrl: safePicture,
+      } as Prisma.InputJsonValue;
+    }
+
+    if (
+      (isDefaultOrEmptyAvatar(existing.avatarUrl) ||
+        (prevGoogleAvatar && existing.avatarUrl === prevGoogleAvatar)) &&
+      safePicture
+    ) {
       updateData.avatarUrl = safePicture;
     }
 
@@ -167,7 +220,88 @@ export async function resolveOrCreateGoogleUser(
       username,
       fullName: cleanProfileName || baseUsername,
       avatarUrl: safePicture || DEFAULT_CLIENT_AVATAR,
+      ...(safePicture
+        ? {
+            accessibilitySettings: {
+              googleAvatarUrl: safePicture,
+            } as Prisma.InputJsonValue,
+          }
+        : {}),
     },
     include: { customRole: { select: { permissions: true } } },
   });
+}
+
+/**
+ * Valida e normaliza um telefone (10 ou 11 dígitos com DDD) para vinculação ao usuário.
+ * Caso o número pertença a um registro temporário de Acesso Rápido (não registrado),
+ * transfere pedidos e endereços automaticamente para o usuário autenticado.
+ */
+export async function validateAndPrepareUserPhone(
+  userId: string,
+  rawPhone: string
+): Promise<string> {
+  const cleanPhone = String(rawPhone || "").replace(/\D/g, "");
+  if (cleanPhone.length < 10 || cleanPhone.length > 11) {
+    throw new GoogleAuthError(
+      "INVALID_PHONE",
+      "Informe um número de WhatsApp/celular válido com DDD (10 ou 11 dígitos)."
+    );
+  }
+
+  const existingPhoneOwner = await prisma.user.findFirst({
+    where: {
+      phone: cleanPhone,
+      id: { not: userId },
+    },
+    select: {
+      id: true,
+      isRegistered: true,
+      passwordHash: true,
+      googleId: true,
+      role: true,
+    },
+  });
+
+  if (!existingPhoneOwner) {
+    return cleanPhone;
+  }
+
+  const isGuestRecord =
+    existingPhoneOwner.isRegistered === false &&
+    !existingPhoneOwner.passwordHash &&
+    !existingPhoneOwner.googleId &&
+    String(existingPhoneOwner.role).toUpperCase() === "CLIENT";
+
+  if (!isGuestRecord) {
+    throw new GoogleAuthError(
+      "PHONE_IN_USE",
+      "Este número de WhatsApp já está vinculado a outra conta cadastrada."
+    );
+  }
+
+  // Mescla pedidos, endereços e notificações do registro de Acesso Rápido e libera o telefone
+  await prisma.$transaction([
+    prisma.order.updateMany({
+      where: { userId: existingPhoneOwner.id },
+      data: { userId },
+    }),
+    prisma.userLocation.updateMany({
+      where: { userId: existingPhoneOwner.id },
+      data: { userId, isDefault: false },
+    }),
+    prisma.userNotification.updateMany({
+      where: { userId: existingPhoneOwner.id },
+      data: { userId },
+    }),
+    prisma.couponRedemption.updateMany({
+      where: { userId: existingPhoneOwner.id },
+      data: { userId },
+    }),
+    prisma.user.delete({
+      where: { id: existingPhoneOwner.id },
+    }),
+  ]);
+
+  return cleanPhone;
 }

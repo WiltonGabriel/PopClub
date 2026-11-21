@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { calculateAccountAgeMonths } from "@/services/loyaltyBadgeService";
 import { avatarLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
+import { extractGoogleAvatarUrl } from "@/services/googleAuthService";
 
 const DEFAULT_AVATARS = [
   { id: "preset_1", name: "Sundae Amora", description: "Clássico sundae com calda de amora", imageUrl: "/avatars/avatar-sorvete.svg", category: "Sobremesas", order: 1, minMonths: 0, minOrders: 0 },
@@ -28,12 +29,18 @@ export async function GET(request: Request) {
     const authUser = await getAuthUser(request);
     let userMonths = 0;
     let completedOrders = 0;
+    let googleAvatarUrl: string | null = null;
 
     if (authUser?.id) {
       const [dbUser, ordersCount] = await Promise.all([
         prisma.user.findUnique({
           where: { id: authUser.id },
-          select: { createdAt: true },
+          select: {
+            createdAt: true,
+            googleId: true,
+            avatarUrl: true,
+            accessibilitySettings: true,
+          },
         }),
         prisma.order.count({
           where: { userId: authUser.id, status: "completed" },
@@ -44,6 +51,7 @@ export async function GET(request: Request) {
         userMonths = calculateAccountAgeMonths(dbUser.createdAt);
       }
       completedOrders = ordersCount;
+      googleAvatarUrl = extractGoogleAvatarUrl(dbUser);
     }
 
     let avatars = await prisma.avatarPreset.findMany({
@@ -112,6 +120,23 @@ export async function GET(request: Request) {
         isUnlocked,
       };
     });
+
+    if (googleAvatarUrl) {
+      enrichedAvatars.unshift({
+        id: "google_profile",
+        name: "Google",
+        description: "Padrão",
+        imageUrl: googleAvatarUrl,
+        category: "Padrão",
+        order: 0,
+        minMonths: 0,
+        minOrders: 0,
+        isActive: true,
+        isUnlocked: true,
+        createdAt: new Date(0),
+        updatedAt: new Date(0),
+      });
+    }
 
     return NextResponse.json(enrichedAvatars);
   } catch (error: any) {

@@ -643,7 +643,7 @@ export default function AccountPage() {
       .catch((err) => {
         console.error("Erro ao carregar avatares oficiais:", err);
       });
-  }, []);
+  }, [user?.id, user?.avatarUrl]);
 
   const loadUserData = useCallback(async () => {
     if (!user) return;
@@ -1518,7 +1518,11 @@ export default function AccountPage() {
                       alt="Avatar Atual Selecionado"
                       width={128}
                       height={128}
-                      className="w-full h-full object-contain"
+                      className={`w-full h-full ${
+                        /^https?:\/\//i.test(currentDisplayAvatar)
+                          ? "object-cover rounded-full"
+                          : "object-contain"
+                      }`}
                     />
                   </div>
                   {/* Botão circular sobreposto com sparkles apenas para cadastrados */}
@@ -3189,7 +3193,11 @@ export default function AccountPage() {
                         alt={avatar.name}
                         width={80}
                         height={80}
-                        className="w-full h-full object-contain"
+                        className={`w-full h-full ${
+                          /^https?:\/\//i.test(avatarPath)
+                            ? "object-cover rounded-full"
+                            : "object-contain"
+                        }`}
                       />
                     </div>
                     <span className="font-heading font-bold text-xs text-gray-900 dark:text-white leading-tight">
