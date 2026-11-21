@@ -313,7 +313,7 @@ O projeto **PopClub** é mantido pela **Equipe ADP**, no âmbito do Projeto Exte
 
 - **Wilton Gabriel Albuquerque Pereira — Arquiteto de Software & Mantenedor Principal**  
   Responsável pela arquitetura da solução, desenvolvimento e implementação do sistema, decisões técnicas, segurança e manutenção do repositório.
-- **Adriel Felipe — Analista de Documentação**  
+- **Adriel Felipe Tapajós — Analista de Documentação**  
   Responsável pela elaboração e organização da documentação técnica e materiais de entrega.
 - **João Lucas — Analista de Qualidade & Relacionamento**  
   Responsável pela validação funcional, apoio aos testes e comunicação de requisitos.
