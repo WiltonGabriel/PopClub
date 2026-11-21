@@ -213,7 +213,7 @@ export function UsersManagementSection() {
             <>
               <Button type="button" variant="outline" disabled={isCustomRoleLimitReached(customRoles.length)} onClick={() => setRoleModal({ open: true, role: null })} className="min-h-[44px] px-4 rounded-xl border-gray-200 dark:border-border/40 text-xs font-bold uppercase tracking-wider gap-2 cursor-pointer">
                 <Shield className="w-4 h-4 text-primary" /><span>+ Novo Cargo</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-mono">{MAX_CUSTOM_ROLES !== null ? `${customRoles.length}/${MAX_CUSTOM_ROLES}` : `${customRoles.length}`}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-mono">{customRoles.length}/{MAX_CUSTOM_ROLES}</span>
               </Button>
               <Button type="button" onClick={() => setStaffModal({ open: true, mode: "create", user: null })} className="min-h-[44px] px-5 rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white text-xs font-bold uppercase tracking-wider gap-2 shadow-md shadow-primary/20 cursor-pointer">
                 <UserPlus className="w-4 h-4" /><span>+ Novo Colaborador</span>
@@ -233,7 +233,7 @@ export function UsersManagementSection() {
             </button>
             <button type="button" role="tab" aria-selected={activeTab === "cargos"} onClick={() => handleTabSwitch("cargos")} className={`min-h-[44px] px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${activeTab === "cargos" ? "bg-primary text-white shadow-sm" : "bg-white dark:bg-[#230E26] text-muted-foreground hover:text-foreground border border-gray-200 dark:border-border/40"}`}>
               <Shield className="w-4 h-4" /><span>Cargos & Permissões</span>
-              <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md ${activeTab === "cargos" ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>{MAX_CUSTOM_ROLES !== null ? `${customRoles.length}/${MAX_CUSTOM_ROLES}` : `${customRoles.length}`}</span>
+              <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md ${activeTab === "cargos" ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>{customRoles.length}/{MAX_CUSTOM_ROLES}</span>
             </button>
           </>
         )}

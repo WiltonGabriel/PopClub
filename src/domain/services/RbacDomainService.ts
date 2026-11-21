@@ -11,7 +11,7 @@ import {
 } from "@/lib/permissions";
 
 export const MAX_ACTIVE_ADMINS = 6;
-export const MAX_CUSTOM_ROLES: number | null = null;
+export const MAX_CUSTOM_ROLES = 30;
 export const MAX_MEMBERS_PER_CUSTOM_ROLE = 30;
 
 /**

@@ -46,9 +46,7 @@ export function CustomRolesTab({
           </div>
           <div>
             <h3 className="font-heading font-bold text-sm sm:text-base text-foreground">
-              {MAX_CUSTOM_ROLES !== null
-                ? `Cargos Criados: ${customRoles.length} de ${MAX_CUSTOM_ROLES} permitidos`
-                : `Cargos Criados: ${customRoles.length}`}
+              Cargos Criados: {customRoles.length} de {MAX_CUSTOM_ROLES} permitidos
             </h3>
             <p className="text-xs text-muted-foreground">
               Até {MAX_MEMBERS_PER_CUSTOM_ROLE} membros por cargo · Alterar um cargo sincroniza todos os colaboradores vinculados.

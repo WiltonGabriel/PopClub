@@ -28,6 +28,9 @@ interface CustomAudienceModalProps {
   onSelectionSaved: (userIds: string[]) => void;
 }
 
+export const CUSTOM_AUDIENCE_DIALOG_CONTENT_CLASS =
+  "w-[calc(100vw-1.5rem)] max-w-4xl sm:max-w-4xl max-h-[90vh] overflow-hidden overflow-x-hidden flex flex-col p-0 gap-0";
+
 export function CustomAudienceModal({
   open,
   onOpenChange,
@@ -170,7 +173,7 @@ export function CustomAudienceModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0">
+      <DialogContent className={CUSTOM_AUDIENCE_DIALOG_CONTENT_CLASS}>
         <DialogHeader className="p-6 pb-4 border-b">
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Users className="w-5 h-5 text-primary" /> Público Personalizado

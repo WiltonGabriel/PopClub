@@ -105,13 +105,13 @@ describe("Segurança de Cargos e Prevenção de Escalonamento de Privilégios", 
       expect(okRes.status).toBe(201);
     });
 
-    it("permite criar mais de 4 cargos personalizados (sem limite de cargos) e mantém limite de 30 membros por cargo e 6 admins", async () => {
+    it("permite criar até 30 cargos personalizados e bloqueia o 31º, mantendo limite de 30 membros por cargo e 6 admins", async () => {
       expect(MAX_ACTIVE_ADMINS).toBe(6);
-      expect(MAX_CUSTOM_ROLES).toBeNull();
+      expect(MAX_CUSTOM_ROLES).toBe(30);
       expect(MAX_MEMBERS_PER_CUSTOM_ROLE).toBe(30);
 
       vi.spyOn(authLib, "getAuthUser").mockResolvedValue(fullAdmin as any);
-      vi.spyOn(prisma.customRole, "count").mockResolvedValue(10);
+      vi.spyOn(prisma.customRole, "count").mockResolvedValueOnce(10);
       vi.spyOn(prisma.customRole, "findUnique").mockResolvedValue(null);
       vi.spyOn(prisma.customRole, "create").mockResolvedValue({
         id: "role-11",
@@ -132,6 +132,23 @@ describe("Segurança de Cargos e Prevenção de Escalonamento de Privilégios", 
         })
       );
       expect(okRes.status).toBe(201);
+
+      // Ao atingir 30 cargos, o 31º deve ser bloqueado com 400
+      vi.spyOn(prisma.customRole, "count").mockResolvedValueOnce(30);
+      const limitRes = await createRole(
+        new Request("http://localhost:3000/api/admin/roles", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: "Cargo 31",
+            color: "blue",
+            permissions: ["ORDERS_KANBAN"],
+          }),
+        })
+      );
+      expect(limitRes.status).toBe(400);
+      const limitJson = await limitRes.json();
+      expect(limitJson.error).toContain("30 cargos");
 
       vi.spyOn(prisma.user, "findUnique").mockResolvedValue(null);
       vi.spyOn(prisma.customRole, "findUnique").mockResolvedValue({
@@ -384,7 +401,7 @@ describe("Segurança de Cargos e Prevenção de Escalonamento de Privilégios", 
         clientsCount: 12,
         blockedCount: 2,
         customRolesCount: 2,
-        maxCustomRoles: null,
+        maxCustomRoles: 30,
       });
       expect(MAX_ACTIVE_ADMINS).toBe(6);
       // O 5º call (list total) deve filtrar isBlocked: true e deletedAt: null
