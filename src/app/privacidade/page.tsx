@@ -27,7 +27,7 @@ export default function PoliticaPrivacidadePage() {
           <SmartBackButton className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-zinc-600 dark:text-zinc-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors cursor-pointer" />
 
           <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-            Atualizado: Outubro/2026
+            Versão 2.0 • Novembro/2026
           </span>
         </div>
 
@@ -41,13 +41,13 @@ export default function PoliticaPrivacidadePage() {
             <div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 text-xs font-semibold mb-2">
                 <Sparkles className="w-3.5 h-3.5" />
-                Conformidade com a LGPD e Marco Civil
+                Conformidade com a LGPD, ANPD e Marco Civil
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-white tracking-tight">
-                Política de Privacidade & Proteção de Dados
+                Política de Privacidade e Proteção de Dados
               </h1>
               <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2 leading-relaxed">
-                No PopClub (Pop Shake Sorveteria), sua privacidade é prioridade inegociável. Tratamos seus dados com total transparência, respeito aos princípios da Lei Geral de Proteção de Dados (Lei nº 13.709/2018) e às diretrizes da ANPD (Autoridade Nacional de Proteção de Dados).
+                O PopClub adota o princípio de <em>Privacy by Design</em> e trata os dados pessoais estritamente necessários para autenticação, processamento de pedidos e entregas, em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018), o Marco Civil da Internet (Lei nº 12.965/2014) e os guias orientativos da ANPD.
               </p>
             </div>
           </div>
@@ -217,11 +217,17 @@ export default function PoliticaPrivacidadePage() {
               6. Segurança e Retenção Legal de Registros
             </h2>
           </div>
-          <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-            - <strong>Marco Civil da Internet (Lei nº 12.965/2014, Art. 15):</strong> Os registros de conexão e acesso à aplicação são mantidos sob sigilo pelo prazo estrito de 6 (seis) meses.<br />
-            - <strong>Preservação Fiscal (Art. 16, I da LGPD):</strong> Em caso de solicitação de exclusão/anonimização de conta por parte do usuário, todos os dados identificáveis (nome, telefone, endereços, coordenadas) são destruídos irreversivelmente, preservando apenas os valores financeiros brutos dos pedidos para fechamento fiscal e cumprimento de obrigação tributária.<br />
-            - <strong>Arquitetura Defensiva:</strong> Comunicação 100% criptografada via HTTPS/TLS, cookies com atributos <code>HttpOnly</code>, <code>SameSite=Lax</code> e <code>Secure</code>, e rate limiting adaptativo.
-          </p>
+          <ul className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed space-y-2 list-disc list-inside">
+            <li>
+              <strong>Marco Civil da Internet (Lei nº 12.965/2014, Art. 15):</strong> Registros de acesso e eventos de segurança são mantidos sob controle estrito pelo prazo legal de 6 (seis) meses.
+            </li>
+            <li>
+              <strong>Preservação Fiscal (Art. 16, I da LGPD):</strong> Na solicitação de exclusão/anonimização da conta, os dados identificáveis (nome, e-mail, WhatsApp, senha, endereços e coordenadas) são removidos de forma irreversível, preservando apenas registros contábeis desidentificados para cumprimento de obrigação legal e fechamento de caixa.
+            </li>
+            <li>
+              <strong>Segurança da Informação:</strong> Senhas protegidas com hash criptográfico <code>bcrypt</code>, sessões JWT assinadas em cookies <code>HttpOnly</code> / <code>SameSite=Lax</code> com revogação instantânea por <code>tokenVersion</code>, tráfego HTTPS/TLS e rate limiting contra força bruta.
+            </li>
+          </ul>
         </div>
 
         {/* Rodapé Interno da Página */}

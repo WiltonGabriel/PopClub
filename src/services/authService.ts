@@ -75,12 +75,13 @@ export const authService = {
   },
 
   async signUp(
-    usernameOrData: string | { username?: string; email: string; password: string; fullName?: string; phone?: string; cpf?: string },
+    usernameOrData: string | { username?: string; email: string; password: string; fullName?: string; phone?: string; cpf?: string; acceptedTerms?: boolean },
     email?: string,
     password?: string,
     fullName?: string,
     phone?: string,
-    cpf?: string
+    cpf?: string,
+    acceptedTerms?: boolean
   ) {
     let payload: {
       username?: string;
@@ -89,6 +90,7 @@ export const authService = {
       fullName?: string;
       phone?: string;
       cpf?: string;
+      acceptedTerms?: boolean;
     };
     if (typeof usernameOrData === "object") {
       payload = usernameOrData;
@@ -100,6 +102,7 @@ export const authService = {
         fullName,
         phone,
         cpf,
+        acceptedTerms,
       };
     }
 

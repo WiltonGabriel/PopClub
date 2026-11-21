@@ -4,15 +4,15 @@ import React from "react";
 import Link from "next/link";
 import {
   FileText,
-  ArrowLeft,
   ShoppingBag,
   Truck,
   CreditCard,
   ShieldCheck,
   RotateCcw,
   Sparkles,
-  HelpCircle,
+  Scale,
 } from "lucide-react";
+import { SmartBackButton } from "@/components/ui/SmartBackButton";
 
 export default function TermosDeUsoPage() {
   return (
@@ -20,16 +20,10 @@ export default function TermosDeUsoPage() {
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Navegação Superior */}
         <div className="flex items-center justify-between">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-zinc-600 dark:text-zinc-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Voltar ao Cardápio
-          </Link>
+          <SmartBackButton className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-zinc-600 dark:text-zinc-400 hover:text-pink-600 dark:hover:text-pink-400 transition-colors cursor-pointer" />
 
           <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-            Versão 1.0 • Outubro/2026
+            Versão 2.0 • Novembro/2026
           </span>
         </div>
 
@@ -108,11 +102,22 @@ export default function TermosDeUsoPage() {
               <h2>5. Privacidade e Proteção de Dados (LGPD)</h2>
             </div>
             <p className="leading-relaxed">
-              O tratamento dos dados pessoais coletados no PopClub é regido pela nossa{" "}
+              Ao criar uma conta ou utilizar a plataforma, o usuário declara estar ciente e de acordo com estes Termos e com a nossa{" "}
               <Link href="/privacidade" className="text-pink-600 dark:text-pink-400 font-semibold underline">
                 Política de Privacidade
               </Link>
-              , em cumprimento estrito à Lei Federal nº 13.709/2018 (LGPD). O usuário pode solicitar a portabilidade ou anonimização completa de seus dados a qualquer momento em sua conta ou via canal oficial de DPO.
+              , em cumprimento à Lei Federal nº 13.709/2018 (LGPD). O titular pode exercer os direitos de portabilidade e anonimização diretamente na área da conta (`/conta`) ou pelo canal oficial de DPO.
+            </p>
+          </div>
+
+          {/* 6. Responsabilidade da Conta e Software */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs space-y-2.5">
+            <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100 font-bold text-base">
+              <Scale className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
+              <h2>6. Segurança da Conta e Licença do Software</h2>
+            </div>
+            <p className="leading-relaxed">
+              O usuário é responsável pela guarda de suas credenciais de acesso e pela veracidade das informações cadastrais. O código-fonte da plataforma PopClub é disponibilizado como software livre sob a licença GNU AGPL-3.0, sem prejuízo das marcas comerciais do estabelecimento operador.
             </p>
           </div>
         </div>

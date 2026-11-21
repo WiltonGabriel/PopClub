@@ -92,7 +92,10 @@ No painel do Cloudflare (Security ➔ WAF ➔ Custom Rules), aplicam-se regras c
    ```text
    (http.request.uri.path eq "/manifest.webmanifest") or 
    (http.request.uri.path eq "/favicon.ico") or 
-   (starts_with(http.request.uri.path, "/icons/")) or 
+   (http.request.uri.path eq "/icon.png") or 
+   (http.request.uri.path eq "/icon-192.png") or 
+   (http.request.uri.path eq "/icon-512.png") or 
+   (http.request.uri.path eq "/apple-icon.png") or 
    (starts_with(http.request.uri.path, "/_next/static/"))
    ```
 2. **Ação:** `Skip / Bypass` para *Managed Challenge*, *Interactive Challenge* e *Rate Limiting*.
@@ -129,8 +132,9 @@ O domínio oficial `https://popshake.wnzk.dev.br/` agora roteia o tráfego HTTPS
 O container de produção executa em modo **Next.js Standalone**, minimizando o footprint de memória e tempo de inicialização. O script de entrada segue uma sequência estrita:
 
 1. **Healthcheck de Rede:** O script aguarda a porta 5432 do PostgreSQL responder ativamente (via `nc` com fallback nativo em Node.js).
-2. **Migrações Automáticas:** Executa `./node_modules/.bin/prisma migrate deploy` utilizando a CLI do Prisma pré-instalada no container, garantindo sincronia antes de abrir portas HTTP.
+2. **Sincronização Segura de Schema:** Executa `./node_modules/.bin/prisma migrate deploy` quando o diretório `prisma/migrations` está presente ou realiza sincronização segura via `prisma db push` (com bloqueio preventivo contra `DROP TABLE`, `DROP COLUMN` e `TRUNCATE` via `prisma migrate diff`), garantindo integridade antes de abrir portas HTTP.
 3. **Execução do Runtime:** Inicia `exec node server.js` sob usuário não-privilegiado `nextjs:nodejs` (UID 1001).
+4. **Tempo Real (SSE) e Qualidade:** A esteira operacional em `/admin/pedidos` e o acompanhamento de pedidos consomem o canal Server-Sent Events (`/api/orders/events`), e toda a base de código é coberta por **363 testes automatizados (54 arquivos)** em Vitest.
 
 ---
 

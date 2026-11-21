@@ -22,7 +22,11 @@ const withPWA = withPWAInit({
 });
 
 // Coleta dinamicamente os IPs de rede da máquina (Tailscale, Wi-Fi/Ethernet local, etc.)
-const devOrigins: string[] = ["localhost", "127.0.0.1", "100.124.19.16", "192.168.1.114", "*.ts.net"];
+const extraDevOrigins = (process.env.DEV_ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const devOrigins: string[] = ["localhost", "127.0.0.1", "*.ts.net", ...extraDevOrigins];
 try {
   const interfaces = os.networkInterfaces();
   for (const name of Object.keys(interfaces)) {

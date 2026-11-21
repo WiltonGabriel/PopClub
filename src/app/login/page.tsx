@@ -315,6 +315,7 @@ function AuthPageInner() {
   const [registerPhone, setRegisterPhone] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [registerLoading, setRegisterLoading] = useState(false);
   const [registerError, setRegisterError] = useState<string | null>(null);
 
@@ -363,6 +364,10 @@ function AuthPageInner() {
       setRegisterError("A senha deve conter no mínimo 6 caracteres.");
       return;
     }
+    if (!acceptedTerms) {
+      setRegisterError("Para criar sua conta, é necessário ler e aceitar os Termos de Uso e a Política de Privacidade.");
+      return;
+    }
 
     setRegisterLoading(true);
     try {
@@ -371,6 +376,7 @@ function AuthPageInner() {
         email: cleanMail,
         phone: cleanPhone,
         password: registerPassword,
+        acceptedTerms: true,
       });
       window.location.replace(redirectTarget);
     } catch (err: unknown) {
@@ -1036,6 +1042,46 @@ function AuthPageInner() {
                   <span className="text-[10px] text-[#7A587D] dark:text-[#957498] block">
                     Mínimo 6 caracteres com letras e números.
                   </span>
+                </div>
+
+                {/* Aceite dos Termos de Uso e Política de Privacidade */}
+                <div className="pt-1">
+                  <label
+                    htmlFor="registerAcceptTerms"
+                    className="flex items-start gap-2.5 text-xs text-[#7A587D] dark:text-[#E2D2E4] cursor-pointer select-none leading-relaxed"
+                  >
+                    <input
+                      id="registerAcceptTerms"
+                      type="checkbox"
+                      checked={acceptedTerms}
+                      onChange={(e) => {
+                        setAcceptedTerms(e.target.checked);
+                        if (registerError) setRegisterError(null);
+                      }}
+                      className="mt-0.5 h-4 w-4 rounded border-zinc-300 dark:border-zinc-700 text-primary focus:ring-primary shrink-0 cursor-pointer accent-primary"
+                    />
+                    <span>
+                      Li e aceito os{" "}
+                      <Link
+                        href="/termos"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-primary hover:underline"
+                      >
+                        Termos de Uso
+                      </Link>{" "}
+                      e a{" "}
+                      <Link
+                        href="/privacidade"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-primary hover:underline"
+                      >
+                        Política de Privacidade
+                      </Link>
+                      .
+                    </span>
+                  </label>
                 </div>
 
                 {/* Botão de Envio */}

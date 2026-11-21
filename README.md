@@ -10,7 +10,7 @@
 ![Traefik](https://img.shields.io/badge/Traefik-v3-24A1C1?style=for-the-badge&logo=traefik&logoColor=white)
 ![Tailscale](https://img.shields.io/badge/Tailscale-Mesh%20VPN-49647C?style=for-the-badge&logo=tailscale&logoColor=white)
 ![Projeto Extensionista](https://img.shields.io/badge/Projeto%20Extensionista-UNIVAG%20TADS-8A2BE2?style=for-the-badge)
-![Vitest](https://img.shields.io/badge/Vitest-363%20Passed-449C44?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-366%20Passed-449C44?style=for-the-badge&logo=vitest&logoColor=white)
 ![LGPD](https://img.shields.io/badge/LGPD-Compliant-00B4D8?style=for-the-badge&logo=privatedivision&logoColor=white)
 ![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue?style=for-the-badge)
 [![Google Drive](https://img.shields.io/badge/Google%20Drive-Documentos%20Oficiais-4285F4?style=for-the-badge&logo=googledrive&logoColor=white)](https://drive.google.com/drive/folders/1iw4oxwSWsKvCcCP9YZipzOM0B2B7JmdR?usp=sharing)
@@ -26,8 +26,8 @@
 ---
 
 > [!NOTE]
-> **PROJETO OPEN-SOURCE — LICENÇA AGPL-3.0 (SEM FINALIDADE COMERCIAL)**
-> Este repositório disponibiliza exclusivamente o código-fonte do software sob a licença **GNU Affero General Public License v3.0 (AGPL-3.0)** para fins acadêmicos, técnicos e comunitários. Não há comercialização, venda de licenças ou operação de vendas neste repositório.
+> **PROJETO OPEN-SOURCE — LICENÇA AGPL-3.0**
+> Este repositório disponibiliza o código-fonte do software sob a licença **GNU Affero General Public License v3.0 (AGPL-3.0)**. Consulte o arquivo [LICENSE](LICENSE) para detalhes de uso, redistribuição e obrigações de código aberto em rede.
 
 ---
 
@@ -222,7 +222,7 @@ npm run dev
 | `npm run dev` | Inicia o servidor local Next.js com live reload em todas as interfaces de rede. |
 | `npm run build` | Compilação estrita de produção (TypeScript check, bundler Webpack e modo standalone). |
 | `npm run lint` | Executa a análise estática com o ESLint configurado para Next.js (0 erros). |
-| `npm test` | **Suíte de Testes Automatizados (Vitest)**: executa 363 testes em 54 arquivos (unitários e de integração: LGPD, cookies, IDOR, horários, RBAC, AppSec, estoque, esteira, SSE e financeiro). |
+| `npm test` | **Suíte de Testes Automatizados (Vitest)**: executa 366 testes em 55 arquivos (unitários e de integração: LGPD, cookies, IDOR, horários, RBAC, AppSec, estoque, esteira, SSE e financeiro). |
 | `npm run test:watch` | Executa a suíte Vitest em modo interativo contínuo (TDD). |
 | `npm run test:coverage` | Gera o relatório de cobertura de código automatizado (`@vitest/coverage-v8`). |
 | `npx tsc --noEmit` | **Typecheck Estrito**: valida 100% da tipagem estática sem emitir artefatos. |
@@ -296,7 +296,7 @@ O repositório opera sob as diretrizes documentadas em [docs/GITOPS.md](docs/GIT
 - **Identidade Visual & Personalização:** Customização de splash screen, avatares, banners e zonas de entrega.
 
 ### 6. Engenharia de Qualidade, AppSec & Exceções de Domínio
-- **Suíte de Testes Automatizados (Vitest):** 363 testes em 54 arquivos validando LGPD, cookies, isolamento IDOR, horários, estoques, precificação, RBAC, auditoria e esteira.
+- **Suíte de Testes Automatizados (Vitest):** 366 testes em 55 arquivos validando LGPD, cookies, isolamento IDOR, horários, estoques, precificação, RBAC, auditoria e esteira.
 - **Exceções de Domínio:** Tratamento padronizado (`DomainException`, `handleApiError`) com sanitização de logs.
 - **Segurança Defensiva Zero Trust:** Rate limiting em rotas sensíveis e validação estrita com Zod.
 
@@ -315,4 +315,3 @@ O projeto **PopClub** é mantido pela **Equipe ADP**, no âmbito do Projeto Exte
 
 ### Licenciamento
 - **Licença Open-Source:** Este software é distribuído sob a licença **GNU Affero General Public License v3.0 (AGPL-3.0)**. Consulte o arquivo [LICENSE](LICENSE) para os termos completos.
-- **Sem Finalidade Comercial:** Este repositório contém exclusivamente código-fonte aberto para fins acadêmicos e comunitários, sem comercialização de licenças ou venda de produtos.

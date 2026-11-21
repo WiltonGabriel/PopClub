@@ -25,7 +25,7 @@ Diretório centralizado de scripts de governança, testes e suporte operacional 
   ```
 
 ### 3. `scripts/backup-db.mjs` (Política de Máximo 2 Backups)
-- **Função**: Clona instantaneamente todas as tabelas no servidor PostgreSQL na VPS (`backup_slot_1` e `backup_slot_2`), aplicando rotação automática FIFO (limite estrito de 2 backups). Também salva dump JSON em `/backups` mantendo apenas os 2 mais recentes.
+- **Função**: Clona instantaneamente todas as tabelas no servidor PostgreSQL na VPS (`backup_slot_1` e `backup_slot_2`), aplicando rotação automática FIFO (limite estrito de 2 backups). Também salva dump JSON em `backups/` na raiz do projeto mantendo apenas os 2 mais recentes.
 - **Como executar**:
   ```bash
   node scripts/backup-db.mjs

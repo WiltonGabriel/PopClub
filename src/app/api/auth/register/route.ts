@@ -33,6 +33,17 @@ export async function POST(request: Request) {
     }
 
     const { username, email, password, fullName, phone, cpf } = (body as Record<string, string>) || {};
+    const acceptedTerms = body?.acceptedTerms === true;
+
+    if (!acceptedTerms) {
+      return NextResponse.json(
+        {
+          error: "É obrigatório ler e aceitar os Termos de Uso e a Política de Privacidade para criar sua conta.",
+          code: "TERMS_NOT_ACCEPTED",
+        },
+        { status: 400 }
+      );
+    }
 
     if (!email || !password) {
       return NextResponse.json({ error: "E-mail e senha são obrigatórios." }, { status: 400 });
