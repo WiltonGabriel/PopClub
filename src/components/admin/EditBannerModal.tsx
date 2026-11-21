@@ -8,6 +8,7 @@ import { Label } from "../ui/label";
 import { Loader2, Sparkles, Check, Upload, Trash2 } from "lucide-react";
 import { bannerService, HighlightBannerData } from "../../services/bannerService";
 import { useToast } from "../ui/ToastNotification";
+import { ImageCropperDialog } from "./ImageCropperDialog";
 
 function isBannerIconImageUrl(iconValue: string | undefined | null): boolean {
   if (!iconValue) return false;
@@ -34,21 +35,33 @@ export function EditBannerModal({
   const [badge, setBadge] = useState(currentBanner.badge || "");
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [cropperSrc, setCropperSrc] = useState<string | null>(null);
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { showToast } = useToast();
   const isImageIcon = isBannerIconImageUrl(icon);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
+  const revokeCropperSrc = (srcToRevoke: string | null) => {
+    if (srcToRevoke) {
+      URL.revokeObjectURL(srcToRevoke);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (cropperSrc) {
+        URL.revokeObjectURL(cropperSrc);
+      }
+    };
+  }, [cropperSrc]);
+
+  const uploadBannerImageFile = async (fileToUpload: File) => {
     setUploadingImage(true);
     setError("");
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", fileToUpload);
       formData.append("type", "product");
       const res = await fetch("/api/upload", {
         method: "POST",
@@ -64,6 +77,32 @@ export function EditBannerModal({
     } finally {
       setUploadingImage(false);
     }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+
+    if (file.type === "image/svg+xml") {
+      await uploadBannerImageFile(file);
+      return;
+    }
+
+    revokeCropperSrc(cropperSrc);
+    const objectUrl = URL.createObjectURL(file);
+    setCropperSrc(objectUrl);
+  };
+
+  const handleCropCancel = () => {
+    revokeCropperSrc(cropperSrc);
+    setCropperSrc(null);
+  };
+
+  const handleCropConfirm = async (croppedFile: File) => {
+    revokeCropperSrc(cropperSrc);
+    setCropperSrc(null);
+    await uploadBannerImageFile(croppedFile);
   };
 
   // Sincroniza o estado interno sempre que o banner atual mudar ou ao abrir
@@ -107,6 +146,7 @@ export function EditBannerModal({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl w-full rounded-2xl sm:rounded-3xl bg-white dark:bg-[#1F0B22] text-foreground border border-gray-200 dark:border-border/40 shadow-2xl p-6 sm:p-7 max-h-[90vh] overflow-y-auto">
         <DialogHeader className="mb-4">
@@ -305,5 +345,16 @@ export function EditBannerModal({
         </form>
       </DialogContent>
     </Dialog>
+
+    <ImageCropperDialog
+      open={Boolean(cropperSrc)}
+      imageSrc={cropperSrc}
+      aspectRatio={1}
+      aspectLabel="1:1 (Ícone / Miniatura do Banner)"
+      maxDimension={800}
+      onCropComplete={handleCropConfirm}
+      onCancel={handleCropCancel}
+    />
+    </>
   );
 }

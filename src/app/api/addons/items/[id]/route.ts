@@ -34,9 +34,25 @@ export async function PUT(
       return NextResponse.json({ error: "Item de complemento não encontrado." }, { status: 404 });
     }
 
-    const { name, price, imageUrl, isAvailable, sortOrder } = body || {};
+    const { groupId, name, price, imageUrl, isAvailable, sortOrder } = body || {};
 
     const dataToUpdate: Record<string, unknown> = {};
+    if (groupId !== undefined) {
+      if (typeof groupId !== "string" || !groupId.trim()) {
+        return NextResponse.json({ error: "ID do grupo de destino inválido." }, { status: 400 });
+      }
+      const targetGroupId = groupId.trim();
+      if (targetGroupId !== existing.groupId) {
+        const targetGroup = await prisma.addonGroup.findUnique({
+          where: { id: targetGroupId },
+          select: { id: true },
+        });
+        if (!targetGroup) {
+          return NextResponse.json({ error: "Grupo de destino não encontrado." }, { status: 404 });
+        }
+        dataToUpdate.groupId = targetGroupId;
+      }
+    }
     if (name !== undefined) dataToUpdate.name = String(name).trim();
     if (price !== undefined) dataToUpdate.price = Math.max(0, parseFloat(String(price)) || 0);
     if (isAvailable !== undefined) dataToUpdate.isAvailable = Boolean(isAvailable);

@@ -2,7 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prisma } from "@/lib/prisma";
 import * as authLib from "@/lib/auth";
 import { repairMojibake } from "@/lib/sanitize";
-import { MAX_ACTIVE_ADMINS } from "@/domain/services/RbacDomainService";
+import {
+  MAX_ACTIVE_ADMINS,
+  MAX_CUSTOM_ROLES,
+  MAX_MEMBERS_PER_CUSTOM_ROLE,
+} from "@/domain/services/RbacDomainService";
 import { authLimiter } from "@/lib/rateLimit";
 import { GET as listUsers, POST as createUser } from "@/app/api/admin/users/route";
 import { GET as listRoles, POST as createRole } from "@/app/api/admin/roles/route";
@@ -99,6 +103,60 @@ describe("Segurança de Cargos e Prevenção de Escalonamento de Privilégios", 
         })
       );
       expect(okRes.status).toBe(201);
+    });
+
+    it("permite criar mais de 4 cargos personalizados (sem limite de cargos) e mantém limite de 30 membros por cargo e 6 admins", async () => {
+      expect(MAX_ACTIVE_ADMINS).toBe(6);
+      expect(MAX_CUSTOM_ROLES).toBeNull();
+      expect(MAX_MEMBERS_PER_CUSTOM_ROLE).toBe(30);
+
+      vi.spyOn(authLib, "getAuthUser").mockResolvedValue(fullAdmin as any);
+      vi.spyOn(prisma.customRole, "count").mockResolvedValue(10);
+      vi.spyOn(prisma.customRole, "findUnique").mockResolvedValue(null);
+      vi.spyOn(prisma.customRole, "create").mockResolvedValue({
+        id: "role-11",
+        name: "Conferente Noturno",
+        color: "emerald",
+        permissions: ["ORDERS_KANBAN"],
+      } as any);
+
+      const okRes = await createRole(
+        new Request("http://localhost:3000/api/admin/roles", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: "Conferente Noturno",
+            color: "emerald",
+            permissions: ["ORDERS_KANBAN"],
+          }),
+        })
+      );
+      expect(okRes.status).toBe(201);
+
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue(null);
+      vi.spyOn(prisma.customRole, "findUnique").mockResolvedValue({
+        id: "role-11",
+        name: "Conferente Noturno",
+        permissions: ["ORDERS_KANBAN"],
+      } as any);
+      vi.spyOn(prisma.user, "count").mockResolvedValue(30);
+
+      const fullRoleUserRes = await createUser(
+        new Request("http://localhost:3000/api/admin/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fullName: "Membro 31",
+            email: "membro31@popclub.com",
+            password: "SenhaForte123!",
+            role: "EDITOR",
+            customRoleId: "role-11",
+          }),
+        })
+      );
+      expect(fullRoleUserRes.status).toBe(400);
+      const fullRoleJson = await fullRoleUserRes.json();
+      expect(fullRoleJson.error).toContain("30 membros");
     });
   });
 
@@ -326,7 +384,7 @@ describe("Segurança de Cargos e Prevenção de Escalonamento de Privilégios", 
         clientsCount: 12,
         blockedCount: 2,
         customRolesCount: 2,
-        maxCustomRoles: 4,
+        maxCustomRoles: null,
       });
       expect(MAX_ACTIVE_ADMINS).toBe(6);
       // O 5º call (list total) deve filtrar isBlocked: true e deletedAt: null

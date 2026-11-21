@@ -118,7 +118,7 @@ export interface UsersSummary {
   clientsCount: number;
   blockedCount: number;
   customRolesCount: number;
-  maxCustomRoles: number;
+  maxCustomRoles: number | null;
 }
 
 export interface GetUsersParams {

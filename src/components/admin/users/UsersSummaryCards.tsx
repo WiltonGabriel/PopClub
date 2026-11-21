@@ -67,7 +67,11 @@ export function UsersSummaryCards({
         {
           id: "roles",
           label: "Cargos",
-          value: summary ? `${summary.customRolesCount}/${summary.maxCustomRoles}` : "—",
+          value: summary
+            ? summary.maxCustomRoles != null
+              ? `${summary.customRolesCount}/${summary.maxCustomRoles}`
+              : `${summary.customRolesCount}`
+            : "—",
           subtitle: "Perfis reutilizáveis",
           icon: Shield,
           iconBoxClass: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400",

@@ -1,17 +1,18 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Cropper, { Area } from "react-easy-crop";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { getCroppedImg } from "../../lib/cropImage";
-import { ZoomIn, Crop, AlertCircle, Check, X, Loader2 } from "lucide-react";
+import { ZoomIn, Crop, AlertCircle, Check, X, Loader2, RotateCcw, RotateCw } from "lucide-react";
 
 interface ImageCropperDialogProps {
   open: boolean;
   imageSrc: string | null;
   aspectRatio: number; // ex: 1 / 1 para produtos, 16 / 9 para promoções
   aspectLabel: string; // ex: "1:1 (Quadrado)" ou "16:9 (Banner)"
+  maxDimension?: number;
   onCropComplete: (file: File) => void;
   onCancel: () => void;
 }
@@ -21,14 +22,26 @@ export function ImageCropperDialog({
   imageSrc,
   aspectRatio,
   aspectLabel,
+  maxDimension = 1024,
   onCropComplete,
   onCancel,
 }: ImageCropperDialogProps) {
   const [crop, setCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [processing, setProcessing] = useState(false);
   const [cropError, setCropError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setRotation(0);
+      setCroppedAreaPixels(null);
+      setCropError(null);
+    }
+  }, [open, imageSrc]);
 
   const onCropChange = (newCrop: { x: number; y: number }) => {
     setCrop(newCrop);
@@ -36,6 +49,10 @@ export function ImageCropperDialog({
 
   const onZoomChange = (newZoom: number) => {
     setZoom(newZoom);
+  };
+
+  const handleRotate = (delta: number) => {
+    setRotation((prev) => (prev + delta + 360) % 360);
   };
 
   const handleCropComplete = useCallback((_croppedArea: Area, currentPixels: Area) => {
@@ -48,7 +65,10 @@ export function ImageCropperDialog({
     setProcessing(true);
     setCropError(null);
     try {
-      const croppedFile = await getCroppedImg(imageSrc, croppedAreaPixels, "popshake-crop.webp");
+      const croppedFile = await getCroppedImg(imageSrc, croppedAreaPixels, "popshake-crop.webp", {
+        rotation,
+        maxDimension,
+      });
       onCropComplete(croppedFile);
     } catch (err) {
       console.error("Erro ao recortar imagem:", err);
@@ -62,7 +82,10 @@ export function ImageCropperDialog({
 
   return (
     <Dialog open={open} onOpenChange={(val) => !val && onCancel()}>
-      <DialogContent className="max-w-[700px] w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto p-6 bg-background/95 backdrop-blur-xl border border-border/60 rounded-3xl shadow-2xl">
+      <DialogContent
+        overlayClassName="z-[80] bg-black/70"
+        className="z-[80] max-w-[700px] w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto p-6 bg-background/95 backdrop-blur-xl border border-border/60 rounded-3xl shadow-2xl"
+      >
         <DialogHeader className="mb-1">
           <div className="flex items-center justify-between gap-3">
             <DialogTitle className="font-heading text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2.5 text-foreground">
@@ -104,36 +127,65 @@ export function ImageCropperDialog({
             image={imageSrc}
             crop={crop}
             zoom={zoom}
+            rotation={rotation}
             aspect={aspectRatio}
             onCropChange={onCropChange}
             onZoomChange={onZoomChange}
+            onRotationChange={setRotation}
             onCropComplete={handleCropComplete}
             showGrid={true}
           />
         </div>
 
-        {/* Controle de Zoom */}
-        <div className="flex items-center gap-3 bg-muted/40 border border-border/50 rounded-2xl p-3.5">
-          <ZoomIn className="w-4 h-4 text-primary shrink-0" />
-          <label
-            htmlFor="image-cropper-zoom"
-            className="text-xs font-semibold text-muted-foreground shrink-0"
-          >
-            Zoom
-          </label>
-          <input
-            id="image-cropper-zoom"
-            type="range"
-            min={1}
-            max={3}
-            step={0.05}
-            value={zoom}
-            onChange={(e) => setZoom(parseFloat(e.target.value))}
-            className="flex-1 accent-primary cursor-pointer"
-          />
-          <span className="text-xs text-primary font-bold tabular-nums w-12 text-right">
-            {zoom.toFixed(1)}x
-          </span>
+        {/* Controles de Zoom e Rotação */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-muted/40 border border-border/50 rounded-2xl p-3.5">
+          <div className="flex items-center gap-3 flex-1">
+            <ZoomIn className="w-4 h-4 text-primary shrink-0" />
+            <label
+              htmlFor="image-cropper-zoom"
+              className="text-xs font-semibold text-muted-foreground shrink-0"
+            >
+              Zoom
+            </label>
+            <input
+              id="image-cropper-zoom"
+              type="range"
+              min={1}
+              max={3}
+              step={0.05}
+              value={zoom}
+              onChange={(e) => setZoom(parseFloat(e.target.value))}
+              className="flex-1 accent-primary cursor-pointer"
+            />
+            <span className="text-xs text-primary font-bold tabular-nums w-12 text-right">
+              {zoom.toFixed(1)}x
+            </span>
+          </div>
+
+          <div className="flex items-center justify-end gap-1.5 border-t sm:border-t-0 sm:border-l border-border/60 pt-2 sm:pt-0 sm:pl-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleRotate(-90)}
+              title="Girar 90° para a esquerda"
+              className="h-8 px-2.5 rounded-xl text-[11px] font-semibold gap-1 cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              -90°
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleRotate(90)}
+              title="Girar 90° para a direita"
+              className="h-8 px-2.5 rounded-xl text-[11px] font-semibold gap-1 cursor-pointer"
+            >
+              <RotateCw className="w-3.5 h-3.5" />
+              +90°
+            </Button>
+          </div>
         </div>
 
         <DialogFooter className="mt-2 flex flex-col-reverse sm:flex-row justify-end gap-2.5">

@@ -3,7 +3,12 @@
 import React from "react";
 import { Shield, Plus, UserPlus, Edit2, Trash2, Crown, ShieldCheck, RefreshCw } from "lucide-react";
 import { CustomRoleItem } from "@/services/adminUserService";
-import { MAX_ACTIVE_ADMINS, MAX_CUSTOM_ROLES, MAX_MEMBERS_PER_CUSTOM_ROLE } from "@/domain/services/RbacDomainService";
+import {
+  MAX_ACTIVE_ADMINS,
+  MAX_CUSTOM_ROLES,
+  MAX_MEMBERS_PER_CUSTOM_ROLE,
+  isCustomRoleLimitReached,
+} from "@/domain/services/RbacDomainService";
 import { ALL_PERMISSIONS, PERMISSION_DEFINITIONS } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { getRoleColorStyle } from "./roleColorStyles";
@@ -29,7 +34,7 @@ export function CustomRolesTab({
   onDeleteRole,
   onCreateMemberWithRole,
 }: CustomRolesTabProps) {
-  const limitReached = customRoles.length >= MAX_CUSTOM_ROLES;
+  const limitReached = isCustomRoleLimitReached(customRoles.length);
 
   return (
     <div className="space-y-6">
@@ -41,7 +46,9 @@ export function CustomRolesTab({
           </div>
           <div>
             <h3 className="font-heading font-bold text-sm sm:text-base text-foreground">
-              Cargos Criados: {customRoles.length} de {MAX_CUSTOM_ROLES} permitidos
+              {MAX_CUSTOM_ROLES !== null
+                ? `Cargos Criados: ${customRoles.length} de ${MAX_CUSTOM_ROLES} permitidos`
+                : `Cargos Criados: ${customRoles.length}`}
             </h3>
             <p className="text-xs text-muted-foreground">
               Até {MAX_MEMBERS_PER_CUSTOM_ROLE} membros por cargo · Alterar um cargo sincroniza todos os colaboradores vinculados.

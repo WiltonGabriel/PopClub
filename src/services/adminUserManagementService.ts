@@ -13,6 +13,7 @@ import {
   MAX_CUSTOM_ROLES,
   MAX_MEMBERS_PER_CUSTOM_ROLE,
   arePermissionSetsEqual,
+  isCustomRoleLimitReached,
 } from "@/domain/services/RbacDomainService";
 import {
   createCustomRoleSchema,
@@ -1107,7 +1108,7 @@ export async function createCustomRole(
   const { name: trimmedName, color: chosenColor, permissions: validPermissions } = parsed.data;
 
   const currentCount = await prisma.customRole.count();
-  if (currentCount >= MAX_CUSTOM_ROLES) {
+  if (isCustomRoleLimitReached(currentCount)) {
     throw new AdminUserServiceError(
       `Limite atingido: O sistema permite a criação de no máximo ${MAX_CUSTOM_ROLES} cargos personalizados adicionais.`,
       400

@@ -26,6 +26,7 @@ import { categoryService, Category } from "../../services/categoryService";
 import { promotionService, Promotion } from "../../services/promotionService";
 import { ProductFormDialog } from "./ProductFormDialog";
 import { useToast } from "../ui/ToastNotification";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface StockControlSectionProps {
   /**
@@ -54,11 +55,45 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-  // Exclusão de produto com confirmação e tratamento 409
+  const { isAdmin, canAccess } = useAuth();
+  const canManageMenu = isAdmin || canAccess("menu_manage");
+
+  const notifyMissingMenuPermission = (actionLabel: string) => {
+    showToast({
+      title: `Sem permissão para ${actionLabel}`,
+      message:
+        "Seu cargo possui acesso apenas ao controle de estoque. Solicite a um administrador a permissão 'Gerenciar Cardápio' para editar, criar ou excluir produtos.",
+      type: "warning",
+    });
+  };
+
+  const handleOpenNewProduct = () => {
+    if (!canManageMenu) {
+      notifyMissingMenuPermission("cadastrar produtos");
+      return;
+    }
+    setEditingProduct(null);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleOpenEditProduct = (product: Product) => {
+    if (!canManageMenu) {
+      notifyMissingMenuPermission("editar dados do produto");
+      return;
+    }
+    setEditingProduct(product);
+    setIsEditDialogOpen(true);
+  };
+
+  // Exclusão de produto com confirmação e tratamento 409/403
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleRequestDelete = (product: Product) => {
+    if (!canManageMenu) {
+      notifyMissingMenuPermission("excluir produtos");
+      return;
+    }
     setProductToDelete(product);
   };
 
@@ -77,6 +112,16 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
           title: "Produto excluído",
           message: `O produto "${productToDelete.name}" foi removido com sucesso.`,
           type: "success",
+        });
+        setProductToDelete(null);
+      } else if (res.status === 403) {
+        const data = await res.json().catch(() => ({}));
+        showToast({
+          title: "Sem permissão para excluir",
+          message:
+            data.error ||
+            "Seu cargo não possui a permissão 'Gerenciar Cardápio' necessária para excluir produtos.",
+          type: "warning",
         });
         setProductToDelete(null);
       } else if (res.status === 409) {
@@ -381,10 +426,7 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
 
           <button
             type="button"
-            onClick={() => {
-              setEditingProduct(null);
-              setIsEditDialogOpen(true);
-            }}
+            onClick={handleOpenNewProduct}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] hover:opacity-95 text-white text-xs font-bold uppercase tracking-wider shadow-sm shadow-[#9306CF]/25 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -466,10 +508,7 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
           </p>
           <button
             type="button"
-            onClick={() => {
-              setEditingProduct(null);
-              setIsEditDialogOpen(true);
-            }}
+            onClick={handleOpenNewProduct}
             className="mt-4 flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-[#9306CF] to-[#940068] text-white text-xs font-bold uppercase tracking-wider shadow-sm transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -682,10 +721,7 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
                       <div className="inline-flex items-center justify-center gap-1.5">
                         <button
                           type="button"
-                          onClick={() => {
-                            setEditingProduct(product);
-                            setIsEditDialogOpen(true);
-                          }}
+                          onClick={() => handleOpenEditProduct(product)}
                           title="Editar dados do produto"
                           className="p-1.5 rounded-lg text-gray-400 hover:text-[#9306CF] hover:bg-[#9306CF]/10 transition-colors cursor-pointer"
                         >

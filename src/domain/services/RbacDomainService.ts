@@ -11,8 +11,18 @@ import {
 } from "@/lib/permissions";
 
 export const MAX_ACTIVE_ADMINS = 6;
-export const MAX_CUSTOM_ROLES = 4;
-export const MAX_MEMBERS_PER_CUSTOM_ROLE = 4;
+export const MAX_CUSTOM_ROLES: number | null = null;
+export const MAX_MEMBERS_PER_CUSTOM_ROLE = 30;
+
+/**
+ * Verifica se há limite configurado de cargos personalizados e se o limite foi atingido.
+ */
+export function isCustomRoleLimitReached(
+  currentCount: number,
+  maxLimit: number | null = MAX_CUSTOM_ROLES
+): boolean {
+  return maxLimit !== null && currentCount >= maxLimit;
+}
 
 export const VALID_ROLE_COLORS = [
   "blue",
