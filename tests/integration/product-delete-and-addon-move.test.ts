@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prisma } from "@/lib/prisma";
 import * as authLib from "@/lib/auth";
 import { addonCrudLimiter } from "@/lib/rateLimit";
-import { DELETE as deleteProduct } from "@/app/api/products/[id]/route";
+import { GET as getProduct, DELETE as deleteProduct } from "@/app/api/products/[id]/route";
 import { PUT as updateAddonItem } from "@/app/api/addons/items/[id]/route";
 
 describe("Integração: Exclusão Segura de Produtos e Movimentação de Complementos", () => {
@@ -34,68 +34,128 @@ describe("Integração: Exclusão Segura de Produtos e Movimentação de Complem
       expect(body.error).toContain("Permissão para gerenciar cardápio");
     });
 
-    it("retorna 404 quando produto não existe", async () => {
+    it("retorna 404 quando produto não existe ou já foi arquivado via soft-delete", async () => {
       vi.spyOn(authLib, "getAuthUser").mockResolvedValue({
         id: "admin-1",
         role: "admin",
         permissions: [],
       } as any);
-      vi.spyOn(prisma.product, "findUnique").mockResolvedValue(null);
+      vi.spyOn(prisma.product, "findUnique").mockResolvedValueOnce(null);
 
       const res = await deleteProduct(
         new Request("http://localhost:3000/api/products/inexistente", { method: "DELETE" }),
         { params: Promise.resolve({ id: "inexistente" }) }
       );
       expect(res.status).toBe(404);
+
+      vi.spyOn(prisma.product, "findUnique").mockResolvedValueOnce({
+        id: "prod-archived",
+        deletedAt: new Date("2026-10-01T00:00:00Z"),
+      } as any);
+      const archivedRes = await deleteProduct(
+        new Request("http://localhost:3000/api/products/prod-archived", { method: "DELETE" }),
+        { params: Promise.resolve({ id: "prod-archived" }) }
+      );
+      expect(archivedRes.status).toBe(404);
     });
 
-    it("retorna 409 PRODUCT_HAS_ORDERS quando produto possui itens de pedidos vinculados", async () => {
+    it("aplica soft-delete transacional (200) quando produto possui pedidos vinculados, preservando histórico", async () => {
       vi.spyOn(authLib, "getAuthUser").mockResolvedValue({
         id: "editor-menu",
         role: "editor",
         permissions: ["menu_manage", "STOCK_CONTROL"],
       } as any);
-      vi.spyOn(prisma.product, "findUnique").mockResolvedValue({ id: "prod-hist" } as any);
+      vi.spyOn(prisma.product, "findUnique").mockResolvedValue({
+        id: "prod-hist",
+        deletedAt: null,
+      } as any);
       vi.spyOn(prisma.orderItem, "count").mockResolvedValue(4);
-      const deleteSpy = vi.spyOn(prisma.product, "delete");
+      const hardDeleteSpy = vi.spyOn(prisma.product, "delete");
+
+      const txMock = {
+        promotion: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+        productAddonGroup: { deleteMany: vi.fn().mockResolvedValue({ count: 2 }) },
+        comboItem: { deleteMany: vi.fn().mockResolvedValue({ count: 1 }) },
+        product: { update: vi.fn().mockResolvedValue({ id: "prod-hist" }) },
+      };
+      vi.spyOn(prisma, "$transaction").mockImplementation(async (cb: any) => cb(txMock));
 
       const res = await deleteProduct(
         new Request("http://localhost:3000/api/products/prod-hist", { method: "DELETE" }),
         { params: Promise.resolve({ id: "prod-hist" }) }
       );
-      expect(res.status).toBe(409);
-      expect(deleteSpy).not.toHaveBeenCalled();
+      expect(res.status).toBe(200);
+      expect(hardDeleteSpy).not.toHaveBeenCalled();
+
+      expect(txMock.promotion.updateMany).toHaveBeenCalledWith({
+        where: { productId: "prod-hist" },
+        data: { isActive: false },
+      });
+      expect(txMock.productAddonGroup.deleteMany).toHaveBeenCalledWith({
+        where: { productId: "prod-hist" },
+      });
+      expect(txMock.comboItem.deleteMany).toHaveBeenCalledWith({
+        where: { OR: [{ comboId: "prod-hist" }, { productId: "prod-hist" }] },
+      });
+      expect(txMock.product.update).toHaveBeenCalledWith({
+        where: { id: "prod-hist" },
+        data: expect.objectContaining({
+          deletedAt: expect.any(Date),
+          isAvailable: false,
+          isHighlight: false,
+          categoryId: null,
+          cardBadgeId: null,
+        }),
+      });
+
       const body = await res.json();
-      expect(body.code).toBe("PRODUCT_HAS_ORDERS");
+      expect(body.success).toBe(true);
+      expect(body.softDeleted).toBe(true);
       expect(body.linkedOrdersCount).toBe(4);
     });
 
-    it("retorna 409 FOREIGN_KEY_CONSTRAINT caso delete dispare erro Prisma P2003", async () => {
+    it("faz fallback para soft-delete caso delete físico dispare P2003 concorrente", async () => {
       vi.spyOn(authLib, "getAuthUser").mockResolvedValue({
         id: "admin-1",
         role: "admin",
         permissions: [],
       } as any);
-      vi.spyOn(prisma.product, "findUnique").mockResolvedValue({ id: "prod-fk" } as any);
+      vi.spyOn(prisma.product, "findUnique").mockResolvedValue({
+        id: "prod-fk",
+        deletedAt: null,
+      } as any);
       vi.spyOn(prisma.orderItem, "count").mockResolvedValue(0);
       vi.spyOn(prisma.product, "delete").mockRejectedValue({ code: "P2003" });
+
+      const txMock = {
+        promotion: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        productAddonGroup: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        comboItem: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        product: { update: vi.fn().mockResolvedValue({ id: "prod-fk" }) },
+      };
+      vi.spyOn(prisma, "$transaction").mockImplementation(async (cb: any) => cb(txMock));
 
       const res = await deleteProduct(
         new Request("http://localhost:3000/api/products/prod-fk", { method: "DELETE" }),
         { params: Promise.resolve({ id: "prod-fk" }) }
       );
-      expect(res.status).toBe(409);
+      expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.code).toBe("FOREIGN_KEY_CONSTRAINT");
+      expect(body.success).toBe(true);
+      expect(body.softDeleted).toBe(true);
+      expect(txMock.product.update).toHaveBeenCalled();
     });
 
-    it("retorna 200 ao excluir produto livre de vínculos em pedidos", async () => {
+    it("exclui fisicamente (softDeleted: false) produto livre de vínculos em pedidos", async () => {
       vi.spyOn(authLib, "getAuthUser").mockResolvedValue({
         id: "editor-menu",
         role: "editor",
         permissions: ["menu_manage"],
       } as any);
-      vi.spyOn(prisma.product, "findUnique").mockResolvedValue({ id: "prod-ok" } as any);
+      vi.spyOn(prisma.product, "findUnique").mockResolvedValue({
+        id: "prod-ok",
+        deletedAt: null,
+      } as any);
       vi.spyOn(prisma.orderItem, "count").mockResolvedValue(0);
       vi.spyOn(prisma.product, "delete").mockResolvedValue({ id: "prod-ok" } as any);
 
@@ -106,6 +166,21 @@ describe("Integração: Exclusão Segura de Produtos e Movimentação de Complem
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.success).toBe(true);
+      expect(body.softDeleted).toBe(false);
+      expect(body.linkedOrdersCount).toBe(0);
+    });
+
+    it("GET /api/products/[id] retorna 404 para produto removido via soft-delete", async () => {
+      vi.spyOn(prisma.product, "findUnique").mockResolvedValue({
+        id: "prod-archived",
+        deletedAt: new Date("2026-10-01T00:00:00Z"),
+      } as any);
+
+      const res = await getProduct(
+        new Request("http://localhost:3000/api/products/prod-archived"),
+        { params: Promise.resolve({ id: "prod-archived" }) }
+      );
+      expect(res.status).toBe(404);
     });
   });
 

@@ -50,4 +50,23 @@ describe("Responsividade e Largura Segura de Modais (DialogContent)", () => {
 
     expect(wideDialogWithoutSmOverride).toEqual([]);
   });
+
+  it("exibe nomes completos de grupos de complementos sem truncamento no ProductFormDialog e ProductAddonLinksTab", () => {
+    const productFormPath = path.resolve(
+      process.cwd(),
+      "src/components/admin/ProductFormDialog.tsx"
+    );
+    const productFormSrc = fs.readFileSync(productFormPath, "utf-8");
+
+    expect(productFormSrc).toContain("flex flex-col gap-2 max-h-64 overflow-y-auto pr-1");
+    expect(productFormSrc).not.toMatch(/truncate[^>]*>\{group\.name\}/);
+
+    const linksTabPath = path.resolve(
+      process.cwd(),
+      "src/components/admin/addons/ProductAddonLinksTab.tsx"
+    );
+    const linksTabSrc = fs.readFileSync(linksTabPath, "utf-8");
+    expect(linksTabSrc).not.toContain('truncate max-w-[180px]">{group.name}');
+    expect(linksTabSrc).not.toMatch(/className="[^"]*truncate[^"]*">\s*\{group\.name\}/);
+  });
 });

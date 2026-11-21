@@ -560,13 +560,13 @@ export function ProductFormDialog({
                 </div>
 
                 {/* Seção Complementos & Modificadores */}
-                <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-border/40">
-                  <div className="flex items-center justify-between">
+                <div className="space-y-2.5 pt-2 border-t border-gray-100 dark:border-border/40">
+                  <div className="flex items-center justify-between gap-2">
                     <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                      <IceCream className="w-4 h-4 text-primary dark:text-violet-400" />
-                      Complementos & Modificadores
+                      <IceCream className="w-4 h-4 text-primary dark:text-violet-400 shrink-0" />
+                      <span>Complementos & Modificadores</span>
                     </Label>
-                    <span className="text-[10px] font-semibold text-muted-foreground">
+                    <span className="text-[11px] font-semibold text-muted-foreground shrink-0 whitespace-nowrap">
                       {selectedAddonGroupIds.length} selecionado(s)
                     </span>
                   </div>
@@ -580,17 +580,21 @@ export function ProductFormDialog({
                       Nenhum grupo de complementos ativo cadastrado na aba &quot;Complementos&quot;.
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
+                    <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1">
                       {availableAddonGroups.map((group) => {
                         const isChecked = selectedAddonGroupIds.includes(group.id);
                         const freeText = group.freeQuantity > 0 ? `Até ${group.freeQuantity} grátis` : "Sem itens grátis";
                         const reqText = group.isRequired ? "Obrigatório" : "Opcional";
                         const isCutlery = AddonOrganizationService.isCutleryGroupName(group.name);
+                        const itemsPreview = (group.items || [])
+                          .slice(0, 4)
+                          .map((item) => item.name)
+                          .join(", ");
 
                         return (
                           <label
                             key={group.id}
-                            className={`flex items-start gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer select-none ${
+                            className={`flex items-start gap-2.5 p-3 rounded-xl border transition-all cursor-pointer select-none ${
                               isChecked
                                 ? "bg-primary/5 dark:bg-primary/10 border-primary/40 shadow-2xs"
                                 : "bg-white dark:bg-card/40 border-gray-200 dark:border-border/50 hover:border-gray-300"
@@ -613,18 +617,26 @@ export function ProductFormDialog({
                               }}
                               className="mt-0.5 w-4 h-4 accent-primary rounded cursor-pointer shrink-0"
                             />
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5">
-                                <p className="text-xs font-bold text-foreground truncate">{group.name}</p>
+                            <div className="min-w-0 flex-1 space-y-0.5">
+                              <div className="flex items-start justify-between gap-2 flex-wrap">
+                                <p className="text-xs sm:text-[13px] font-bold text-foreground leading-snug break-words">
+                                  {group.name}
+                                </p>
                                 {isCutlery && (
                                   <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 shrink-0">
                                     Final
                                   </span>
                                 )}
                               </div>
-                              <p className="text-[10px] text-muted-foreground mt-0.5">
+                              <p className="text-[11px] text-muted-foreground leading-snug">
                                 {group.items?.length || 0} opções • {reqText} • {freeText}
                               </p>
+                              {itemsPreview && (
+                                <p className="text-[10px] text-muted-foreground/85 leading-snug break-words">
+                                  Itens: {itemsPreview}
+                                  {(group.items?.length || 0) > 4 ? "..." : ""}
+                                </p>
+                              )}
                             </div>
                           </label>
                         );

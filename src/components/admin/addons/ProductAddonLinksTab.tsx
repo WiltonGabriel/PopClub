@@ -349,7 +349,7 @@ export function ProductAddonLinksTab({
                                 key={group.id}
                                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-700 text-xs font-medium text-foreground"
                               >
-                                <span className="truncate max-w-[180px]">{group.name}</span>
+                                <span className="leading-snug break-words">{group.name}</span>
                                 <span className="text-[10px] text-muted-foreground font-mono">
                                   ({group.items.length})
                                 </span>
@@ -492,7 +492,7 @@ export function ProductAddonLinksTab({
                                       />
                                       <div className="min-w-0 space-y-1">
                                         <div className="flex items-center gap-1.5 flex-wrap">
-                                          <span className="font-bold text-xs text-foreground truncate">
+                                          <span className="font-bold text-xs text-foreground leading-snug break-words">
                                             {group.name}
                                           </span>
                                           {group.isRequired && (

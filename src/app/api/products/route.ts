@@ -13,6 +13,7 @@ export const revalidate = 0;
 export async function GET() {
   try {
     const products = await prisma.product.findMany({
+      where: { deletedAt: null },
       include: productInclude,
       orderBy: { createdAt: "desc" },
     });
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
       return apiError("Acesso negado. Permissão para gerenciar cardápio necessária.", 403, "FORBIDDEN");
     }
 
-    const countProducts = await prisma.product.count({ where: { isAvailable: true } });
+    const countProducts = await prisma.product.count({ where: { isAvailable: true, deletedAt: null } });
     if (countProducts >= 300) {
       return apiError("Limite máximo de 300 produtos ativos atingido.", 400, "QUOTA_EXCEEDED");
     }

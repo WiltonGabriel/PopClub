@@ -107,10 +107,12 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
       });
 
       if (res.status === 200 || res.ok) {
+        const data = await res.json().catch(() => ({}));
         setProducts((prev) => prev.filter((p) => p.id !== productToDelete.id));
         showToast({
           title: "Produto excluído",
-          message: `O produto "${productToDelete.name}" foi removido com sucesso.`,
+          message:
+            data.message || `O produto "${productToDelete.name}" foi removido com sucesso.`,
           type: "success",
         });
         setProductToDelete(null);
@@ -789,10 +791,15 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
               </div>
             </div>
 
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-              Tem certeza que deseja excluir o produto{" "}
-              <strong className="text-foreground">&quot;{productToDelete.name}&quot;</strong>? Esta ação não pode ser desfeita.
-            </p>
+            <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+              <p>
+                Tem certeza que deseja excluir o produto{" "}
+                <strong className="text-foreground">&quot;{productToDelete.name}&quot;</strong>? Esta ação não pode ser desfeita.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Se este item já tiver pedidos antigos vinculados, ele será removido do cardápio e do painel mantendo apenas os registros do histórico.
+              </p>
+            </div>
 
             <div className="flex items-center justify-end gap-2.5 pt-2">
               <button

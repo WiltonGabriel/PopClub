@@ -309,7 +309,7 @@ export async function POST(request: Request) {
 
     const productIds = Array.from(productQtyMap.keys());
     const dbProducts = await prisma.product.findMany({
-      where: { id: { in: productIds } },
+      where: { id: { in: productIds }, deletedAt: null },
       include: {
         promotions: {
           where: { isActive: true },

@@ -160,7 +160,9 @@ export class PromotionServerService {
   public async listPromotions(options: { includeAll: boolean }) {
     const now = new Date();
     const promotions = await prisma.promotion.findMany({
-      where: options.includeAll ? undefined : { isActive: true },
+      where: options.includeAll
+        ? { product: { deletedAt: null } }
+        : { isActive: true, product: { deletedAt: null } },
       include: {
         product: {
           select: promotionProductSelect,
@@ -201,10 +203,10 @@ export class PromotionServerService {
     const now = new Date();
     const targetProduct = await prisma.product.findUnique({
       where: { id: input.productId },
-      select: { id: true, name: true },
+      select: { id: true, name: true, deletedAt: true },
     });
 
-    if (!targetProduct) {
+    if (!targetProduct || targetProduct.deletedAt) {
       throw new ResourceNotFoundException(
         "Produto",
         input.productId,
@@ -296,9 +298,9 @@ export class PromotionServerService {
     if (input.productId && input.productId !== existing.productId) {
       const targetProduct = await prisma.product.findUnique({
         where: { id: input.productId },
-        select: { id: true },
+        select: { id: true, deletedAt: true },
       });
-      if (!targetProduct) {
+      if (!targetProduct || targetProduct.deletedAt) {
         throw new ResourceNotFoundException(
           "Produto",
           input.productId,

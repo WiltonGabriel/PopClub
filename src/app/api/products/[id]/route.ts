@@ -5,6 +5,7 @@ import { sanitizeText } from "@/lib/sanitize";
 import { productInclude, formatProduct } from "@/lib/productHelper";
 import { resolveOrderedAddonGroupIds } from "@/lib/addonPersistenceHelper";
 import { hasPermission } from "@/lib/permissions";
+import { deleteOrSoftDeleteProduct } from "@/services/productDeletionService";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -20,7 +21,7 @@ export async function GET(
       include: productInclude,
     });
 
-    if (!product) {
+    if (!product || product.deletedAt) {
       return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
     }
 
@@ -182,52 +183,20 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    const result = await deleteOrSoftDeleteProduct(id);
 
-    const existing = await prisma.product.findUnique({
-      where: { id },
-      select: { id: true },
-    });
-    if (!existing) {
+    if (result.status === "not_found") {
       return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
     }
 
-    const linkedOrdersCount = await prisma.orderItem.count({
-      where: { productId: id },
+    return NextResponse.json({
+      success: true,
+      softDeleted: result.softDeleted,
+      linkedOrdersCount: result.linkedOrdersCount,
+      message: result.message,
     });
-    if (linkedOrdersCount > 0) {
-      return NextResponse.json(
-        {
-          error:
-            "Este produto não pode ser excluído porque já está vinculado a pedidos no histórico. Para retirá-lo da vitrine sem perder o histórico, pause sua disponibilidade.",
-          code: "PRODUCT_HAS_ORDERS",
-          linkedOrdersCount,
-        },
-        { status: 409 }
-      );
-    }
-
-    await prisma.product.delete({ where: { id } });
-
-    return NextResponse.json({ success: true, message: "Produto excluído com sucesso." });
   } catch (error: unknown) {
     console.error("Erro ao excluir produto:", error);
-    const errorCode =
-      error && typeof error === "object" && "code" in error
-        ? (error as { code: string }).code
-        : undefined;
-    if (errorCode === "P2025") {
-      return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
-    }
-    if (errorCode === "P2003") {
-      return NextResponse.json(
-        {
-          error:
-            "Não é possível excluir este produto pois ele está vinculado a pedidos ou registros ativos. Pause sua disponibilidade para removê-lo da vitrine.",
-          code: "FOREIGN_KEY_CONSTRAINT",
-        },
-        { status: 409 }
-      );
-    }
     return NextResponse.json({ error: "Erro ao excluir produto." }, { status: 500 });
   }
 }
