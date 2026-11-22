@@ -285,8 +285,8 @@ export function PromotionFormDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-full max-w-3xl sm:max-w-3xl max-h-[88vh] overflow-y-auto overflow-x-hidden p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-white dark:bg-[#200B22] border border-gray-200 dark:border-border/40 text-foreground shadow-2xl space-y-6">
-          <DialogHeader className="border-b border-gray-100 dark:border-border/30 pb-4">
+        <DialogContent className="flex flex-col w-[calc(100vw-1.5rem)] max-w-3xl sm:max-w-3xl max-h-[88vh] overflow-y-auto overflow-x-hidden p-5 sm:p-8 rounded-2xl sm:rounded-3xl bg-white dark:bg-[#200B22] border border-gray-200 dark:border-border/40 text-foreground shadow-2xl space-y-6">
+          <DialogHeader className="w-full max-w-full min-w-0 pr-8 border-b border-gray-100 dark:border-border/30 pb-4">
             <DialogTitle className="text-xl sm:text-2xl font-heading font-black text-foreground dark:text-foreground flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-primary/10 dark:bg-primary/20 text-primary dark:text-muted-foreground flex items-center justify-center shrink-0">
                 <Tag className="w-5 h-5" />
@@ -371,7 +371,7 @@ export function PromotionFormDialog({
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5 pt-1">
+          <form onSubmit={handleSubmit} className="w-full max-w-full min-w-0 space-y-5 pt-1">
             {/* Publicação e Visibilidade na Vitrine */}
             <div
               className={`rounded-2xl border p-4 flex items-center justify-between gap-4 transition-colors ${
@@ -420,8 +420,8 @@ export function PromotionFormDialog({
             </div>
 
             {/* 1. Nome e Badge da Promoção */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-2 space-y-1.5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 min-w-0">
+              <div className="md:col-span-2 min-w-0 space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
                   Título da Promoção *
                 </Label>
@@ -434,7 +434,7 @@ export function PromotionFormDialog({
                 />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="min-w-0 space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
                   Selo do Card (Badge) *
                 </Label>
@@ -442,8 +442,14 @@ export function PromotionFormDialog({
                   value={badge || "none"}
                   onValueChange={(val) => setBadge(!val || val === "none" ? "" : val)}
                 >
-                  <SelectTrigger className="font-bold text-xs sm:text-sm bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary">
-                    <SelectValue placeholder="Selecione um selo..." />
+                  <SelectTrigger className="w-full font-bold text-xs sm:text-sm bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary">
+                    <SelectValue placeholder="Selecione um selo...">
+                      {!badge || badge === "none" ? (
+                        <span className="text-muted-foreground font-normal">[ Nenhum selo ]</span>
+                      ) : (
+                        badge
+                      )}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border border-gray-200 dark:border-border/50 bg-white dark:bg-card shadow-xl max-h-60 z-[60]">
                     <SelectItem value="none" className="cursor-pointer text-sm py-2">
@@ -489,8 +495,8 @@ export function PromotionFormDialog({
             </div>
 
             {/* 3. Regras de Desconto */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
+              <div className="min-w-0 space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
                   Tipo de Desconto
                 </Label>
@@ -500,8 +506,12 @@ export function PromotionFormDialog({
                     if (val === "percentage" || val === "fixed") setDiscountType(val);
                   }}
                 >
-                  <SelectTrigger className="bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 rounded-xl text-xs sm:text-sm">
-                    <SelectValue />
+                  <SelectTrigger className="w-full bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 rounded-xl text-xs sm:text-sm">
+                    <SelectValue>
+                      {discountType === "fixed"
+                        ? "Preço Fixo Promocional (R$)"
+                        : "Porcentagem (%)"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-gray-200 dark:border-border/40 bg-white dark:bg-[#200B22]">
                     <SelectItem value="percentage">Porcentagem (%)</SelectItem>

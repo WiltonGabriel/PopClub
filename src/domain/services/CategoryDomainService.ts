@@ -343,4 +343,40 @@ export class CategoryDomainService {
         );
     }
   }
+
+  /**
+   * Resolve a categoria inicial do modal de criação/edição de produto:
+   * 1) Modo edição preserva a categoria vinculada (por ID ou nome case-insensitive);
+   * 2) Modo criação usa a categoria contextual pré-selecionada se for manual ou TIME_BASED;
+   * 3) Caso contrário, seleciona a primeira categoria manual disponível.
+   */
+  public static resolveInitialProductCategoryId(params: {
+    categories: Array<Pick<DynamicCategoryRuleCandidate, "id" | "name" | "isDynamic" | "dynamicType">>;
+    existingCategoryId?: string | null;
+    existingCategoryName?: string | null;
+    preferredCategoryId?: string | null;
+  }): string {
+    const { categories, existingCategoryId, existingCategoryName, preferredCategoryId } = params;
+    const normalizedExistingName = existingCategoryName?.trim().toLowerCase() || "";
+
+    if (existingCategoryId || normalizedExistingName) {
+      const found = categories.find(
+        (c) =>
+          (existingCategoryId && c.id === existingCategoryId) ||
+          (normalizedExistingName &&
+            (c.name.trim().toLowerCase() === normalizedExistingName || c.id === existingCategoryName))
+      );
+      return found?.id || existingCategoryId || "";
+    }
+
+    if (preferredCategoryId) {
+      const preferred = categories.find((c) => c.id === preferredCategoryId);
+      if (preferred && (!preferred.isDynamic || preferred.dynamicType === "TIME_BASED")) {
+        return preferred.id;
+      }
+    }
+
+    const firstManual = categories.find((c) => !c.isDynamic);
+    return firstManual?.id || categories[0]?.id || "";
+  }
 }

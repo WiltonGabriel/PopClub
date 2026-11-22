@@ -267,4 +267,40 @@ export class ProductDependencyDomainService {
       shouldDeactivate,
     };
   }
+
+  /**
+   * Valida a composição de unidades de um combo, permitindo combos com
+   * 2 ou mais unidades do mesmo produto (ex.: 2x Milk Shake) ou produtos distintos.
+   */
+  public static validateComboItemsComposition(
+    items: Array<{ productId: string; quantity: number }>
+  ): { valid: boolean; totalUnits: number; distinctProducts: number; error?: string } {
+    const normalizedItems = Array.isArray(items)
+      ? items
+          .map((item) => ({
+            productId: String(item.productId || "").trim(),
+            quantity: Math.floor(Number(item.quantity) || 0),
+          }))
+          .filter((item) => Boolean(item.productId) && item.quantity > 0)
+      : [];
+
+    const totalUnits = normalizedItems.reduce((sum, item) => sum + item.quantity, 0);
+    const distinctProducts = new Set(normalizedItems.map((item) => item.productId)).size;
+
+    if (totalUnits < 2) {
+      return {
+        valid: false,
+        totalUnits,
+        distinctProducts,
+        error:
+          "Selecione pelo menos 2 unidades de produtos (iguais ou diferentes) para formar um combo promocional.",
+      };
+    }
+
+    return {
+      valid: true,
+      totalUnits,
+      distinctProducts,
+    };
+  }
 }

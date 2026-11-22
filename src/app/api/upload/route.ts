@@ -17,7 +17,7 @@ const ALLOWED_MIME_TYPES = [
   "image/gif",
 ];
 const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".ico", ".svg", ".gif"];
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 export async function POST(request: Request) {
   try {
@@ -77,11 +77,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Validação de tamanho máximo (5 MB)
+    // 3. Validação de tamanho máximo (10 MB)
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
         {
-          error: `O arquivo enviado excede o limite máximo permitido de 5MB (tamanho atual: ${(file.size / (1024 * 1024)).toFixed(2)}MB).`,
+          error: `O arquivo enviado excede o limite máximo permitido de 10MB (tamanho atual: ${(file.size / (1024 * 1024)).toFixed(2)}MB).`,
         },
         { status: 400 }
       );

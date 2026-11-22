@@ -24,6 +24,7 @@ export const categoryService = {
   async getCategories(includeInactive: boolean = false): Promise<Category[]> {
     const url = includeInactive ? "/api/categories?includeInactive=true" : "/api/categories";
     const res = await fetch(url, {
+      cache: "no-store",
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) {

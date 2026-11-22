@@ -290,6 +290,8 @@ export default function Storefront() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [prodDialogOpen, setProdDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [newProductDefaultCategoryId, setNewProductDefaultCategoryId] = useState<string | null>(null);
+  const [newProductDefaultHighlight, setNewProductDefaultHighlight] = useState(false);
   const [editDeleteConfirm, setEditDeleteConfirm] = useState<{
     type: "category" | "product";
     id: string;
@@ -328,9 +330,14 @@ export default function Storefront() {
     ? (user.fullName || user.user_metadata?.full_name || user.username || user.email?.split("@")[0] || "Cliente").split(" ")[0]
     : "";
 
-  const fetchData = useCallback(async () => {
+  const fetchRequestIdRef = useRef(0);
+
+  const fetchData = useCallback(async (options?: { silent?: boolean }) => {
+    const reqId = ++fetchRequestIdRef.current;
     try {
-      setLoading(true);
+      if (!options?.silent) {
+        setLoading(true);
+      }
       setFetchError(null);
 
       const [catsRes, prodsRes, bannerRes, settingsRes] = await Promise.allSettled([
@@ -339,6 +346,10 @@ export default function Storefront() {
         bannerService.getHighlightBanner(),
         storeSettingsService.getSettings(),
       ]);
+
+      if (reqId !== fetchRequestIdRef.current) {
+        return;
+      }
 
       if (settingsRes.status === "fulfilled") {
         setStoreSettings(settingsRes.value);
@@ -372,12 +383,32 @@ export default function Storefront() {
         setFetchError("Não foi possível carregar os itens do cardápio. Verifique a conexão com a rede.");
       }
     } catch (err: unknown) {
+      if (reqId !== fetchRequestIdRef.current) {
+        return;
+      }
       console.error("Erro geral no fetchData:", err);
       setFetchError("Erro ao carregar dados do cardápio.");
     } finally {
-      setLoading(false);
+      if (reqId === fetchRequestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
+
+  const handleProductSaved = useCallback(
+    (savedProduct: Product) => {
+      fetchRequestIdRef.current += 1;
+      setProducts((prev) => {
+        const exists = prev.some((p) => p.id === savedProduct.id);
+        if (exists) {
+          return prev.map((p) => (p.id === savedProduct.id ? savedProduct : p));
+        }
+        return [savedProduct, ...prev];
+      });
+      fetchData({ silent: true });
+    },
+    [fetchData]
+  );
 
   useEffect(() => {
     fetchData();
@@ -1360,7 +1391,12 @@ export default function Storefront() {
                     onAddToCart={handleOpenProductModal}
                     onOpenDetails={handleOpenProductModal}
                     isAdmin={canEditCatalog}
-                    onEdit={(p) => { setEditingProduct(p); setProdDialogOpen(true); }}
+                    onEdit={(p) => {
+                      setNewProductDefaultCategoryId(null);
+                      setNewProductDefaultHighlight(false);
+                      setEditingProduct(p);
+                      setProdDialogOpen(true);
+                    }}
                     onDelete={handleDeleteProduct}
                   />
                 ))}
@@ -1482,7 +1518,7 @@ export default function Storefront() {
                         {fetchError}
                       </p>
                       <Button
-                        onClick={fetchData}
+                        onClick={() => fetchData()}
                         className="bg-brand-folha-acai hover:bg-brand-folha-acai-dk text-white rounded-full px-6 py-2 gap-2 text-sm font-semibold"
                       >
                         <RefreshCw className="w-4 h-4" />
@@ -1612,7 +1648,12 @@ export default function Storefront() {
                                 onAddToCart={handleOpenProductModal}
                                 onOpenDetails={handleOpenProductModal}
                                 isAdmin={canEditCatalog}
-                                onEdit={(p) => { setEditingProduct(p); setProdDialogOpen(true); }}
+                                onEdit={(p) => {
+                                  setNewProductDefaultCategoryId(null);
+                                  setNewProductDefaultHighlight(false);
+                                  setEditingProduct(p);
+                                  setProdDialogOpen(true);
+                                }}
                                 onDelete={handleDeleteProduct}
                               />
                             ))}
@@ -1629,7 +1670,16 @@ export default function Storefront() {
                             {/* Admin / Editor com menu_manage: add product */}
                             {canEditCatalog && (
                               <button
-                                onClick={() => { setEditingProduct(null); setProdDialogOpen(true); }}
+                                onClick={() => {
+                                  setEditingProduct(null);
+                                  setNewProductDefaultCategoryId(
+                                    cat.isDynamic && cat.dynamicType !== "TIME_BASED" ? null : cat.id
+                                  );
+                                  setNewProductDefaultHighlight(
+                                    Boolean(cat.isDynamic && cat.dynamicType === "HIGHLIGHTS")
+                                  );
+                                  setProdDialogOpen(true);
+                                }}
                                 className="
                                   flex items-center sm:flex-col justify-center gap-2
                                   border-2 border-dashed border-brand-pop-shake/25
@@ -1758,10 +1808,18 @@ export default function Storefront() {
       />
       <ProductFormDialog
         open={prodDialogOpen}
-        onOpenChange={setProdDialogOpen}
+        onOpenChange={(nextOpen) => {
+          setProdDialogOpen(nextOpen);
+          if (!nextOpen) {
+            setNewProductDefaultCategoryId(null);
+            setNewProductDefaultHighlight(false);
+          }
+        }}
         productToEdit={editingProduct}
         categories={categories}
-        onSaved={fetchData}
+        defaultCategoryId={newProductDefaultCategoryId}
+        defaultIsHighlight={newProductDefaultHighlight}
+        onSaved={handleProductSaved}
       />
       <EditBannerModal
         open={editBannerModalOpen}

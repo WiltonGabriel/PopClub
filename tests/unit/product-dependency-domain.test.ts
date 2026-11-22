@@ -201,4 +201,42 @@ describe("ProductDependencyDomainService & PromotionDomainService (Integridade d
       expect(zeroStockStatus.label).toBe("Produto Esgotado");
     });
   });
+
+  describe("validateComboItemsComposition", () => {
+    it("aceita combos com 2+ unidades do mesmo produto ou de produtos diferentes", () => {
+      expect(
+        ProductDependencyDomainService.validateComboItemsComposition([
+          { productId: "shake-300", quantity: 2 },
+        ])
+      ).toEqual({
+        valid: true,
+        totalUnits: 2,
+        distinctProducts: 1,
+      });
+
+      expect(
+        ProductDependencyDomainService.validateComboItemsComposition([
+          { productId: "shake-300", quantity: 1 },
+          { productId: "copo-300", quantity: 1 },
+        ])
+      ).toEqual({
+        valid: true,
+        totalUnits: 2,
+        distinctProducts: 2,
+      });
+    });
+
+    it("rejeita combos com menos de 2 unidades totais", () => {
+      const singleUnit = ProductDependencyDomainService.validateComboItemsComposition([
+        { productId: "shake-300", quantity: 1 },
+      ]);
+      expect(singleUnit.valid).toBe(false);
+      expect(singleUnit.totalUnits).toBe(1);
+      expect(singleUnit.error).toContain("2 unidades");
+
+      const empty = ProductDependencyDomainService.validateComboItemsComposition([]);
+      expect(empty.valid).toBe(false);
+      expect(empty.totalUnits).toBe(0);
+    });
+  });
 });

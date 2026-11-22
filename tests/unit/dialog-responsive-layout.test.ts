@@ -90,4 +90,24 @@ describe("Responsividade e Largura Segura de Modais (DialogContent)", () => {
     expect(editCropIdx).toBeGreaterThan(-1);
     expect(editCropIdx).toBeLessThan(formIdx);
   });
+
+  it("permite combos com mesmo produto repetido, previne overflow horizontal e exibe rótulo legível no Select do ComboFormDialog", () => {
+    const comboFormPath = path.resolve(
+      process.cwd(),
+      "src/components/admin/ComboFormDialog.tsx"
+    );
+    const comboFormSrc = fs.readFileSync(comboFormPath, "utf-8");
+
+    expect(comboFormSrc).toContain("ProductDependencyDomainService.validateComboItemsComposition");
+    expect(comboFormSrc).not.toContain("itemsPayload.length < 2");
+    expect(comboFormSrc).toContain("flex flex-col");
+    expect(comboFormSrc).toContain("w-full max-w-full min-w-0");
+    expect(comboFormSrc).not.toMatch(/truncate[^>]*>\s*Complementos por unidade:/);
+
+    const selectTriggers = comboFormSrc.match(/<SelectTrigger[^>]*>/g) || [];
+    expect(selectTriggers.length).toBeGreaterThan(0);
+    for (const trigger of selectTriggers) {
+      expect(trigger).toContain("w-full");
+    }
+  });
 });

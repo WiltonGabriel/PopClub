@@ -6,6 +6,7 @@ import { categoryService, Category } from "../../services/categoryService";
 import { badgeService, CardBadge } from "../../services/badgeService";
 import { addonService, AddonGroup } from "../../services/addonService";
 import { AddonOrganizationService } from "@/domain/services/AddonOrganizationService";
+import { CategoryDomainService } from "@/domain/services/CategoryDomainService";
 import { formatDecimal } from "@/lib/formatters";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
@@ -35,6 +36,8 @@ interface ProductFormDialogProps {
   onSaved: (product: Product) => void;
   productToEdit?: Product | null;
   categories: Category[];
+  defaultCategoryId?: string | null;
+  defaultIsHighlight?: boolean;
 }
 
 export function ProductFormDialog({
@@ -43,6 +46,8 @@ export function ProductFormDialog({
   onSaved,
   productToEdit,
   categories,
+  defaultCategoryId = null,
+  defaultIsHighlight = false,
 }: ProductFormDialogProps) {
   const [name, setName] = useState(productToEdit?.name || "");
   const [description, setDescription] = useState(productToEdit?.description || "");
@@ -58,18 +63,34 @@ export function ProductFormDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Categorias ativas com fallback assíncrono caso o componente pai ainda não as tenha carregado
+  // Categorias ativas e pausadas com fallback assíncrono caso o componente pai não tenha carregado todas
   const [internalCategories, setInternalCategories] = useState<Category[]>(categories || []);
 
   useEffect(() => {
-    if (categories && categories.length > 0) {
+    if (!open) return;
+    const editCatId = productToEdit?.category_id || productToEdit?.categoryId;
+    const missingEditCat =
+      Boolean(editCatId) && !(categories || []).some((c) => c.id === editCatId);
+
+    if (categories && categories.length > 0 && !missingEditCat) {
       setInternalCategories(categories);
-    } else if (open) {
-      categoryService.getCategories().then((cats) => {
-        if (cats && cats.length > 0) setInternalCategories(cats);
-      }).catch(() => {});
+    } else {
+      categoryService
+        .getCategories(true)
+        .then((cats) => {
+          if (cats && cats.length > 0) {
+            setInternalCategories(cats);
+          } else if (categories && categories.length > 0) {
+            setInternalCategories(categories);
+          }
+        })
+        .catch(() => {
+          if (categories && categories.length > 0) {
+            setInternalCategories(categories);
+          }
+        });
     }
-  }, [categories, open]);
+  }, [categories, open, productToEdit]);
 
   const activeCategories = useMemo(() => {
     return internalCategories.length > 0 ? internalCategories : categories;
@@ -80,6 +101,8 @@ export function ProductFormDialog({
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
   const initializedKeyRef = useRef<string | null>(null);
+  const uploadedFileCacheRef = useRef<{ file: File; url: string } | null>(null);
+  const errorBannerRef = useRef<HTMLDivElement | null>(null);
   const [dependencyImpact, setDependencyImpact] = useState<ProductDependencyImpact | null>(null);
   const [initialSnapshot, setInitialSnapshot] = useState<{
     name: string;
@@ -92,10 +115,18 @@ export function ProductFormDialog({
     addonGroupIds: string[];
   } | null>(null);
 
+  // Rola o alerta de erro para a área visível assim que uma falha ocorrer
+  useEffect(() => {
+    if (error && errorBannerRef.current) {
+      errorBannerRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [error]);
+
   // Inicializa o formulário SOMENTE quando o modal abre ou alterna para outro produto (nunca reseta file ao recarregar categorias)
   useEffect(() => {
     if (!open) {
       initializedKeyRef.current = null;
+      uploadedFileCacheRef.current = null;
       setDependencyImpact(null);
       return;
     }
@@ -105,6 +136,7 @@ export function ProductFormDialog({
       return;
     }
     initializedKeyRef.current = sessionKey;
+    uploadedFileCacheRef.current = null;
     setDependencyImpact(null);
 
     const initName = productToEdit?.name || "";
@@ -114,14 +146,15 @@ export function ProductFormDialog({
     const list = activeCategories.length > 0 ? activeCategories : categories;
     const currentCatId = productToEdit?.category_id || productToEdit?.categoryId;
     const currentCatName = productToEdit?.category;
-    const foundCategory = list.find((c) =>
-      (currentCatId && c.id === currentCatId) ||
-      (currentCatName && (c.name.toLowerCase() === currentCatName.toLowerCase() || c.id === currentCatName))
-    );
-    const firstManualCategory = list.find((c) => !c.isDynamic);
-    const defaultCategoryId = firstManualCategory?.id || (list.length > 0 ? list[0].id : "");
-    const targetId = foundCategory?.id || currentCatId || defaultCategoryId;
-    const initHighlight = Boolean(productToEdit?.isHighlight);
+    const targetId = CategoryDomainService.resolveInitialProductCategoryId({
+      categories: list,
+      existingCategoryId: currentCatId,
+      existingCategoryName: currentCatName,
+      preferredCategoryId: productToEdit ? null : defaultCategoryId,
+    });
+    const initHighlight = productToEdit
+      ? Boolean(productToEdit.isHighlight)
+      : Boolean(defaultIsHighlight);
     const initBadge = productToEdit?.cardBadgeId || "none";
     const initAddonIds = productToEdit?.addonGroupIds || [];
 
@@ -172,20 +205,27 @@ export function ProductFormDialog({
         .then(setDependencyImpact)
         .catch(() => setDependencyImpact(null));
     }
-  }, [open, productToEdit, categories, activeCategories]);
+  }, [open, productToEdit, categories, activeCategories, defaultCategoryId, defaultIsHighlight]);
 
-  // Se categorias carregarem depois da abertura e categoryId ainda estiver vazio, seleciona a primeira manual sem tocar no restante do estado
+  // Se categorias carregarem depois da abertura e categoryId ainda estiver vazio, seleciona a categoria padrão sem tocar no restante do estado
   useEffect(() => {
     if (!open || categoryId) return;
     const list = activeCategories.length > 0 ? activeCategories : categories;
     if (list.length > 0) {
-      const preferredCatId = list.find((c) => !c.isDynamic)?.id || list[0].id;
-      setCategoryId(preferredCatId);
-      setInitialSnapshot((prev) =>
-        prev && !prev.categoryId ? { ...prev, categoryId: preferredCatId } : prev
-      );
+      const preferredCatId = CategoryDomainService.resolveInitialProductCategoryId({
+        categories: list,
+        existingCategoryId: productToEdit?.category_id || productToEdit?.categoryId,
+        existingCategoryName: productToEdit?.category,
+        preferredCategoryId: productToEdit ? null : defaultCategoryId,
+      });
+      if (preferredCatId) {
+        setCategoryId(preferredCatId);
+        setInitialSnapshot((prev) =>
+          prev && !prev.categoryId ? { ...prev, categoryId: preferredCatId } : prev
+        );
+      }
     }
-  }, [open, categoryId, activeCategories, categories]);
+  }, [open, categoryId, activeCategories, categories, productToEdit, defaultCategoryId]);
 
   // Gerencia ciclo de vida do ObjectURL da foto recortada
   useEffect(() => {
@@ -281,6 +321,7 @@ export function ProductFormDialog({
   };
 
   const handleCropComplete = (croppedFile: File) => {
+    uploadedFileCacheRef.current = null;
     setFile(croppedFile);
     setCropModalOpen(false);
     setRawImageSrc(null);
@@ -327,6 +368,16 @@ export function ProductFormDialog({
         groupsMetaMap
       );
 
+      let uploadedImageUrl: string | undefined;
+      if (file) {
+        if (uploadedFileCacheRef.current && uploadedFileCacheRef.current.file === file) {
+          uploadedImageUrl = uploadedFileCacheRef.current.url;
+        } else {
+          uploadedImageUrl = await productService.uploadImage(file, "product");
+          uploadedFileCacheRef.current = { file, url: uploadedImageUrl };
+        }
+      }
+
       if (productToEdit) {
         result = await productService.updateProduct(
           productToEdit.id,
@@ -338,10 +389,10 @@ export function ProductFormDialog({
             category_id: categoryId,
             category: catName,
             isHighlight,
+            ...(uploadedImageUrl ? { imageUrl: uploadedImageUrl } : {}),
             cardBadgeId: finalCardBadgeId,
             addonGroupIds: orderedAddonGroupIds,
-          },
-          file || undefined
+          }
         );
       } else {
         result = await productService.createProduct(
@@ -353,14 +404,14 @@ export function ProductFormDialog({
             category_id: categoryId,
             category: catName,
             isHighlight,
-            imageUrl: "",
+            imageUrl: uploadedImageUrl || "",
             cardBadgeId: finalCardBadgeId,
             addonGroupIds: orderedAddonGroupIds,
-          },
-          file || undefined
+          }
         );
       }
 
+      uploadedFileCacheRef.current = null;
       onSaved(result);
       onOpenChange(false);
     } catch (err: unknown) {
@@ -431,6 +482,17 @@ export function ProductFormDialog({
               )}
             </Button>
           </div>
+
+          {error && (
+            <div
+              ref={errorBannerRef}
+              role="alert"
+              className="mx-5 sm:mx-7 mt-4 flex items-center gap-2.5 p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-300 text-xs font-medium shadow-xs"
+            >
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-600 dark:text-red-400" />
+              <span>{error}</span>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100 dark:divide-border/30">
             {/* Lado Esquerdo: Prévia em Tempo Real + Upload/Edição da Foto */}
@@ -665,15 +727,23 @@ export function ProductFormDialog({
                       <option value="" disabled>
                         Selecione uma categoria...
                       </option>
-                      {activeCategories.map((cat) => (
-                        <option
-                          key={cat.id}
-                          value={cat.id}
-                          className="py-1 text-gray-900 dark:text-white bg-white dark:bg-[#1F0B22]"
-                        >
-                          {cat.isDynamic ? `${cat.name} (Dinâmica)` : cat.name}
-                        </option>
-                      ))}
+                      {activeCategories.map((cat) => {
+                        const suffixParts: string[] = [];
+                        if (cat.isDynamic) suffixParts.push("Dinâmica");
+                        if (cat.isActive === false) suffixParts.push("Pausada");
+                        const labelSuffix =
+                          suffixParts.length > 0 ? ` (${suffixParts.join(" • ")})` : "";
+                        return (
+                          <option
+                            key={cat.id}
+                            value={cat.id}
+                            className="py-1 text-gray-900 dark:text-white bg-white dark:bg-[#1F0B22]"
+                          >
+                            {cat.name}
+                            {labelSuffix}
+                          </option>
+                        );
+                      })}
                     </select>
                     <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
@@ -780,7 +850,16 @@ export function ProductFormDialog({
                   </div>
                   <Select value={cardBadgeId} onValueChange={(val) => setCardBadgeId(val || "none")}>
                     <SelectTrigger id="card-badge" className="w-full h-11 rounded-xl bg-white border-gray-200 text-gray-900 dark:bg-card dark:border-border/50 dark:text-white focus:border-primary focus:ring-2 focus:ring-primary/20">
-                      <SelectValue placeholder="Selecione um selo..." />
+                      <SelectValue placeholder="Selecione um selo...">
+                        {selectedBadge ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            {selectedBadge.icon && <span>{selectedBadge.icon}</span>}
+                            <span>{selectedBadge.text}</span>
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">[ Nenhum selo ]</span>
+                        )}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border border-gray-200 dark:border-border/50 bg-white dark:bg-[#1F0B22] shadow-xl max-h-60 z-[60]">
                       <SelectItem value="none" className="cursor-pointer text-sm py-2">
@@ -888,14 +967,6 @@ export function ProductFormDialog({
                     </div>
                   )}
                 </div>
-
-                {/* Feedback de Erro */}
-                {error && (
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 text-xs">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{error}</span>
-                  </div>
-                )}
 
                 {/* Botão de Ação Largo e Visível */}
                 <Button

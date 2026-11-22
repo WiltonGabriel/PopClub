@@ -8,6 +8,7 @@ import { hasPermission } from "@/lib/permissions";
 import { deleteOrSoftDeleteProduct } from "@/services/productDeletionService";
 import { reconcileProductEditImpacts } from "@/services/productDependencyService";
 import { CategoryDomainService } from "@/domain/services/CategoryDomainService";
+import { recordAdminAudit } from "@/services/auditLogService";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -295,6 +296,22 @@ export async function PUT(
         stock: updated.stock ?? null,
       },
       actor: user ? { id: user.id, role: user.role } : null,
+    });
+
+    await recordAdminAudit({
+      actor: user ? { id: user.id, role: user.role } : null,
+      action: "UPDATE_PRODUCT",
+      resourceType: "product",
+      resourceId: updated.id,
+      summary: `Atualizou ${updated.isCombo ? "combo" : "produto base"} "${updated.name}".`,
+      diffKeys: Object.keys(dataToUpdate),
+      metadata: {
+        isCombo: Boolean(updated.isCombo),
+        categoryId: updated.categoryId,
+        price: Number(updated.price),
+        isAvailable: Boolean(updated.isAvailable),
+        isHighlight: Boolean(updated.isHighlight),
+      },
     });
 
     return NextResponse.json(

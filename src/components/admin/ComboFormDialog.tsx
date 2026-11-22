@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -10,6 +10,7 @@ import { productService, Product } from "../../services/productService";
 import { badgeService, CardBadge } from "../../services/badgeService";
 import { addonService, AddonGroup } from "../../services/addonService";
 import { AddonOrganizationService } from "@/domain/services/AddonOrganizationService";
+import { ProductDependencyDomainService } from "@/domain/services/ProductDependencyDomainService";
 import { ImageCropperDialog } from "./ImageCropperDialog";
 import { UrgencyScarcityConfig, UrgencyScarcityValues } from "./UrgencyScarcityConfig";
 import {
@@ -81,6 +82,14 @@ export function ComboFormDialog({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const errorBannerRef = useRef<HTMLDivElement | null>(null);
+  const uploadedFileCacheRef = useRef<{ file: File; url: string } | null>(null);
+
+  useEffect(() => {
+    if (error && errorBannerRef.current) {
+      errorBannerRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [error]);
 
   const previewUrl = useMemo(() => {
     if (file) return URL.createObjectURL(file);
@@ -111,6 +120,7 @@ export function ComboFormDialog({
   };
 
   const handleCropComplete = (croppedFile: File) => {
+    uploadedFileCacheRef.current = null;
     setFile(croppedFile);
     setCropModalOpen(false);
     setRawImageSrc(null);
@@ -205,7 +215,23 @@ export function ComboFormDialog({
     }
     setError("");
     setProductSearch("");
+    uploadedFileCacheRef.current = null;
   }, [comboToEdit, open]);
+
+  const totalComboUnits = useMemo(
+    () => Object.values(comboItems).reduce((acc, qty) => acc + (qty > 0 ? qty : 0), 0),
+    [comboItems]
+  );
+
+  const selectedCutleryGroupName = useMemo(() => {
+    if (!selectedComboCutleryGroupId || selectedComboCutleryGroupId === "none") {
+      return "Herdar automaticamente dos itens (1x ao final)";
+    }
+    return (
+      availableAddonGroups.find((g) => g.id === selectedComboCutleryGroupId)?.name ||
+      "Herdar automaticamente dos itens (1x ao final)"
+    );
+  }, [selectedComboCutleryGroupId, availableAddonGroups]);
 
   // Produtos disponíveis mapeados por ID
   const productsMap = useMemo(() => {
@@ -299,11 +325,15 @@ export function ComboFormDialog({
     }
 
     const itemsPayload = Object.entries(comboItems)
-      .filter(([_, qty]) => qty > 0)
+      .filter(([, qty]) => qty > 0)
       .map(([productId, quantity]) => ({ productId, quantity }));
 
-    if (itemsPayload.length < 2) {
-      setError("Selecione pelo menos 2 produtos para formar um combo promocional.");
+    const composition = ProductDependencyDomainService.validateComboItemsComposition(itemsPayload);
+    if (!composition.valid) {
+      setError(
+        composition.error ||
+          "Selecione pelo menos 2 unidades de produtos (iguais ou diferentes) para formar um combo promocional."
+      );
       return;
     }
 
@@ -339,6 +369,16 @@ export function ComboFormDialog({
         comboAddonGroupIds.push(selectedComboCutleryGroupId);
       }
 
+      let uploadedImageUrl: string | undefined;
+      if (file) {
+        if (uploadedFileCacheRef.current && uploadedFileCacheRef.current.file === file) {
+          uploadedImageUrl = uploadedFileCacheRef.current.url;
+        } else {
+          uploadedImageUrl = await productService.uploadImage(file, "product");
+          uploadedFileCacheRef.current = { file, url: uploadedImageUrl };
+        }
+      }
+
       const payload = {
         name: title.trim(),
         description: description.trim(),
@@ -349,7 +389,7 @@ export function ComboFormDialog({
         isCombo: true,
         comboItems: itemsPayload,
         addonGroupIds: comboAddonGroupIds,
-        imageUrl: comboToEdit?.imageUrl || "",
+        imageUrl: uploadedImageUrl ?? (comboToEdit?.imageUrl || ""),
         cardBadgeId: matchedBadge?.id || comboToEdit?.cardBadgeId || null,
         // Urgência & Escassez
         showScarcity: urgencyState.showScarcity,
@@ -368,11 +408,12 @@ export function ComboFormDialog({
       };
 
       if (comboToEdit) {
-        await productService.updateProduct(comboToEdit.id, payload, file || undefined);
+        await productService.updateProduct(comboToEdit.id, payload);
       } else {
-        await productService.createProduct(payload, file || undefined);
+        await productService.createProduct(payload);
       }
 
+      uploadedFileCacheRef.current = null;
       onSaved();
       onOpenChange(false);
     } catch (err: unknown) {
@@ -386,8 +427,8 @@ export function ComboFormDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-3xl sm:max-w-3xl max-h-[85vh] overflow-y-auto overflow-x-hidden p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-white dark:bg-[#200B22] border border-gray-200 dark:border-border/40 text-foreground shadow-2xl space-y-6">
-        <DialogHeader className="border-b border-gray-100 dark:border-border/30 pb-4">
+      <DialogContent className="flex flex-col w-[calc(100vw-1.5rem)] max-w-3xl sm:max-w-3xl max-h-[88vh] overflow-y-auto overflow-x-hidden p-5 sm:p-8 rounded-2xl sm:rounded-3xl bg-white dark:bg-[#200B22] border border-gray-200 dark:border-border/40 text-foreground shadow-2xl space-y-6">
+        <DialogHeader className="w-full max-w-full min-w-0 pr-8 border-b border-gray-100 dark:border-border/30 pb-4">
           <DialogTitle className="text-xl sm:text-2xl font-heading font-black text-foreground dark:text-foreground flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-primary/10 dark:bg-primary/20 text-primary dark:text-muted-foreground flex items-center justify-center shrink-0">
               <UtensilsCrossed className="w-5 h-5" />
@@ -395,21 +436,25 @@ export function ComboFormDialog({
             <span>{comboToEdit ? "Editar Combo de Produtos" : "Montar Novo Combo de Produtos"}</span>
           </DialogTitle>
           <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Agrupe 2 ou mais produtos com precificação especial e desconto automático na vitrine.
+            Agrupe 2 ou mais unidades de produtos (iguais ou diferentes) com precificação especial e desconto automático na vitrine.
           </p>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 pt-1">
+        <form onSubmit={handleSubmit} className="w-full max-w-full min-w-0 space-y-6 pt-1">
           {error && (
-            <div className="p-3.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-xl text-red-600 dark:text-red-300 text-xs sm:text-sm flex items-center gap-2.5 font-medium">
+            <div
+              ref={errorBannerRef}
+              role="alert"
+              className="p-3.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-xl text-red-600 dark:text-red-300 text-xs sm:text-sm flex items-center gap-2.5 font-medium"
+            >
               <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
               <span>{error}</span>
             </div>
           )}
 
           {/* 1. Nome e Badge do Combo (Grid Flexível 2/3 e 1/3) */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2 space-y-1.5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 min-w-0">
+            <div className="md:col-span-2 min-w-0 space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
                 Título do Combo *
               </Label>
@@ -422,7 +467,7 @@ export function ComboFormDialog({
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="min-w-0 space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
                 Selo do Card (Badge)
               </Label>
@@ -430,8 +475,14 @@ export function ComboFormDialog({
                 value={badge || "none"}
                 onValueChange={(val) => setBadge(!val || val === "none" ? "" : val)}
               >
-                <SelectTrigger className="font-bold text-xs sm:text-sm bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 rounded-xl">
-                  <SelectValue placeholder="Selecione um selo..." />
+                <SelectTrigger className="w-full font-bold text-xs sm:text-sm bg-gray-50 dark:bg-background border-gray-200 dark:border-border/40 h-11 rounded-xl">
+                  <SelectValue placeholder="Selecione um selo...">
+                    {!badge || badge === "none" ? (
+                      <span className="text-muted-foreground font-normal">[ Nenhum selo ]</span>
+                    ) : (
+                      badge
+                    )}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border border-gray-200 dark:border-border/50 bg-white dark:bg-[#1F0B22] shadow-xl max-h-60 z-[60]">
                   <SelectItem value="none" className="cursor-pointer text-sm py-2">
@@ -477,9 +528,9 @@ export function ComboFormDialog({
           </div>
 
           {/* Foto e Rendimento do Combo */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-2xl bg-gray-50/70 dark:bg-background/60 border border-gray-200/70 dark:border-border/40">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0 p-4 rounded-2xl bg-gray-50/70 dark:bg-background/60 border border-gray-200/70 dark:border-border/40">
             {/* Upload de Foto */}
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-2">
               <div className="flex justify-between items-center gap-2">
                 <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
                   <ImageIcon className="w-3.5 h-3.5 text-primary" />
@@ -489,7 +540,7 @@ export function ComboFormDialog({
                   Recomendação: 1:1 Quadrado
                 </span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <div className="w-16 h-16 rounded-xl bg-white dark:bg-card border border-gray-200 dark:border-border/50 overflow-hidden relative shrink-0 flex items-center justify-center shadow-xs">
                   {previewUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -498,7 +549,7 @@ export function ComboFormDialog({
                     <ImageIcon className="w-6 h-6 text-gray-400" />
                   )}
                 </div>
-                <div className="flex-1 space-y-1.5">
+                <div className="flex-1 min-w-0 space-y-1.5">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <label className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-xl bg-white dark:bg-card border border-gray-200 dark:border-border/60 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-muted/50 cursor-pointer shadow-xs transition-colors">
                       <Upload className="w-3.5 h-3.5 text-primary" />
@@ -535,7 +586,7 @@ export function ComboFormDialog({
             </div>
 
             {/* Rendimento / Serve X Pessoas */}
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-2">
               <div className="flex justify-between items-center">
                 <Label htmlFor="combo-serves" className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
                   <Users className="w-3.5 h-3.5 text-primary" />
@@ -570,25 +621,25 @@ export function ComboFormDialog({
           </div>
 
           {/* 3. Seleção de Produtos para Montagem do Combo */}
-          <div className="space-y-4 pt-3 border-t border-gray-100 dark:border-border/30">
+          <div className="min-w-0 space-y-4 pt-3 border-t border-gray-100 dark:border-border/30">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-              <div>
+              <div className="min-w-0">
                 <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
-                  <UtensilsCrossed className="w-4 h-4 text-primary" />
-                  Produtos do Combo (Mínimo 2)
+                  <UtensilsCrossed className="w-4 h-4 text-primary shrink-0" />
+                  Produtos do Combo (Mínimo 2 unidades)
                 </Label>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                  Adicione e controle as quantidades dos itens que compõem este combo promocional.
+                  Você pode combinar produtos iguais (ex.: 2x Milk Shake 300ml) ou produtos diferentes.
                 </p>
               </div>
               <span className="text-xs font-bold text-primary dark:text-muted-foreground bg-primary/5 dark:bg-primary/95/40 px-2.5 py-1 rounded-full border border-primary/20 dark:border-primary/90/40 shrink-0 w-fit">
-                {Object.keys(comboItems).length} produto(s) no combo
+                {totalComboUnits} {totalComboUnits === 1 ? "unidade" : "unidades"} no combo
               </span>
             </div>
 
             {/* Itens Atualmente no Combo */}
             {Object.keys(comboItems).length > 0 ? (
-              <div className="bg-primary/5/40 dark:bg-background/80 border border-primary/10 dark:border-border/40 rounded-2xl p-3.5 space-y-2.5">
+              <div className="w-full max-w-full min-w-0 bg-primary/5/40 dark:bg-background/80 border border-primary/10 dark:border-border/40 rounded-2xl p-3.5 space-y-2.5">
                 {Object.entries(comboItems).map(([pId, qty]) => {
                   const p = productsMap.get(pId);
                   if (!p) return null;
@@ -597,9 +648,9 @@ export function ComboFormDialog({
                   return (
                     <div
                       key={pId}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white dark:bg-[#230E26] rounded-xl border border-gray-200 dark:border-border/40 shadow-xs"
+                      className="w-full max-w-full min-w-0 overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white dark:bg-[#230E26] rounded-xl border border-gray-200 dark:border-border/40 shadow-xs"
                     >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
                         <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/10 overflow-hidden shrink-0 border border-gray-200/50 dark:border-white/10">
                           {p.imageUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
@@ -611,14 +662,14 @@ export function ComboFormDialog({
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-100 truncate">
+                          <p className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-100 break-words">
                             {p.name}
                           </p>
                           <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">
                             R$ {Number(p.price).toFixed(2).replace(".", ",")} un.
                           </span>
                           {p.addonGroups && p.addonGroups.length > 0 && (
-                            <p className="text-[10px] text-primary dark:text-violet-300 mt-0.5 truncate">
+                            <p className="text-[10px] text-primary dark:text-violet-300 mt-0.5 line-clamp-2 break-words whitespace-normal leading-snug">
                               Complementos por unidade:{" "}
                               {AddonOrganizationService.sortAddonGroups(p.addonGroups)
                                 .filter((pag) => !AddonOrganizationService.isCutleryGroupName(pag.group?.name))
@@ -683,8 +734,8 @@ export function ComboFormDialog({
             )}
 
             {/* Grupo único de Talheres / Descartáveis para todo o combo (sempre ao final) */}
-            <div className="p-3.5 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/30 space-y-2">
-              <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 p-3.5 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/30 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <Label className="text-xs font-bold uppercase tracking-wider text-emerald-900 dark:text-emerald-300">
                   Talheres & Descartáveis do Combo (Ao Final)
                 </Label>
@@ -696,8 +747,10 @@ export function ComboFormDialog({
                 value={selectedComboCutleryGroupId}
                 onValueChange={(val) => setSelectedComboCutleryGroupId(val ?? "none")}
               >
-                <SelectTrigger className="bg-white dark:bg-background border-emerald-200 dark:border-emerald-800/40 rounded-xl text-xs">
-                  <SelectValue placeholder="Selecione o grupo de talheres/descartáveis" />
+                <SelectTrigger className="w-full bg-white dark:bg-background border-emerald-200 dark:border-emerald-800/40 rounded-xl text-xs h-10">
+                  <SelectValue placeholder="Selecione o grupo de talheres/descartáveis">
+                    <span className="truncate">{selectedCutleryGroupName}</span>
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Herdar automaticamente dos itens (1x ao final)</SelectItem>
@@ -716,7 +769,7 @@ export function ComboFormDialog({
             </div>
 
             {/* Busca rápida para adicionar produtos ao combo */}
-            <div className="space-y-2 pt-1">
+            <div className="min-w-0 space-y-2 pt-1">
               <div className="relative">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -728,13 +781,13 @@ export function ComboFormDialog({
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-64 overflow-y-auto pr-1 min-w-0">
                 {filteredProducts.map((p) => {
                   const inCombo = Boolean(comboItems[p.id]);
                   return (
                     <div
                       key={p.id}
-                      className="flex items-center justify-between gap-2.5 p-2.5 bg-gray-50/80 dark:bg-background/80 border border-gray-200/80 dark:border-border/30 hover:border-primary/40 rounded-xl transition-all"
+                      className="min-w-0 overflow-hidden flex items-center justify-between gap-2.5 p-2.5 bg-gray-50/80 dark:bg-background/80 border border-gray-200/80 dark:border-border/30 hover:border-primary/40 rounded-xl transition-all"
                     >
                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
                         <div className="w-8 h-8 rounded-lg bg-gray-200 dark:bg-white/10 overflow-hidden shrink-0 border border-gray-200/50 dark:border-white/10">
@@ -751,9 +804,14 @@ export function ComboFormDialog({
                           <p className="font-semibold text-xs text-gray-800 dark:text-gray-200 truncate">
                             {p.name}
                           </p>
-                          <span className="font-mono text-gray-500 dark:text-gray-400 text-[11px]">
+                          <span className="font-mono text-gray-500 dark:text-gray-400 text-[11px] block">
                             R$ {Number(p.price).toFixed(2).replace(".", ",")}
                           </span>
+                          {p.category && (
+                            <span className="truncate text-[10px] text-muted-foreground block">
+                              {p.category}
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -762,14 +820,14 @@ export function ComboFormDialog({
                         size="sm"
                         variant={inCombo ? "secondary" : "outline"}
                         onClick={() => handleAddItem(p.id)}
-                        className={`h-8 px-2.5 text-xs rounded-xl shrink-0 gap-1 font-semibold transition-all ${
+                        className={`h-8 px-2.5 text-xs rounded-xl shrink-0 gap-1 font-semibold transition-all cursor-pointer ${
                           inCombo
                             ? "bg-primary/10 dark:bg-primary/95/60 text-primary dark:text-muted-foreground border border-primary/20/50"
                             : "border-gray-200 dark:border-border/40 hover:border-primary/40"
                         }`}
                       >
                         <Plus className="w-3.5 h-3.5" />
-                        <span>{inCombo ? "Mais 1" : "Adicionar"}</span>
+                        <span>{inCombo ? `Mais 1 (${comboItems[p.id]}x)` : "Adicionar"}</span>
                       </Button>
                     </div>
                   );
@@ -779,7 +837,7 @@ export function ComboFormDialog({
           </div>
 
           {/* 4. Precificação e Economia em Tempo Real (Grid 2 Colunas Limpo) */}
-          <div className="bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-2xl p-5 space-y-4">
+          <div className="min-w-0 bg-gray-50 dark:bg-background border border-gray-200 dark:border-border/40 rounded-2xl p-5 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-200/60 dark:border-border/30">
               <div>
                 <Label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">
@@ -816,9 +874,9 @@ export function ComboFormDialog({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch min-w-0">
               {/* Input de Preço */}
-              <div className="bg-white dark:bg-[#200B22] border border-gray-200 dark:border-border/40 rounded-xl p-4 flex flex-col justify-between space-y-3">
+              <div className="min-w-0 bg-white dark:bg-[#200B22] border border-gray-200 dark:border-border/40 rounded-xl p-4 flex flex-col justify-between space-y-3">
                 {pricingMode === "percentage" ? (
                   <div className="space-y-2">
                     <Label className="text-xs font-bold text-gray-700 dark:text-gray-300 block">
@@ -866,7 +924,7 @@ export function ComboFormDialog({
               </div>
 
               {/* Resumo e Simulação Financeira */}
-              <div className="bg-white dark:bg-[#200B22] border border-gray-200 dark:border-border/40 rounded-xl p-4 flex flex-col justify-between space-y-3">
+              <div className="min-w-0 bg-white dark:bg-[#200B22] border border-gray-200 dark:border-border/40 rounded-xl p-4 flex flex-col justify-between space-y-3">
                 <div className="space-y-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
                     Simulação Financeira do Combo

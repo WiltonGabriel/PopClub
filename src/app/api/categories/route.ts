@@ -4,6 +4,9 @@ import { handleApiError, apiError, apiSuccess } from "@/lib/apiResponse";
 import { hasPermission } from "@/lib/permissions";
 import { CategoryDomainService } from "@/domain/services/CategoryDomainService";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function slugify(text: string): string {
   const base = text
     .normalize("NFD")

@@ -192,18 +192,24 @@ export function StockControlSection({
     }
   };
 
-  // Debounce timers para inputs numéricos por produto
+  // Debounce timers para inputs numéricos por produto e controle anti-concorrência de carga
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
+  const loadRequestIdRef = useRef(0);
   const { showToast } = useToast();
 
   const loadData = useCallback(async (isRefresh = false) => {
+    const reqId = ++loadRequestIdRef.current;
     if (isRefresh) setRefreshing(true);
     try {
       const [prodsData, catsData, promosData] = await Promise.allSettled([
         productService.getProducts(),
-        categoryService.getCategories(),
+        categoryService.getCategories(true),
         promotionService.getActivePromotions(),
       ]);
+
+      if (reqId !== loadRequestIdRef.current) {
+        return;
+      }
 
       if (prodsData.status === "fulfilled") {
         setProducts(prodsData.value);
@@ -215,6 +221,9 @@ export function StockControlSection({
         setActivePromotions(promosData.value);
       }
     } catch (err) {
+      if (reqId !== loadRequestIdRef.current) {
+        return;
+      }
       console.error("Erro ao carregar dados de estoque:", err);
       showToast({
         title: "Erro ao carregar estoque",
@@ -222,8 +231,10 @@ export function StockControlSection({
         type: "error",
       });
     } finally {
-      setLoading(false);
-      if (isRefresh) setRefreshing(false);
+      if (reqId === loadRequestIdRef.current) {
+        setLoading(false);
+        if (isRefresh) setRefreshing(false);
+      }
     }
   }, [showToast]);
 
@@ -547,7 +558,7 @@ export function StockControlSection({
               <option value="all">Todas as Categorias</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name}
+                  {c.isActive === false ? `${c.name} (Pausada)` : c.name}
                 </option>
               ))}
             </select>
@@ -860,7 +871,9 @@ export function StockControlSection({
           onOpenChange={setIsEditDialogOpen}
           productToEdit={editingProduct}
           categories={categories}
+          defaultCategoryId={!editingProduct && selectedCategory !== "all" ? selectedCategory : null}
           onSaved={(savedProduct) => {
+            loadRequestIdRef.current += 1;
             setProducts((prev) => {
               const exists = prev.some((p) => p.id === savedProduct.id);
               if (exists) {
@@ -869,11 +882,45 @@ export function StockControlSection({
               return [savedProduct, ...prev];
             });
             const wasEditing = !!editingProduct;
+            let clearedFilters = false;
+
+            if (!wasEditing) {
+              const trimmedQuery = searchTerm.trim().toLowerCase();
+              if (trimmedQuery) {
+                const matchesSearch =
+                  savedProduct.name.toLowerCase().includes(trimmedQuery) ||
+                  (savedProduct.description || "").toLowerCase().includes(trimmedQuery) ||
+                  (savedProduct.category || "").toLowerCase().includes(trimmedQuery);
+                if (!matchesSearch) {
+                  setSearchTerm("");
+                  clearedFilters = true;
+                }
+              }
+
+              if (selectedCategory !== "all") {
+                const matchesCategory =
+                  savedProduct.categoryId === selectedCategory ||
+                  savedProduct.category_id === selectedCategory ||
+                  savedProduct.category?.toLowerCase() === selectedCategory.toLowerCase();
+                if (!matchesCategory) {
+                  setSelectedCategory("all");
+                  clearedFilters = true;
+                }
+              }
+
+              if (statusFilter === "unavailable" && savedProduct.isAvailable !== false) {
+                setStatusFilter("all");
+                clearedFilters = true;
+              }
+            }
+
             setIsEditDialogOpen(false);
             setEditingProduct(null);
             showToast({
               title: wasEditing ? "Produto atualizado!" : "Produto cadastrado!",
-              message: `${savedProduct.name} foi ${wasEditing ? "atualizado" : "adicionado ao cardápio"} com sucesso.`,
+              message: `${savedProduct.name} foi ${wasEditing ? "atualizado" : "adicionado ao cardápio"} com sucesso.${
+                clearedFilters ? " Filtros limpos para exibir o novo produto." : ""
+              }`,
               type: "success",
             });
             if (savedProduct.impactWarnings?.length) {

@@ -7,6 +7,7 @@ import { productInclude, formatProduct } from "@/lib/productHelper";
 import { resolveOrderedAddonGroupIds } from "@/lib/addonPersistenceHelper";
 import { hasPermission } from "@/lib/permissions";
 import { CategoryDomainService } from "@/domain/services/CategoryDomainService";
+import { recordAdminAudit } from "@/services/auditLogService";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -204,6 +205,22 @@ export async function POST(request: Request) {
     const product = await prisma.product.create({
       data: productData,
       include: productInclude,
+    });
+
+    await recordAdminAudit({
+      actor: user ? { id: user.id, role: user.role } : null,
+      action: "CREATE_PRODUCT",
+      resourceType: "product",
+      resourceId: product.id,
+      summary: `Cadastrou ${product.isCombo ? "combo" : "produto base"} "${product.name}" (${resolvedCategoryName || "Sem categoria"}).`,
+      diffKeys: Object.keys(productData),
+      metadata: {
+        isCombo: Boolean(product.isCombo),
+        categoryId: product.categoryId,
+        category: resolvedCategoryName,
+        price: parsedPrice,
+        isHighlight: Boolean(product.isHighlight),
+      },
     });
 
     return apiSuccess(formatProduct(product), 201);

@@ -121,6 +121,72 @@ export interface Product {
   promotion?: ProductPromotion | null;
 }
 
+function mapProductPayload(item: Record<string, unknown>): Product {
+  return {
+    id: String(item.id),
+    name: String(item.name || ""),
+    description: String(item.description || ""),
+    price: Number(item.price),
+    originalPrice:
+      item.originalPrice !== undefined && item.originalPrice !== null
+        ? Number(item.originalPrice)
+        : null,
+    promotionalPrice:
+      item.promotionalPrice !== undefined && item.promotionalPrice !== null
+        ? Number(item.promotionalPrice)
+        : null,
+    startsAt: item.startsAt ? String(item.startsAt) : null,
+    endsAt: item.endsAt ? String(item.endsAt) : null,
+    isPromoActive: item.isPromoActive !== undefined ? Boolean(item.isPromoActive) : true,
+    servesText: item.servesText ? String(item.servesText) : null,
+    isHighlight: Boolean(item.isHighlight),
+    category_id: (item.categoryId as string | undefined) || (item.category_id as string | undefined),
+    categoryId: (item.categoryId as string | undefined) || (item.category_id as string | undefined),
+    category: item.category as string | undefined,
+    categoryIsActive: item.categoryIsActive !== undefined ? Boolean(item.categoryIsActive) : true,
+    imageUrl: String(item.imageUrl || ""),
+    stock: item.stock !== undefined ? (item.stock as number | null) : null,
+    isAvailable: item.isAvailable !== undefined ? Boolean(item.isAvailable) : true,
+    effectiveIsAvailable:
+      item.effectiveIsAvailable !== undefined ? Boolean(item.effectiveIsAvailable) : undefined,
+    unavailableComponents: Array.isArray(item.unavailableComponents)
+      ? (item.unavailableComponents as ComboComponentUnavailableItem[])
+      : [],
+    comboStockLimit:
+      item.comboStockLimit !== undefined && item.comboStockLimit !== null
+        ? Number(item.comboStockLimit)
+        : null,
+    impactWarnings: Array.isArray(item.impactWarnings) ? (item.impactWarnings as string[]) : [],
+    cardBadgeId: (item.cardBadgeId as string | null) || null,
+    cardBadge: (item.cardBadge as Product["cardBadge"]) || null,
+    isCombo: Boolean(item.isCombo),
+    showScarcity: Boolean(item.showScarcity),
+    scarcityType: (item.scarcityType as string) || "strategic",
+    scarcityUnits:
+      item.scarcityUnits !== undefined && item.scarcityUnits !== null
+        ? Number(item.scarcityUnits)
+        : null,
+    scarcityInitial:
+      item.scarcityInitial !== undefined && item.scarcityInitial !== null
+        ? Number(item.scarcityInitial)
+        : null,
+    scarcitySold: Number(item.scarcitySold || 0),
+    showProgressBar: Boolean(item.showProgressBar),
+    showDuration: Boolean(item.showDuration),
+    urgencyType: (item.urgencyType as string) || "date",
+    expiresAt: item.expiresAt ? String(item.expiresAt) : null,
+    sessionMinutes:
+      item.sessionMinutes !== undefined && item.sessionMinutes !== null
+        ? Number(item.sessionMinutes)
+        : null,
+    comboItems: (item.comboItems as Product["comboItems"]) || [],
+    addonGroupIds: (item.addonGroupIds as string[]) || [],
+    addonGroups: (item.addonGroups as Product["addonGroups"]) || [],
+    promotions: (item.promotions as Product["promotions"]) || [],
+    promotion: (item.promotion as ProductPromotion | null | undefined) ?? null,
+  };
+}
+
 export const productService = {
   /**
    * Envia uma imagem para a rota de upload local (/api/upload)
@@ -136,7 +202,7 @@ export const productService = {
       body: formData,
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       throw new Error(data.error || "Erro no upload da imagem.");
     }
@@ -153,7 +219,7 @@ export const productService = {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error || "Erro ao carregar produtos.");
     }
-    const data = await res.json();
+    const data = await res.json().catch(() => []);
     const rawList = Array.isArray(data)
       ? data
       : Array.isArray(data?.products)
@@ -162,52 +228,7 @@ export const productService = {
       ? data.data
       : [];
 
-    return rawList.map((item: Record<string, unknown>) => ({
-      id: String(item.id),
-      name: String(item.name || ""),
-      description: String(item.description || ""),
-      price: Number(item.price),
-      originalPrice: item.originalPrice !== undefined && item.originalPrice !== null ? Number(item.originalPrice) : null,
-      promotionalPrice: item.promotionalPrice !== undefined && item.promotionalPrice !== null ? Number(item.promotionalPrice) : null,
-      startsAt: item.startsAt ? String(item.startsAt) : null,
-      endsAt: item.endsAt ? String(item.endsAt) : null,
-      isPromoActive: item.isPromoActive !== undefined ? Boolean(item.isPromoActive) : true,
-      servesText: item.servesText ? String(item.servesText) : null,
-      isHighlight: Boolean(item.isHighlight),
-      category_id: (item.categoryId as string) || (item.category_id as string),
-      categoryId: (item.categoryId as string) || (item.category_id as string),
-      category: item.category as string,
-      categoryIsActive: item.categoryIsActive !== undefined ? Boolean(item.categoryIsActive) : true,
-      imageUrl: String(item.imageUrl || ""),
-      stock: item.stock !== undefined ? (item.stock as number | null) : null,
-      isAvailable: item.isAvailable !== undefined ? Boolean(item.isAvailable) : true,
-      effectiveIsAvailable:
-        item.effectiveIsAvailable !== undefined ? Boolean(item.effectiveIsAvailable) : undefined,
-      unavailableComponents: Array.isArray(item.unavailableComponents)
-        ? (item.unavailableComponents as ComboComponentUnavailableItem[])
-        : [],
-      comboStockLimit:
-        item.comboStockLimit !== undefined && item.comboStockLimit !== null
-          ? Number(item.comboStockLimit)
-          : null,
-      cardBadgeId: (item.cardBadgeId as string | null) || null,
-      cardBadge: (item.cardBadge as Product["cardBadge"]) || null,
-      isCombo: Boolean(item.isCombo),
-      showScarcity: Boolean(item.showScarcity),
-      scarcityType: (item.scarcityType as string) || "strategic",
-      scarcityUnits: item.scarcityUnits !== undefined && item.scarcityUnits !== null ? Number(item.scarcityUnits) : null,
-      scarcityInitial: item.scarcityInitial !== undefined && item.scarcityInitial !== null ? Number(item.scarcityInitial) : null,
-      scarcitySold: Number(item.scarcitySold || 0),
-      showProgressBar: Boolean(item.showProgressBar),
-      showDuration: Boolean(item.showDuration),
-      urgencyType: (item.urgencyType as string) || "date",
-      expiresAt: item.expiresAt ? String(item.expiresAt) : null,
-      sessionMinutes: item.sessionMinutes !== undefined && item.sessionMinutes !== null ? Number(item.sessionMinutes) : null,
-      comboItems: (item.comboItems as Product["comboItems"]) || [],
-      addonGroupIds: (item.addonGroupIds as string[]) || [],
-      addonGroups: (item.addonGroups as Product["addonGroups"]) || [],
-      promotions: (item.promotions as Product["promotions"]) || [],
-    }));
+    return rawList.map((item: Record<string, unknown>) => mapProductPayload(item));
   },
 
   async getProductById(id: string): Promise<Product> {
@@ -215,55 +236,11 @@ export const productService = {
       cache: "no-store",
       signal: AbortSignal.timeout(10000),
     });
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
       throw new Error(data.error || "Erro ao carregar detalhes do produto.");
     }
-    const data = await res.json();
-    return {
-      id: data.id,
-      name: data.name,
-      description: data.description || "",
-      price: Number(data.price),
-      originalPrice: data.originalPrice !== undefined && data.originalPrice !== null ? Number(data.originalPrice) : null,
-      promotionalPrice: data.promotionalPrice !== undefined && data.promotionalPrice !== null ? Number(data.promotionalPrice) : null,
-      startsAt: data.startsAt ? String(data.startsAt) : null,
-      endsAt: data.endsAt ? String(data.endsAt) : null,
-      isPromoActive: data.isPromoActive !== undefined ? Boolean(data.isPromoActive) : true,
-      servesText: data.servesText || null,
-      isHighlight: Boolean(data.isHighlight),
-      category_id: data.categoryId,
-      category: data.category,
-      imageUrl: data.imageUrl || "",
-      stock: data.stock !== undefined ? data.stock : null,
-      isAvailable: data.isAvailable !== undefined ? Boolean(data.isAvailable) : true,
-      effectiveIsAvailable:
-        data.effectiveIsAvailable !== undefined ? Boolean(data.effectiveIsAvailable) : undefined,
-      unavailableComponents: Array.isArray(data.unavailableComponents)
-        ? data.unavailableComponents
-        : [],
-      comboStockLimit:
-        data.comboStockLimit !== undefined && data.comboStockLimit !== null
-          ? Number(data.comboStockLimit)
-          : null,
-      cardBadgeId: data.cardBadgeId || null,
-      cardBadge: data.cardBadge || null,
-      isCombo: data.isCombo || false,
-      showScarcity: Boolean(data.showScarcity),
-      scarcityType: data.scarcityType || "strategic",
-      scarcityUnits: data.scarcityUnits !== undefined && data.scarcityUnits !== null ? Number(data.scarcityUnits) : null,
-      scarcityInitial: data.scarcityInitial !== undefined && data.scarcityInitial !== null ? Number(data.scarcityInitial) : null,
-      scarcitySold: Number(data.scarcitySold || 0),
-      showProgressBar: Boolean(data.showProgressBar),
-      showDuration: Boolean(data.showDuration),
-      urgencyType: data.urgencyType || "date",
-      expiresAt: data.expiresAt ? String(data.expiresAt) : null,
-      sessionMinutes: data.sessionMinutes !== undefined && data.sessionMinutes !== null ? Number(data.sessionMinutes) : null,
-      comboItems: data.comboItems || [],
-      addonGroupIds: data.addonGroupIds || [],
-      addonGroups: data.addonGroups || [],
-      promotions: data.promotions || [],
-    };
+    return mapProductPayload(data as Record<string, unknown>);
   },
 
   async createProduct(product: Omit<Product, "id">, imageFile?: File): Promise<Product> {
@@ -287,7 +264,7 @@ export const productService = {
         isPromoActive: product.isPromoActive,
         servesText: product.servesText,
         isHighlight: product.isHighlight,
-        categoryId: product.category_id,
+        categoryId: product.category_id ?? product.categoryId,
         category: product.category,
         imageUrl: finalImageUrl,
         stock: product.stock,
@@ -309,43 +286,10 @@ export const productService = {
       }),
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || "Erro ao cadastrar produto.");
 
-    return {
-      id: data.id,
-      name: data.name,
-      description: data.description,
-      price: Number(data.price),
-      originalPrice: data.originalPrice ? Number(data.originalPrice) : null,
-      promotionalPrice: data.promotionalPrice ? Number(data.promotionalPrice) : null,
-      startsAt: data.startsAt,
-      endsAt: data.endsAt,
-      isPromoActive: data.isPromoActive,
-      servesText: data.servesText,
-      isHighlight: data.isHighlight,
-      category_id: data.categoryId,
-      category: data.category,
-      imageUrl: data.imageUrl,
-      stock: data.stock,
-      isAvailable: data.isAvailable,
-      cardBadgeId: data.cardBadgeId,
-      cardBadge: data.cardBadge,
-      isCombo: data.isCombo,
-      showScarcity: data.showScarcity,
-      scarcityType: data.scarcityType,
-      scarcityUnits: data.scarcityUnits,
-      scarcityInitial: data.scarcityInitial,
-      scarcitySold: data.scarcitySold,
-      showProgressBar: data.showProgressBar,
-      showDuration: data.showDuration,
-      urgencyType: data.urgencyType,
-      expiresAt: data.expiresAt,
-      sessionMinutes: data.sessionMinutes,
-      comboItems: data.comboItems || [],
-      addonGroupIds: data.addonGroupIds || [],
-      addonGroups: data.addonGroups || [],
-    };
+    return mapProductPayload(data as Record<string, unknown>);
   },
 
   async updateProduct(id: string, updates: Partial<Omit<Product, "id">>, imageFile?: File): Promise<Product> {
@@ -369,7 +313,7 @@ export const productService = {
         isPromoActive: updates.isPromoActive,
         servesText: updates.servesText,
         isHighlight: updates.isHighlight,
-        categoryId: updates.category_id,
+        categoryId: updates.category_id ?? updates.categoryId,
         category: updates.category,
         imageUrl: finalImageUrl,
         stock: updates.stock,
@@ -391,44 +335,10 @@ export const productService = {
       }),
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || "Erro ao atualizar produto.");
 
-    return {
-      id: data.id,
-      name: data.name,
-      description: data.description,
-      price: Number(data.price),
-      originalPrice: data.originalPrice ? Number(data.originalPrice) : null,
-      promotionalPrice: data.promotionalPrice ? Number(data.promotionalPrice) : null,
-      startsAt: data.startsAt,
-      endsAt: data.endsAt,
-      isPromoActive: data.isPromoActive,
-      servesText: data.servesText,
-      isHighlight: data.isHighlight,
-      category_id: data.categoryId,
-      category: data.category,
-      imageUrl: data.imageUrl,
-      stock: data.stock,
-      isAvailable: data.isAvailable,
-      cardBadgeId: data.cardBadgeId,
-      cardBadge: data.cardBadge,
-      isCombo: data.isCombo,
-      showScarcity: data.showScarcity,
-      scarcityType: data.scarcityType,
-      scarcityUnits: data.scarcityUnits,
-      scarcityInitial: data.scarcityInitial,
-      scarcitySold: data.scarcitySold,
-      showProgressBar: data.showProgressBar,
-      showDuration: data.showDuration,
-      urgencyType: data.urgencyType,
-      expiresAt: data.expiresAt,
-      sessionMinutes: data.sessionMinutes,
-      comboItems: data.comboItems || [],
-      addonGroupIds: data.addonGroupIds || [],
-      addonGroups: data.addonGroups || [],
-      impactWarnings: Array.isArray(data.impactWarnings) ? data.impactWarnings : [],
-    };
+    return mapProductPayload(data as Record<string, unknown>);
   },
 
   async getProductImpact(id: string): Promise<ProductDependencyImpact> {
@@ -465,7 +375,7 @@ export const productService = {
       body: JSON.stringify(updates),
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || "Erro ao atualizar estoque do produto.");
 
     return {
@@ -474,6 +384,7 @@ export const productService = {
       description: data.description,
       price: Number(data.price),
       category_id: data.categoryId,
+      categoryId: data.categoryId,
       category: data.category,
       imageUrl: data.imageUrl,
       stock: data.stock,
