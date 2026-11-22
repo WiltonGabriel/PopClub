@@ -18,14 +18,14 @@ describe("Arquitetura de Navegação em 2 Níveis e UX/UI do Painel (/admin)", (
 
     const catalogo = ADMIN_NAV_GROUPS.find((g) => g.id === "catalogo")!;
     expect(catalogo.tabs.map((t) => t.id)).toEqual([
-      "produtos_base",
       "categorias",
+      "produtos_base",
       "complementos",
       "combos",
       "promocoes",
       "banners_selos",
     ]);
-    expect(catalogo.tabs[0].label).toBe("Produto Base");
+    expect(catalogo.tabs[1].label).toBe("Produto Base");
 
     const fidelidade = ADMIN_NAV_GROUPS.find((g) => g.id === "fidelidade")!;
     expect(fidelidade.tabs.map((t) => t.id)).toEqual(["selos_fidelidade", "avatares"]);

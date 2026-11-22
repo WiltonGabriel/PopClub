@@ -103,6 +103,14 @@ export const ADMIN_NAV_GROUPS: AdminGroupMeta[] = [
     iconKey: "Store",
     tabs: [
       {
+        id: "categorias",
+        groupId: "catalogo",
+        label: "Categorias",
+        description: "Organização das seções do cardápio.",
+        perm: "menu_manage",
+        iconKey: "FolderTree",
+      },
+      {
         id: "produtos_base",
         groupId: "catalogo",
         label: "Produto Base",
@@ -110,14 +118,6 @@ export const ADMIN_NAV_GROUPS: AdminGroupMeta[] = [
         perm: "menu_manage",
         anyOfPerms: ["menu_manage", "STOCK_CONTROL"],
         iconKey: "Package",
-      },
-      {
-        id: "categorias",
-        groupId: "catalogo",
-        label: "Categorias",
-        description: "Organização das seções do cardápio.",
-        perm: "menu_manage",
-        iconKey: "FolderTree",
       },
       {
         id: "complementos",
