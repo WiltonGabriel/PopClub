@@ -1,5 +1,6 @@
 import { AddonOrganizationService } from "@/domain/services/AddonOrganizationService";
 import { ProductDependencyDomainService } from "@/domain/services/ProductDependencyDomainService";
+import { PromotionDomainService } from "@/domain/services/PromotionDomainService";
 
 export const productInclude = {
   categoryRel: {
@@ -52,6 +53,25 @@ export function formatProduct(p: any) {
     stock: p.stock ?? null,
     comboItems: p.comboItems || [],
   });
+
+  const now = new Date();
+  const visiblePromo = (p.promotions || []).find((pr: any) =>
+    PromotionDomainService.isPromotionPubliclyVisible(
+      {
+        isActive: Boolean(pr.isActive),
+        startsAt: pr.startsAt,
+        expiresAt: pr.expiresAt,
+        scarcityType: pr.scarcityType,
+        scarcityUnits: pr.scarcityUnits,
+        product: {
+          isAvailable: p.isAvailable,
+          stock: p.stock ?? null,
+          deletedAt: p.deletedAt ?? null,
+        },
+      },
+      now
+    )
+  );
 
   return {
     id: p.id,
@@ -133,30 +153,26 @@ export function formatProduct(p: any) {
       urgencyType: (pr.urgencyType as "date" | "day" | "session") || "date",
       sessionMinutes: pr.sessionMinutes ?? null,
     })),
-    promotion: (p.promotions || []).find((pr: any) => pr.isActive)
+    promotion: visiblePromo
       ? {
-          id: p.promotions.find((pr: any) => pr.isActive).id,
-          title: p.promotions.find((pr: any) => pr.isActive).title,
-          badge: p.promotions.find((pr: any) => pr.isActive).badge,
-          discountType: p.promotions.find((pr: any) => pr.isActive).discountType,
-          discountValue: Number(p.promotions.find((pr: any) => pr.isActive).discountValue),
+          id: visiblePromo.id,
+          title: visiblePromo.title,
+          badge: visiblePromo.badge,
+          discountType: visiblePromo.discountType,
+          discountValue: Number(visiblePromo.discountValue),
           isActive: true,
-          startsAt: p.promotions.find((pr: any) => pr.isActive).startsAt
-            ? p.promotions.find((pr: any) => pr.isActive).startsAt.toISOString()
-            : null,
-          expiresAt: p.promotions.find((pr: any) => pr.isActive).expiresAt
-            ? p.promotions.find((pr: any) => pr.isActive).expiresAt.toISOString()
-            : null,
-          showDuration: Boolean(p.promotions.find((pr: any) => pr.isActive).showDuration),
-          durationDisplay: p.promotions.find((pr: any) => pr.isActive).durationDisplay || [],
-          showScarcity: Boolean(p.promotions.find((pr: any) => pr.isActive).showScarcity),
-          scarcityUnits: p.promotions.find((pr: any) => pr.isActive).scarcityUnits ?? null,
-          scarcityType: p.promotions.find((pr: any) => pr.isActive).scarcityType || "strategic",
-          scarcityInitial: p.promotions.find((pr: any) => pr.isActive).scarcityInitial ?? null,
-          scarcitySold: Number(p.promotions.find((pr: any) => pr.isActive).scarcitySold || 0),
-          showProgressBar: Boolean(p.promotions.find((pr: any) => pr.isActive).showProgressBar),
-          urgencyType: p.promotions.find((pr: any) => pr.isActive).urgencyType || "date",
-          sessionMinutes: p.promotions.find((pr: any) => pr.isActive).sessionMinutes ?? null,
+          startsAt: visiblePromo.startsAt ? visiblePromo.startsAt.toISOString() : null,
+          expiresAt: visiblePromo.expiresAt ? visiblePromo.expiresAt.toISOString() : null,
+          showDuration: Boolean(visiblePromo.showDuration),
+          durationDisplay: visiblePromo.durationDisplay || [],
+          showScarcity: Boolean(visiblePromo.showScarcity),
+          scarcityUnits: visiblePromo.scarcityUnits ?? null,
+          scarcityType: visiblePromo.scarcityType || "strategic",
+          scarcityInitial: visiblePromo.scarcityInitial ?? null,
+          scarcitySold: Number(visiblePromo.scarcitySold || 0),
+          showProgressBar: Boolean(visiblePromo.showProgressBar),
+          urgencyType: visiblePromo.urgencyType || "date",
+          sessionMinutes: visiblePromo.sessionMinutes ?? null,
         }
       : null,
   };

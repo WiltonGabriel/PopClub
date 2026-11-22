@@ -9,7 +9,6 @@ import { useAuth } from "../hooks/useAuth";
 import { useCart } from "../hooks/useCart";
 import { useTheme } from "../contexts/ThemeContext";
 import { useOrders } from "../contexts/OrderContext";
-import { calculateProductPrice } from "@/lib/pricing";
 
 // Storefront components
 import { ProductCard } from "../components/storefront/ProductCard";
@@ -240,6 +239,7 @@ export default function Storefront() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
   const storeStatus = useStoreStatus();
+  const [nowTick, setNowTick] = useState<number>(() => Date.now());
 
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -585,29 +585,31 @@ export default function Storefront() {
 
   const scrollToCategory = handleSelectCategory;
 
+  useEffect(() => {
+    const hasTimeBased = categories.some(
+      (c) => c.isActive !== false && c.isDynamic && c.dynamicType === "TIME_BASED"
+    );
+    if (!hasTimeBased) return;
+    const interval = setInterval(() => {
+      setNowTick(Date.now());
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [categories]);
+
+  const currentTime = useMemo(() => new Date(nowTick), [nowTick]);
+
   // Helper para verificar se categoria com janela de tempo está ativa
-  const isTimeWindowActive = useCallback((cat: Category) => {
-    if (cat.isDynamic && cat.dynamicType === "TIME_BASED" && cat.timeStart && cat.timeEnd) {
-      const now = new Date();
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
-      const [startH, startM] = cat.timeStart.split(":").map(Number);
-      const [endH, endM] = cat.timeEnd.split(":").map(Number);
-      const startMinutes = (startH || 0) * 60 + (startM || 0);
-      const endMinutes = (endH || 0) * 60 + (endM || 0);
+  const isTimeWindowActive = useCallback(
+    (cat: Category) => CategoryDomainService.isTimeWindowActive(cat, currentTime),
+    [currentTime]
+  );
 
-      if (startMinutes <= endMinutes) {
-        return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
-      } else {
-        return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
-      }
-    }
-    return true;
-  }, []);
-
-  // Categorias ativas e válidas para a vitrine
+  // Categorias ativas e válidas para a vitrine (no modo edição mantém TIME_BASED visível para gerenciamento)
   const visibleCategories = useMemo(() => {
-    return categories.filter((c) => (c.isActive !== false) && isTimeWindowActive(c));
-  }, [categories, isTimeWindowActive]);
+    return categories.filter(
+      (c) => c.isActive !== false && (canEditCatalog || isTimeWindowActive(c))
+    );
+  }, [categories, canEditCatalog, isTimeWindowActive]);
 
   // Persistência otimista de reordenação mantendo categorias ocultas/fora de horário nos seus slots
   const persistCategoryOrder = async (reorderedVisible: Category[]) => {
@@ -756,81 +758,22 @@ export default function Storefront() {
   };
 
   // Helper para obter produtos de uma categoria (estática ou dinâmica com 5 regras automatizadas)
-  const getCategoryProducts = useCallback((cat: Category, prodsList: Product[]) => {
-    const activeCatProds = prodsList.filter((p) => p.categoryIsActive !== false);
+  const getCategoryProducts = useCallback(
+    (cat: Category, prodsList: Product[]) =>
+      CategoryDomainService.filterProductsForCategory(cat, prodsList, currentTime),
+    [currentTime]
+  );
 
-    if (cat.isDynamic) {
-      switch (cat.dynamicType) {
-        case "HIGHLIGHTS":
-          return activeCatProds.filter((p) => {
-            if (
-              p.category_id === cat.id ||
-              (p as Product & { categoryId?: string }).categoryId === cat.id ||
-              p.category === cat.name
-            ) {
-              return true;
-            }
-            if (p.isHighlight) return true;
-            const pricing = calculateProductPrice(p);
-            return pricing.isPromotional;
-          });
-
-        case "ACTIVE_PROMOTIONS":
-          return activeCatProds.filter((p) => {
-            if (p.promotion) return true;
-            const pricing = calculateProductPrice(p);
-            return pricing.isPromotional;
-          });
-
-        case "COMBOS":
-          return activeCatProds.filter((p) => {
-            return p.isCombo || (p.comboItems && p.comboItems.length > 0);
-          });
-
-        case "SHAREABLE":
-          return activeCatProds.filter((p) => {
-            const serves = p.servesText || "";
-            const isShareableRegex = /(?:[2-9]|\bdois|\bduas|\btres|\btrês|\bquatro|\bcinco|\bdupla|\btrio|\bfam[ií]lia|\bcompartilhar)/i;
-            return (
-              isShareableRegex.test(serves) ||
-              isShareableRegex.test(p.name) ||
-              isShareableRegex.test(p.description || "")
-            );
-          });
-
-        case "TIME_BASED":
-          return prodsList.filter((p) => {
-            return (
-              p.category_id === cat.id ||
-              (p as Product & { categoryId?: string }).categoryId === cat.id ||
-              p.category === cat.name
-            );
-          });
-
-        default:
-          return activeCatProds.filter((p) => {
-            return (
-              p.category_id === cat.id ||
-              (p as Product & { categoryId?: string }).categoryId === cat.id ||
-              p.category === cat.name ||
-              p.isHighlight
-            );
-          });
-      }
-    }
-
-    return prodsList.filter(
-      (p) =>
-        p.category_id === cat.id ||
-        (p as Product & { categoryId?: string }).categoryId === cat.id ||
-        p.category === cat.name
-    );
-  }, []);
-
-  // Produtos filtrados para a visualização dedicada de categoria no mobile
+  // Produtos filtrados para a visualização dedicada de categoria no mobile (respeitando maxProducts em dinâmicas)
   const dedicatedCategoryProducts = useMemo(() => {
     if (!mobileCategoryView) return [];
-    return getCategoryProducts(mobileCategoryView, products);
+    const matched = getCategoryProducts(mobileCategoryView, products);
+    return CategoryDomainService.resolveStorefrontCategoryDisplay({
+      items: matched,
+      maxProducts: mobileCategoryView.maxProducts,
+      isDynamic: mobileCategoryView.isDynamic,
+      isPreview: false,
+    }).visibleItems;
   }, [products, mobileCategoryView, getCategoryProducts]);
 
   const { emoji: dedicatedCategoryEmoji, cleanName: dedicatedCategoryName } = useMemo(() => {
@@ -846,6 +789,13 @@ export default function Storefront() {
             p.description.toLowerCase().includes(search.toLowerCase()))
       )
     : products.filter((p) => p.categoryIsActive !== false);
+
+  const railCategories = useMemo(() => {
+    if (canEditCatalog || (loading && products.length === 0)) {
+      return visibleCategories;
+    }
+    return visibleCategories.filter((cat) => getCategoryProducts(cat, filteredProducts).length > 0);
+  }, [canEditCatalog, loading, products.length, visibleCategories, getCategoryProducts, filteredProducts]);
 
   const formattedTotal = itemsTotal.toFixed(2).replace(".", ",");
 
@@ -1323,7 +1273,7 @@ export default function Storefront() {
           CATEGORY BAR — sticky below header with desktop navigation controls
       ───────────────────────────────────────── */}
       <CategoryRail
-        categories={visibleCategories}
+        categories={railCategories}
         activeCategory={activeCategory}
         onSelectCategory={handleSelectCategory}
         loading={loading}
@@ -1575,12 +1525,20 @@ export default function Storefront() {
                                 </div>
                               )}
                               <div>
-                                <h2 className="font-heading text-lg sm:text-xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                                <h2 className="font-heading text-lg sm:text-xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2 flex-wrap">
                                   <span className="w-1 h-6 rounded-full bg-gradient-to-b from-brand-pop-shake to-brand-magenta inline-block" />
                                   {cat.name}
                                   <span className="text-sm font-normal text-muted-foreground">
                                     ({categoryDisplay.totalItems})
                                   </span>
+                                  {canEditCatalog &&
+                                    cat.isDynamic &&
+                                    cat.dynamicType === "TIME_BASED" &&
+                                    !isTimeWindowActive(cat) && (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">
+                                        ⏰ Fora do horário ({cat.timeStart}–{cat.timeEnd})
+                                      </span>
+                                    )}
                                 </h2>
                                 {cat.description && (
                                   <p className="text-xs text-muted-foreground mt-0.5 max-w-xl">
@@ -1778,7 +1736,7 @@ export default function Storefront() {
       <CategoriesDrawer
         open={categoriesDrawerOpen}
         onClose={() => setCategoriesDrawerOpen(false)}
-        categories={visibleCategories}
+        categories={railCategories}
         products={products}
         activeCategory={activeCategory}
         onSelectCategory={(catId) => scrollToCategory(catId)}

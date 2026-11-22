@@ -84,19 +84,35 @@ describe("formatProduct (Mapeamento e Formatação de Produtos e Combos)", () =>
     expect(formatted.sessionMinutes).toBe(45);
   });
 
-  it("identifica e mapeia a promoção ativa principal do produto", () => {
+  it("identifica e mapeia a promoção ativa principal do produto e ignora expiradas", () => {
+    const yesterday = new Date(Date.now() - 86_400_000);
+    const tomorrow = new Date(Date.now() + 86_400_000);
+    const expiredLastWeek = new Date(Date.now() - 7 * 86_400_000);
+
     const raw = {
       id: "prod-promo",
       name: "Açaí com Desconto",
       price: 30,
+      isAvailable: true,
+      stock: null,
       promotions: [
         {
           id: "promo-inactive",
-          title: "Promoção Expirada",
+          title: "Promoção Desativada",
           badge: "Antiga",
           discountType: "percentage",
           discountValue: 10,
           isActive: false,
+        },
+        {
+          id: "promo-expired",
+          title: "Promoção Vencida",
+          badge: "Expirada",
+          discountType: "percentage",
+          discountValue: 30,
+          isActive: true,
+          startsAt: expiredLastWeek,
+          expiresAt: yesterday,
         },
         {
           id: "promo-active",
@@ -105,8 +121,8 @@ describe("formatProduct (Mapeamento e Formatação de Produtos e Combos)", () =>
           discountType: "percentage",
           discountValue: 20,
           isActive: true,
-          startsAt: new Date("2026-10-01T00:00:00Z"),
-          expiresAt: new Date("2026-10-31T23:59:59Z"),
+          startsAt: yesterday,
+          expiresAt: tomorrow,
           showDuration: true,
           durationDisplay: ["Hoje"],
         },
@@ -115,12 +131,31 @@ describe("formatProduct (Mapeamento e Formatação de Produtos e Combos)", () =>
 
     const formatted = formatProduct(raw);
 
-    expect(formatted.promotions).toHaveLength(2);
+    expect(formatted.promotions).toHaveLength(3);
     expect(formatted.promotion).not.toBeNull();
     expect(formatted.promotion?.id).toBe("promo-active");
     expect(formatted.promotion?.title).toBe("Festival de Açaí 20% OFF");
     expect(formatted.promotion?.discountValue).toBe(20);
     expect(formatted.promotion?.isActive).toBe(true);
+
+    const onlyExpired = formatProduct({
+      id: "prod-only-expired",
+      name: "Item Expirado",
+      price: 20,
+      isAvailable: true,
+      promotions: [
+        {
+          id: "promo-old",
+          title: "Venceu",
+          badge: "OLD",
+          discountType: "percentage",
+          discountValue: 10,
+          isActive: true,
+          expiresAt: yesterday,
+        },
+      ],
+    });
+    expect(onlyExpired.promotion).toBeNull();
   });
 
   it("mapeia estrutura de combos com itens aninhados e adicionais", () => {

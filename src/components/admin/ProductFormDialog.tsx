@@ -12,6 +12,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Switch } from "../ui/switch";
 import { ImageCropperDialog } from "./ImageCropperDialog";
 import {
   Sparkles,
@@ -48,6 +49,7 @@ export function ProductFormDialog({
   const [price, setPrice] = useState(productToEdit?.price !== undefined ? productToEdit.price.toString() : "");
   const [servesText, setServesText] = useState(productToEdit?.servesText || "");
   const [categoryId, setCategoryId] = useState(productToEdit?.category_id || "");
+  const [isHighlight, setIsHighlight] = useState(Boolean(productToEdit?.isHighlight));
   const [cardBadgeId, setCardBadgeId] = useState<string>(productToEdit?.cardBadgeId || "none");
   const [badges, setBadges] = useState<CardBadge[]>([]);
   const [availableAddonGroups, setAvailableAddonGroups] = useState<AddonGroup[]>([]);
@@ -85,6 +87,7 @@ export function ProductFormDialog({
     price: string;
     servesText: string;
     categoryId: string;
+    isHighlight: boolean;
     cardBadgeId: string;
     addonGroupIds: string[];
   } | null>(null);
@@ -115,7 +118,10 @@ export function ProductFormDialog({
       (currentCatId && c.id === currentCatId) ||
       (currentCatName && (c.name.toLowerCase() === currentCatName.toLowerCase() || c.id === currentCatName))
     );
-    const targetId = foundCategory?.id || currentCatId || (list.length > 0 ? list[0].id : "");
+    const firstManualCategory = list.find((c) => !c.isDynamic);
+    const defaultCategoryId = firstManualCategory?.id || (list.length > 0 ? list[0].id : "");
+    const targetId = foundCategory?.id || currentCatId || defaultCategoryId;
+    const initHighlight = Boolean(productToEdit?.isHighlight);
     const initBadge = productToEdit?.cardBadgeId || "none";
     const initAddonIds = productToEdit?.addonGroupIds || [];
 
@@ -124,6 +130,7 @@ export function ProductFormDialog({
     setPrice(initPrice);
     setServesText(initServes);
     setCategoryId(targetId);
+    setIsHighlight(initHighlight);
     setCardBadgeId(initBadge);
     setSelectedAddonGroupIds(initAddonIds);
     setFile(null);
@@ -137,6 +144,7 @@ export function ProductFormDialog({
       price: initPrice,
       servesText: initServes,
       categoryId: targetId,
+      isHighlight: initHighlight,
       cardBadgeId: initBadge,
       addonGroupIds: [...initAddonIds],
     });
@@ -166,14 +174,15 @@ export function ProductFormDialog({
     }
   }, [open, productToEdit, categories, activeCategories]);
 
-  // Se categorias carregarem depois da abertura e categoryId ainda estiver vazio, seleciona a primeira sem tocar no restante do estado
+  // Se categorias carregarem depois da abertura e categoryId ainda estiver vazio, seleciona a primeira manual sem tocar no restante do estado
   useEffect(() => {
     if (!open || categoryId) return;
     const list = activeCategories.length > 0 ? activeCategories : categories;
     if (list.length > 0) {
-      setCategoryId(list[0].id);
+      const preferredCatId = list.find((c) => !c.isDynamic)?.id || list[0].id;
+      setCategoryId(preferredCatId);
       setInitialSnapshot((prev) =>
-        prev && !prev.categoryId ? { ...prev, categoryId: list[0].id } : prev
+        prev && !prev.categoryId ? { ...prev, categoryId: preferredCatId } : prev
       );
     }
   }, [open, categoryId, activeCategories, categories]);
@@ -209,6 +218,7 @@ export function ProductFormDialog({
       price !== initialSnapshot.price ||
       servesText !== initialSnapshot.servesText ||
       categoryId !== initialSnapshot.categoryId ||
+      isHighlight !== initialSnapshot.isHighlight ||
       cardBadgeId !== initialSnapshot.cardBadgeId ||
       !sameAddons
     );
@@ -221,6 +231,7 @@ export function ProductFormDialog({
     price,
     servesText,
     categoryId,
+    isHighlight,
     cardBadgeId,
     selectedAddonGroupIds,
   ]);
@@ -326,6 +337,7 @@ export function ProductFormDialog({
             servesText: servesText.trim() || null,
             category_id: categoryId,
             category: catName,
+            isHighlight,
             cardBadgeId: finalCardBadgeId,
             addonGroupIds: orderedAddonGroupIds,
           },
@@ -340,6 +352,7 @@ export function ProductFormDialog({
             servesText: servesText.trim() || null,
             category_id: categoryId,
             category: catName,
+            isHighlight,
             imageUrl: "",
             cardBadgeId: finalCardBadgeId,
             addonGroupIds: orderedAddonGroupIds,
@@ -658,12 +671,35 @@ export function ProductFormDialog({
                           value={cat.id}
                           className="py-1 text-gray-900 dark:text-white bg-white dark:bg-[#1F0B22]"
                         >
-                          {cat.name}
+                          {cat.isDynamic ? `${cat.name} (Dinâmica)` : cat.name}
                         </option>
                       ))}
                     </select>
                     <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
+                  {selectedCategory?.isDynamic && selectedCategory.dynamicType !== "TIME_BASED" && (
+                    <p className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-lg px-2.5 py-1.5 leading-snug">
+                      Dica: escolha a categoria real do produto (ex.: Copos, Milk Shakes, Sorvetes) e ative a opção &ldquo;Destaque na Vitrine&rdquo; abaixo para ele aparecer automaticamente em Destaques.
+                    </p>
+                  )}
+                </div>
+
+                {/* Toggle de Destaque para categorias dinâmicas HIGHLIGHTS */}
+                <div className="p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-800/40 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <Label htmlFor="prod-highlight" className="text-xs font-bold uppercase tracking-wider text-gray-800 dark:text-amber-100 flex items-center gap-1.5 cursor-pointer">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                      <span>Destaque na Vitrine</span>
+                    </Label>
+                    <p className="text-[11px] text-gray-600 dark:text-amber-200/80 mt-0.5">
+                      Exibe este produto automaticamente na categoria dinâmica de Destaques da Casa.
+                    </p>
+                  </div>
+                  <Switch
+                    id="prod-highlight"
+                    checked={isHighlight}
+                    onCheckedChange={setIsHighlight}
+                  />
                 </div>
 
                 {/* Preço de Venda (R$) */}

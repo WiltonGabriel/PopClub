@@ -22,6 +22,8 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { categoryService, Category } from "@/services/categoryService";
+import { productService, Product } from "@/services/productService";
+import { CategoryDomainService } from "@/domain/services/CategoryDomainService";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/ToastNotification";
@@ -31,6 +33,7 @@ import { CategoryFormDialog } from "./CategoryFormDialog";
 export function CategoryManagement() {
   const { showToast } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [reordering, setReordering] = useState(false);
 
@@ -43,8 +46,12 @@ export function CategoryManagement() {
   const loadCategories = useCallback(async () => {
     setLoading(true);
     try {
-      const list = await categoryService.getCategories(true);
+      const [list, prods] = await Promise.all([
+        categoryService.getCategories(true),
+        productService.getProducts().catch(() => [] as Product[]),
+      ]);
       setCategories(list);
+      setProducts(prods);
     } catch (err: unknown) {
       showToast({
         type: "error",
@@ -318,7 +325,14 @@ export function CategoryManagement() {
           <div className="grid grid-cols-1 gap-2.5">
             {categories.map((cat, index) => {
               const { emoji, cleanName } = parseCategoryEmojiAndName(cat.name);
-              const productCount = cat.productCount ?? cat._count?.products ?? 0;
+              const productCount = cat.isDynamic
+                ? CategoryDomainService.resolveStorefrontCategoryDisplay({
+                    items: CategoryDomainService.filterProductsForCategory(cat, products),
+                    maxProducts: cat.maxProducts,
+                    isDynamic: true,
+                    isPreview: false,
+                  }).totalItems
+                : cat.productCount ?? cat._count?.products ?? 0;
               const isFirst = index === 0;
               const isLast = index === categories.length - 1;
 

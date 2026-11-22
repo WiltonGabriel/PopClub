@@ -7,6 +7,8 @@ export interface ProductPromotionCandidate {
   isActive?: boolean;
   startsAt?: string | Date | null;
   expiresAt?: string | Date | null;
+  scarcityType?: string | null;
+  scarcityUnits?: number | null;
 }
 
 export interface PricingResult {
@@ -42,9 +44,17 @@ export function calculateProductPrice(
     promoList.push(product.promotion);
   }
 
-  // Encontra a primeira promoção ativa e vigente
+  // Encontra a primeira promoção ativa, vigente e com lote disponível
   const activePromo = promoList.find((p) => {
     if (p.isActive === false) return false;
+    if (
+      p.scarcityType === "real" &&
+      p.scarcityUnits !== null &&
+      p.scarcityUnits !== undefined &&
+      p.scarcityUnits <= 0
+    ) {
+      return false;
+    }
 
     const startsAt = p.startsAt ? new Date(p.startsAt) : null;
     const expiresAt = p.expiresAt ? new Date(p.expiresAt) : null;
