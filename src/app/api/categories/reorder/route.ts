@@ -40,7 +40,7 @@ export async function PATCH(request: Request) {
       orderBy: [{ order: "asc" }, { createdAt: "asc" }],
       include: {
         _count: {
-          select: { products: true },
+          select: { products: { where: { deletedAt: null } } },
         },
       },
     });

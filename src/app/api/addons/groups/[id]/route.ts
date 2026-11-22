@@ -87,7 +87,9 @@ export async function PUT(
       data: dataToUpdate,
       include: {
         items: { orderBy: { sortOrder: "asc" } },
-        _count: { select: { products: true } },
+        _count: {
+          select: { products: { where: { product: { deletedAt: null } } } },
+        },
       },
     });
 

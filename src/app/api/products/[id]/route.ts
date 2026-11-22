@@ -124,8 +124,24 @@ export async function PUT(
     if (isHighlight !== undefined) {
       dataToUpdate.isHighlight = Boolean(isHighlight);
     }
-    if (categoryId !== undefined) dataToUpdate.categoryId = categoryId || null;
-    if (category !== undefined) dataToUpdate.category = category ? sanitizeText(category) : null;
+    if (categoryId !== undefined) {
+      dataToUpdate.categoryId = categoryId || null;
+      if (!categoryId && category === undefined) {
+        dataToUpdate.category = null;
+      } else if (categoryId) {
+        const targetCategory = await prisma.category.findUnique({
+          where: { id: categoryId },
+          select: { id: true, name: true },
+        });
+        if (!targetCategory) {
+          return NextResponse.json({ error: "A categoria selecionada não foi encontrada." }, { status: 400 });
+        }
+        dataToUpdate.category = targetCategory.name;
+      }
+    }
+    if (category !== undefined && dataToUpdate.category === undefined) {
+      dataToUpdate.category = category ? sanitizeText(category) : null;
+    }
     if (imageUrl !== undefined) dataToUpdate.imageUrl = imageUrl;
     if (stock !== undefined) dataToUpdate.stock = stock !== null && stock !== "" ? Number(stock) : null;
     if (isAvailable !== undefined) dataToUpdate.isAvailable = Boolean(isAvailable);
@@ -196,6 +212,33 @@ export async function PUT(
         { error: "Um combo não pode ser ativado sem pelo menos 1 produto vinculado." },
         { status: 400 }
       );
+    }
+
+    if (resultingIsCombo && Array.isArray(comboItems) && comboItems.length > 0) {
+      const childIds = Array.from(new Set(comboItems.map((ci) => ci.productId).filter(Boolean)));
+      if (childIds.includes(id)) {
+        return NextResponse.json(
+          { error: "Um combo não pode conter a si mesmo." },
+          { status: 400 }
+        );
+      }
+      const childProducts = await prisma.product.findMany({
+        where: { id: { in: childIds }, deletedAt: null },
+        select: { id: true, name: true, isCombo: true },
+      });
+      if (childProducts.length !== childIds.length) {
+        return NextResponse.json(
+          { error: "Um ou mais itens selecionados para o combo não existem ou foram removidos." },
+          { status: 400 }
+        );
+      }
+      const nestedCombo = childProducts.find((cp) => cp.isCombo);
+      if (nestedCombo) {
+        return NextResponse.json(
+          { error: `O item "${nestedCombo.name}" já é um combo e não pode ser adicionado dentro de outro combo.` },
+          { status: 400 }
+        );
+      }
     }
 
     const updated = await prisma.product.update({

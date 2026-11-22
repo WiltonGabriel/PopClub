@@ -115,6 +115,36 @@ export async function POST(request: Request) {
 
     const parsedStock = stock !== undefined && stock !== null && stock !== "" ? Number(stock) : null;
 
+    let resolvedCategoryName = cleanCategory;
+    if (categoryId) {
+      const targetCategory = await prisma.category.findUnique({
+        where: { id: categoryId },
+        select: { id: true, name: true },
+      });
+      if (!targetCategory) {
+        return apiError("A categoria selecionada não foi encontrada.", 400, "VALIDATION_ERROR");
+      }
+      resolvedCategoryName = targetCategory.name;
+    }
+
+    if (Boolean(isCombo)) {
+      if (!Array.isArray(comboItems) || comboItems.length === 0) {
+        return apiError("Um combo precisa ter pelo menos 1 produto base vinculado.", 400, "VALIDATION_ERROR");
+      }
+      const childIds = Array.from(new Set(comboItems.map((ci) => ci.productId).filter(Boolean)));
+      const childProducts = await prisma.product.findMany({
+        where: { id: { in: childIds }, deletedAt: null },
+        select: { id: true, name: true, isCombo: true },
+      });
+      if (childProducts.length !== childIds.length) {
+        return apiError("Um ou mais produtos selecionados para o combo não existem ou foram removidos.", 400, "VALIDATION_ERROR");
+      }
+      const nestedCombo = childProducts.find((cp) => cp.isCombo);
+      if (nestedCombo) {
+        return apiError(`O item "${nestedCombo.name}" já é um combo e não pode ser adicionado dentro de outro combo.`, 400, "VALIDATION_ERROR");
+      }
+    }
+
     const productData: any = {
       name: cleanName,
       description: cleanDescription,
@@ -122,7 +152,7 @@ export async function POST(request: Request) {
       servesText: servesText ? String(servesText) : null,
       isHighlight: Boolean(isHighlight),
       categoryId: categoryId || null,
-      category: cleanCategory,
+      category: resolvedCategoryName,
       imageUrl: imageUrl || null,
       stock: parsedStock !== null && !isNaN(parsedStock) ? Math.max(0, parsedStock) : null,
       isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : true,

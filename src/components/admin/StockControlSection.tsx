@@ -400,17 +400,11 @@ export function StockControlSection({
   }, [products]);
 
   // ─── FILTRO DE PRODUTOS BASE ───
-  // Na aba "Produto Base" do Catálogo mostra todos os produtos base (incluindo os em promoção);
-  // na cozinha ("kitchen") foca apenas nos itens comuns sem central dedicada de promoção.
+  // Lista todos os produtos base (!isCombo) tanto no Catálogo quanto na Cozinha,
+  // permitindo pausar/repor estoque até mesmo de itens com promoção ativa vinculada.
   const baseProducts = useMemo(() => {
-    return products.filter((p) => {
-      if (p.isCombo) return false;
-      if (mode === "kitchen" && activePromoProductIds.has(p.id)) {
-        return false;
-      }
-      return true;
-    });
-  }, [products, activePromoProductIds, mode]);
+    return products.filter((p) => !p.isCombo);
+  }, [products]);
 
   // Filtragem dos produtos base
   const filteredProducts = useMemo(() => {
@@ -426,7 +420,7 @@ export function StockControlSection({
 
       // 2. Filtro de Categoria
       if (selectedCategory !== "all") {
-        const matchesCatId = p.category_id === selectedCategory;
+        const matchesCatId = p.categoryId === selectedCategory || p.category_id === selectedCategory;
         const matchesCatName = p.category?.toLowerCase() === selectedCategory.toLowerCase();
         if (!matchesCatId && !matchesCatName) return false;
       }
@@ -473,7 +467,7 @@ export function StockControlSection({
               <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                 {mode === "catalog"
                   ? "Gerencie estoque, disponibilidade, preços, fotos e complementos de todos os produtos base. Alterações refletem automaticamente nos combos e promoções vinculados."
-                  : "Listando exclusivamente produtos normais/base da loja. Combos e promoções ativas possuem centrais de monitoramento de lotes dedicadas em suas respectivas abas."}
+                  : "Listando todos os produtos base da loja (incluindo itens em promoção ativa ou presentes em combos) para controle imediato de estoque e disponibilidade na cozinha."}
               </p>
             </div>
           </div>
@@ -686,11 +680,25 @@ export function StockControlSection({
                               </span>
                             )}
                           </div>
-                          {product.category && (
-                            <span className="inline-block text-[11px] font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-md mt-1 border border-gray-200/60 dark:border-white/5">
-                              {product.category}
-                            </span>
-                          )}
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                            {product.category && (
+                              <span className="inline-block text-[11px] font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-md border border-gray-200/60 dark:border-white/5">
+                                {product.category}
+                              </span>
+                            )}
+                            {product.categoryIsActive === false && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">
+                                <AlertTriangle className="w-2.5 h-2.5" />
+                                Categoria Pausada
+                              </span>
+                            )}
+                            {!product.categoryId && !product.category_id && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-orange-100 dark:bg-orange-950/50 text-orange-800 dark:text-orange-300 border border-orange-200 dark:border-orange-800/50">
+                                <AlertTriangle className="w-2.5 h-2.5" />
+                                Sem Categoria
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>

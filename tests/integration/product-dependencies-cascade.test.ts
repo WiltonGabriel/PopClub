@@ -2,8 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prisma } from "@/lib/prisma";
 import * as authLib from "@/lib/auth";
 import { GET as getProductImpact } from "@/app/api/products/[id]/impact/route";
+import { POST as createProduct } from "@/app/api/products/route";
 import { PUT as updateProduct, DELETE as deleteProduct } from "@/app/api/products/[id]/route";
 import { PATCH as patchProductStock } from "@/app/api/products/[id]/stock/route";
+import { PUT as updateCategory, DELETE as deleteCategory } from "@/app/api/categories/[id]/route";
+import { formatProduct } from "@/lib/productHelper";
 import { restoreOrderInventoryAndCoupons } from "@/services/orderRefundService";
 
 describe("Integração: Cascata Inteligente de Dependências de Produtos (Combos, Promoções, Cupons, Complementos e Pedidos)", () => {
@@ -392,5 +395,109 @@ describe("Integração: Cascata Inteligente de Dependências de Produtos (Combos
       where: { id: "child-finite" },
       data: { stock: { increment: 6 } },
     });
+  });
+
+  it("POST /api/products bloqueia combo vazio ou combo contendo outro combo (400)", async () => {
+    vi.spyOn(authLib, "getAuthUser").mockResolvedValue({
+      id: "admin-1",
+      role: "admin",
+    } as any);
+    vi.spyOn(prisma.product, "count").mockResolvedValue(5);
+
+    const emptyComboRes = await createProduct(
+      new Request("http://localhost:3000/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Combo Sem Itens",
+          price: 49.9,
+          isCombo: true,
+          comboItems: [],
+        }),
+      })
+    );
+    expect(emptyComboRes.status).toBe(400);
+
+    vi.spyOn(prisma.product, "findMany").mockResolvedValue([
+      { id: "other-combo", name: "Outro Combo", isCombo: true },
+    ] as any);
+
+    const nestedComboRes = await createProduct(
+      new Request("http://localhost:3000/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Combo Aninhado",
+          price: 89.9,
+          isCombo: true,
+          comboItems: [{ productId: "other-combo", quantity: 1 }],
+        }),
+      })
+    );
+    expect(nestedComboRes.status).toBe(400);
+  });
+
+  it("PUT e DELETE /api/categories/[id] sincronizam e limpam nome legado dos produtos vinculados", async () => {
+    vi.spyOn(authLib, "getAuthUser").mockResolvedValue({
+      id: "admin-1",
+      role: "admin",
+    } as any);
+
+    const productUpdateManyMock = vi.fn().mockResolvedValue({ count: 2 });
+    const categoryUpdateMock = vi.fn().mockResolvedValue({
+      id: "cat-1",
+      name: "Picolés Premium",
+      _count: { products: 2 },
+    });
+    const categoryDeleteMock = vi.fn().mockResolvedValue({ id: "cat-1" });
+
+    vi.spyOn(prisma.category, "findFirst").mockResolvedValue(null);
+    vi.spyOn(prisma, "$transaction").mockImplementation(async (cb: any) =>
+      cb({
+        category: { update: categoryUpdateMock, delete: categoryDeleteMock },
+        product: { updateMany: productUpdateManyMock },
+      })
+    );
+
+    const putRes = await updateCategory(
+      new Request("http://localhost:3000/api/categories/cat-1", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Picolés Premium" }),
+      }),
+      { params: Promise.resolve({ id: "cat-1" }) }
+    );
+    expect(putRes.status).toBe(200);
+    expect(productUpdateManyMock).toHaveBeenCalledWith({
+      where: { categoryId: "cat-1" },
+      data: { category: "Picolés Premium" },
+    });
+
+    const delRes = await deleteCategory(
+      new Request("http://localhost:3000/api/categories/cat-1", { method: "DELETE" }),
+      { params: Promise.resolve({ id: "cat-1" }) }
+    );
+    expect(delRes.status).toBe(200);
+    expect(productUpdateManyMock).toHaveBeenCalledWith({
+      where: { categoryId: "cat-1" },
+      data: { categoryId: null, category: null },
+    });
+  });
+
+  it("formatProduct expõe categoryIsActive=false quando a categoria pai está pausada", () => {
+    const formatted = formatProduct({
+      id: "p-1",
+      name: "Picolé Limão",
+      price: 5,
+      isAvailable: true,
+      categoryId: "cat-paused",
+      categoryRel: { name: "Picolés", isActive: false },
+      addonGroups: [],
+      comboItems: [],
+      promotions: [],
+    });
+
+    expect(formatted.category).toBe("Picolés");
+    expect(formatted.categoryIsActive).toBe(false);
   });
 });

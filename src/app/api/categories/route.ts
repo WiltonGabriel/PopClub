@@ -28,7 +28,7 @@ export async function GET(request: Request) {
       orderBy: orderByClause,
       include: {
         _count: {
-          select: { products: true },
+          select: { products: { where: { deletedAt: null } } },
         },
       },
     });
@@ -130,7 +130,7 @@ export async function POST(request: Request) {
       },
       include: {
         _count: {
-          select: { products: true },
+          select: { products: { where: { deletedAt: null } } },
         },
       },
     });

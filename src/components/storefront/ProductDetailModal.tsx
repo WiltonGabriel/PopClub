@@ -158,13 +158,15 @@ function ProductDetailModalContent({
   }, []);
 
   const normalizeRawGroups = useCallback((rawGroups?: RawAddonGroup[]): AddonGroup[] => {
-    const mapped = (rawGroups || []).map((g: RawAddonGroup) => {
-      const group = g.group || g;
-      return {
-        ...group,
-        items: group.items || (group as RawAddonGroup).addonItems || [],
-      };
-    });
+    const mapped = (rawGroups || [])
+      .map((g: RawAddonGroup) => {
+        const group = g.group || g;
+        return {
+          ...group,
+          items: group.items || (group as RawAddonGroup).addonItems || [],
+        };
+      })
+      .filter((group) => group.isActive !== false);
     return AddonOrganizationService.sortAddonGroups(mapped);
   }, []);
 

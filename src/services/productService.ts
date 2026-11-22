@@ -88,6 +88,7 @@ export interface Product {
   category_id?: string;
   categoryId?: string;
   category?: string;
+  categoryIsActive?: boolean;
   imageUrl: string;
   stock?: number | null;
   isAvailable?: boolean;
@@ -176,6 +177,7 @@ export const productService = {
       category_id: (item.categoryId as string) || (item.category_id as string),
       categoryId: (item.categoryId as string) || (item.category_id as string),
       category: item.category as string,
+      categoryIsActive: item.categoryIsActive !== undefined ? Boolean(item.categoryIsActive) : true,
       imageUrl: String(item.imageUrl || ""),
       stock: item.stock !== undefined ? (item.stock as number | null) : null,
       isAvailable: item.isAvailable !== undefined ? Boolean(item.isAvailable) : true,

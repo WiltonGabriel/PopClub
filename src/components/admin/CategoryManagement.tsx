@@ -34,9 +34,11 @@ export function CategoryManagement() {
   const [loading, setLoading] = useState(true);
   const [reordering, setReordering] = useState(false);
 
-  // Modal de criação / edição
+  // Modal de criação / edição e confirmação de exclusão
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [deletingCategory, setDeletingCategory] = useState(false);
 
   const loadCategories = useCallback(async () => {
     setLoading(true);
@@ -166,24 +168,23 @@ export function CategoryManagement() {
     }
   };
 
-  // Deletar categoria
-  const handleDelete = async (cat: Category) => {
-    const { cleanName } = parseCategoryEmojiAndName(cat.name);
-    const count = cat.productCount ?? cat._count?.products ?? 0;
-    const confirmMsg =
-      count > 0
-        ? `A categoria "${cleanName}" possui ${count} produto(s) associado(s). Tem certeza que deseja excluí-la? Os produtos ficarão sem categoria definida.`
-        : `Tem certeza que deseja excluir a categoria "${cleanName}"?`;
+  // Deletar categoria (abre modal seguro de confirmação sem window.confirm)
+  const handleDelete = (cat: Category) => {
+    setCategoryToDelete(cat);
+  };
 
-    if (!window.confirm(confirmMsg)) return;
-
+  const handleConfirmDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+    const { cleanName } = parseCategoryEmojiAndName(categoryToDelete.name);
+    setDeletingCategory(true);
     try {
-      await categoryService.deleteCategory(cat.id);
-      setCategories((prev) => prev.filter((c) => c.id !== cat.id));
+      await categoryService.deleteCategory(categoryToDelete.id);
+      setCategories((prev) => prev.filter((c) => c.id !== categoryToDelete.id));
+      setCategoryToDelete(null);
       showToast({
         type: "success",
         title: "Categoria Excluída",
-        message: `"${cleanName}" foi removida com sucesso.`,
+        message: `"${cleanName}" foi removida e eventuais produtos vinculados foram desassociados com segurança.`,
       });
     } catch (err: unknown) {
       showToast({
@@ -191,6 +192,8 @@ export function CategoryManagement() {
         title: "Erro ao Excluir",
         message: err instanceof Error ? err.message : "Falha ao deletar categoria.",
       });
+    } finally {
+      setDeletingCategory(false);
     }
   };
 
@@ -457,6 +460,69 @@ export function CategoryManagement() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DE CATEGORIA */}
+      {categoryToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#1E0B22] border border-gray-200 dark:border-[#512B54]/60 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-950/60 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-heading font-bold text-base text-gray-900 dark:text-gray-100">
+                  Excluir Categoria
+                </h3>
+                <p className="text-xs text-muted-foreground">Confirmação de exclusão no catálogo</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+              <p>
+                Tem certeza que deseja excluir{" "}
+                <strong className="text-foreground">
+                  &quot;{parseCategoryEmojiAndName(categoryToDelete.name).cleanName}&quot;
+                </strong>
+                ?
+              </p>
+              {(categoryToDelete.productCount ?? categoryToDelete._count?.products ?? 0) > 0 && (
+                <p className="rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+                  Existem{" "}
+                  <strong>
+                    {categoryToDelete.productCount ?? categoryToDelete._count?.products ?? 0} produto(s)
+                  </strong>{" "}
+                  associado(s) a esta categoria. Eles permanecerão no catálogo como{" "}
+                  <strong>Sem Categoria</strong> para que você possa reorganizá-los depois.
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setCategoryToDelete(null)}
+                disabled={deletingCategory}
+                className="px-4 py-2 rounded-xl text-xs font-semibold border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteCategory}
+                disabled={deletingCategory}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-600/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+              >
+                {deletingCategory ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="w-3.5 h-3.5" />
+                )}
+                <span>Excluir Categoria</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

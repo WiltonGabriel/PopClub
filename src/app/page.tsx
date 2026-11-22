@@ -742,10 +742,12 @@ export default function Storefront() {
 
   // Helper para obter produtos de uma categoria (estática ou dinâmica com 5 regras automatizadas)
   const getCategoryProducts = useCallback((cat: Category, prodsList: Product[]) => {
+    const activeCatProds = prodsList.filter((p) => p.categoryIsActive !== false);
+
     if (cat.isDynamic) {
       switch (cat.dynamicType) {
         case "HIGHLIGHTS":
-          return prodsList.filter((p) => {
+          return activeCatProds.filter((p) => {
             if (
               p.category_id === cat.id ||
               (p as Product & { categoryId?: string }).categoryId === cat.id ||
@@ -759,19 +761,19 @@ export default function Storefront() {
           });
 
         case "ACTIVE_PROMOTIONS":
-          return prodsList.filter((p) => {
+          return activeCatProds.filter((p) => {
             if (p.promotion) return true;
             const pricing = calculateProductPrice(p);
             return pricing.isPromotional;
           });
 
         case "COMBOS":
-          return prodsList.filter((p) => {
+          return activeCatProds.filter((p) => {
             return p.isCombo || (p.comboItems && p.comboItems.length > 0);
           });
 
         case "SHAREABLE":
-          return prodsList.filter((p) => {
+          return activeCatProds.filter((p) => {
             const serves = p.servesText || "";
             const isShareableRegex = /(?:[2-9]|\bdois|\bduas|\btres|\btrês|\bquatro|\bcinco|\bdupla|\btrio|\bfam[ií]lia|\bcompartilhar)/i;
             return (
@@ -791,7 +793,7 @@ export default function Storefront() {
           });
 
         default:
-          return prodsList.filter((p) => {
+          return activeCatProds.filter((p) => {
             return (
               p.category_id === cat.id ||
               (p as Product & { categoryId?: string }).categoryId === cat.id ||
@@ -824,10 +826,11 @@ export default function Storefront() {
   const filteredProducts = search.trim()
     ? products.filter(
         (p) =>
-          p.name.toLowerCase().includes(search.toLowerCase()) ||
-          p.description.toLowerCase().includes(search.toLowerCase())
+          p.categoryIsActive !== false &&
+          (p.name.toLowerCase().includes(search.toLowerCase()) ||
+            p.description.toLowerCase().includes(search.toLowerCase()))
       )
-    : products;
+    : products.filter((p) => p.categoryIsActive !== false);
 
   const formattedTotal = itemsTotal.toFixed(2).replace(".", ",");
 

@@ -16,7 +16,7 @@ export async function GET() {
           orderBy: { sortOrder: "asc" },
         },
         _count: {
-          select: { products: true },
+          select: { products: { where: { product: { deletedAt: null } } } },
         },
       },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
       include: {
         items: true,
         _count: {
-          select: { products: true },
+          select: { products: { where: { product: { deletedAt: null } } } },
         },
       },
     });

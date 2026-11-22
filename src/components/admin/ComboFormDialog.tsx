@@ -125,7 +125,7 @@ export function ComboFormDialog({
     if (open) {
       productService
         .getProducts()
-        .then(setAvailableProducts)
+        .then((all) => setAvailableProducts(all.filter((p) => !p.isCombo)))
         .catch(() => {});
       badgeService
         .getBadges()

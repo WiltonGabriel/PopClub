@@ -98,14 +98,25 @@ async function updateCategoryHandler(
       dataToUpdate.isActive = Boolean(isActive);
     }
 
-    const updated = await prisma.category.update({
-      where: { id },
-      data: dataToUpdate,
-      include: {
-        _count: {
-          select: { products: true },
+    const updated = await prisma.$transaction(async (tx) => {
+      const cat = await tx.category.update({
+        where: { id },
+        data: dataToUpdate,
+        include: {
+          _count: {
+            select: { products: { where: { deletedAt: null } } },
+          },
         },
-      },
+      });
+
+      if (dataToUpdate.name && typeof dataToUpdate.name === "string") {
+        await tx.product.updateMany({
+          where: { categoryId: id },
+          data: { category: dataToUpdate.name },
+        });
+      }
+
+      return cat;
     });
 
     return NextResponse.json(updated);
@@ -143,7 +154,13 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    await prisma.category.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      await tx.product.updateMany({
+        where: { categoryId: id },
+        data: { categoryId: null, category: null },
+      });
+      await tx.category.delete({ where: { id } });
+    });
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

@@ -29,7 +29,7 @@ export async function PATCH(
       },
       include: {
         _count: {
-          select: { products: true },
+          select: { products: { where: { deletedAt: null } } },
         },
       },
     });

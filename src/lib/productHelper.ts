@@ -3,7 +3,7 @@ import { ProductDependencyDomainService } from "@/domain/services/ProductDepende
 
 export const productInclude = {
   categoryRel: {
-    select: { name: true },
+    select: { name: true, isActive: true },
   },
   cardBadge: true,
   promotions: {
@@ -62,6 +62,7 @@ export function formatProduct(p: any) {
     isHighlight: Boolean(p.isHighlight),
     categoryId: p.categoryId,
     category: p.categoryRel?.name || p.category || "Outros",
+    categoryIsActive: p.categoryRel ? Boolean(p.categoryRel.isActive) : true,
     imageUrl: p.imageUrl || "",
     stock: p.stock,
     isAvailable: p.isAvailable,
