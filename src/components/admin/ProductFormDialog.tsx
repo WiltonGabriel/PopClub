@@ -410,8 +410,8 @@ export function ProductFormDialog({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100 dark:divide-border/30">
-            {/* Lado Esquerdo: Prévia em Tempo Real (Live Preview) */}
-            <div className="p-6 sm:p-8 bg-gray-50/70 dark:bg-background/80 flex flex-col justify-between">
+            {/* Lado Esquerdo: Prévia em Tempo Real + Upload/Edição da Foto */}
+            <div className="p-6 sm:p-8 bg-gray-50/70 dark:bg-background/80 flex flex-col justify-between gap-5">
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
@@ -490,9 +490,55 @@ export function ProductFormDialog({
                     </div>
                   </div>
                 </div>
+
+                {/* Foto do Produto com Editor Livre e Edição da Foto Atual */}
+                <div className="space-y-2 mt-5 pt-5 border-t border-gray-200/70 dark:border-border/30">
+                  <div className="flex justify-between items-center gap-2">
+                    <Label htmlFor="image" className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                      Foto do Produto
+                    </Label>
+                    <span className="text-[10px] font-medium text-muted-foreground">
+                      Recomendação: 1:1 Quadrado • até 10MB
+                    </span>
+                  </div>
+
+                  <div className="relative border-2 border-dashed border-gray-200 dark:border-border/50 hover:border-primary dark:hover:border-primary bg-white/80 dark:bg-card/40 rounded-xl p-3 transition-colors flex items-center gap-3 cursor-pointer group">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary dark:text-muted-foreground flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      {file ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <Upload className="w-5 h-5" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-foreground dark:text-foreground truncate">
+                        {file ? file.name : (productToEdit?.imageUrl ? "Foto atual mantida (clique para trocar)" : "Clique para escolher a foto")}
+                      </p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                        JPEG, PNG ou WebP • Conversão automática para WebP ao salvar.
+                      </p>
+                    </div>
+                    <Input
+                      id="image"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleFileChange}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                  </div>
+
+                  {previewUrl && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleOpenExistingCropper}
+                      className="w-full h-9 rounded-xl text-xs font-semibold gap-1.5 border-primary/30 text-primary hover:bg-primary/5 cursor-pointer"
+                    >
+                      <Crop className="w-3.5 h-3.5" />
+                      <span>Editar / Recortar Imagem Atual</span>
+                    </Button>
+                  )}
+                </div>
               </div>
 
-              <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center mt-6">
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center mt-2">
                 * Visualização em tempo real das alterações na página inicial da loja.
               </p>
             </div>
@@ -677,52 +723,6 @@ export function ProductFormDialog({
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-
-                {/* Foto do Produto com Editor Livre e Edição da Foto Atual */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center gap-2">
-                    <Label htmlFor="image" className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                      Foto do Produto
-                    </Label>
-                    <span className="text-[10px] font-medium text-muted-foreground">
-                      Recomendação: 1:1 Quadrado • até 10MB
-                    </span>
-                  </div>
-
-                  <div className="relative border-2 border-dashed border-gray-200 dark:border-border/50 hover:border-primary dark:hover:border-primary bg-gray-50/60 dark:bg-card/40 rounded-xl p-3 transition-colors flex items-center gap-3 cursor-pointer group">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary dark:text-muted-foreground flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                      {file ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <Upload className="w-5 h-5" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-foreground dark:text-foreground truncate">
-                        {file ? file.name : (productToEdit?.imageUrl ? "Foto atual mantida (clique para trocar)" : "Clique para escolher a foto")}
-                      </p>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                        JPEG, PNG ou WebP • Conversão automática para WebP ao salvar.
-                      </p>
-                    </div>
-                    <Input
-                      id="image"
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={handleFileChange}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                    />
-                  </div>
-
-                  {previewUrl && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleOpenExistingCropper}
-                      className="w-full h-9 rounded-xl text-xs font-semibold gap-1.5 border-primary/30 text-primary hover:bg-primary/5 cursor-pointer"
-                    >
-                      <Crop className="w-3.5 h-3.5" />
-                      <span>Editar / Recortar Imagem Atual</span>
-                    </Button>
-                  )}
                 </div>
 
                 {/* Seção Complementos & Modificadores */}

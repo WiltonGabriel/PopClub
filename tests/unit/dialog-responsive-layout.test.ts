@@ -80,5 +80,14 @@ describe("Responsividade e Largura Segura de Modais (DialogContent)", () => {
     expect(productFormSrc).toContain('form="product-editor-form"');
     expect(productFormSrc).toContain("Alterações não salvas");
     expect(productFormSrc).toContain("Editar / Recortar Imagem Atual");
+
+    const formIdx = productFormSrc.indexOf('id="product-editor-form"');
+    const photoIdx = productFormSrc.indexOf("Foto do Produto");
+    const editCropIdx = productFormSrc.indexOf("Editar / Recortar Imagem Atual");
+    expect(formIdx).toBeGreaterThan(-1);
+    expect(photoIdx).toBeGreaterThan(-1);
+    expect(photoIdx).toBeLessThan(formIdx);
+    expect(editCropIdx).toBeGreaterThan(-1);
+    expect(editCropIdx).toBeLessThan(formIdx);
   });
 });
