@@ -13,7 +13,12 @@ import { calculateProductPrice } from "@/lib/pricing";
 
 // Storefront components
 import { ProductCard } from "../components/storefront/ProductCard";
+import { CategoryMoreCard } from "../components/storefront/CategoryMoreCard";
 import { parseCategoryEmojiAndName } from "../components/storefront/CategoryChip";
+import {
+  CategoryDomainService,
+  STOREFRONT_CATEGORY_PREVIEW_LIMIT,
+} from "@/domain/services/CategoryDomainService";
 import { CategoryRail } from "../components/storefront/CategoryRail";
 import { PromoBanner } from "../components/storefront/PromoBanner";
 import { BottomNav } from "../components/storefront/BottomNav";
@@ -460,8 +465,9 @@ export default function Storefront() {
     });
   };
 
-  // Salva posição de scroll da vitrine para restaurar ao voltar da categoria dedicada no mobile
+  // Salva posição de scroll da vitrine para restaurar ao voltar da categoria dedicada
   const savedScrollYRef = useRef<number>(0);
+  const urlCategoryHydratedRef = useRef<boolean>(false);
   const [mobileCategoryView, setMobileCategoryView] = useState<Category | null>(null);
 
   // Escuta o botão voltar do celular/navegador para fechar a visualização dedicada suavemente
@@ -491,6 +497,7 @@ export default function Storefront() {
       window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
     }
     const targetScroll = savedScrollYRef.current || 0;
+    savedScrollYRef.current = 0;
     setTimeout(() => {
       window.scrollTo({ top: targetScroll, behavior: "smooth" });
     }, 20);
@@ -509,7 +516,11 @@ export default function Storefront() {
             url.searchParams.delete("category");
             window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
           }
-          window.scrollTo({ top: 0, behavior: "smooth" });
+          const targetScroll = savedScrollYRef.current || 0;
+          savedScrollYRef.current = 0;
+          setTimeout(() => {
+            window.scrollTo({ top: targetScroll, behavior: "smooth" });
+          }, 20);
         }
         return;
       }
@@ -539,7 +550,10 @@ export default function Storefront() {
         return;
       }
 
-      // Desktop / Tablet: rola suavemente até o container da categoria
+      // Desktop / Tablet: salva scroll da vitrine antes de expandir categoria e rola suavemente
+      if (!activeCategory && typeof window !== "undefined") {
+        savedScrollYRef.current = window.scrollY;
+      }
       setActiveCategory(effectiveId);
       setTimeout(() => {
         const el = document.getElementById(`category-${effectiveId}`);
@@ -550,23 +564,24 @@ export default function Storefront() {
         }
       }, 50);
     },
-    [categories, mobileCategoryView, handleCloseMobileCategoryView]
+    [categories, activeCategory, mobileCategoryView, handleCloseMobileCategoryView]
   );
 
-  // Sincroniza categoria inicial via URL (?categoria=... ou ?category=...)
+  // Sincroniza categoria inicial via URL (?categoria=... ou ?category=...) apenas uma vez ao carregar
   useEffect(() => {
-    if (typeof window === "undefined" || categories.length === 0) return;
+    if (typeof window === "undefined" || categories.length === 0 || urlCategoryHydratedRef.current) return;
+    urlCategoryHydratedRef.current = true;
     const urlParams = new URLSearchParams(window.location.search);
     const catParam = urlParams.get("categoria") || urlParams.get("category");
     if (catParam && catParam !== "all" && catParam !== "todas") {
       const matched = categories.find(
         (c) => c.id === catParam || (c.slug && c.slug === catParam) || c.name.toLowerCase() === catParam.toLowerCase()
       );
-      if (matched && activeCategory !== matched.id) {
+      if (matched) {
         handleSelectCategory(matched.id);
       }
     }
-  }, [categories, handleSelectCategory, activeCategory]);
+  }, [categories, handleSelectCategory]);
 
   const scrollToCategory = handleSelectCategory;
 
@@ -1535,10 +1550,14 @@ export default function Storefront() {
 
                       // Modo Prévia (na Home) vs Modo Completo
                       const isPreview = !activeCategory && !search;
-                      const displayProducts = isPreview ? catProducts.slice(0, 4) : catProducts;
-
-                      // First category gets a featured (wide) card for the first product
-                      const hasFeatured = catIndex === 0 && !activeCategory && !search;
+                      const categoryDisplay = CategoryDomainService.resolveStorefrontCategoryDisplay({
+                        items: catProducts,
+                        maxProducts: cat.maxProducts,
+                        isDynamic: cat.isDynamic,
+                        isPreview,
+                        previewLimit: STOREFRONT_CATEGORY_PREVIEW_LIMIT,
+                      });
+                      const displayProducts = categoryDisplay.visibleItems;
 
                       return (
                         <section
@@ -1560,7 +1579,7 @@ export default function Storefront() {
                                   <span className="w-1 h-6 rounded-full bg-gradient-to-b from-brand-pop-shake to-brand-magenta inline-block" />
                                   {cat.name}
                                   <span className="text-sm font-normal text-muted-foreground">
-                                    ({catProducts.length})
+                                    ({categoryDisplay.totalItems})
                                   </span>
                                 </h2>
                                 {cat.description && (
@@ -1604,32 +1623,31 @@ export default function Storefront() {
                             </div>
 
                             {/* Botão Ver Mais (iFood style) */}
-                            {isPreview && catProducts.length > 0 && (
+                            {isPreview && categoryDisplay.totalItems > 0 && (
                               <button
                                 onClick={() => scrollToCategory(cat.id)}
                                 className="text-xs font-bold text-primary dark:text-muted-foreground hover:underline flex items-center gap-1 cursor-pointer"
                               >
-                                Ver todos ({catProducts.length}) <ChevronRight className="w-3.5 h-3.5" />
+                                Ver todos ({categoryDisplay.totalItems}) <ChevronRight className="w-3.5 h-3.5" />
                               </button>
                             )}
 
                             {/* Voltar (Quando está no modo filtrado/completo) */}
                             {activeCategory && (
                               <button
-                                onClick={() => {
-                                  setActiveCategory(null);
-                                  window.scrollTo({ top: 0, behavior: "smooth" });
-                                }}
-                                className="text-sm font-semibold text-muted-foreground hover:text-foreground dark:hover:text-foreground hover:underline flex items-center gap-1 min-h-[44px] transition-colors"
+                                type="button"
+                                onClick={() => handleSelectCategory(null)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-primary/25 bg-primary/10 hover:bg-primary/20 text-xs font-bold text-primary dark:text-violet-200 transition-colors cursor-pointer"
                               >
-                                Voltar
+                                <ArrowLeft className="w-3.5 h-3.5" />
+                                <span>Voltar</span>
                               </button>
                             )}
                           </div>
 
                           {/* ── Catálogo: Linhas Horizontais Compactas no Mobile / Grid Adaptativo 1, 2, 3 ou 4 Colunas ── */}
                           <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4 bg-card/60 sm:bg-transparent rounded-2xl sm:rounded-none border border-border/30 sm:border-none p-2 sm:p-0">
-                            {displayProducts.map((product, prodIndex) => (
+                            {displayProducts.map((product) => (
                               <ProductCard
                                 key={product.id}
                                 product={product}
@@ -1638,9 +1656,17 @@ export default function Storefront() {
                                 isAdmin={canEditCatalog}
                                 onEdit={(p) => { setEditingProduct(p); setProdDialogOpen(true); }}
                                 onDelete={handleDeleteProduct}
-                                featured={hasFeatured && prodIndex === 0}
                               />
                             ))}
+
+                            {categoryDisplay.hasMore && (
+                              <CategoryMoreCard
+                                categoryName={cat.name}
+                                hiddenProducts={categoryDisplay.hiddenItems}
+                                totalCount={categoryDisplay.totalItems}
+                                onExplore={() => scrollToCategory(cat.id)}
+                              />
+                            )}
 
                             {/* Admin / Editor com menu_manage: add product */}
                             {canEditCatalog && (

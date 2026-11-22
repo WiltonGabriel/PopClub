@@ -6,6 +6,7 @@ import { sanitizeText } from "@/lib/sanitize";
 import { productInclude, formatProduct } from "@/lib/productHelper";
 import { resolveOrderedAddonGroupIds } from "@/lib/addonPersistenceHelper";
 import { hasPermission } from "@/lib/permissions";
+import { CategoryDomainService } from "@/domain/services/CategoryDomainService";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -119,10 +120,28 @@ export async function POST(request: Request) {
     if (categoryId) {
       const targetCategory = await prisma.category.findUnique({
         where: { id: categoryId },
-        select: { id: true, name: true },
+        select: { id: true, name: true, isDynamic: true, maxProducts: true },
       });
       if (!targetCategory) {
         return apiError("A categoria selecionada não foi encontrada.", 400, "VALIDATION_ERROR");
+      }
+      if (!targetCategory.isDynamic) {
+        const currentActiveCount = await prisma.product.count({
+          where: { categoryId, deletedAt: null },
+        });
+        const maxCap = targetCategory.maxProducts ?? 20;
+        if (
+          !CategoryDomainService.canAssignProductToCategory({
+            currentActiveCount,
+            maxProducts: maxCap,
+          })
+        ) {
+          return apiError(
+            `A categoria "${targetCategory.name}" atingiu o limite máximo de ${maxCap} produto(s).`,
+            400,
+            "CATEGORY_LIMIT_REACHED"
+          );
+        }
       }
       resolvedCategoryName = targetCategory.name;
     }

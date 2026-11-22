@@ -5,4 +5,5 @@ export * from "./StockDomainService";
 export * from "./PromotionDomainService";
 export * from "./AnalyticsDomainService";
 export * from "./ProductDependencyDomainService";
+export * from "./CategoryDomainService";
 

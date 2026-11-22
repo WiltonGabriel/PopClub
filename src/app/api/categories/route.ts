@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { handleApiError, apiError, apiSuccess } from "@/lib/apiResponse";
 import { hasPermission } from "@/lib/permissions";
+import { CategoryDomainService } from "@/domain/services/CategoryDomainService";
 
 function slugify(text: string): string {
   const base = text
@@ -51,6 +52,7 @@ interface CreateCategoryBody {
   timeStart?: unknown;
   timeEnd?: unknown;
   isActive?: unknown;
+  maxProducts?: unknown;
 }
 
 export async function POST(request: Request) {
@@ -84,7 +86,13 @@ export async function POST(request: Request) {
       timeStart,
       timeEnd,
       isActive,
+      maxProducts,
     } = body || {};
+
+    const parsedLimit = CategoryDomainService.parseAndValidateMaxProducts(maxProducts);
+    if (!parsedLimit.valid) {
+      return apiError(parsedLimit.error, 400, "VALIDATION_ERROR");
+    }
 
     if (!name || typeof name !== "string") {
       return apiError("O nome da categoria é obrigatório.", 400, "MISSING_NAME");
@@ -127,6 +135,7 @@ export async function POST(request: Request) {
         timeStart: typeof timeStart === "string" ? timeStart : null,
         timeEnd: typeof timeEnd === "string" ? timeEnd : null,
         isActive: isActive !== undefined ? Boolean(isActive) : true,
+        maxProducts: parsedLimit.value,
       },
       include: {
         _count: {

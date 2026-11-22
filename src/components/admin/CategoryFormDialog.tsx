@@ -3,6 +3,12 @@
 import { useState, useEffect, useRef } from "react";
 import { categoryService, Category } from "../../services/categoryService";
 import { productService } from "../../services/productService";
+import {
+  CATEGORY_DEFAULT_PRODUCTS_LIMIT,
+  CATEGORY_MAX_PRODUCTS_LIMIT,
+  CATEGORY_MIN_PRODUCTS_LIMIT,
+  CategoryDomainService,
+} from "../../domain/services/CategoryDomainService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -101,8 +107,9 @@ export function CategoryFormDialog({
   const [timeStart, setTimeStart] = useState("14:00");
   const [timeEnd, setTimeEnd] = useState("18:00");
 
-  // Status de ativação
+  // Status de ativação e limite máximo de itens (1..20)
   const [isActive, setIsActive] = useState(true);
+  const [maxProducts, setMaxProducts] = useState<string>(String(CATEGORY_DEFAULT_PRODUCTS_LIMIT));
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -115,6 +122,7 @@ export function CategoryFormDialog({
         setDescription(categoryToEdit.description || "");
         setImageUrl(categoryToEdit.imageUrl || "");
         setIsActive(categoryToEdit.isActive ?? true);
+        setMaxProducts(String(categoryToEdit.maxProducts ?? CATEGORY_DEFAULT_PRODUCTS_LIMIT));
         setIsDynamic(Boolean(categoryToEdit.isDynamic));
         setDynamicType(categoryToEdit.dynamicType || "HIGHLIGHTS");
         setTimeStart(categoryToEdit.timeStart || "14:00");
@@ -124,6 +132,7 @@ export function CategoryFormDialog({
         setDescription("");
         setImageUrl("");
         setIsActive(true);
+        setMaxProducts(String(CATEGORY_DEFAULT_PRODUCTS_LIMIT));
         setIsDynamic(false);
         setDynamicType("HIGHLIGHTS");
         setTimeStart("14:00");
@@ -197,6 +206,12 @@ export function CategoryFormDialog({
       return;
     }
 
+    const parsedLimit = CategoryDomainService.parseAndValidateMaxProducts(maxProducts);
+    if (!parsedLimit.valid) {
+      setError(parsedLimit.error);
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -211,6 +226,7 @@ export function CategoryFormDialog({
         description: description.trim().slice(0, 100) || null,
         imageUrl: finalImageUrl,
         isActive,
+        maxProducts: parsedLimit.value,
         isDynamic,
         dynamicType: isDynamic ? dynamicType : null,
         timeStart: isDynamic && dynamicType === "TIME_BASED" ? timeStart : null,
@@ -537,7 +553,53 @@ export function CategoryFormDialog({
               </div>
             </div>
 
-            {/* 5. SWITCH ATIVO / INATIVO */}
+            {/* 5. LIMITE MÁXIMO DE PRODUTOS POR CATEGORIA (OCULTO PARA O CLIENTE) */}
+            <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-card/50 border border-zinc-200/80 dark:border-border/30 space-y-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label htmlFor="cat-max-products" className="text-xs font-bold uppercase tracking-wider text-foreground block">
+                    Limite de Produtos na Categoria (Máx. {CATEGORY_MAX_PRODUCTS_LIMIT})
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {isDynamic
+                      ? "Define até quantos itens são exibidos nesta categoria dinâmica (máximo 20). Oculto ao cliente."
+                      : "Define quantos produtos podem entrar nesta categoria (máximo 20). Esse número não aparece ao cliente."}
+                  </p>
+                </div>
+                <Input
+                  id="cat-max-products"
+                  type="number"
+                  min={CATEGORY_MIN_PRODUCTS_LIMIT}
+                  max={CATEGORY_MAX_PRODUCTS_LIMIT}
+                  step={1}
+                  value={maxProducts}
+                  onChange={(e) => setMaxProducts(e.target.value)}
+                  className="w-20 h-9 text-center font-mono font-bold rounded-xl bg-white dark:bg-card border-gray-200 dark:border-border/50 shrink-0"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[4, 8, 12, 16, 20].map((preset) => {
+                  const isCurrent = Number(maxProducts) === preset;
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setMaxProducts(String(preset))}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer border ${
+                        isCurrent
+                          ? "bg-primary text-white border-primary shadow-2xs"
+                          : "bg-white dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:border-primary/40"
+                      }`}
+                    >
+                      {preset} {preset === 20 ? "(Máx.)" : "itens"}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 6. SWITCH ATIVO / INATIVO */}
             <div className="p-3 bg-zinc-50 dark:bg-card/50 rounded-2xl border border-zinc-200/80 dark:border-border/30 flex items-center justify-between">
               <div>
                 <Label htmlFor="cat-active" className="text-xs font-bold uppercase tracking-wider text-foreground block cursor-pointer">

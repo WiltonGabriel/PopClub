@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST as createCategory } from "@/app/api/categories/route";
+import { PUT as updateCategory } from "@/app/api/categories/[id]/route";
 import { PATCH as reorderCategories } from "@/app/api/categories/reorder/route";
+import { POST as createProduct } from "@/app/api/products/route";
 import { prisma } from "@/lib/prisma";
 import * as auth from "@/lib/auth";
 
@@ -180,6 +182,101 @@ describe("Categorias & Navegação", () => {
       expect(body.categories[0].order).toBe(0);
       expect(body.categories[1].id).toBe("cat-1");
       expect(body.categories[1].order).toBe(1);
+    });
+  });
+
+  describe("Limite Máximo de Produtos por Categoria (Máx. 20)", () => {
+    it("salva maxProducts válido (12) na criação e rejeita valores fora de 1..20 (400)", async () => {
+      vi.spyOn(prisma.category, "count").mockResolvedValue(5);
+      vi.spyOn(prisma.category, "findUnique").mockResolvedValue(null);
+      const createSpy = vi.spyOn(prisma.category, "create").mockResolvedValue({
+        id: "cat-lim",
+        name: "Sorvetes Limitados",
+        slug: "sorvetes-limitados",
+        maxProducts: 12,
+        isDynamic: false,
+        isActive: true,
+        _count: { products: 0 },
+      } as any);
+
+      const okRes = await createCategory(
+        new Request("http://localhost:3000/api/categories", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: "Sorvetes Limitados", maxProducts: 12 }),
+        })
+      );
+      expect(okRes.status).toBe(201);
+      expect(createSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ maxProducts: 12 }),
+        })
+      );
+
+      const aboveRes = await createCategory(
+        new Request("http://localhost:3000/api/categories", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: "Estourada", maxProducts: 25 }),
+        })
+      );
+      expect(aboveRes.status).toBe(400);
+
+      const zeroRes = await createCategory(
+        new Request("http://localhost:3000/api/categories", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: "Zerada", maxProducts: 0 }),
+        })
+      );
+      expect(zeroRes.status).toBe(400);
+    });
+
+    it("PUT /api/categories/[id] rejeita redução de maxProducts abaixo da quantidade já vinculada (400)", async () => {
+      vi.spyOn(prisma.category, "findUnique").mockResolvedValue({
+        id: "cat-1",
+        isDynamic: false,
+      } as any);
+      vi.spyOn(prisma.product, "count").mockResolvedValue(8);
+
+      const res = await updateCategory(
+        new Request("http://localhost:3000/api/categories/cat-1", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ maxProducts: 5 }),
+        }),
+        { params: Promise.resolve({ id: "cat-1" }) }
+      );
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toContain("8 produto(s)");
+    });
+
+    it("POST /api/products bloqueia cadastro quando a categoria manual atingiu seu limite maxProducts", async () => {
+      vi.spyOn(prisma.product, "count")
+        .mockResolvedValueOnce(10) // total ativo na loja (< 300)
+        .mockResolvedValueOnce(4); // produtos nesta categoria (já bateu 4)
+      vi.spyOn(prisma.category, "findUnique").mockResolvedValue({
+        id: "cat-cheia",
+        name: "Edição Limitada",
+        isDynamic: false,
+        maxProducts: 4,
+      } as any);
+
+      const res = await createProduct(
+        new Request("http://localhost:3000/api/products", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: "Item Excedente",
+            price: 19.9,
+            categoryId: "cat-cheia",
+          }),
+        })
+      );
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toContain("atingiu o limite máximo de 4");
     });
   });
 });

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getAuthUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { CategoryDomainService } from "@/domain/services/CategoryDomainService";
 
 function slugify(text: string): string {
   const base = text
@@ -40,6 +41,7 @@ async function updateCategoryHandler(
       timeStart,
       timeEnd,
       isActive,
+      maxProducts,
     } = body;
 
     const dataToUpdate: Prisma.CategoryUpdateInput = {};
@@ -96,6 +98,35 @@ async function updateCategoryHandler(
     }
     if (isActive !== undefined) {
       dataToUpdate.isActive = Boolean(isActive);
+    }
+    if (maxProducts !== undefined) {
+      const parsedLimit = CategoryDomainService.parseAndValidateMaxProducts(maxProducts);
+      if (!parsedLimit.valid) {
+        return NextResponse.json({ error: parsedLimit.error }, { status: 400 });
+      }
+      const currentCategory = await prisma.category.findUnique({
+        where: { id },
+        select: { id: true, isDynamic: true },
+      });
+      if (!currentCategory) {
+        return NextResponse.json({ error: "Categoria não encontrada." }, { status: 404 });
+      }
+      const effectiveIsDynamic =
+        isDynamic !== undefined ? Boolean(isDynamic) : Boolean(currentCategory.isDynamic);
+      if (!effectiveIsDynamic) {
+        const activeLinkedCount = await prisma.product.count({
+          where: { categoryId: id, deletedAt: null },
+        });
+        if (activeLinkedCount > parsedLimit.value) {
+          return NextResponse.json(
+            {
+              error: `Esta categoria já possui ${activeLinkedCount} produto(s) vinculado(s). Remova ou mova produtos antes de reduzir o limite para ${parsedLimit.value}.`,
+            },
+            { status: 400 }
+          );
+        }
+      }
+      dataToUpdate.maxProducts = parsedLimit.value;
     }
 
     const updated = await prisma.$transaction(async (tx) => {

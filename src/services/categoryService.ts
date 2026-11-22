@@ -7,6 +7,7 @@ export interface Category {
   order?: number;
   order_index?: number;
   isActive?: boolean;
+  maxProducts?: number;
   isDynamic?: boolean;
   dynamicType?: string | null; // 'HIGHLIGHTS' | 'ACTIVE_PROMOTIONS' | 'COMBOS' | 'SHAREABLE' | 'TIME_BASED'
   timeStart?: string | null;   // "14:00"
@@ -41,6 +42,7 @@ export const categoryService = {
     return list.map((cat: Category) => ({
       ...cat,
       order: cat.order ?? cat.order_index ?? 0,
+      maxProducts: cat.maxProducts ?? 20,
       productCount: cat._count?.products ?? cat.productCount ?? 0,
     }));
   },
@@ -83,6 +85,7 @@ export const categoryService = {
     return {
       ...result,
       order: result.order ?? result.order_index ?? 0,
+      maxProducts: result.maxProducts ?? 20,
       productCount: result._count?.products ?? result.productCount ?? 0,
     };
   },
@@ -99,6 +102,7 @@ export const categoryService = {
     return {
       ...result,
       order: result.order ?? result.order_index ?? 0,
+      maxProducts: result.maxProducts ?? 20,
       productCount: result._count?.products ?? result.productCount ?? 0,
     };
   },
@@ -129,6 +133,7 @@ export const categoryService = {
     return list.map((cat: Category) => ({
       ...cat,
       order: cat.order ?? cat.order_index ?? 0,
+      maxProducts: cat.maxProducts ?? 20,
       productCount: cat._count?.products ?? cat.productCount ?? 0,
     }));
   },
@@ -143,6 +148,7 @@ export const categoryService = {
     return {
       ...result,
       order: result.order ?? result.order_index ?? 0,
+      maxProducts: result.maxProducts ?? 20,
       productCount: result._count?.products ?? result.productCount ?? 0,
     };
   },

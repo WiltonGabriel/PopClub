@@ -7,6 +7,7 @@ import { resolveOrderedAddonGroupIds } from "@/lib/addonPersistenceHelper";
 import { hasPermission } from "@/lib/permissions";
 import { deleteOrSoftDeleteProduct } from "@/services/productDeletionService";
 import { reconcileProductEditImpacts } from "@/services/productDependencyService";
+import { CategoryDomainService } from "@/domain/services/CategoryDomainService";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -124,6 +125,7 @@ export async function PUT(
     if (isHighlight !== undefined) {
       dataToUpdate.isHighlight = Boolean(isHighlight);
     }
+    let targetCategoryMeta: { id: string; name: string; isDynamic: boolean; maxProducts: number } | null = null;
     if (categoryId !== undefined) {
       dataToUpdate.categoryId = categoryId || null;
       if (!categoryId && category === undefined) {
@@ -131,11 +133,12 @@ export async function PUT(
       } else if (categoryId) {
         const targetCategory = await prisma.category.findUnique({
           where: { id: categoryId },
-          select: { id: true, name: true },
+          select: { id: true, name: true, isDynamic: true, maxProducts: true },
         });
         if (!targetCategory) {
           return NextResponse.json({ error: "A categoria selecionada não foi encontrada." }, { status: 400 });
         }
+        targetCategoryMeta = targetCategory;
         dataToUpdate.category = targetCategory.name;
       }
     }
@@ -185,6 +188,7 @@ export async function PUT(
         id: true,
         name: true,
         price: true,
+        categoryId: true,
         isCombo: true,
         isAvailable: true,
         stock: true,
@@ -198,6 +202,31 @@ export async function PUT(
         { error: "Produto não encontrado." },
         { status: 404, headers: NO_CACHE_HEADERS }
       );
+    }
+
+    if (
+      targetCategoryMeta &&
+      !targetCategoryMeta.isDynamic &&
+      targetCategoryMeta.id !== existing.categoryId
+    ) {
+      const currentActiveCount = await prisma.product.count({
+        where: { categoryId: targetCategoryMeta.id, deletedAt: null },
+      });
+      const maxCap = targetCategoryMeta.maxProducts ?? 20;
+      if (
+        !CategoryDomainService.canAssignProductToCategory({
+          currentActiveCount,
+          maxProducts: maxCap,
+          isSameCategory: false,
+        })
+      ) {
+        return NextResponse.json(
+          {
+            error: `A categoria "${targetCategoryMeta.name}" atingiu o limite máximo de ${maxCap} produto(s).`,
+          },
+          { status: 400 }
+        );
+      }
     }
 
     const resultingIsCombo = isCombo !== undefined ? Boolean(isCombo) : Boolean(existing.isCombo);

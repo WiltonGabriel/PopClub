@@ -417,10 +417,10 @@ export function CategoryManagement() {
                     {/* CONTADOR DE PRODUTOS */}
                     <div className="text-left sm:text-right">
                       <span className="text-xs font-bold text-foreground block font-mono">
-                        {productCount} {productCount === 1 ? "item" : "itens"}
+                        {productCount} / {cat.maxProducts ?? 20} {productCount === 1 ? "item" : "itens"}
                       </span>
                       <span className="text-[10px] text-muted-foreground block">
-                        {cat.isDynamic ? "filtrados por regra" : "vinculados"}
+                        {cat.isDynamic ? "teto da seção" : "limite da categoria"}
                       </span>
                     </div>
 

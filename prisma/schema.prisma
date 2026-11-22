@@ -136,6 +136,7 @@ model Category {
   imageUrl    String?   @map("image_url")
   order       Int       @default(0)
   isActive    Boolean   @default(true) @map("is_active")
+  maxProducts Int       @default(20) @map("max_products")
   isDynamic   Boolean   @default(false) @map("is_dynamic")
   dynamicType String?   @map("dynamic_type")
   timeStart   String?   @map("time_start")
