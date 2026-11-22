@@ -263,6 +263,7 @@ describe("Cancelamento com Estorno, PIN de Entrega e Fechamento de Turno", () =>
         id: "order-ready-1",
         status: "delivering",
       } as any);
+      vi.spyOn(prisma.courier, "findMany").mockResolvedValue([]);
 
       const req = new Request("http://localhost:3000/api/delivery/token-start-1/start", {
         method: "POST",

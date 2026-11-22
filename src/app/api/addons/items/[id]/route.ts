@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { addonCrudLimiter, getIpFromRequest } from "@/lib/rateLimit";
-import { deleteAddonImageFile } from "@/lib/addonStorage";
+import { deleteAddonImageIfUnused } from "@/lib/addonStorage";
 import { hasPermission } from "@/lib/permissions";
 
 export async function PUT(
@@ -34,7 +34,7 @@ export async function PUT(
       return NextResponse.json({ error: "Item de complemento não encontrado." }, { status: 404 });
     }
 
-    const { groupId, name, price, imageUrl, isAvailable, sortOrder } = body || {};
+    const { groupId, catalogKey, name, price, imageUrl, isAvailable, sortOrder } = body || {};
 
     const dataToUpdate: Record<string, unknown> = {};
     if (groupId !== undefined) {
@@ -53,17 +53,20 @@ export async function PUT(
         dataToUpdate.groupId = targetGroupId;
       }
     }
+    if (catalogKey !== undefined) {
+      dataToUpdate.catalogKey =
+        typeof catalogKey === "string" && catalogKey.trim()
+          ? catalogKey.trim().slice(0, 120)
+          : null;
+    }
     if (name !== undefined) dataToUpdate.name = String(name).trim();
     if (price !== undefined) dataToUpdate.price = Math.max(0, parseFloat(String(price)) || 0);
     if (isAvailable !== undefined) dataToUpdate.isAvailable = Boolean(isAvailable);
     if (sortOrder !== undefined) dataToUpdate.sortOrder = parseInt(String(sortOrder), 10) || 0;
 
+    let cleanImg: string | null | undefined;
     if (imageUrl !== undefined) {
-      const cleanImg = imageUrl ? String(imageUrl).trim() : null;
-      // Se a imagem mudou, exclui o arquivo anterior
-      if (existing.imageUrl && existing.imageUrl !== cleanImg) {
-        await deleteAddonImageFile(existing.imageUrl);
-      }
+      cleanImg = imageUrl ? String(imageUrl).trim() : null;
       dataToUpdate.imageUrl = cleanImg;
     }
 
@@ -71,6 +74,14 @@ export async function PUT(
       where: { id },
       data: dataToUpdate,
     });
+
+    if (
+      cleanImg !== undefined &&
+      existing.imageUrl &&
+      existing.imageUrl !== cleanImg
+    ) {
+      await deleteAddonImageIfUnused(prisma, existing.imageUrl);
+    }
 
     return NextResponse.json({
       ...updated,
@@ -107,12 +118,12 @@ export async function DELETE(
       return NextResponse.json({ error: "Item de complemento não encontrado." }, { status: 404 });
     }
 
-    // Exclui a imagem física associada
-    if (existing.imageUrl) {
-      await deleteAddonImageFile(existing.imageUrl);
-    }
-
     await prisma.addonItem.delete({ where: { id } });
+
+    // Exclui a imagem física somente se não houver outro item usando o mesmo arquivo
+    if (existing.imageUrl) {
+      await deleteAddonImageIfUnused(prisma, existing.imageUrl);
+    }
 
     return NextResponse.json({ success: true, message: "Item de complemento removido com sucesso." });
   } catch (error: unknown) {

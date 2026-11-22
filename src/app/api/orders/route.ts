@@ -9,6 +9,10 @@ import { formatOrder } from "@/lib/orderFormat";
 import { orderLookupLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
 import { serverOrderEventManager } from "@/lib/serverOrderEvents";
 import { restoreOrderInventoryAndCoupons } from "@/services/orderRefundService";
+import {
+  markCourierInTransitForOrder,
+  releaseCourierIfNoActiveDeliveries,
+} from "@/services/courierStatusAutomationService";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -452,6 +456,28 @@ export async function PATCH(request: Request) {
         user: { select: { fullName: true, username: true, email: true, phone: true } },
       },
     });
+
+    if (updated?.status === "delivering") {
+      await markCourierInTransitForOrder({
+        courierId: updated.courierId,
+        courierPhone: updated.courierPhone,
+        courierName: updated.courierName,
+      });
+    } else if (
+      updated &&
+      (updated.status === "completed" ||
+        updated.status === "cancelled" ||
+        existingOrder.status === "delivering")
+    ) {
+      await releaseCourierIfNoActiveDeliveries(
+        {
+          courierId: updated.courierId,
+          courierPhone: updated.courierPhone,
+          courierName: updated.courierName,
+        },
+        updated.id
+      );
+    }
 
     const formatted = formatOrder(updated!);
 

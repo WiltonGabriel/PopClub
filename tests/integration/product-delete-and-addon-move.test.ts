@@ -1,9 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import fs from "fs/promises";
 import { prisma } from "@/lib/prisma";
 import * as authLib from "@/lib/auth";
 import { addonCrudLimiter } from "@/lib/rateLimit";
+import { deleteAddonImageIfUnused } from "@/lib/addonStorage";
 import { GET as getProduct, DELETE as deleteProduct } from "@/app/api/products/[id]/route";
-import { PUT as updateAddonItem } from "@/app/api/addons/items/[id]/route";
+import {
+  PUT as updateAddonItem,
+  DELETE as deleteAddonItem,
+} from "@/app/api/addons/items/[id]/route";
 
 describe("Integração: Exclusão Segura de Produtos e Movimentação de Complementos", () => {
   beforeEach(() => {
@@ -285,6 +290,66 @@ describe("Integração: Exclusão Segura de Produtos e Movimentação de Complem
       });
       const body = await res.json();
       expect(body.groupId).toBe("grp-2");
+    });
+  });
+
+  describe("Proteção de Imagem Compartilhada (deleteAddonImageIfUnused & DELETE /api/addons/items/[id])", () => {
+    it("não remove o arquivo do disco enquanto outro item referenciar o mesmo imageUrl", async () => {
+      const unlinkSpy = vi.spyOn(fs, "unlink").mockResolvedValue(undefined);
+
+      const dbStillShared = {
+        addonItem: {
+          count: vi.fn().mockResolvedValue(1),
+        },
+      };
+      const deletedShared = await deleteAddonImageIfUnused(
+        dbStillShared as any,
+        "/uploads/addons/morango.webp"
+      );
+      expect(deletedShared).toBe(false);
+      expect(unlinkSpy).not.toHaveBeenCalled();
+
+      const dbOrphan = {
+        addonItem: {
+          count: vi.fn().mockResolvedValue(0),
+        },
+      };
+      const deletedOrphan = await deleteAddonImageIfUnused(
+        dbOrphan as any,
+        "/uploads/addons/morango.webp"
+      );
+      expect(deletedOrphan).toBe(true);
+      expect(unlinkSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("DELETE /api/addons/items/[id] exclui registro antes de checar referências e preserva arquivo compartilhado", async () => {
+      vi.spyOn(authLib, "getAuthUser").mockResolvedValue({
+        id: "admin-1",
+        role: "admin",
+        permissions: ["menu_manage"],
+      } as any);
+      vi.spyOn(prisma.addonItem, "findUnique").mockResolvedValue({
+        id: "item-shared-1",
+        groupId: "grp-1",
+        imageUrl: "/uploads/addons/kiwi.webp",
+      } as any);
+      vi.spyOn(prisma.addonItem, "delete").mockResolvedValue({
+        id: "item-shared-1",
+      } as any);
+      const countSpy = vi.spyOn(prisma.addonItem, "count").mockResolvedValue(1);
+      const unlinkSpy = vi.spyOn(fs, "unlink").mockResolvedValue(undefined);
+
+      const res = await deleteAddonItem(
+        new Request("http://localhost:3000/api/addons/items/item-shared-1", {
+          method: "DELETE",
+        }),
+        { params: Promise.resolve({ id: "item-shared-1" }) }
+      );
+      expect(res.status).toBe(200);
+      expect(countSpy).toHaveBeenCalledWith({
+        where: { imageUrl: "/uploads/addons/kiwi.webp" },
+      });
+      expect(unlinkSpy).not.toHaveBeenCalled();
     });
   });
 });

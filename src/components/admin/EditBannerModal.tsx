@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Loader2, Sparkles, Check, Upload, Trash2 } from "lucide-react";
+import { Loader2, Sparkles, Check, Upload, Trash2, Crop } from "lucide-react";
 import { bannerService, HighlightBannerData } from "../../services/bannerService";
 import { useToast } from "../ui/ToastNotification";
 import { ImageCropperDialog } from "./ImageCropperDialog";
@@ -43,14 +43,14 @@ export function EditBannerModal({
   const isImageIcon = isBannerIconImageUrl(icon);
 
   const revokeCropperSrc = (srcToRevoke: string | null) => {
-    if (srcToRevoke) {
+    if (srcToRevoke && srcToRevoke.startsWith("blob:")) {
       URL.revokeObjectURL(srcToRevoke);
     }
   };
 
   useEffect(() => {
     return () => {
-      if (cropperSrc) {
+      if (cropperSrc && cropperSrc.startsWith("blob:")) {
         URL.revokeObjectURL(cropperSrc);
       }
     };
@@ -225,6 +225,17 @@ export function EditBannerModal({
                   >
                     <Upload className="w-3.5 h-3.5 mr-1" />
                     Trocar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={uploadingImage}
+                    onClick={() => setCropperSrc(icon)}
+                    title="Editar ou recortar imagem atual"
+                    className="h-11 px-2.5 rounded-xl text-primary hover:bg-primary/10 cursor-pointer"
+                  >
+                    <Crop className="w-4 h-4" />
                   </Button>
                   <Button
                     type="button"

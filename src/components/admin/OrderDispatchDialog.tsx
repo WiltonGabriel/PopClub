@@ -12,9 +12,42 @@ import {
   Navigation,
   MapPin,
   ExternalLink,
+  AlertTriangle,
 } from "lucide-react";
 import { Order, orderService } from "../../services/orderService";
-import { courierService, Courier } from "../../services/courierService";
+import { courierService, Courier, CourierStatus } from "../../services/courierService";
+
+const COURIER_STATUS_PRIORITY: Record<CourierStatus, number> = {
+  available: 0,
+  in_transit: 1,
+  off_duty: 2,
+  unavailable: 3,
+};
+
+function getCourierBadgeMeta(status: CourierStatus): { label: string; className: string } {
+  switch (status) {
+    case "available":
+      return {
+        label: "Disponível",
+        className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+      };
+    case "in_transit":
+      return {
+        label: "Em Rota",
+        className: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30",
+      };
+    case "off_duty":
+      return {
+        label: "Folga",
+        className: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
+      };
+    case "unavailable":
+      return {
+        label: "Indisponível",
+        className: "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30",
+      };
+  }
+}
 import { Button } from "../ui/button";
 import { useToast } from "../ui/ToastNotification";
 
@@ -58,9 +91,15 @@ export function OrderDispatchDialog({
       courierService
         .getCouriers()
         .then((data) => {
-          setCouriers(data);
-          if (order && !order.courier_name && data.length > 0) {
-            const firstAvail = data.find((c) => c.status === "available") || data[0];
+          const sorted = [...data].sort((a, b) => {
+            const pa = COURIER_STATUS_PRIORITY[a.status] ?? 99;
+            const pb = COURIER_STATUS_PRIORITY[b.status] ?? 99;
+            if (pa !== pb) return pa - pb;
+            return a.name.localeCompare(b.name, "pt-BR");
+          });
+          setCouriers(sorted);
+          if (order && !order.courier_name && sorted.length > 0) {
+            const firstAvail = sorted.find((c) => c.status === "available") || sorted[0];
             setSelectedCourierId(firstAvail.id);
             setCourierName(firstAvail.name);
             setCourierPhone(firstAvail.phone);
@@ -228,8 +267,15 @@ export function OrderDispatchDialog({
     if (!canDispatch) return;
     setLoading(true);
     try {
+      const resolvedCourierId =
+        selectedCourierId &&
+        selectedCourierId !== "balcao" &&
+        selectedCourierId !== "manual"
+          ? selectedCourierId
+          : undefined;
       const res = await orderService.dispatchOrder(order.id, {
         enableGps,
+        courierId: resolvedCourierId,
         courierName: courierName.trim(),
         courierPhone: courierPhone.trim(),
         courierCode: courierCode.trim() || undefined,
@@ -404,9 +450,10 @@ export function OrderDispatchDialog({
                   <span>Carregando entregadores da base...</span>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto pr-1">
+                <div className="grid grid-cols-2 gap-1.5 max-h-44 overflow-y-auto pr-1">
                   {couriers.map((courier) => {
                     const isSelected = selectedCourierId === courier.id;
+                    const badgeMeta = getCourierBadgeMeta(courier.status);
                     return (
                       <button
                         key={courier.id}
@@ -418,8 +465,15 @@ export function OrderDispatchDialog({
                             : "bg-background border-border/70 text-foreground hover:bg-muted"
                         }`}
                       >
-                        <div className="truncate font-bold">{courier.name}</div>
-                        <div className="text-[10px] opacity-75 font-mono truncate">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="truncate font-bold">{courier.name}</span>
+                          <span
+                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${badgeMeta.className}`}
+                          >
+                            {badgeMeta.label}
+                          </span>
+                        </div>
+                        <div className="text-[10px] opacity-75 font-mono truncate mt-0.5">
                           {courier.vehicle || "Moto"} {courier.plate ? `• ${courier.plate}` : ""}
                         </div>
                       </button>
@@ -440,6 +494,29 @@ export function OrderDispatchDialog({
                   </button>
                 </div>
               )}
+
+              {(() => {
+                const chosenCourier = couriers.find((c) => c.id === selectedCourierId);
+                if (!chosenCourier || (chosenCourier.status !== "off_duty" && chosenCourier.status !== "unavailable")) {
+                  return null;
+                }
+                const isUnavailable = chosenCourier.status === "unavailable";
+                return (
+                  <div
+                    className={`flex items-start gap-2 rounded-xl border px-3 py-2 text-[11px] leading-snug ${
+                      isUnavailable
+                        ? "bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300"
+                        : "bg-amber-500/10 border-amber-500/30 text-amber-800 dark:text-amber-300"
+                    }`}
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>{chosenCourier.name}</strong> está marcado como{" "}
+                      <strong>{isUnavailable ? "Indisponível" : "Folga"}</strong> no momento. Você ainda pode confirmar o despacho se precisar.
+                    </span>
+                  </div>
+                );
+              })()}
 
               {/* Campos do Entregador Selecionado */}
               <div className="pt-1.5 space-y-2">

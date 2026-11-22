@@ -32,7 +32,7 @@ export async function PATCH(
 
     const parsed = courierStatusSchema.safeParse(rawBody);
     if (!parsed.success) {
-      return apiError("Status inválido. Use 'available', 'in_transit' ou 'off_duty'.", 400);
+      return apiError("Status inválido. Use 'available', 'in_transit', 'off_duty' ou 'unavailable'.", 400);
     }
 
     const updated = await prisma.courier.update({

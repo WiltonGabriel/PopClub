@@ -39,6 +39,7 @@ export async function GET() {
       items: g.items.map((i) => ({
         id: i.id,
         groupId: i.groupId,
+        catalogKey: i.catalogKey ?? null,
         name: i.name,
         price: Number(i.price),
         imageUrl: i.imageUrl,

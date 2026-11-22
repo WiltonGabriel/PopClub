@@ -53,6 +53,7 @@ export async function persistAddonDraftDiff(
   for (const entry of diff.itemsToUpdate) {
     await addonService.updateItem(entry.id, {
       groupId: resolveGroupId(entry.groupId),
+      catalogKey: entry.catalogKey ?? null,
       name: entry.name,
       price: entry.price,
       imageUrl: entry.imageUrl,

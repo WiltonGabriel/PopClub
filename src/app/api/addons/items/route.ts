@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Corpo da requisição inválido." }, { status: 400 });
     }
 
-    const { groupId, name, price, imageUrl, isAvailable, sortOrder } = body || {};
+    const { groupId, catalogKey, name, price, imageUrl, isAvailable, sortOrder } = body || {};
 
     if (!groupId || typeof groupId !== "string") {
       return NextResponse.json({ error: "ID do grupo é obrigatório." }, { status: 400 });
@@ -39,10 +39,15 @@ export async function POST(request: Request) {
     }
 
     const parsedPrice = Math.max(0, parseFloat(String(price ?? 0)) || 0);
+    const normalizedCatalogKey =
+      typeof catalogKey === "string" && catalogKey.trim()
+        ? catalogKey.trim().slice(0, 120)
+        : null;
 
     const item = await prisma.addonItem.create({
       data: {
         groupId,
+        catalogKey: normalizedCatalogKey,
         name: name.trim(),
         price: parsedPrice,
         imageUrl: typeof imageUrl === "string" ? imageUrl.trim() : null,

@@ -21,6 +21,9 @@ import {
   GripVertical,
   Save,
   RotateCcw,
+  CopyPlus,
+  Crop,
+  Link2,
 } from "lucide-react";
 import {
   addonService,
@@ -42,7 +45,9 @@ import {
   deleteItemInDraft,
   extractProductAddonGroupIds,
   moveItemInDraft,
+  reuseItemsIntoGroupInDraft,
   setProductAddonGroupsInDraft,
+  syncSharedItemFieldsInDraft,
   toggleItemAvailabilityInDraft,
   toggleProductAddonGroupInDraft,
   upsertGroupInDraft,
@@ -60,6 +65,10 @@ import {
   isFixableAddonAuditIssue,
 } from "./addons/AddonAuditReviewModal";
 import { ProductAddonLinksTab } from "./addons/ProductAddonLinksTab";
+import {
+  ReuseAddonItemModal,
+  ReuseAddonSelection,
+} from "./addons/ReuseAddonItemModal";
 
 const DRAG_ITEM_MIME = "application/x-popshake-addon-item";
 
@@ -114,24 +123,57 @@ export function AddonsManagement() {
     imageUrl: "",
   });
 
+  // Modal de reutilização de complementos e sincronia opt-in
+  const [reuseTargetGroup, setReuseTargetGroup] = useState<AddonGroup | null>(null);
+  const [syncSharedGroups, setSyncSharedGroups] = useState(false);
+
   // Recorte + Upload WebP de miniatura
   const [cropperSrc, setCropperSrc] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const revokeCropperSrc = useCallback((url: string | null) => {
-    if (url) {
+    if (url && url.startsWith("blob:")) {
       URL.revokeObjectURL(url);
     }
   }, []);
 
   useEffect(() => {
     return () => {
-      if (cropperSrc) {
+      if (cropperSrc && cropperSrc.startsWith("blob:")) {
         URL.revokeObjectURL(cropperSrc);
       }
     };
   }, [cropperSrc]);
+
+  const catalogKeyGroupCounts = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const group of draft.groups) {
+      for (const item of group.items) {
+        const key = item.catalogKey?.trim();
+        if (!key) continue;
+        if (!map.has(key)) map.set(key, new Set<string>());
+        map.get(key)!.add(group.id);
+      }
+    }
+    const counts = new Map<string, number>();
+    for (const [key, groupIds] of map.entries()) {
+      counts.set(key, groupIds.size);
+    }
+    return counts;
+  }, [draft.groups]);
+
+  const editingLinkedOtherGroupsCount = useMemo(() => {
+    const key = editingItem?.catalogKey?.trim();
+    if (!key) return 0;
+    let count = 0;
+    for (const group of draft.groups) {
+      if (group.items.some((i) => i.catalogKey?.trim() === key && i.id !== editingItem?.id)) {
+        count += 1;
+      }
+    }
+    return count;
+  }, [draft.groups, editingItem]);
 
   const draftDiff = useMemo(
     () => computeAddonDraftDiff(initialDraft, draft),
@@ -397,6 +439,7 @@ export function AddonsManagement() {
   const handleOpenCreateItem = (groupId: string) => {
     setTargetGroupId(groupId);
     setEditingItem(null);
+    setSyncSharedGroups(false);
     setItemForm({
       name: "",
       price: "0.00",
@@ -408,12 +451,39 @@ export function AddonsManagement() {
   const handleOpenEditItem = (item: AddonItem) => {
     setTargetGroupId(item.groupId);
     setEditingItem(item);
+    setSyncSharedGroups(false);
     setItemForm({
       name: item.name,
       price: parseSafeNumber(item.price).toFixed(2),
       imageUrl: item.imageUrl || "",
     });
     setIsItemModalOpen(true);
+  };
+
+  const handleEditCurrentImage = () => {
+    if (!itemForm.imageUrl) return;
+    revokeCropperSrc(cropperSrc);
+    setCropperSrc(itemForm.imageUrl);
+  };
+
+  const handleConfirmReuseItems = (selections: ReuseAddonSelection[]) => {
+    if (!reuseTargetGroup) return;
+    const { state: nextDraft, createdItemIds } = reuseItemsIntoGroupInDraft(
+      draft,
+      reuseTargetGroup.id,
+      selections
+    );
+    setDraft(nextDraft);
+    setExpandedGroups((prev) => ({ ...prev, [reuseTargetGroup.id]: true }));
+    setReuseTargetGroup(null);
+
+    if (createdItemIds.length > 0) {
+      showToast({
+        type: "success",
+        title: "Complementos Reutilizados",
+        message: `${createdItemIds.length} opção(ões) adicionada(s) ao rascunho. Salve no topo ao concluir.`,
+      });
+    }
   };
 
   // Abre ImageCropperDialog antes de enviar miniatura para conversão automática WebP
@@ -443,7 +513,7 @@ export function AddonsManagement() {
       showToast({
         type: "success",
         title: "Miniatura Otimizada (WebP)",
-        message: "Imagem recortada e convertida para WebP 160x160 px. Salve no topo ao concluir.",
+        message: "Imagem ajustada e convertida para WebP leve. Salve no topo ao concluir.",
       });
     } catch (err: unknown) {
       showToast({
@@ -469,19 +539,35 @@ export function AddonsManagement() {
 
     const priceNum = Math.max(0, parseFloat(itemForm.price.replace(",", ".")) || 0);
 
-    const { state: nextDraft } = upsertItemInDraft(
+    const { state: afterUpsert } = upsertItemInDraft(
       draft,
       {
         name: itemForm.name.trim(),
         price: priceNum,
         imageUrl: itemForm.imageUrl || null,
         isAvailable: editingItem ? editingItem.isAvailable : true,
+        catalogKey: editingItem?.catalogKey ?? null,
       },
       targetGroupId,
       editingItem?.id
     );
 
-    setDraft(nextDraft);
+    const finalDraft =
+      syncSharedGroups &&
+      editingItem?.catalogKey &&
+      editingLinkedOtherGroupsCount > 0
+        ? syncSharedItemFieldsInDraft(
+            afterUpsert,
+            editingItem.catalogKey,
+            {
+              imageUrl: itemForm.imageUrl || null,
+              isAvailable: editingItem.isAvailable,
+            },
+            editingItem.id
+          )
+        : afterUpsert;
+
+    setDraft(finalDraft);
     setExpandedGroups((prev) => ({ ...prev, [targetGroupId]: true }));
     setIsItemModalOpen(false);
   };
@@ -847,7 +933,7 @@ export function AddonsManagement() {
                       </div>
 
                       {/* Ações do Grupo */}
-                      <div className="flex items-center gap-2 self-end md:self-center shrink-0">
+                      <div className="flex items-center gap-2 self-end md:self-center shrink-0 flex-wrap">
                         <Button
                           type="button"
                           size="sm"
@@ -858,6 +944,20 @@ export function AddonsManagement() {
                           <Plus className="w-3.5 h-3.5 mr-1 text-primary" />
                           Nova Opção
                         </Button>
+
+                        {draft.groups.length > 1 && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setReuseTargetGroup(group)}
+                            className="h-8 px-2.5 rounded-lg text-xs font-semibold border-indigo-200 dark:border-indigo-900/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 cursor-pointer"
+                            title="Importar/reutilizar complemento de outro grupo sem duplicar trabalho"
+                          >
+                            <CopyPlus className="w-3.5 h-3.5 mr-1" />
+                            Reutilizar Existente
+                          </Button>
+                        )}
 
                         <Button
                           type="button"
@@ -900,16 +1000,30 @@ export function AddonsManagement() {
                                 : "Nenhuma opção adicionada neste grupo."}
                             </p>
                             {!isGroupDropHighlight && (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleOpenCreateItem(group.id)}
-                                className="mt-2 h-8 text-xs rounded-lg cursor-pointer"
-                              >
-                                <Plus className="w-3.5 h-3.5 mr-1" />
-                                Adicionar Opção
-                              </Button>
+                              <div className="flex items-center justify-center gap-2 flex-wrap mt-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleOpenCreateItem(group.id)}
+                                  className="h-8 text-xs rounded-lg cursor-pointer"
+                                >
+                                  <Plus className="w-3.5 h-3.5 mr-1" />
+                                  Adicionar Opção
+                                </Button>
+                                {draft.groups.length > 1 && (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setReuseTargetGroup(group)}
+                                    className="h-8 text-xs rounded-lg cursor-pointer border-indigo-200 dark:border-indigo-900/50 text-indigo-700 dark:text-indigo-300"
+                                  >
+                                    <CopyPlus className="w-3.5 h-3.5 mr-1" />
+                                    Reutilizar Existente
+                                  </Button>
+                                )}
+                              </div>
                             )}
                           </div>
                         ) : (
@@ -975,9 +1089,21 @@ export function AddonsManagement() {
                                     </div>
 
                                     <div className="min-w-0">
-                                      <h5 className="font-heading font-bold text-xs text-zinc-900 dark:text-zinc-100 truncate">
-                                        {item.name}
-                                      </h5>
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <h5 className="font-heading font-bold text-xs text-zinc-900 dark:text-zinc-100 truncate">
+                                          {item.name}
+                                        </h5>
+                                        {item.catalogKey &&
+                                          (catalogKeyGroupCounts.get(item.catalogKey) || 0) >= 2 && (
+                                            <span
+                                              className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border border-indigo-500/20 shrink-0"
+                                              title="Compartilhado com outros grupos de complementos"
+                                            >
+                                              <Link2 className="w-2.5 h-2.5" />
+                                              {catalogKeyGroupCounts.get(item.catalogKey)} grupos
+                                            </span>
+                                          )}
+                                      </div>
                                       <p className="text-[11px] font-semibold text-primary dark:text-violet-400">
                                         {parseSafeNumber(item.price) === 0
                                           ? "Grátis / Incluso"
@@ -1193,6 +1319,22 @@ export function AddonsManagement() {
                 />
               </div>
 
+              {editingItem?.catalogKey && editingLinkedOtherGroupsCount > 0 && (
+                <label className="flex items-start gap-2.5 p-3 rounded-2xl border border-indigo-500/30 bg-indigo-500/5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={syncSharedGroups}
+                    onChange={(e) => setSyncSharedGroups(e.target.checked)}
+                    className="w-4 h-4 mt-0.5 accent-primary rounded cursor-pointer shrink-0"
+                  />
+                  <span className="text-xs text-foreground leading-snug">
+                    Sincronizar foto e disponibilidade nos outros{" "}
+                    <strong>{editingLinkedOtherGroupsCount} grupo(s) vinculados</strong>{" "}
+                    <span className="text-muted-foreground">(preços continuam independentes)</span>
+                  </span>
+                </label>
+              )}
+
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-zinc-800">
                 <Button
                   type="button"
@@ -1241,10 +1383,10 @@ export function AddonsManagement() {
             </div>
 
             <form onSubmit={handleSaveItem} className="space-y-4">
-              {/* Miniatura 160x160 WebP com Editor de Recorte + Upload Automático */}
+              {/* Miniatura com Editor Livre + Upload WebP Automático */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">
-                  Miniatura do Ingrediente (160x160 WebP)
+                  Miniatura do Ingrediente (Recomendação: 1:1 • ex.: 160×160 px)
                 </Label>
                 <div className="flex items-center gap-3">
                   <div className="w-20 h-20 rounded-2xl bg-zinc-900 dark:bg-[#0D1017] border-2 border-zinc-800 overflow-hidden relative flex items-center justify-center shrink-0">
@@ -1269,39 +1411,52 @@ export function AddonsManagement() {
                       className="hidden"
                       onChange={handleImageFileChange}
                     />
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploadingImage}
-                        className="flex-1 rounded-xl text-xs h-9 font-semibold border-zinc-200 dark:border-zinc-700 cursor-pointer"
+                        className="rounded-xl text-xs h-9 px-3 font-semibold border-zinc-200 dark:border-zinc-700 cursor-pointer"
                       >
                         <Upload className="w-3.5 h-3.5 mr-1 text-primary" />
                         {uploadingImage
                           ? "Processando..."
                           : itemForm.imageUrl
-                          ? "Trocar & Recortar"
-                          : "Enviar & Recortar"}
+                          ? "Trocar Foto"
+                          : "Enviar Foto"}
                       </Button>
                       {itemForm.imageUrl && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={uploadingImage}
-                          onClick={() => setItemForm((prev) => ({ ...prev, imageUrl: "" }))}
-                          title="Remover foto do complemento"
-                          className="rounded-xl text-xs h-9 px-3 font-semibold border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 mr-1" />
-                          Remover
-                        </Button>
+                        <>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={uploadingImage}
+                            onClick={handleEditCurrentImage}
+                            className="rounded-xl text-xs h-9 px-3 font-semibold border-primary/30 text-primary hover:bg-primary/10 cursor-pointer"
+                          >
+                            <Crop className="w-3.5 h-3.5 mr-1" />
+                            Editar / Recortar
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={uploadingImage}
+                            onClick={() => setItemForm((prev) => ({ ...prev, imageUrl: "" }))}
+                            title="Remover foto do complemento"
+                            className="rounded-xl text-xs h-9 px-3 font-semibold border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 mr-1" />
+                            Remover
+                          </Button>
+                        </>
                       )}
                     </div>
                     <p className="text-[10px] text-muted-foreground leading-tight">
-                      Ao enviar, você recorta/gira a imagem e ela é convertida automaticamente para WebP leve. Sem foto, o fundo fica escuro.
+                      Recomendação: 1:1 (ex.: 160×160 px). Ao enviar ou editar, você ajusta livremente em WebP leve. Sem foto, o fundo fica escuro.
                     </p>
                   </div>
                 </div>
@@ -1367,6 +1522,22 @@ export function AddonsManagement() {
                 </div>
               </div>
 
+              {editingItem?.catalogKey && editingLinkedOtherGroupsCount > 0 && (
+                <label className="flex items-start gap-2.5 p-3 rounded-2xl border border-indigo-500/30 bg-indigo-500/5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={syncSharedGroups}
+                    onChange={(e) => setSyncSharedGroups(e.target.checked)}
+                    className="w-4 h-4 mt-0.5 accent-primary rounded cursor-pointer shrink-0"
+                  />
+                  <span className="text-xs text-foreground leading-snug">
+                    Sincronizar foto e disponibilidade nos outros{" "}
+                    <strong>{editingLinkedOtherGroupsCount} grupo(s) vinculados</strong>{" "}
+                    <span className="text-muted-foreground">(preços continuam independentes)</span>
+                  </span>
+                </label>
+              )}
+
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-zinc-800">
                 <Button
                   type="button"
@@ -1391,15 +1562,23 @@ export function AddonsManagement() {
         </div>
       )}
 
-      {/* Editor/Recorte de Imagem WebP */}
+      {/* Editor/Recorte Livre de Imagem WebP */}
       <ImageCropperDialog
         open={Boolean(cropperSrc)}
         imageSrc={cropperSrc}
-        aspectRatio={1}
-        aspectLabel="1:1 (Miniatura 160x160 px)"
-        maxDimension={512}
+        aspectLabel="Recomendação: 1:1 (ex.: 160×160 px)"
+        maxDimension={320}
         onCropComplete={handleCropConfirm}
         onCancel={handleCropCancel}
+      />
+
+      {/* Modal de Reutilização de Complementos entre Grupos */}
+      <ReuseAddonItemModal
+        open={Boolean(reuseTargetGroup)}
+        targetGroup={reuseTargetGroup}
+        allGroups={draft.groups}
+        onClose={() => setReuseTargetGroup(null)}
+        onConfirm={handleConfirmReuseItems}
       />
 
       {/* Modal Transparente de Revisão de Auditoria */}

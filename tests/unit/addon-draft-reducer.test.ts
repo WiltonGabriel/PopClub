@@ -6,7 +6,9 @@ import {
   deleteGroupInDraft,
   deleteItemInDraft,
   moveItemInDraft,
+  reuseItemsIntoGroupInDraft,
   setProductAddonGroupsInDraft,
+  syncSharedItemFieldsInDraft,
   toggleItemAvailabilityInDraft,
   toggleProductAddonGroupInDraft,
   upsertGroupInDraft,
@@ -336,5 +338,83 @@ describe("addonDraftReducer & persistAddonDraftDiff", () => {
     expect(updateProductSpy).toHaveBeenCalledWith("prod-copo-400", {
       addonGroupIds: expect.arrayContaining(["grp-frutas", "real-group-uuid", "grp-talheres"]),
     });
+  });
+
+  it("reuseItemsIntoGroupInDraft compartilha catalogKey e foto sem apagar duplicados antigos e permite preço próprio", () => {
+    const baseGroups = makeBaseGroups();
+    // Grupo caldas já possui um item duplicado antigo sem catalogKey ("Morango Antigo") e receberá Banana reutilizada
+    baseGroups[1].items.push({
+      id: "item-morango-duplicado-antigo",
+      groupId: "grp-caldas",
+      name: "Morango Especial",
+      price: 5.0,
+      imageUrl: "/uploads/addons/antigo.webp",
+      isAvailable: true,
+      sortOrder: 1,
+    });
+
+    const initial = createInitialAddonDraft(baseGroups, makeProducts());
+    const { state: afterReuse, createdItemIds } = reuseItemsIntoGroupInDraft(
+      initial,
+      "grp-caldas",
+      [
+        { sourceItemId: "item-morango", price: 3.5 },
+        { sourceItemId: "item-leite-cond", price: 9.0 }, // já está em grp-caldas -> ignorado
+      ]
+    );
+
+    expect(createdItemIds).toHaveLength(1);
+    const caldasGroup = afterReuse.groups.find((g) => g.id === "grp-caldas")!;
+    const frutasGroup = afterReuse.groups.find((g) => g.id === "grp-frutas")!;
+
+    const origMorango = frutasGroup.items.find((i) => i.id === "item-morango")!;
+    const reusedMorango = caldasGroup.items.find((i) => i.id === createdItemIds[0])!;
+    const untouchedOldDup = caldasGroup.items.find(
+      (i) => i.id === "item-morango-duplicado-antigo"
+    );
+
+    expect(untouchedOldDup).toBeDefined();
+    expect(untouchedOldDup?.catalogKey).toBeNull();
+    expect(origMorango.catalogKey).toBeTruthy();
+    expect(reusedMorango.catalogKey).toBe(origMorango.catalogKey);
+    expect(reusedMorango.imageUrl).toBe("/uploads/morango.webp");
+    expect(reusedMorango.price).toBe(3.5);
+    expect(origMorango.price).toBe(0);
+
+    const diff = computeAddonDraftDiff(initial, afterReuse);
+    expect(diff.itemsToUpdate).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "item-morango",
+          catalogKey: origMorango.catalogKey,
+        }),
+      ])
+    );
+    expect(diff.itemsToCreate).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          tempId: createdItemIds[0],
+          input: expect.objectContaining({
+            groupId: "grp-caldas",
+            catalogKey: origMorango.catalogKey,
+            price: 3.5,
+          }),
+        }),
+      ])
+    );
+
+    // Sincronização opt-in atualiza foto e disponibilidade nos vinculados mantendo preços independentes
+    const synced = syncSharedItemFieldsInDraft(
+      afterReuse,
+      origMorango.catalogKey!,
+      { imageUrl: "/uploads/addons/morango-novo.webp", isAvailable: false },
+      origMorango.id
+    );
+    const syncedTarget = synced.groups
+      .find((g) => g.id === "grp-caldas")!
+      .items.find((i) => i.id === createdItemIds[0])!;
+    expect(syncedTarget.imageUrl).toBe("/uploads/addons/morango-novo.webp");
+    expect(syncedTarget.isAvailable).toBe(false);
+    expect(syncedTarget.price).toBe(3.5);
   });
 });

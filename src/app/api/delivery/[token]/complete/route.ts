@@ -3,6 +3,7 @@ import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
 import { getAuthUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { serverOrderEventManager } from "@/lib/serverOrderEvents";
+import { releaseCourierIfNoActiveDeliveries } from "@/services/courierStatusAutomationService";
 import {
   deliveryPinLimiter,
   getRateLimitKey,
@@ -35,7 +36,16 @@ export async function POST(
 
     const existingOrder = await prisma.order.findUnique({
       where: { trackingToken: token },
-      select: { id: true, status: true, orderPin: true, userId: true, paymentMethodType: true },
+      select: {
+        id: true,
+        status: true,
+        orderPin: true,
+        userId: true,
+        paymentMethodType: true,
+        courierId: true,
+        courierName: true,
+        courierPhone: true,
+      },
     });
 
     if (!existingOrder) {
@@ -120,6 +130,8 @@ export async function POST(
         message: "Este pedido já foi finalizado anteriormente.",
       });
     }
+
+    await releaseCourierIfNoActiveDeliveries(existingOrder, existingOrder.id);
 
     serverOrderEventManager.emit({
       type: "order_updated",

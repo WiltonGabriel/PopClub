@@ -53,11 +53,24 @@ export interface ShiftStatusResponse {
   currentShift: ShiftRecord | null;
   currentShiftSummary: ShiftSummary | null;
   shifts: ShiftRecord[];
+  totalShifts?: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
 }
 
 export const shiftService = {
-  async getShiftData(): Promise<ShiftStatusResponse> {
-    const res = await fetch("/api/shifts", {
+  async getShiftData(options?: { page?: number; limit?: number }): Promise<ShiftStatusResponse> {
+    const params = new URLSearchParams();
+    if (options?.page !== undefined) {
+      params.set("page", String(options.page));
+    }
+    if (options?.limit !== undefined) {
+      params.set("limit", String(options.limit));
+    }
+    const query = params.toString();
+    const url = query ? `/api/shifts?${query}` : "/api/shifts";
+    const res = await fetch(url, {
       headers: { "Content-Type": "application/json" },
       signal: AbortSignal.timeout(10000),
     });

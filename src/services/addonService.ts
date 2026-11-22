@@ -1,6 +1,7 @@
 export interface AddonItem {
   id: string;
   groupId: string;
+  catalogKey?: string | null;
   name: string;
   price: number;
   imageUrl?: string | null;
@@ -43,6 +44,7 @@ export interface CreateAddonGroupInput {
 
 export interface CreateAddonItemInput {
   groupId: string;
+  catalogKey?: string | null;
   name: string;
   price: number;
   imageUrl?: string | null;

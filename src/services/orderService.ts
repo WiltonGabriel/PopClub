@@ -349,7 +349,7 @@ export const orderService = {
 
   async dispatchOrder(
     orderId: string,
-    enableGpsOrOptions: boolean | { enableGps?: boolean; courierName?: string; courierPhone?: string; courierCode?: string; mode?: "assign" | "dispatch" }
+    enableGpsOrOptions: boolean | { enableGps?: boolean; courierId?: string; courierName?: string; courierPhone?: string; courierCode?: string; mode?: "assign" | "dispatch" }
   ): Promise<{ order: Order; trackingToken?: string | null; trackingUrl?: string | null }> {
     const payload = typeof enableGpsOrOptions === "boolean"
       ? { enableGps: enableGpsOrOptions }

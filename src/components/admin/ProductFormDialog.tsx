@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { productService, Product } from "../../services/productService";
 import { categoryService, Category } from "../../services/categoryService";
 import { badgeService, CardBadge } from "../../services/badgeService";
@@ -23,6 +23,9 @@ import {
   IceCream,
   ChevronDown,
   Users,
+  Save,
+  Crop,
+  AlertTriangle,
 } from "lucide-react";
 
 interface ProductFormDialogProps {
@@ -70,55 +73,147 @@ export function ProductFormDialog({
     return internalCategories.length > 0 ? internalCategories : categories;
   }, [internalCategories, categories]);
 
-  // Estados para o Modal de Recorte
+  // Estados para o Modal de Recorte Livre e rastreamento seguro de sessão de edição
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
+  const initializedKeyRef = useRef<string | null>(null);
+  const [initialSnapshot, setInitialSnapshot] = useState<{
+    name: string;
+    description: string;
+    price: string;
+    servesText: string;
+    categoryId: string;
+    cardBadgeId: string;
+    addonGroupIds: string[];
+  } | null>(null);
 
+  // Inicializa o formulário SOMENTE quando o modal abre ou alterna para outro produto (nunca reseta file ao recarregar categorias)
   useEffect(() => {
-    if (open) {
-      setName(productToEdit?.name || "");
-      setDescription(productToEdit?.description || "");
-      setPrice(productToEdit?.price !== undefined ? productToEdit.price.toString() : "");
-      setServesText(productToEdit?.servesText || "");
+    if (!open) {
+      initializedKeyRef.current = null;
+      return;
+    }
 
-      const list = activeCategories.length > 0 ? activeCategories : categories;
-      const currentCatId = productToEdit?.category_id || productToEdit?.categoryId;
-      const currentCatName = productToEdit?.category;
-      const foundCategory = list.find((c) =>
-        (currentCatId && c.id === currentCatId) ||
-        (currentCatName && (c.name.toLowerCase() === currentCatName.toLowerCase() || c.id === currentCatName))
-      );
-      const targetId = foundCategory?.id || currentCatId || (list.length > 0 ? list[0].id : "");
-      setCategoryId(targetId);
+    const sessionKey = `${productToEdit?.id ?? "new"}`;
+    if (initializedKeyRef.current === sessionKey) {
+      return;
+    }
+    initializedKeyRef.current = sessionKey;
 
-      setCardBadgeId(productToEdit?.cardBadgeId || "none");
-      setSelectedAddonGroupIds(productToEdit?.addonGroupIds || []);
-      setFile(null);
-      setError("");
-      setRawImageSrc(null);
-      setCropModalOpen(false);
-      badgeService.getBadges().then(setBadges).catch(() => {});
+    const initName = productToEdit?.name || "";
+    const initDesc = productToEdit?.description || "";
+    const initPrice = productToEdit?.price !== undefined ? productToEdit.price.toString() : "";
+    const initServes = productToEdit?.servesText || "";
+    const list = activeCategories.length > 0 ? activeCategories : categories;
+    const currentCatId = productToEdit?.category_id || productToEdit?.categoryId;
+    const currentCatName = productToEdit?.category;
+    const foundCategory = list.find((c) =>
+      (currentCatId && c.id === currentCatId) ||
+      (currentCatName && (c.name.toLowerCase() === currentCatName.toLowerCase() || c.id === currentCatName))
+    );
+    const targetId = foundCategory?.id || currentCatId || (list.length > 0 ? list[0].id : "");
+    const initBadge = productToEdit?.cardBadgeId || "none";
+    const initAddonIds = productToEdit?.addonGroupIds || [];
 
-      addonService.getGroups().then((groups) => {
-        setAvailableAddonGroups(AddonOrganizationService.sortAddonGroups(groups.filter((g) => g.isActive)));
+    setName(initName);
+    setDescription(initDesc);
+    setPrice(initPrice);
+    setServesText(initServes);
+    setCategoryId(targetId);
+    setCardBadgeId(initBadge);
+    setSelectedAddonGroupIds(initAddonIds);
+    setFile(null);
+    setError("");
+    setRawImageSrc(null);
+    setCropModalOpen(false);
+
+    setInitialSnapshot({
+      name: initName,
+      description: initDesc,
+      price: initPrice,
+      servesText: initServes,
+      categoryId: targetId,
+      cardBadgeId: initBadge,
+      addonGroupIds: [...initAddonIds],
+    });
+
+    badgeService.getBadges().then(setBadges).catch(() => {});
+
+    addonService.getGroups().then((groups) => {
+      setAvailableAddonGroups(AddonOrganizationService.sortAddonGroups(groups.filter((g) => g.isActive)));
+    }).catch(() => {});
+
+    if (productToEdit?.id && (!productToEdit.addonGroupIds || productToEdit.addonGroupIds.length === 0)) {
+      productService.getProductById(productToEdit.id).then((p) => {
+        if (p.addonGroupIds && p.addonGroupIds.length > 0) {
+          setSelectedAddonGroupIds(p.addonGroupIds);
+          setInitialSnapshot((prev) =>
+            prev ? { ...prev, addonGroupIds: [...p.addonGroupIds!] } : prev
+          );
+        }
       }).catch(() => {});
-
-      if (productToEdit?.id && (!productToEdit.addonGroupIds || productToEdit.addonGroupIds.length === 0)) {
-        productService.getProductById(productToEdit.id).then((p) => {
-          if (p.addonGroupIds && p.addonGroupIds.length > 0) {
-            setSelectedAddonGroupIds(p.addonGroupIds);
-          }
-        }).catch(() => {});
-      }
     }
   }, [open, productToEdit, categories, activeCategories]);
 
-  const previewUrl = useMemo(() => {
-    if (file) {
-      return URL.createObjectURL(file);
+  // Se categorias carregarem depois da abertura e categoryId ainda estiver vazio, seleciona a primeira sem tocar no restante do estado
+  useEffect(() => {
+    if (!open || categoryId) return;
+    const list = activeCategories.length > 0 ? activeCategories : categories;
+    if (list.length > 0) {
+      setCategoryId(list[0].id);
+      setInitialSnapshot((prev) =>
+        prev && !prev.categoryId ? { ...prev, categoryId: list[0].id } : prev
+      );
     }
+  }, [open, categoryId, activeCategories, categories]);
+
+  // Gerencia ciclo de vida do ObjectURL da foto recortada
+  useEffect(() => {
+    if (!file) {
+      setFilePreviewUrl(null);
+      return;
+    }
+    const objUrl = URL.createObjectURL(file);
+    setFilePreviewUrl(objUrl);
+    return () => {
+      URL.revokeObjectURL(objUrl);
+    };
+  }, [file]);
+
+  const previewUrl = useMemo(() => {
+    if (filePreviewUrl) return filePreviewUrl;
     return productToEdit?.imageUrl || "";
-  }, [file, productToEdit?.imageUrl]);
+  }, [filePreviewUrl, productToEdit?.imageUrl]);
+
+  const hasUnsavedChanges = useMemo(() => {
+    if (!open) return false;
+    if (file) return true;
+    if (!initialSnapshot) return false;
+    const sameAddons =
+      initialSnapshot.addonGroupIds.length === selectedAddonGroupIds.length &&
+      initialSnapshot.addonGroupIds.every((id, i) => selectedAddonGroupIds[i] === id);
+    return (
+      name !== initialSnapshot.name ||
+      description !== initialSnapshot.description ||
+      price !== initialSnapshot.price ||
+      servesText !== initialSnapshot.servesText ||
+      categoryId !== initialSnapshot.categoryId ||
+      cardBadgeId !== initialSnapshot.cardBadgeId ||
+      !sameAddons
+    );
+  }, [
+    open,
+    file,
+    initialSnapshot,
+    name,
+    description,
+    price,
+    servesText,
+    categoryId,
+    cardBadgeId,
+    selectedAddonGroupIds,
+  ]);
 
   const selectedCategory = useMemo(() => {
     const list = activeCategories.length > 0 ? activeCategories : categories;
@@ -252,10 +347,68 @@ export function ProductFormDialog({
     }
   };
 
+  const handleOpenExistingCropper = () => {
+    if (!previewUrl) return;
+    setError("");
+    setRawImageSrc(previewUrl);
+    setCropModalOpen(true);
+  };
+
+  const handleRequestOpenChange = (nextOpen: boolean) => {
+    if (cropModalOpen) return;
+    if (!nextOpen && hasUnsavedChanges && !loading) {
+      const confirmed = window.confirm(
+        "Você tem alterações não salvas (como foto ou dados do produto). Deseja sair sem salvar?"
+      );
+      if (!confirmed) return;
+    }
+    onOpenChange(nextOpen);
+  };
+
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-full max-w-3xl sm:max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl p-0 bg-white dark:bg-[#1F0B22] border border-gray-200 dark:border-border/40 shadow-2xl text-foreground">
+      <Dialog open={open} onOpenChange={handleRequestOpenChange}>
+        <DialogContent className="w-full max-w-3xl sm:max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-3xl p-0 bg-white dark:bg-[#1F0B22] border border-gray-200 dark:border-border/40 shadow-2xl text-foreground">
+          {/* Barra Fixa Superior de Salvamento + Lembrete de Alterações */}
+          <div className="sticky top-0 z-20 px-5 sm:px-7 py-3 pr-12 border-b border-gray-200/80 dark:border-border/40 bg-white/95 dark:bg-[#1F0B22]/95 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            {hasUnsavedChanges ? (
+              <div className="flex items-center gap-2 text-xs text-amber-800 dark:text-amber-300 font-semibold min-w-0">
+                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                <span className="leading-snug">
+                  Alterações não salvas — lembre-se de clicar em <strong>Salvar</strong> para gravar a foto e os dados.
+                </span>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground leading-snug">
+                Edite os dados ou a foto abaixo e clique em <strong>{productToEdit ? "Salvar Alterações" : "Cadastrar Produto"}</strong> para gravar.
+              </p>
+            )}
+
+            <Button
+              type="submit"
+              form="product-editor-form"
+              size="sm"
+              disabled={loading}
+              className={`h-9 px-4 rounded-xl text-xs font-bold uppercase tracking-wider shrink-0 gap-1.5 shadow-sm cursor-pointer ${
+                hasUnsavedChanges
+                  ? "bg-gradient-to-r from-[#9306CF] to-[#940068] text-white shadow-primary/30"
+                  : "bg-primary hover:bg-primary/90 text-white"
+              }`}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Salvando...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-3.5 h-3.5" />
+                  <span>{productToEdit ? "Salvar Alterações" : "Salvar Produto"}</span>
+                </>
+              )}
+            </Button>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100 dark:divide-border/30">
             {/* Lado Esquerdo: Prévia em Tempo Real (Live Preview) */}
             <div className="p-6 sm:p-8 bg-gray-50/70 dark:bg-background/80 flex flex-col justify-between">
@@ -355,7 +508,7 @@ export function ProductFormDialog({
                 </p>
               </DialogHeader>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form id="product-editor-form" onSubmit={handleSubmit} className="space-y-4">
                 {/* Nome do Produto */}
                 <div className="space-y-1.5">
                   <Label htmlFor="name" className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
@@ -526,14 +679,14 @@ export function ProductFormDialog({
                   </Select>
                 </div>
 
-                {/* Foto do Produto com Recorte 1:1 */}
-                <div className="space-y-1.5">
-                  <div className="flex justify-between items-center">
+                {/* Foto do Produto com Editor Livre e Edição da Foto Atual */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center gap-2">
                     <Label htmlFor="image" className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
                       Foto do Produto
                     </Label>
-                    <span className="text-[10px] font-semibold text-primary dark:text-muted-foreground bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
-                      1:1 Quadrado • até 10MB
+                    <span className="text-[10px] font-medium text-muted-foreground">
+                      Recomendação: 1:1 Quadrado • até 10MB
                     </span>
                   </div>
 
@@ -543,10 +696,10 @@ export function ProductFormDialog({
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-foreground dark:text-foreground truncate">
-                        {file ? file.name : (productToEdit?.imageUrl ? "Foto atual mantida (clique para alterar)" : "Clique para escolher a foto")}
+                        {file ? file.name : (productToEdit?.imageUrl ? "Foto atual mantida (clique para trocar)" : "Clique para escolher a foto")}
                       </p>
                       <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                        JPEG, PNG ou WebP. Você poderá recortar em seguida.
+                        JPEG, PNG ou WebP • Conversão automática para WebP ao salvar.
                       </p>
                     </div>
                     <Input
@@ -557,6 +710,19 @@ export function ProductFormDialog({
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                     />
                   </div>
+
+                  {previewUrl && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleOpenExistingCropper}
+                      className="w-full h-9 rounded-xl text-xs font-semibold gap-1.5 border-primary/30 text-primary hover:bg-primary/5 cursor-pointer"
+                    >
+                      <Crop className="w-3.5 h-3.5" />
+                      <span>Editar / Recortar Imagem Atual</span>
+                    </Button>
+                  )}
                 </div>
 
                 {/* Seção Complementos & Modificadores */}

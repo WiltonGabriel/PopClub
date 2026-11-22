@@ -9,7 +9,11 @@ import { restoreOrderInventoryAndCoupons } from "@/services/orderRefundService";
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get("limit") || "20", 10);
+    const rawPage = Number.parseInt(searchParams.get("page") || "1", 10);
+    const rawLimit = Number.parseInt(searchParams.get("limit") || "20", 10);
+    const page = Number.isFinite(rawPage) && rawPage >= 1 ? rawPage : 1;
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 50) : 20;
+    const skip = (page - 1) * limit;
 
     const settings = await prisma.storeSettings.findUnique({
       where: { id: "store_config" },
@@ -74,11 +78,16 @@ export async function GET(request: Request) {
       closedAt: settings?.closedAt ? settings.closedAt.toISOString() : null,
     };
 
-    // Histórico de turnos passados
-    const shifts = await prisma.shift.findMany({
-      orderBy: { createdAt: "desc" },
-      take: limit,
-    });
+    // Histórico paginado de turnos
+    const [shifts, totalShifts] = await Promise.all([
+      prisma.shift.findMany({
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.shift.count(),
+    ]);
+    const totalPages = Math.max(1, Math.ceil(totalShifts / limit));
 
     return apiSuccess({
       isOpen: settings?.isOpen ?? true,
@@ -86,6 +95,10 @@ export async function GET(request: Request) {
       estimatedDeliveryTime: settings?.estimatedDeliveryTime || "30-50 min",
       currentShift,
       currentShiftSummary,
+      totalShifts,
+      page,
+      limit,
+      totalPages,
       shifts: shifts.map((s) => ({
         id: s.id,
         code: s.code,

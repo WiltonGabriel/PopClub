@@ -5,7 +5,8 @@ import crypto from "crypto";
 import sharp from "sharp";
 import { getAuthUser } from "@/lib/auth";
 import { addonUploadLimiter, getIpFromRequest, createRateLimitResponse } from "@/lib/rateLimit";
-import { deleteAddonImageFile } from "@/lib/addonStorage";
+import { prisma } from "@/lib/prisma";
+import { deleteAddonImageIfUnused } from "@/lib/addonStorage";
 import { hasPermission } from "@/lib/permissions";
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
@@ -70,16 +71,16 @@ export async function POST(request: Request) {
     const uploadDir = path.join(process.cwd(), "public", "uploads", "addons");
     await fs.mkdir(uploadDir, { recursive: true });
 
-    // 6. Processamento com Sharp: 160x160 px fit 'cover' + WebP qualidade 85
+    // 6. Processamento com Sharp: até 320x320 px preservando proporção livre + WebP qualidade 85
     const filename = `${crypto.randomUUID()}.webp`;
     const filePath = path.join(uploadDir, filename);
 
     const webpBuffer = await sharp(buffer)
       .resize({
-        width: 160,
-        height: 160,
-        fit: "cover",
-        position: "center",
+        width: 320,
+        height: 320,
+        fit: "inside",
+        withoutEnlargement: true,
       })
       .webp({
         quality: 85,
@@ -89,9 +90,9 @@ export async function POST(request: Request) {
 
     await fs.writeFile(filePath, webpBuffer);
 
-    // 7. Limpeza Automática de Imagem Órfã Anterior
+    // 7. Limpeza Segura de Imagem Órfã Anterior (só exclui se nenhum item ainda referenciar)
     if (oldImageUrl) {
-      await deleteAddonImageFile(oldImageUrl);
+      await deleteAddonImageIfUnused(prisma, oldImageUrl);
     }
 
     const publicUrl = `/uploads/addons/${filename}`;

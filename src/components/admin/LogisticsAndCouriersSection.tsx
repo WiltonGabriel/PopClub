@@ -501,6 +501,8 @@ export function LogisticsAndCouriersSection() {
         return "Em Rota";
       case "off_duty":
         return "Folga";
+      case "unavailable":
+        return "Indisponível";
       default:
         return status;
     }
@@ -514,6 +516,8 @@ export function LogisticsAndCouriersSection() {
         return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30";
       case "off_duty":
         return "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30";
+      case "unavailable":
+        return "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30";
       default:
         return "bg-zinc-100 text-zinc-600 border-zinc-200";
     }
@@ -1072,7 +1076,7 @@ export function LogisticsAndCouriersSection() {
                   </span>
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Gerencie motoboys cadastrados, veículos, chaves Pix e status operacional para despacho em tempo real.
+                  Gerencie motoboys, veículos, Pix e disponibilidade (&quot;Em Rota&quot; ativa automaticamente quando o entregador inicia a entrega).
                 </p>
               </div>
             </div>
@@ -1091,7 +1095,7 @@ export function LogisticsAndCouriersSection() {
         {/* Barra de Filtros de Status */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-semibold text-muted-foreground mr-1">Filtrar:</span>
-          {(["ALL", "available", "in_transit", "off_duty"] as const).map((st) => {
+          {(["ALL", "available", "in_transit", "off_duty", "unavailable"] as const).map((st) => {
             const isSelected = courierStatusFilter === st;
             const count = st === "ALL" ? couriers.length : couriers.filter((c) => c.status === st).length;
             const label = st === "ALL" ? "Todos" : getStatusLabel(st);
@@ -1221,9 +1225,17 @@ export function LogisticsAndCouriersSection() {
                   </div>
 
                   {/* Seletor Rápido de Status & Ações */}
-                  <div className="flex items-center justify-between pt-2 border-t border-zinc-200/50 dark:border-zinc-800">
-                    <div className="flex items-center gap-1">
-                      {(["available", "in_transit", "off_duty"] as const).map((st) => (
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-zinc-200/50 dark:border-zinc-800">
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {courier.status === "in_transit" && (
+                        <span
+                          className="text-[10px] font-bold px-2 py-1 rounded-lg border bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30"
+                          title="Status Em Rota gerenciado automaticamente ao iniciar/concluir entrega"
+                        >
+                          Em Rota • Auto
+                        </span>
+                      )}
+                      {(["available", "off_duty", "unavailable"] as const).map((st) => (
                         <button
                           key={st}
                           type="button"
@@ -1360,9 +1372,17 @@ export function LogisticsAndCouriersSection() {
                   className="w-full h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold px-3"
                 >
                   <option value="available">🟢 Disponível para Entregas</option>
-                  <option value="in_transit">🔵 Em Rota de Entrega</option>
+                  {courierForm.status === "in_transit" && (
+                    <option value="in_transit" disabled>
+                      🔵 Em Rota de Entrega (Automático)
+                    </option>
+                  )}
                   <option value="off_duty">🟡 Folga / Ausente</option>
+                  <option value="unavailable">🔴 Indisponível</option>
                 </select>
+                <p className="text-[11px] text-muted-foreground leading-tight">
+                  O status &quot;Em Rota&quot; é ativado automaticamente quando o entregador aceita/inicia a corrida e volta para &quot;Disponível&quot; ao concluir.
+                </p>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-zinc-800">

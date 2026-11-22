@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
 import { serverOrderEventManager } from "@/lib/serverOrderEvents";
+import { markCourierInTransitForOrder } from "@/services/courierStatusAutomationService";
 
 export async function POST(
   request: Request,
@@ -15,7 +16,15 @@ export async function POST(
 
     const existingOrder = await prisma.order.findUnique({
       where: { trackingToken: token },
-      select: { id: true, status: true, dispatchedAt: true, userId: true, courierName: true },
+      select: {
+        id: true,
+        status: true,
+        dispatchedAt: true,
+        userId: true,
+        courierId: true,
+        courierName: true,
+        courierPhone: true,
+      },
     });
 
     if (!existingOrder) {
@@ -30,8 +39,9 @@ export async function POST(
       return apiError("Este pedido já foi finalizado.", 422, "ORDER_ALREADY_COMPLETED");
     }
 
-    // Se já estiver em rota, responde idempotente com sucesso
+    // Se já estiver em rota, garante status do entregador e responde idempotente com sucesso
     if (existingOrder.status === "delivering") {
+      await markCourierInTransitForOrder(existingOrder);
       return apiSuccess({
         success: true,
         message: "Rota já estava em andamento.",
@@ -49,6 +59,8 @@ export async function POST(
         isGpsTrackingActive: true,
       },
     });
+
+    await markCourierInTransitForOrder(existingOrder);
 
     serverOrderEventManager.emit({
       type: "order_updated",

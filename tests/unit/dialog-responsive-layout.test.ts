@@ -69,4 +69,16 @@ describe("Responsividade e Largura Segura de Modais (DialogContent)", () => {
     expect(linksTabSrc).not.toContain('truncate max-w-[180px]">{group.name}');
     expect(linksTabSrc).not.toMatch(/className="[^"]*truncate[^"]*">\s*\{group\.name\}/);
   });
+
+  it("garante botão de salvar fixo no topo, lembrete de alterações não salvas e edição de foto atual no ProductFormDialog", () => {
+    const productFormPath = path.resolve(
+      process.cwd(),
+      "src/components/admin/ProductFormDialog.tsx"
+    );
+    const productFormSrc = fs.readFileSync(productFormPath, "utf-8");
+
+    expect(productFormSrc).toContain('form="product-editor-form"');
+    expect(productFormSrc).toContain("Alterações não salvas");
+    expect(productFormSrc).toContain("Editar / Recortar Imagem Atual");
+  });
 });

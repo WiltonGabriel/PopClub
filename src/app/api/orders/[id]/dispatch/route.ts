@@ -4,6 +4,10 @@ import { getAuthUser } from "@/lib/auth";
 import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
 import { hasPermission } from "@/lib/permissions";
 import { serverOrderEventManager } from "@/lib/serverOrderEvents";
+import {
+  findMatchingCourierForOrder,
+  markCourierInTransitForOrder,
+} from "@/services/courierStatusAutomationService";
 import crypto from "crypto";
 
 export async function POST(
@@ -23,6 +27,7 @@ export async function POST(
 
     interface DispatchBody {
       enableGps?: boolean;
+      courierId?: string;
       courierName?: string;
       courierPhone?: string;
       courierCode?: string;
@@ -37,6 +42,7 @@ export async function POST(
     }
 
     const enableGps = Boolean(body.enableGps);
+    const requestedCourierId = body.courierId?.trim() || null;
     const courierName = body.courierName?.trim() || null;
     const courierPhone = body.courierPhone?.trim() || null;
     const courierCode = body.courierCode?.trim() || null;
@@ -50,6 +56,21 @@ export async function POST(
 
     if (!existingOrder) {
       return apiError("Pedido não encontrado.", 404, "NOT_FOUND");
+    }
+
+    let resolvedCourierId: string | null = null;
+    if (requestedCourierId) {
+      const existingCourier = await prisma.courier.findUnique({
+        where: { id: requestedCourierId },
+        select: { id: true },
+      });
+      resolvedCourierId = existingCourier?.id ?? null;
+    } else if (courierPhone || courierName) {
+      const matchedCourier = await findMatchingCourierForOrder({
+        courierPhone,
+        courierName,
+      });
+      resolvedCourierId = matchedCourier?.id ?? null;
     }
 
     // Gera token seguro ou reaproveita caso já exista
@@ -68,6 +89,7 @@ export async function POST(
         status: targetStatus,
         trackingToken,
         isGpsTrackingActive: isAssignOnly ? false : enableGps,
+        courierId: resolvedCourierId,
         courierName,
         courierPhone,
         courierCode,
@@ -82,6 +104,14 @@ export async function POST(
         user: { select: { fullName: true, username: true, email: true, phone: true } },
       },
     });
+
+    if (!isAssignOnly) {
+      await markCourierInTransitForOrder({
+        courierId: resolvedCourierId,
+        courierPhone,
+        courierName,
+      });
+    }
 
     const host = request.headers.get("host") || "localhost:3000";
     const protocol = request.headers.get("x-forwarded-proto") || "http";

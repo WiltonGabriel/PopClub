@@ -10,6 +10,12 @@ import { deleteOrSoftDeleteProduct } from "@/services/productDeletionService";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+const NO_CACHE_HEADERS = {
+  "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+  Pragma: "no-cache",
+  Expires: "0",
+};
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -22,10 +28,10 @@ export async function GET(
     });
 
     if (!product || product.deletedAt) {
-      return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
+      return NextResponse.json({ error: "Produto não encontrado." }, { status: 404, headers: NO_CACHE_HEADERS });
     }
 
-    return NextResponse.json(formatProduct(product));
+    return NextResponse.json(formatProduct(product), { headers: NO_CACHE_HEADERS });
   } catch (error: unknown) {
     console.error("Erro ao buscar detalhes do produto:", error);
     return NextResponse.json({ error: "Erro ao buscar detalhes do produto." }, { status: 500 });
@@ -162,7 +168,7 @@ export async function PUT(
       include: productInclude,
     });
 
-    return NextResponse.json(formatProduct(updated));
+    return NextResponse.json(formatProduct(updated), { headers: NO_CACHE_HEADERS });
   } catch (error: unknown) {
     console.error("Erro ao atualizar produto:", error);
     if (error && typeof error === "object" && "code" in error && (error as { code: string }).code === "P2025") {

@@ -26,6 +26,7 @@ export interface AddonDraftItemInput {
   price: number;
   imageUrl?: string | null;
   isAvailable?: boolean;
+  catalogKey?: string | null;
 }
 
 export interface AddonDraftState {
@@ -36,6 +37,7 @@ export interface AddonDraftState {
 export interface AddonDraftItemUpdate {
   id: string;
   groupId: string;
+  catalogKey?: string | null;
   name: string;
   price: number;
   imageUrl: string | null;
@@ -93,6 +95,7 @@ function cloneItemsWithSequentialSortOrder(items: AddonItem[], groupId: string):
   return items.map((item, idx) => ({
     ...item,
     groupId,
+    catalogKey: normalizeNullableText(item.catalogKey),
     price: normalizePrice(item.price),
     imageUrl: normalizeNullableText(item.imageUrl),
     isAvailable: Boolean(item.isAvailable),
@@ -111,6 +114,7 @@ function cloneGroups(groups: AddonGroup[]): AddonGroup[] {
       items: sortedItems.map((item) => ({
         ...item,
         groupId: group.id,
+        catalogKey: normalizeNullableText(item.catalogKey),
         price: normalizePrice(item.price),
         imageUrl: normalizeNullableText(item.imageUrl),
         isAvailable: Boolean(item.isAvailable),
@@ -293,6 +297,10 @@ export function upsertItemInDraft(
 
     const updatedFields: AddonItem = {
       ...existingItem,
+      catalogKey:
+        input.catalogKey !== undefined
+          ? normalizeNullableText(input.catalogKey)
+          : normalizeNullableText(existingItem.catalogKey),
       name: normalizedName,
       price: normalizedPrice,
       imageUrl: normalizedImageUrl,
@@ -347,6 +355,7 @@ export function upsertItemInDraft(
     const created: AddonItem = {
       id: newItemId,
       groupId: targetGroupId,
+      catalogKey: normalizeNullableText(input.catalogKey),
       name: normalizedName,
       price: normalizedPrice,
       imageUrl: normalizedImageUrl,
@@ -363,6 +372,166 @@ export function upsertItemInDraft(
     state: { ...state, groups: nextGroups },
     itemId: newItemId,
   };
+}
+
+/**
+ * Gera chave de catálogo estável para identificar complementos reutilizados entre grupos.
+ */
+export function buildAddonCatalogKey(name: string, seedId: string): string {
+  const slug =
+    name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 48) || "item";
+  const suffix = seedId.replace(/[^a-zA-Z0-9]/g, "").slice(-8) || "seed";
+  return `cat-${slug}-${suffix}`.slice(0, 80);
+}
+
+/**
+ * Reutiliza opções já cadastradas em outros grupos para dentro do grupo de destino,
+ * atribuindo uma `catalogKey` compartilhada apenas aos itens envolvidos e preservando
+ * duplicados antigos sem mesclá-los ou removê-los.
+ */
+export function reuseItemsIntoGroupInDraft(
+  state: AddonDraftState,
+  targetGroupId: string,
+  selections: Array<{ sourceItemId: string; price?: number }>
+): { state: AddonDraftState; createdItemIds: string[] } {
+  if (!state.groups.some((g) => g.id === targetGroupId) || selections.length === 0) {
+    return { state, createdItemIds: [] };
+  }
+
+  let nextGroups = state.groups.map((g) => ({
+    ...g,
+    items: g.items.map((item) => ({ ...item })),
+  }));
+  const createdItemIds: string[] = [];
+
+  for (const selection of selections) {
+    let sourceItem: AddonItem | null = null;
+    for (const group of nextGroups) {
+      const found = group.items.find((i) => i.id === selection.sourceItemId);
+      if (found) {
+        sourceItem = found;
+        break;
+      }
+    }
+    if (!sourceItem) continue;
+
+    const targetGroup = nextGroups.find((g) => g.id === targetGroupId);
+    if (!targetGroup) break;
+
+    const sharedKey =
+      normalizeNullableText(sourceItem.catalogKey) ||
+      buildAddonCatalogKey(sourceItem.name, sourceItem.id);
+    const normalizedSourceName = sourceItem.name.trim().toLowerCase();
+
+    const alreadyInTarget = targetGroup.items.some((existing) => {
+      const existingKey = normalizeNullableText(existing.catalogKey);
+      if (existingKey && existingKey === sharedKey) return true;
+      return existing.name.trim().toLowerCase() === normalizedSourceName;
+    });
+    if (alreadyInTarget) continue;
+
+    const newItemId = generateTempId(TEMP_ITEM_PREFIX);
+    const nextSortOrder =
+      targetGroup.items.reduce((max, i) => Math.max(max, i.sortOrder ?? 0), -1) + 1;
+
+    const newItem: AddonItem = {
+      id: newItemId,
+      groupId: targetGroupId,
+      catalogKey: sharedKey,
+      name: sourceItem.name.trim(),
+      price: normalizePrice(
+        selection.price !== undefined ? selection.price : sourceItem.price
+      ),
+      imageUrl: normalizeNullableText(sourceItem.imageUrl),
+      isAvailable: Boolean(sourceItem.isAvailable),
+      sortOrder: nextSortOrder,
+    };
+
+    nextGroups = nextGroups.map((group) => {
+      const updatedItems = group.items.map((item) =>
+        item.id === sourceItem!.id && !normalizeNullableText(item.catalogKey)
+          ? { ...item, catalogKey: sharedKey }
+          : item
+      );
+      if (group.id === targetGroupId) {
+        return {
+          ...group,
+          items: [...updatedItems, newItem],
+        };
+      }
+      return {
+        ...group,
+        items: updatedItems,
+      };
+    });
+
+    createdItemIds.push(newItemId);
+  }
+
+  if (createdItemIds.length === 0) {
+    return { state, createdItemIds: [] };
+  }
+
+  return {
+    state: {
+      ...state,
+      groups: nextGroups,
+    },
+    createdItemIds,
+  };
+}
+
+/**
+ * Sincroniza foto e/ou disponibilidade entre todos os complementos que compartilham a mesma catalogKey,
+ * mantendo os preços de cada grupo totalmente independentes.
+ */
+export function syncSharedItemFieldsInDraft(
+  state: AddonDraftState,
+  catalogKey: string,
+  fields: { imageUrl?: string | null; isAvailable?: boolean },
+  excludeItemId?: string
+): AddonDraftState {
+  const normalizedKey = normalizeNullableText(catalogKey);
+  if (!normalizedKey) return state;
+
+  let changed = false;
+  const nextGroups = state.groups.map((group) => {
+    const nextItems = group.items.map((item) => {
+      if (item.id === excludeItemId) return item;
+      if (normalizeNullableText(item.catalogKey) !== normalizedKey) return item;
+
+      const nextImageUrl =
+        fields.imageUrl !== undefined
+          ? normalizeNullableText(fields.imageUrl)
+          : item.imageUrl;
+      const nextIsAvailable =
+        fields.isAvailable !== undefined ? Boolean(fields.isAvailable) : item.isAvailable;
+
+      if (
+        nextImageUrl === item.imageUrl &&
+        nextIsAvailable === Boolean(item.isAvailable)
+      ) {
+        return item;
+      }
+
+      changed = true;
+      return {
+        ...item,
+        imageUrl: nextImageUrl,
+        isAvailable: nextIsAvailable,
+      };
+    });
+
+    return { ...group, items: nextItems };
+  });
+
+  return changed ? { ...state, groups: nextGroups } : state;
 }
 
 /**
@@ -553,6 +722,8 @@ function hasGroupChanged(initialGroup: AddonGroup, currentGroup: AddonGroup): bo
 function hasItemChanged(initialItem: AddonItem, currentItem: AddonItem): boolean {
   return (
     initialItem.groupId !== currentItem.groupId ||
+    normalizeNullableText(initialItem.catalogKey) !==
+      normalizeNullableText(currentItem.catalogKey) ||
     initialItem.name !== currentItem.name ||
     normalizePrice(initialItem.price) !== normalizePrice(currentItem.price) ||
     normalizeNullableText(initialItem.imageUrl) !== normalizeNullableText(currentItem.imageUrl) ||
@@ -652,6 +823,7 @@ export function computeAddonDraftDiff(
         tempId: currId,
         input: {
           groupId: currItem.groupId,
+          catalogKey: normalizeNullableText(currItem.catalogKey),
           name: currItem.name,
           price: normalizePrice(currItem.price),
           imageUrl: normalizeNullableText(currItem.imageUrl),
@@ -665,6 +837,7 @@ export function computeAddonDraftDiff(
         itemsToUpdate.push({
           id: currId,
           groupId: currItem.groupId,
+          catalogKey: normalizeNullableText(currItem.catalogKey),
           name: currItem.name,
           price: normalizePrice(currItem.price),
           imageUrl: normalizeNullableText(currItem.imageUrl),

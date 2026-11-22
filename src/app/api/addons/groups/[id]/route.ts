@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { addonCrudLimiter, getIpFromRequest } from "@/lib/rateLimit";
-import { deleteAddonImageFile } from "@/lib/addonStorage";
+import { deleteAddonImageIfUnused } from "@/lib/addonStorage";
 import { hasPermission } from "@/lib/permissions";
 
 export async function GET(
@@ -122,21 +122,24 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Busca itens para limpar imagens associadas do disco
+    // Busca itens para limpar imagens associadas do disco caso não estejam compartilhadas
     const groupItems = await prisma.addonItem.findMany({
       where: { groupId: id },
       select: { imageUrl: true },
     });
 
-    for (const item of groupItems) {
-      if (item.imageUrl) {
-        await deleteAddonImageFile(item.imageUrl);
-      }
-    }
-
     await prisma.addonGroup.delete({
       where: { id },
     });
+
+    const uniqueImageUrls = new Set(
+      groupItems
+        .map((item) => item.imageUrl)
+        .filter((url): url is string => Boolean(url))
+    );
+    for (const imageUrl of uniqueImageUrls) {
+      await deleteAddonImageIfUnused(prisma, imageUrl);
+    }
 
     return NextResponse.json({ success: true, message: "Grupo de complementos removido com sucesso." });
   } catch (error: unknown) {

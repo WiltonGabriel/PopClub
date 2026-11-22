@@ -9,7 +9,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Tag, Sparkles, Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Tag, Sparkles, Loader2, Eye, EyeOff, AlertCircle, Crop } from "lucide-react";
 import { ImageCropperDialog } from "./ImageCropperDialog";
 import { UrgencyScarcityConfig, UrgencyScarcityValues } from "./UrgencyScarcityConfig";
 import { PromotionDomainService } from "@/domain/services/PromotionDomainService";
@@ -586,8 +586,26 @@ export function PromotionFormDialog({
 
                 {!autoBanner && (
                   <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <Label className="text-[11px] text-gray-500 font-mono">Upload Manual da Imagem (16:9)</Label>
+                    <div className="flex justify-between items-center gap-2">
+                      <Label className="text-[11px] text-gray-500 font-mono">
+                        Recomendação para este banner: 16:9 (Widescreen)
+                      </Label>
+                      {bannerPreviewSrc && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setError("");
+                            setRawBannerSrc(bannerPreviewSrc);
+                            setCropModalOpen(true);
+                          }}
+                          className="h-7 px-2.5 rounded-lg text-[11px] font-semibold gap-1 border-primary/30 text-primary hover:bg-primary/5 cursor-pointer"
+                        >
+                          <Crop className="w-3 h-3" />
+                          <span>Editar / Recortar</span>
+                        </Button>
+                      )}
                     </div>
                     <div className="flex border border-gray-200 dark:border-border/40 bg-gray-50 dark:bg-background rounded-xl h-11 relative overflow-hidden group">
                       <div className="bg-gray-200 dark:bg-white/10 px-3.5 flex items-center justify-center text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 border-r border-gray-200 dark:border-border/40 group-hover:bg-gray-300 transition-colors">

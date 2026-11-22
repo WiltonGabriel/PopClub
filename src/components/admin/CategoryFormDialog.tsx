@@ -21,6 +21,7 @@ import {
   Layers,
   CheckCircle2,
   HelpCircle,
+  Crop,
 } from "lucide-react";
 import { parseCategoryEmojiAndName } from "../storefront/CategoryChip";
 import { ImageCropperDialog } from "./ImageCropperDialog";
@@ -477,7 +478,7 @@ export function CategoryFormDialog({
                 </div>
 
                 <div className="flex-1 space-y-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button
                       type="button"
                       variant="outline"
@@ -488,6 +489,22 @@ export function CategoryFormDialog({
                       <Upload className="w-3.5 h-3.5 text-primary" />
                       <span>{imageUrl ? "Alterar Foto" : "Subir Foto / SVG"}</span>
                     </Button>
+                    {imageUrl && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setError("");
+                          setRawImageSrc(imageUrl);
+                          setCropModalOpen(true);
+                        }}
+                        className="h-8 text-xs rounded-xl font-semibold gap-1 border-primary/30 text-primary hover:bg-primary/5 cursor-pointer"
+                      >
+                        <Crop className="w-3.5 h-3.5" />
+                        <span>Editar / Recortar</span>
+                      </Button>
+                    )}
                     {imageUrl && (
                       <Button
                         type="button"
@@ -506,8 +523,8 @@ export function CategoryFormDialog({
                   </div>
                   <p className="text-[10px] text-muted-foreground">
                     {imageUrl
-                      ? "A foto customizada será exibida ao lado do título."
-                      : "Sem imagem própria enviada. O emoji do título será exibido como ícone."}
+                      ? "Recomendação: 1:1 Quadrado. A foto será exibida ao lado do título."
+                      : "Recomendação: 1:1 Quadrado. Sem imagem própria enviada, o emoji do título será exibido como ícone."}
                   </p>
                   <input
                     ref={fileInputRef}

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const COURIER_STATUSES = ["available", "in_transit", "off_duty"] as const;
+export const COURIER_STATUSES = ["available", "in_transit", "off_duty", "unavailable"] as const;
 export type CourierStatus = (typeof COURIER_STATUSES)[number];
 
 export const courierCreateSchema = z.object({
@@ -39,7 +39,7 @@ export const courierUpdateSchema = z.object({
 
 export const courierStatusSchema = z.object({
   status: z.enum(COURIER_STATUSES, {
-    message: "Status inválido. Use 'available', 'in_transit' ou 'off_duty'.",
+    message: "Status inválido. Use 'available', 'in_transit', 'off_duty' ou 'unavailable'.",
   }),
 });
 

@@ -1,4 +1,4 @@
-export type CourierStatus = "available" | "in_transit" | "off_duty";
+export type CourierStatus = "available" | "in_transit" | "off_duty" | "unavailable";
 
 export interface Courier {
   id: string;

@@ -29,6 +29,7 @@ import {
   Users,
   Image as ImageIcon,
   Upload,
+  Crop,
 } from "lucide-react";
 
 interface ComboFormDialogProps {
@@ -479,13 +480,13 @@ export function ComboFormDialog({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-2xl bg-gray-50/70 dark:bg-background/60 border border-gray-200/70 dark:border-border/40">
             {/* Upload de Foto */}
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center gap-2">
                 <Label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
                   <ImageIcon className="w-3.5 h-3.5 text-primary" />
                   Foto do Combo
                 </Label>
-                <span className="text-[10px] font-semibold text-primary dark:text-muted-foreground bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
-                  1:1 Quadrado
+                <span className="text-[10px] font-medium text-muted-foreground">
+                  Recomendação: 1:1 Quadrado
                 </span>
               </div>
               <div className="flex items-center gap-3">
@@ -497,17 +498,35 @@ export function ComboFormDialog({
                     <ImageIcon className="w-6 h-6 text-gray-400" />
                   )}
                 </div>
-                <div className="flex-1 space-y-1">
-                  <label className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-xl bg-white dark:bg-card border border-gray-200 dark:border-border/60 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-muted/50 cursor-pointer shadow-xs transition-colors">
-                    <Upload className="w-3.5 h-3.5 text-primary" />
-                    <span>{previewUrl ? "Alterar Foto" : "Escolher Foto"}</span>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/jpg"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                  </label>
+                <div className="flex-1 space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <label className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-xl bg-white dark:bg-card border border-gray-200 dark:border-border/60 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-muted/50 cursor-pointer shadow-xs transition-colors">
+                      <Upload className="w-3.5 h-3.5 text-primary" />
+                      <span>{previewUrl ? "Alterar Foto" : "Escolher Foto"}</span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/jpg"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                    </label>
+                    {previewUrl && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setError("");
+                          setRawImageSrc(previewUrl);
+                          setCropModalOpen(true);
+                        }}
+                        className="h-9 px-3 rounded-xl text-xs font-semibold gap-1 border-primary/30 text-primary hover:bg-primary/5 cursor-pointer"
+                      >
+                        <Crop className="w-3.5 h-3.5" />
+                        <span>Editar / Recortar</span>
+                      </Button>
+                    )}
+                  </div>
                   <p className="text-[10px] text-gray-400 dark:text-gray-500">
                     JPG, PNG ou WebP até 10MB.
                   </p>

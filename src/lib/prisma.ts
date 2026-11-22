@@ -20,6 +20,7 @@ export interface DBAddonGroup {
 export interface DBAddonItem {
   id: string;
   groupId: string;
+  catalogKey?: string | null;
   name: string;
   price: Prisma.Decimal | number;
   imageUrl?: string | null;
