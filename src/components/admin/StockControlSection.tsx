@@ -930,23 +930,44 @@ export function StockControlSection({
                     </div>
                   )}
 
-                  {deleteImpact.parentCombos.length > 0 && (
+                  {deleteImpact.parentCombos.some((c) => c.itemsCount <= 1) && (
+                    <div className="rounded-lg bg-red-100/80 dark:bg-red-950/50 border border-red-200 dark:border-red-800/60 px-2.5 py-1.5 text-red-900 dark:text-red-200">
+                      <span className="font-bold">
+                        • Combos apagados automaticamente (
+                        {deleteImpact.parentCombos.filter((c) => c.itemsCount <= 1).length}):
+                      </span>{" "}
+                      este produto é o único item de{" "}
+                      <strong>
+                        {deleteImpact.parentCombos
+                          .filter((c) => c.itemsCount <= 1)
+                          .map((c) => c.name)
+                          .join(", ")}
+                      </strong>
+                      . Ao confirmar, esses combos e seus eventuais banners/promoções serão removidos automaticamente.
+                    </div>
+                  )}
+
+                  {deleteImpact.parentCombos.some((c) => c.itemsCount > 1) && (
                     <div className="text-amber-900 dark:text-amber-200">
                       <span className="font-semibold">
-                        • Combos ({deleteImpact.parentCombos.length}):
+                        • Combos pausados para revisão (
+                        {deleteImpact.parentCombos.filter((c) => c.itemsCount > 1).length}):
                       </span>{" "}
-                      combos ativos vinculados (
-                      {deleteImpact.parentCombos.map((c) => c.name).join(", ")}) serão pausados automaticamente na vitrine até nova revisão.
+                      {deleteImpact.parentCombos
+                        .filter((c) => c.itemsCount > 1)
+                        .map((c) => c.name)
+                        .join(", ")}{" "}
+                      possuem outros produtos e serão pausados na vitrine até você revisá-los.
                     </div>
                   )}
 
                   {deleteImpact.promotions.length > 0 && (
                     <div className="text-amber-900 dark:text-amber-200">
                       <span className="font-semibold">
-                        • Promoções ({deleteImpact.promotions.length}):
+                        • Promoções & Banners ({deleteImpact.promotions.length}):
                       </span>{" "}
-                      promoções vinculadas (
-                      {deleteImpact.promotions.map((p) => p.title).join(", ")}) serão desativadas automaticamente.
+                      promoções e banners vinculados (
+                      {deleteImpact.promotions.map((p) => p.title).join(", ")}) serão removidos automaticamente.
                     </div>
                   )}
 

@@ -4,6 +4,7 @@ import { AdminAuditActor, recordAdminAudit } from "@/services/auditLogService";
 
 export interface ProductDeletionImpacts {
   pausedCombos: Array<{ id: string; name: string; remainingItemsCount: number }>;
+  deletedCombos: Array<{ id: string; name: string; softDeleted: boolean }>;
   deactivatedPromotions: Array<{ id: string; title: string }>;
   updatedCoupons: Array<{ id: string; code: string; deactivated: boolean }>;
   unlinkedAddonGroupsCount: number;
@@ -21,11 +22,14 @@ export type DeleteProductResult =
 
 function buildDeletionMessage(softDeleted: boolean, impacts: ProductDeletionImpacts): string {
   const details: string[] = [];
+  if (impacts.deletedCombos.length > 0) {
+    details.push(`${impacts.deletedCombos.length} combo(s) exclusivo(s) removido(s)`);
+  }
   if (impacts.pausedCombos.length > 0) {
     details.push(`${impacts.pausedCombos.length} combo(s) pausado(s)`);
   }
   if (impacts.deactivatedPromotions.length > 0) {
-    details.push(`${impacts.deactivatedPromotions.length} promoção(ões) encerrada(s)`);
+    details.push(`${impacts.deactivatedPromotions.length} promoção(ões)/banner(s) removido(s)`);
   }
   if (impacts.updatedCoupons.length > 0) {
     const deactivatedCoupons = impacts.updatedCoupons.filter((c) => c.deactivated).length;
@@ -74,7 +78,7 @@ async function applyDependencyCascadeInTx(tx: any, productId: string): Promise<P
 
   const comboCounts = new Map<
     string,
-    { id: string; name: string; wasAvailable: boolean; remainingItemsCount: number }
+    { id: string; name: string; wasAvailable: boolean; hasCountInfo: boolean; remainingItemsCount: number }
   >();
   for (const link of parentComboLinks) {
     if (!link?.combo) continue;
@@ -82,18 +86,28 @@ async function applyDependencyCascadeInTx(tx: any, productId: string): Promise<P
     if (prev) {
       prev.remainingItemsCount = Math.max(0, prev.remainingItemsCount - 1);
     } else {
+      const hasCountInfo = typeof link.combo._count?.comboItems === "number";
       comboCounts.set(link.combo.id, {
         id: link.combo.id,
         name: link.combo.name,
         wasAvailable: Boolean(link.combo.isAvailable),
-        remainingItemsCount: Math.max(0, (link.combo._count?.comboItems ?? 1) - 1),
+        hasCountInfo,
+        remainingItemsCount: hasCountInfo
+          ? Math.max(0, link.combo._count.comboItems - 1)
+          : 0,
       });
     }
   }
 
   const pausedCombos: ProductDeletionImpacts["pausedCombos"] = [];
+  const deletedCombos: ProductDeletionImpacts["deletedCombos"] = [];
+
+  const comboIdsToAutoDelete = Array.from(comboCounts.values())
+    .filter((c) => c.hasCountInfo && c.remainingItemsCount === 0)
+    .map((c) => c.id);
+
   const comboIdsToPause = Array.from(comboCounts.values())
-    .filter((c) => c.wasAvailable)
+    .filter((c) => c.wasAvailable && !(c.hasCountInfo && c.remainingItemsCount === 0))
     .map((c) => c.id);
 
   if (comboIdsToPause.length > 0 && typeof tx.product?.updateMany === "function") {
@@ -103,6 +117,7 @@ async function applyDependencyCascadeInTx(tx: any, productId: string): Promise<P
     });
   }
   for (const c of comboCounts.values()) {
+    if (c.hasCountInfo && c.remainingItemsCount === 0) continue;
     if (c.wasAvailable) {
       pausedCombos.push({
         id: c.id,
@@ -112,10 +127,15 @@ async function applyDependencyCascadeInTx(tx: any, productId: string): Promise<P
     }
   }
 
+  // Coleta promoções do produto e dos combos que serão auto-excluídos
+  const promoWhereFilter =
+    comboIdsToAutoDelete.length > 0
+      ? { productId: { in: [productId, ...comboIdsToAutoDelete] } }
+      : { productId };
   const activePromotions =
     typeof tx.promotion?.findMany === "function"
       ? await tx.promotion.findMany({
-          where: { productId, isActive: true },
+          where: promoWhereFilter,
           select: { id: true, title: true },
         })
       : [];
@@ -126,54 +146,111 @@ async function applyDependencyCascadeInTx(tx: any, productId: string): Promise<P
       title: p.title,
     }));
 
+  if (typeof tx.promotion?.deleteMany === "function") {
+    await tx.promotion.deleteMany({
+      where: promoWhereFilter,
+    });
+  } else if (typeof tx.promotion?.updateMany === "function") {
+    await tx.promotion.updateMany({
+      where: promoWhereFilter,
+      data: { isActive: false },
+    });
+  }
+
+  const idsToRemoveFromCoupons = [productId, ...comboIdsToAutoDelete];
   const affectedCoupons =
     typeof tx.coupon?.findMany === "function"
       ? await tx.coupon.findMany({
-          where: { productIds: { has: productId } },
+          where:
+            comboIdsToAutoDelete.length > 0
+              ? { productIds: { hasSome: idsToRemoveFromCoupons } }
+              : { productIds: { has: productId } },
           select: { id: true, code: true, productIds: true },
         })
       : [];
 
   const updatedCoupons: ProductDeletionImpacts["updatedCoupons"] = [];
   for (const coupon of affectedCoupons) {
-    const removal = ProductDependencyDomainService.evaluateCouponProductRemoval(
-      coupon.productIds || [],
-      productId
-    );
-    if (!removal.changed) continue;
+    let nextIds: string[] = Array.isArray(coupon.productIds) ? [...coupon.productIds] : [];
+    let changed = false;
+    let shouldDeactivate = false;
+    for (const removedId of idsToRemoveFromCoupons) {
+      const step = ProductDependencyDomainService.evaluateCouponProductRemoval(nextIds, removedId);
+      if (step.changed) {
+        changed = true;
+        nextIds = step.nextProductIds;
+        if (step.shouldDeactivate) shouldDeactivate = true;
+      }
+    }
+    if (!changed) continue;
     if (typeof tx.coupon?.update === "function") {
       await tx.coupon.update({
         where: { id: coupon.id },
         data: {
-          productIds: removal.nextProductIds,
-          ...(removal.shouldDeactivate ? { isActive: false } : {}),
+          productIds: nextIds,
+          ...(shouldDeactivate ? { isActive: false } : {}),
         },
       });
     }
     updatedCoupons.push({
       id: coupon.id,
       code: coupon.code,
-      deactivated: removal.shouldDeactivate,
+      deactivated: shouldDeactivate,
     });
   }
 
   const unlinkedGroupsResult =
     typeof tx.productAddonGroup?.deleteMany === "function"
       ? await tx.productAddonGroup.deleteMany({
-          where: { productId },
+          where:
+            comboIdsToAutoDelete.length > 0
+              ? { productId: { in: [productId, ...comboIdsToAutoDelete] } }
+              : { productId },
         })
       : { count: 0 };
 
   if (typeof tx.comboItem?.deleteMany === "function") {
     await tx.comboItem.deleteMany({
       where: {
-        OR: [{ comboId: productId }, { productId }],
+        OR: [
+          comboIdsToAutoDelete.length > 0
+            ? { comboId: { in: [productId, ...comboIdsToAutoDelete] } }
+            : { comboId: productId },
+          { productId },
+        ],
       },
     });
   }
 
+  // Exclui (ou arquiva via soft-delete se tiver pedidos) combos que ficaram sem nenhum item
+  for (const c of comboCounts.values()) {
+    if (!(c.hasCountInfo && c.remainingItemsCount === 0)) continue;
+    const comboOrdersCount =
+      typeof tx.orderItem?.count === "function"
+        ? await tx.orderItem.count({ where: { productId: c.id } })
+        : 0;
+
+    if (comboOrdersCount === 0 && typeof tx.product?.delete === "function") {
+      await tx.product.delete({ where: { id: c.id } });
+      deletedCombos.push({ id: c.id, name: c.name, softDeleted: false });
+    } else if (typeof tx.product?.update === "function") {
+      await tx.product.update({
+        where: { id: c.id },
+        data: {
+          deletedAt: new Date(),
+          isAvailable: false,
+          isHighlight: false,
+          categoryId: null,
+          cardBadgeId: null,
+        },
+      });
+      deletedCombos.push({ id: c.id, name: c.name, softDeleted: true });
+    }
+  }
+
   return {
     pausedCombos,
+    deletedCombos,
     deactivatedPromotions,
     updatedCoupons,
     unlinkedAddonGroupsCount: Number(unlinkedGroupsResult?.count || 0),

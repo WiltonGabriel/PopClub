@@ -484,6 +484,101 @@ describe("Integração: Cascata Inteligente de Dependências de Produtos (Combos
     });
   });
 
+  it("DELETE /api/products/[id] exclui combo de item único (e seus banners/promoções), pausa combo multi-item e limpa cupons", async () => {
+    vi.spyOn(authLib, "getAuthUser").mockResolvedValue({
+      id: "admin-1",
+      role: "admin",
+    } as any);
+
+    vi.spyOn(prisma.product, "findUnique").mockResolvedValue({
+      id: "prod-unico",
+      name: "Sorvete Exclusivo",
+      deletedAt: null,
+    } as any);
+
+    vi.spyOn(prisma.orderItem, "count").mockResolvedValue(0);
+
+    const comboDeleteMock = vi.fn().mockResolvedValue({ id: "combo-solo" });
+    const comboPauseMock = vi.fn().mockResolvedValue({ count: 1 });
+    const promoDeleteManyMock = vi.fn().mockResolvedValue({ count: 2 });
+    const prodDeleteMock = vi.fn().mockResolvedValue({ id: "prod-unico" });
+
+    const txMock = {
+      comboItem: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            comboId: "combo-solo",
+            combo: {
+              id: "combo-solo",
+              name: "Combo Só Sorvete",
+              isAvailable: true,
+              deletedAt: null,
+              _count: { comboItems: 1 }, // Único produto do combo -> combo morre junto!
+            },
+          },
+          {
+            comboId: "combo-multi",
+            combo: {
+              id: "combo-multi",
+              name: "Combo Completo",
+              isAvailable: true,
+              deletedAt: null,
+              _count: { comboItems: 3 }, // Sobram 2 itens -> apenas pausa
+            },
+          },
+        ]),
+        deleteMany: vi.fn().mockResolvedValue({ count: 2 }),
+      },
+      orderItem: {
+        count: vi.fn().mockResolvedValue(0),
+      },
+      product: {
+        updateMany: comboPauseMock,
+        delete: vi.fn().mockImplementation(async (args: any) => {
+          if (args.where.id === "combo-solo") return comboDeleteMock(args);
+          return prodDeleteMock(args);
+        }),
+      },
+      promotion: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: "pr-prod", title: "Promo Sorvete" },
+          { id: "pr-combo-banner", title: "Banner Combo Só Sorvete" },
+        ]),
+        deleteMany: promoDeleteManyMock,
+      },
+      coupon: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      productAddonGroup: {
+        deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      },
+    };
+
+    vi.spyOn(prisma, "$transaction").mockImplementation(async (cb: any) => cb(txMock));
+
+    const res = await deleteProduct(
+      new Request("http://localhost:3000/api/products/prod-unico", { method: "DELETE" }),
+      { params: Promise.resolve({ id: "prod-unico" }) }
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(comboDeleteMock).toHaveBeenCalledWith({ where: { id: "combo-solo" } });
+    expect(comboPauseMock).toHaveBeenCalledWith({
+      where: { id: { in: ["combo-multi"] } },
+      data: { isAvailable: false },
+    });
+    expect(promoDeleteManyMock).toHaveBeenCalledWith({
+      where: { productId: { in: ["prod-unico", "combo-solo"] } },
+    });
+    expect(body.impacts.deletedCombos).toEqual([
+      { id: "combo-solo", name: "Combo Só Sorvete", softDeleted: false },
+    ]);
+    expect(body.impacts.pausedCombos).toEqual([
+      { id: "combo-multi", name: "Combo Completo", remainingItemsCount: 2 },
+    ]);
+  });
+
   it("formatProduct expõe categoryIsActive=false quando a categoria pai está pausada", () => {
     const formatted = formatProduct({
       id: "p-1",
