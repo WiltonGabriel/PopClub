@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { productService, Product } from "../../services/productService";
+import { productService, Product, ProductDependencyImpact } from "../../services/productService";
 import { categoryService, Category } from "../../services/categoryService";
 import { badgeService, CardBadge } from "../../services/badgeService";
 import { addonService, AddonGroup } from "../../services/addonService";
@@ -78,6 +78,7 @@ export function ProductFormDialog({
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
   const initializedKeyRef = useRef<string | null>(null);
+  const [dependencyImpact, setDependencyImpact] = useState<ProductDependencyImpact | null>(null);
   const [initialSnapshot, setInitialSnapshot] = useState<{
     name: string;
     description: string;
@@ -92,6 +93,7 @@ export function ProductFormDialog({
   useEffect(() => {
     if (!open) {
       initializedKeyRef.current = null;
+      setDependencyImpact(null);
       return;
     }
 
@@ -100,6 +102,7 @@ export function ProductFormDialog({
       return;
     }
     initializedKeyRef.current = sessionKey;
+    setDependencyImpact(null);
 
     const initName = productToEdit?.name || "";
     const initDesc = productToEdit?.description || "";
@@ -153,6 +156,13 @@ export function ProductFormDialog({
           );
         }
       }).catch(() => {});
+    }
+
+    if (productToEdit?.id) {
+      productService
+        .getProductImpact(productToEdit.id)
+        .then(setDependencyImpact)
+        .catch(() => setDependencyImpact(null));
     }
   }, [open, productToEdit, categories, activeCategories]);
 
@@ -553,6 +563,38 @@ export function ProductFormDialog({
                   Atualize as informações que aparecem no cardápio
                 </p>
               </DialogHeader>
+
+              {productToEdit &&
+                dependencyImpact &&
+                (dependencyImpact.parentCombos.length > 0 ||
+                  dependencyImpact.promotions.length > 0 ||
+                  dependencyImpact.coupons.length > 0) && (
+                  <div className="mb-4 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50/70 dark:bg-amber-950/30 px-3.5 py-2.5 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+                    <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      <span>Vínculos ativos no catálogo</span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed">
+                      {dependencyImpact.parentCombos.length > 0 && (
+                        <>
+                          Participa de <strong>{dependencyImpact.parentCombos.length}</strong> combo(s) (
+                          {dependencyImpact.parentCombos.map((c) => c.name).join(", ")}).{" "}
+                        </>
+                      )}
+                      {dependencyImpact.promotions.length > 0 && (
+                        <>
+                          Possui <strong>{dependencyImpact.promotions.length}</strong> promoção(ões) vinculada(s) (preço abaixo do valor promocional fixo pausa a promoção automaticamente).{" "}
+                        </>
+                      )}
+                      {dependencyImpact.coupons.length > 0 && (
+                        <>
+                          Restrito em <strong>{dependencyImpact.coupons.length}</strong> cupom(ns) (
+                          {dependencyImpact.coupons.map((c) => c.code).join(", ")}).
+                        </>
+                      )}
+                    </p>
+                  </div>
+                )}
 
               <form id="product-editor-form" onSubmit={handleSubmit} className="space-y-4">
                 {/* Nome do Produto */}

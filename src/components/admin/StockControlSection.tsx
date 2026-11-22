@@ -20,8 +20,11 @@ import {
   Pencil,
   Trash2,
   Loader2,
+  AlertTriangle,
+  Tag,
+  Zap,
 } from "lucide-react";
-import { productService, Product } from "../../services/productService";
+import { productService, Product, ProductDependencyImpact } from "../../services/productService";
 import { categoryService, Category } from "../../services/categoryService";
 import { promotionService, Promotion } from "../../services/promotionService";
 import { ProductFormDialog } from "./ProductFormDialog";
@@ -37,9 +40,24 @@ interface StockControlSectionProps {
    * Incrementado pelo painel quando pedidos são criados/cancelados para recarregar o estoque automaticamente
    */
   refreshTrigger?: number;
+  /**
+   * Define o contexto de exibição:
+   * - "kitchen": Gerenciar Pedidos (foco rápido em itens sem central dedicada)
+   * - "catalog": Aba "Produto Base" no Catálogo do Painel Operacional (todos produtos base)
+   */
+  mode?: "kitchen" | "catalog";
+  /**
+   * Callback disparado quando alterações em produtos base afetam combos/promoções
+   */
+  onCatalogChanged?: () => void;
 }
 
-export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }: StockControlSectionProps) {
+export function StockControlSection({
+  activeDemandMap = {},
+  refreshTrigger = 0,
+  mode = "kitchen",
+  onCatalogChanged,
+}: StockControlSectionProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [activePromotions, setActivePromotions] = useState<Promotion[]>([]);
@@ -85,9 +103,17 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
     setIsEditDialogOpen(true);
   };
 
-  // Exclusão de produto com confirmação e tratamento 409/403
+  // Exclusão de produto com confirmação, prévia de impactos e tratamento 409/403
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteImpact, setDeleteImpact] = useState<ProductDependencyImpact | null>(null);
+  const [loadingImpact, setLoadingImpact] = useState(false);
+
+  const closeDeleteModal = () => {
+    setProductToDelete(null);
+    setDeleteImpact(null);
+    setLoadingImpact(false);
+  };
 
   const handleRequestDelete = (product: Product) => {
     if (!canManageMenu) {
@@ -95,6 +121,13 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
       return;
     }
     setProductToDelete(product);
+    setDeleteImpact(null);
+    setLoadingImpact(true);
+    productService
+      .getProductImpact(product.id)
+      .then((impact) => setDeleteImpact(impact))
+      .catch(() => setDeleteImpact(null))
+      .finally(() => setLoadingImpact(false));
   };
 
   const handleConfirmDelete = async () => {
@@ -115,7 +148,8 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
             data.message || `O produto "${productToDelete.name}" foi removido com sucesso.`,
           type: "success",
         });
-        setProductToDelete(null);
+        closeDeleteModal();
+        onCatalogChanged?.();
       } else if (res.status === 403) {
         const data = await res.json().catch(() => ({}));
         showToast({
@@ -125,7 +159,7 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
             "Seu cargo não possui a permissão 'Gerenciar Cardápio' necessária para excluir produtos.",
           type: "warning",
         });
-        setProductToDelete(null);
+        closeDeleteModal();
       } else if (res.status === 409) {
         const data = await res.json().catch(() => ({}));
         showToast({
@@ -135,7 +169,7 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
             "Não é possível excluir este produto pois existem pedidos vinculados a ele no histórico. Recomendamos pausar sua disponibilidade na cozinha.",
           type: "warning",
         });
-        setProductToDelete(null);
+        closeDeleteModal();
       } else {
         const data = await res.json().catch(() => ({}));
         showToast({
@@ -143,7 +177,7 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
           message: data.error || "Ocorreu um erro ao excluir o produto.",
           type: "error",
         });
-        setProductToDelete(null);
+        closeDeleteModal();
       }
     } catch (err) {
       console.error("Erro ao excluir produto:", err);
@@ -152,7 +186,7 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
         message: "Não foi possível conectar ao servidor para excluir o produto.",
         type: "error",
       });
-      setProductToDelete(null);
+      closeDeleteModal();
     } finally {
       setIsDeleting(false);
     }
@@ -218,12 +252,20 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
     );
 
     try {
-      await productService.updateProductStock(product.id, { isAvailable: newStatus });
+      const updated = await productService.updateProductStock(product.id, { isAvailable: newStatus });
       showToast({
         title: `Estoque de ${product.name} atualizado!`,
         message: newStatus ? "Produto ativado para venda na loja." : "Produto pausado/esgotado na loja.",
         type: "success",
       });
+      if (updated.impactWarnings?.length) {
+        showToast({
+          title: "Impacto em Combos / Promoções",
+          message: updated.impactWarnings.join(" "),
+          type: "warning",
+        });
+      }
+      onCatalogChanged?.();
     } catch (err: unknown) {
       console.error("Erro ao atualizar disponibilidade:", err);
       // Reverte em caso de erro
@@ -248,12 +290,20 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
     );
 
     try {
-      await productService.updateProductStock(product.id, { stock: newStock });
+      const updated = await productService.updateProductStock(product.id, { stock: newStock });
       showToast({
         title: `Estoque de ${product.name} atualizado!`,
         message: isInfinite ? "Configurado como Sob Demanda / Infinito." : "Configurado com controle de unidades.",
         type: "success",
       });
+      if (updated.impactWarnings?.length) {
+        showToast({
+          title: "Impacto em Combos / Promoções",
+          message: updated.impactWarnings.join(" "),
+          type: "warning",
+        });
+      }
+      onCatalogChanged?.();
     } catch (err: unknown) {
       console.error("Erro ao atualizar modo de estoque:", err);
       // Reverte
@@ -283,12 +333,20 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
 
     debounceTimers.current[product.id] = setTimeout(async () => {
       try {
-        await productService.updateProductStock(product.id, { stock: validQty });
+        const updated = await productService.updateProductStock(product.id, { stock: validQty });
         showToast({
           title: `Estoque de ${product.name} atualizado!`,
           message: `Quantidade definida para ${validQty} un.`,
           type: "success",
         });
+        if (updated.impactWarnings?.length) {
+          showToast({
+            title: "Impacto em Combos / Promoções",
+            message: updated.impactWarnings.join(" "),
+            type: "warning",
+          });
+        }
+        onCatalogChanged?.();
       } catch (err: unknown) {
         console.error("Erro ao persistir estoque:", err);
         showToast({
@@ -307,31 +365,52 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
     handleStockChange(product, nextVal);
   };
 
-  // ─── BLINDAGEM ESTREITA DE ESTOQUE: Apenas produtos base comuns ───
-  // Bloqueia e exclui estritamente Combos (isCombo: true) e Itens vinculados a Promoção Ativa
-  const baseProducts = useMemo(() => {
+  const activePromoProductIds = useMemo(() => {
     const now = new Date();
-    const activePromoProductIds = new Set(
+    const ids = new Set<string>(
       activePromotions
         .filter((pr) => pr.isActive && (!pr.expiresAt || new Date(pr.expiresAt) > now))
         .map((pr) => pr.productId)
         .filter((id): id is string => Boolean(id))
     );
-
-    return products.filter((p) => {
-      // 1. Exclui Combos
-      if (p.isCombo) return false;
-      // 2. Exclui produtos com promoção ativa vinculada
-      if (activePromoProductIds.has(p.id)) return false;
+    products.forEach((p) => {
       if (
         p.promotions &&
         p.promotions.some((pr) => pr.isActive && (!pr.expiresAt || new Date(pr.expiresAt) > now))
       ) {
+        ids.add(p.id);
+      }
+    });
+    return ids;
+  }, [products, activePromotions]);
+
+  const comboUsageCountByProductId = useMemo(() => {
+    const counts: Record<string, number> = {};
+    products.forEach((p) => {
+      if (!p.isCombo || p.isAvailable === false || !p.comboItems) return;
+      const seenInCombo = new Set<string>();
+      p.comboItems.forEach((ci) => {
+        if (ci.productId && !seenInCombo.has(ci.productId)) {
+          seenInCombo.add(ci.productId);
+          counts[ci.productId] = (counts[ci.productId] || 0) + 1;
+        }
+      });
+    });
+    return counts;
+  }, [products]);
+
+  // ─── FILTRO DE PRODUTOS BASE ───
+  // Na aba "Produto Base" do Catálogo mostra todos os produtos base (incluindo os em promoção);
+  // na cozinha ("kitchen") foca apenas nos itens comuns sem central dedicada de promoção.
+  const baseProducts = useMemo(() => {
+    return products.filter((p) => {
+      if (p.isCombo) return false;
+      if (mode === "kitchen" && activePromoProductIds.has(p.id)) {
         return false;
       }
       return true;
     });
-  }, [products, activePromotions]);
+  }, [products, activePromoProductIds, mode]);
 
   // Filtragem dos produtos base
   const filteredProducts = useMemo(() => {
@@ -381,16 +460,20 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
               <Package className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="font-heading font-black text-xl sm:text-2xl text-[#4C264F] dark:text-[#F9F5F9] tracking-tight">
-                  Controle de Estoque & Disponibilidade
+                  {mode === "catalog"
+                    ? "Produto Base — Estoque & Disponibilidade"
+                    : "Controle de Estoque & Disponibilidade"}
                 </h2>
                 <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                  Apenas Produtos Base
+                  {mode === "catalog" ? "Produto Base" : "Apenas Produtos Base"}
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                Listando exclusivamente produtos normais/base da loja. Combos e promoções ativas possuem centrais de monitoramento de lotes dedicadas em suas respectivas abas.
+                {mode === "catalog"
+                  ? "Gerencie estoque, disponibilidade, preços, fotos e complementos de todos os produtos base. Alterações refletem automaticamente nos combos e promoções vinculados."
+                  : "Listando exclusivamente produtos normais/base da loja. Combos e promoções ativas possuem centrais de monitoramento de lotes dedicadas em suas respectivas abas."}
               </p>
             </div>
           </div>
@@ -587,6 +670,21 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
                                 <span>{product.cardBadge.text}</span>
                               </span>
                             )}
+                            {(comboUsageCountByProductId[product.id] || 0) > 0 && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/50 inline-flex items-center gap-1">
+                                <Zap className="w-2.5 h-2.5" />
+                                <span>
+                                  Em {comboUsageCountByProductId[product.id]}{" "}
+                                  {comboUsageCountByProductId[product.id] === 1 ? "combo" : "combos"}
+                                </span>
+                              </span>
+                            )}
+                            {activePromoProductIds.has(product.id) && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-100 dark:bg-pink-950/50 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-800/50 inline-flex items-center gap-1">
+                                <Tag className="w-2.5 h-2.5" />
+                                <span>Em Promoção</span>
+                              </span>
+                            )}
                           </div>
                           {product.category && (
                             <span className="inline-block text-[11px] font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-md mt-1 border border-gray-200/60 dark:border-white/5">
@@ -770,7 +868,15 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
               message: `${savedProduct.name} foi ${wasEditing ? "atualizado" : "adicionado ao cardápio"} com sucesso.`,
               type: "success",
             });
+            if (savedProduct.impactWarnings?.length) {
+              showToast({
+                title: "Impactos de dependência detectados",
+                message: savedProduct.impactWarnings.join(" "),
+                type: "warning",
+              });
+            }
             loadData(true);
+            onCatalogChanged?.();
           }}
         />
       )}
@@ -791,20 +897,89 @@ export function StockControlSection({ activeDemandMap = {}, refreshTrigger = 0 }
               </div>
             </div>
 
-            <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+            <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
               <p>
                 Tem certeza que deseja excluir o produto{" "}
                 <strong className="text-foreground">&quot;{productToDelete.name}&quot;</strong>? Esta ação não pode ser desfeita.
               </p>
-              <p className="text-xs text-muted-foreground">
-                Se este item já tiver pedidos antigos vinculados, ele será removido do cardápio e do painel mantendo apenas os registros do histórico.
-              </p>
+
+              {/* Painel de Prévia de Impacto em Dependências */}
+              {loadingImpact ? (
+                <div className="flex items-center gap-2 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 py-2.5 text-xs text-muted-foreground">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[#9306CF]" />
+                  <span>Analisando dependências com combos, promoções, cupons e pedidos...</span>
+                </div>
+              ) : deleteImpact ? (
+                <div className="rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50/70 dark:bg-amber-950/30 p-3 space-y-2 text-xs">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <span>Impacto nas dependências do catálogo</span>
+                  </div>
+
+                  {deleteImpact.activeOrdersCount > 0 && (
+                    <div className="rounded-lg bg-red-100/90 dark:bg-red-950/60 border border-red-200 dark:border-red-800/60 px-2.5 py-1.5 text-red-800 dark:text-red-200 font-semibold">
+                      Atenção: existem {deleteImpact.activeOrdersCount} pedido(s) em andamento contendo este produto. Os pedidos ativos não serão apagados.
+                    </div>
+                  )}
+
+                  {deleteImpact.parentCombos.length > 0 && (
+                    <div className="text-amber-900 dark:text-amber-200">
+                      <span className="font-semibold">
+                        • Combos ({deleteImpact.parentCombos.length}):
+                      </span>{" "}
+                      combos ativos vinculados (
+                      {deleteImpact.parentCombos.map((c) => c.name).join(", ")}) serão pausados automaticamente na vitrine até nova revisão.
+                    </div>
+                  )}
+
+                  {deleteImpact.promotions.length > 0 && (
+                    <div className="text-amber-900 dark:text-amber-200">
+                      <span className="font-semibold">
+                        • Promoções ({deleteImpact.promotions.length}):
+                      </span>{" "}
+                      promoções vinculadas (
+                      {deleteImpact.promotions.map((p) => p.title).join(", ")}) serão desativadas automaticamente.
+                    </div>
+                  )}
+
+                  {deleteImpact.coupons.length > 0 && (
+                    <div className="text-amber-900 dark:text-amber-200">
+                      <span className="font-semibold">
+                        • Cupons ({deleteImpact.coupons.length}):
+                      </span>{" "}
+                      o produto será removido de{" "}
+                      {deleteImpact.coupons.map((c) => c.code).join(", ")}.
+                      {deleteImpact.coupons.some((c) => c.willDeactivateIfRemoved) &&
+                        " Cupons sem outros itens restantes serão desativados para evitar desconto geral indevido."}
+                    </div>
+                  )}
+
+                  {deleteImpact.addonGroups.length > 0 && (
+                    <div className="text-gray-700 dark:text-gray-300">
+                      <span className="font-semibold">
+                        • Complementos ({deleteImpact.addonGroups.length}):
+                      </span>{" "}
+                      o vínculo com este produto será removido, mantendo todos os grupos e adicionais globais intactos.
+                    </div>
+                  )}
+
+                  <div className="text-[11px] text-gray-600 dark:text-gray-400 pt-1 border-t border-amber-200/70 dark:border-amber-800/40">
+                    {deleteImpact.willSoftDelete
+                      ? `Histórico preservado: existem ${deleteImpact.totalOrdersCount} pedido(s) vinculados — o item será arquivado (soft delete) para manter relatórios e notas.`
+                      : "Sem pedidos no histórico: o registro será excluído definitivamente."}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Se este item já tiver pedidos antigos vinculados, ele será arquivado mantendo os registros do histórico e pausando combos/promoções dependentes.
+                </p>
+              )}
             </div>
 
             <div className="flex items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
-                onClick={() => setProductToDelete(null)}
+                onClick={closeDeleteModal}
                 disabled={isDeleting}
                 className="px-4 py-2 rounded-xl text-xs font-semibold border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50"
               >

@@ -289,7 +289,19 @@ export async function PATCH(request: Request) {
     const existingOrder = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        items: { include: { product: true } },
+        items: {
+          include: {
+            product: {
+              include: {
+                comboItems: {
+                  include: {
+                    product: { select: { id: true, stock: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
 import {
   LayoutDashboard,
@@ -28,6 +28,7 @@ import {
   Eye,
   EyeOff,
   Image as ImageIcon,
+  AlertTriangle,
 } from "lucide-react";
 import { PromotionDomainService } from "@/domain/services/PromotionDomainService";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -57,6 +58,7 @@ import { CardBadgesSection } from "../../components/admin/CardBadgesSection";
 import { LoyaltyBadgesSection } from "../../components/admin/LoyaltyBadgesSection";
 import { AddonsManagement } from "../../components/admin/AddonsManagement";
 import { CategoryManagement } from "../../components/admin/CategoryManagement";
+import { StockControlSection } from "../../components/admin/StockControlSection";
 import { OrderFlowSettings } from "../../components/admin/OrderFlowSettings";
 import { AvatarPresetManager } from "../../components/admin/AvatarPresetManager";
 import { VisualIdentitySection } from "../../components/admin/VisualIdentitySection";
@@ -402,6 +404,21 @@ export default function AdminDashboard() {
     });
   };
 
+  const activeDemandMap = useMemo(() => {
+    const activeStatuses = new Set(["pending", "accepted", "preparing", "ready"]);
+    const map: Record<string, number> = {};
+    orders.forEach((order) => {
+      if (!activeStatuses.has(order.status)) return;
+      order.items?.forEach((item) => {
+        const pid = item.product_id || item.product?.id;
+        if (pid) {
+          map[pid] = (map[pid] || 0) + (item.quantity || 1);
+        }
+      });
+    });
+    return map;
+  }, [orders]);
+
   const handleDeleteCombo = (id: string) => {
     setConfirmState({
       title: "Excluir Combo",
@@ -410,9 +427,13 @@ export default function AdminDashboard() {
       variant: "danger",
       onConfirm: async () => {
         try {
-          await productService.deleteProduct(id);
+          const res = await productService.deleteProduct(id);
           await fetchCombos();
-          showToast({ type: "success", title: "Combo excluído" });
+          showToast({
+            type: "success",
+            title: "Combo excluído",
+            message: res?.message,
+          });
         } catch (error) {
           console.error("Erro ao excluir combo:", error);
           showToast({ type: "error", title: "Erro", message: "Não foi possível excluir o combo." });
@@ -923,15 +944,34 @@ export default function AdminDashboard() {
                                 }`}
                               />
                               <div className="p-5 flex flex-col h-full">
-                                <div className="flex justify-between items-start mb-3 pt-1">
+                                <div className="flex flex-wrap justify-between items-start gap-1.5 mb-3 pt-1">
                                   <span className="bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-gray-200 text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg border border-gray-200 dark:border-white/10">
                                     {combo.cardBadge?.text || "COMBO ESPECIAL"}
                                   </span>
-                                  {combo.isAvailable === false && (
-                                    <span className="text-[10px] font-bold uppercase bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800/40">
-                                      Pausado
-                                    </span>
-                                  )}
+                                  <div className="flex flex-wrap items-center justify-end gap-1.5">
+                                    {combo.isAvailable === false && (
+                                      <span className="text-[10px] font-bold uppercase bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800/40">
+                                        Pausado
+                                      </span>
+                                    )}
+                                    {(!combo.comboItems || combo.comboItems.length === 0) && (
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 px-2 py-0.5 rounded-full border border-red-200 dark:border-red-800/50">
+                                        <AlertTriangle className="w-3 h-3" />
+                                        Sem itens
+                                      </span>
+                                    )}
+                                    {(combo.unavailableComponents?.length || 0) > 0 && (
+                                      <span
+                                        title={`Componentes indisponíveis: ${combo.unavailableComponents!.map((c) => c.name).join(", ")}`}
+                                        className="inline-flex items-center gap-1 text-[10px] font-bold uppercase bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 px-2 py-0.5 rounded-full border border-orange-200 dark:border-orange-800/50"
+                                      >
+                                        <AlertTriangle className="w-3 h-3" />
+                                        {combo.unavailableComponents!.length === 1
+                                          ? `Item indisponível: ${combo.unavailableComponents![0].name}`
+                                          : `${combo.unavailableComponents!.length} itens indisponíveis`}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
 
                                 <h4 className="font-heading font-bold text-base leading-snug text-foreground dark:text-foreground line-clamp-2">
@@ -949,14 +989,33 @@ export default function AdminDashboard() {
                                     Itens Inclusos ({combo.comboItems?.length || 0}):
                                   </span>
                                   <div className="flex flex-wrap gap-1.5">
-                                    {combo.comboItems?.map((it) => (
-                                      <span
-                                        key={it.id}
-                                        className="text-[11px] font-semibold bg-white dark:bg-white/10 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-lg shadow-xs"
-                                      >
-                                        {it.quantity}x {it.product?.name || "Produto Removido"}
-                                      </span>
-                                    ))}
+                                    {combo.comboItems?.map((it) => {
+                                      const unavailableInfo = combo.unavailableComponents?.find(
+                                        (uc) => uc.productId === it.productId
+                                      );
+                                      const isChipUnavailable =
+                                        Boolean(unavailableInfo) ||
+                                        it.product?.isAvailable === false ||
+                                        (typeof it.product?.stock === "number" && it.product.stock <= 0);
+                                      return (
+                                        <span
+                                          key={it.id || it.productId}
+                                          className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg shadow-xs ${
+                                            isChipUnavailable
+                                              ? "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/50"
+                                              : "bg-white dark:bg-white/10 text-gray-700 dark:text-gray-300"
+                                          }`}
+                                          title={
+                                            unavailableInfo
+                                              ? `Indisponível (${unavailableInfo.reason === "paused" ? "Pausado" : unavailableInfo.reason === "out_of_stock" ? "Sem estoque" : "Removido"})`
+                                              : undefined
+                                          }
+                                        >
+                                          {it.quantity}x {it.product?.name || "Produto Removido"}
+                                          {isChipUnavailable ? " (Indisponível)" : ""}
+                                        </span>
+                                      );
+                                    })}
                                   </div>
                                 </div>
 
@@ -1284,6 +1343,18 @@ export default function AdminDashboard() {
                 </div>
               );
             })()}
+
+              {/* CONTEÚDO DA ABA: PRODUTO BASE (Controle de Estoque & Disponibilidade no Catálogo) */}
+              {activeTab === "produtos_base" && (
+                <StockControlSection
+                  mode="catalog"
+                  activeDemandMap={activeDemandMap}
+                  onCatalogChanged={() => {
+                    fetchCombos();
+                    fetchPromos();
+                  }}
+                />
+              )}
 
               {/* CONTEÚDO DA ABA: CATEGORIAS DO CARDÁPIO */}
               {activeTab === "categorias" && <CategoryManagement />}

@@ -30,6 +30,8 @@ export interface PromotionVisibilityCandidate {
   scarcityUnits?: number | null;
   product?: {
     isAvailable?: boolean | null;
+    stock?: number | null;
+    deletedAt?: string | Date | null;
   } | null;
 }
 
@@ -119,12 +121,34 @@ export class PromotionDomainService {
       };
     }
 
+    if (promo.product?.deletedAt) {
+      return {
+        status: "product_unavailable",
+        isVisiblePublicly: false,
+        label: "Produto Removido",
+        reason: "O produto vinculado foi removido do cardápio.",
+      };
+    }
+
     if (promo.product && promo.product.isAvailable === false) {
       return {
         status: "product_unavailable",
         isVisiblePublicly: false,
         label: "Produto Pausado",
         reason: "O produto vinculado está indisponível no cardápio.",
+      };
+    }
+
+    if (
+      promo.product &&
+      typeof promo.product.stock === "number" &&
+      promo.product.stock <= 0
+    ) {
+      return {
+        status: "product_unavailable",
+        isVisiblePublicly: false,
+        label: "Produto Esgotado",
+        reason: "O produto vinculado está com estoque zerado.",
       };
     }
 

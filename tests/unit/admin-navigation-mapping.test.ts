@@ -18,12 +18,14 @@ describe("Arquitetura de Navegação em 2 Níveis e UX/UI do Painel (/admin)", (
 
     const catalogo = ADMIN_NAV_GROUPS.find((g) => g.id === "catalogo")!;
     expect(catalogo.tabs.map((t) => t.id)).toEqual([
+      "produtos_base",
       "categorias",
       "complementos",
       "combos",
       "promocoes",
       "banners_selos",
     ]);
+    expect(catalogo.tabs[0].label).toBe("Produto Base");
 
     const fidelidade = ADMIN_NAV_GROUPS.find((g) => g.id === "fidelidade")!;
     expect(fidelidade.tabs.map((t) => t.id)).toEqual(["selos_fidelidade", "avatares"]);
@@ -73,6 +75,7 @@ describe("Arquitetura de Navegação em 2 Níveis e UX/UI do Painel (/admin)", (
     const legacyCases: Array<[string, string]> = [
       ["metricas", "operacao"],
       ["logistica_entregadores", "operacao"],
+      ["produtos_base", "catalogo"],
       ["categorias", "catalogo"],
       ["complementos", "catalogo"],
       ["combos", "catalogo"],

@@ -57,6 +57,7 @@ export function ProductCard({
 }: ProductCardProps) {
   const isOutOfStock =
     product.isAvailable === false ||
+    product.effectiveIsAvailable === false ||
     (product.stock !== undefined && product.stock !== null && product.stock <= 0);
 
   const pricing = calculateProductPrice(product);

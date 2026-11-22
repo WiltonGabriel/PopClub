@@ -28,6 +28,7 @@ import { AddonOrganizationService } from "@/domain/services/AddonOrganizationSer
 import {
   ResourceNotFoundException,
   InvalidCouponException,
+  OutOfStockException,
 } from "@/domain/errors";
 
 const checkoutSchema = z.object({
@@ -334,7 +335,28 @@ export async function POST(request: Request) {
 
     const productsMap = new Map(dbProducts.map((p) => [p.id, p]));
 
-    // Validação estrita de existência, disponibilidade e estoque dos produtos via StockDomainService
+    // Validação estrita de existência, disponibilidade, estoque e componentes filhos de combos
+    const finiteStockDemandMap = new Map<string, { name: string; stock: number; required: number }>();
+
+    const registerFiniteDemand = (
+      prodId: string,
+      prodName: string,
+      prodStock: number | null | undefined,
+      needed: number
+    ) => {
+      if (typeof prodStock !== "number" || !Number.isFinite(prodStock)) return;
+      const existingDemand = finiteStockDemandMap.get(prodId);
+      const totalRequired = (existingDemand?.required || 0) + needed;
+      if (prodStock < totalRequired) {
+        throw new OutOfStockException(prodName, prodStock, totalRequired, prodId);
+      }
+      finiteStockDemandMap.set(prodId, {
+        name: prodName,
+        stock: prodStock,
+        required: totalRequired,
+      });
+    };
+
     for (const [prodId, totalQty] of productQtyMap.entries()) {
       const product = productsMap.get(prodId);
       if (!product) {
@@ -351,6 +373,40 @@ export async function POST(request: Request) {
         },
         totalQty
       );
+      registerFiniteDemand(product.id, product.name, product.stock, totalQty);
+
+      if (product.isCombo) {
+        if (!product.comboItems || product.comboItems.length === 0) {
+          throw new OutOfStockException(
+            `${product.name} (sem itens vinculados)`,
+            0,
+            totalQty,
+            product.id
+          );
+        }
+
+        for (const ci of product.comboItems) {
+          const child = ci.product;
+          if (child === null || Boolean((child as { deletedAt?: Date | null } | undefined)?.deletedAt) || child?.isAvailable === false) {
+            throw new OutOfStockException(
+              `${product.name} — ${child?.name || "item indisponível"}`,
+              0,
+              totalQty,
+              product.id
+            );
+          }
+
+          if (child) {
+            const childQty = Math.max(1, ci.quantity || 1) * totalQty;
+            registerFiniteDemand(
+              child.id,
+              child.name,
+              (child as { stock?: number | null }).stock,
+              childQty
+            );
+          }
+        }
+      }
     }
 
     // Busca promoções vinculadas caso algum item venha de promoção
@@ -883,17 +939,14 @@ export async function POST(request: Request) {
         },
       });
 
-      // Decremento estritamente atômico de estoque com verificação de corrida
-      for (const [prodId, totalQty] of productQtyMap.entries()) {
-        const prod = productsMap.get(prodId);
-        if (prod && prod.stock !== null) {
-          const updateResult = await tx.product.updateMany({
-            where: { id: prodId, stock: { gte: totalQty } },
-            data: { stock: { decrement: totalQty } },
-          });
-          if (updateResult.count === 0) {
-            throw new Error(`ESTOQUE_ESGOTADO:${prod.name}`);
-          }
+      // Decremento estritamente atômico de estoque (produtos avulsos + componentes filhos de combos)
+      for (const [prodId, demand] of finiteStockDemandMap.entries()) {
+        const updateResult = await tx.product.updateMany({
+          where: { id: prodId, stock: { gte: demand.required } },
+          data: { stock: { decrement: demand.required } },
+        });
+        if (updateResult.count === 0) {
+          throw new Error(`ESTOQUE_ESGOTADO:${demand.name}`);
         }
       }
 

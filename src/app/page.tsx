@@ -271,6 +271,7 @@ export default function Storefront() {
   const handleOpenProductModal = useCallback((product: Product) => {
     if (
       product.isAvailable === false ||
+      product.effectiveIsAvailable === false ||
       (product.stock !== undefined && product.stock !== null && product.stock <= 0)
     ) {
       return;

@@ -11,6 +11,7 @@ import {
   Image as ImageIcon,
   Megaphone,
   MessageCircle,
+  Package,
   Palette,
   Settings,
   ShieldCheck,
@@ -34,6 +35,7 @@ const GROUP_ICONS: Record<AdminGroupMeta["iconKey"], React.ComponentType<{ class
 const TAB_ICONS: Record<AdminTabMeta["iconKey"], React.ComponentType<{ className?: string }>> = {
   BarChart3,
   Truck,
+  Package,
   FolderTree,
   IceCream,
   Zap,

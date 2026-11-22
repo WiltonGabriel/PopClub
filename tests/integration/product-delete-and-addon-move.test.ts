@@ -136,7 +136,10 @@ describe("Integração: Exclusão Segura de Produtos e Movimentação de Complem
         promotion: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
         productAddonGroup: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
         comboItem: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
-        product: { update: vi.fn().mockResolvedValue({ id: "prod-fk" }) },
+        product: {
+          delete: vi.fn().mockRejectedValue({ code: "P2003" }),
+          update: vi.fn().mockResolvedValue({ id: "prod-fk" }),
+        },
       };
       vi.spyOn(prisma, "$transaction").mockImplementation(async (cb: any) => cb(txMock));
 
@@ -159,10 +162,30 @@ describe("Integração: Exclusão Segura de Produtos e Movimentação de Complem
       } as any);
       vi.spyOn(prisma.product, "findUnique").mockResolvedValue({
         id: "prod-ok",
+        name: "Produto Teste",
         deletedAt: null,
       } as any);
       vi.spyOn(prisma.orderItem, "count").mockResolvedValue(0);
-      vi.spyOn(prisma.product, "delete").mockResolvedValue({ id: "prod-ok" } as any);
+      const txMock = {
+        promotion: {
+          findMany: vi.fn().mockResolvedValue([]),
+          updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+        },
+        productAddonGroup: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        comboItem: {
+          findMany: vi.fn().mockResolvedValue([]),
+          deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+        },
+        coupon: {
+          findMany: vi.fn().mockResolvedValue([]),
+          update: vi.fn().mockResolvedValue({}),
+        },
+        product: {
+          updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+          delete: vi.fn().mockResolvedValue({ id: "prod-ok" }),
+        },
+      };
+      vi.spyOn(prisma, "$transaction").mockImplementation(async (cb: any) => cb(txMock));
 
       const res = await deleteProduct(
         new Request("http://localhost:3000/api/products/prod-ok", { method: "DELETE" }),

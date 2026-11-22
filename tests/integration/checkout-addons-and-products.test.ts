@@ -162,6 +162,19 @@ describe("Integração de Complementos em Combos, Checkout e Ordenação de Prod
       role: "admin",
     } as any);
 
+    vi.spyOn(prisma.product, "findUnique").mockResolvedValue({
+      id: "prod-copo-400",
+      name: "Copo 400ml",
+      price: 25,
+      isCombo: false,
+      isAvailable: true,
+      stock: null,
+      deletedAt: null,
+      _count: { comboItems: 0 },
+    } as any);
+    vi.spyOn(prisma.promotion, "findMany").mockResolvedValue([]);
+    vi.spyOn(prisma.comboItem, "findMany").mockResolvedValue([]);
+
     vi.spyOn(prisma.addonGroup, "findMany").mockResolvedValue([
       { id: "grp-talheres", name: "Talheres / Descartáveis", sortOrder: 1 },
       { id: "grp-trad", name: "Acompanhamentos Tradicionais", sortOrder: 1 },

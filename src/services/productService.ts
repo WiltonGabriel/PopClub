@@ -22,6 +22,57 @@ export interface ProductPromotion {
   sessionMinutes?: number | null;
 }
 
+export interface ComboComponentUnavailableItem {
+  productId: string;
+  name: string;
+  quantity: number;
+  reason: "deleted" | "paused" | "out_of_stock";
+  availableStock: number | null;
+}
+
+export interface ProductDependencyImpact {
+  product: {
+    id: string;
+    name: string;
+    price: number;
+    isCombo: boolean;
+    isAvailable: boolean;
+    stock: number | null;
+  };
+  parentCombos: Array<{
+    id: string;
+    name: string;
+    price: number;
+    isAvailable: boolean;
+    itemsCount: number;
+    quantityInCombo: number;
+  }>;
+  promotions: Array<{
+    id: string;
+    title: string;
+    discountType: string;
+    discountValue: number;
+    isActive: boolean;
+    expiresAt: string | null;
+  }>;
+  coupons: Array<{
+    id: string;
+    code: string;
+    isActive: boolean;
+    productCount: number;
+    willDeactivateIfRemoved: boolean;
+  }>;
+  addonGroups: Array<{
+    id: string;
+    name: string;
+    itemsCount: number;
+  }>;
+  activeOrdersCount: number;
+  historicalOrdersCount: number;
+  totalOrdersCount: number;
+  willSoftDelete: boolean;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -40,6 +91,10 @@ export interface Product {
   imageUrl: string;
   stock?: number | null;
   isAvailable?: boolean;
+  effectiveIsAvailable?: boolean;
+  unavailableComponents?: ComboComponentUnavailableItem[];
+  comboStockLimit?: number | null;
+  impactWarnings?: string[];
   cardBadgeId?: string | null;
   cardBadge?: CardBadge | null;
   isCombo?: boolean;
@@ -124,6 +179,15 @@ export const productService = {
       imageUrl: String(item.imageUrl || ""),
       stock: item.stock !== undefined ? (item.stock as number | null) : null,
       isAvailable: item.isAvailable !== undefined ? Boolean(item.isAvailable) : true,
+      effectiveIsAvailable:
+        item.effectiveIsAvailable !== undefined ? Boolean(item.effectiveIsAvailable) : undefined,
+      unavailableComponents: Array.isArray(item.unavailableComponents)
+        ? (item.unavailableComponents as ComboComponentUnavailableItem[])
+        : [],
+      comboStockLimit:
+        item.comboStockLimit !== undefined && item.comboStockLimit !== null
+          ? Number(item.comboStockLimit)
+          : null,
       cardBadgeId: (item.cardBadgeId as string | null) || null,
       cardBadge: (item.cardBadge as Product["cardBadge"]) || null,
       isCombo: Boolean(item.isCombo),
@@ -171,6 +235,15 @@ export const productService = {
       imageUrl: data.imageUrl || "",
       stock: data.stock !== undefined ? data.stock : null,
       isAvailable: data.isAvailable !== undefined ? Boolean(data.isAvailable) : true,
+      effectiveIsAvailable:
+        data.effectiveIsAvailable !== undefined ? Boolean(data.effectiveIsAvailable) : undefined,
+      unavailableComponents: Array.isArray(data.unavailableComponents)
+        ? data.unavailableComponents
+        : [],
+      comboStockLimit:
+        data.comboStockLimit !== undefined && data.comboStockLimit !== null
+          ? Number(data.comboStockLimit)
+          : null,
       cardBadgeId: data.cardBadgeId || null,
       cardBadge: data.cardBadge || null,
       isCombo: data.isCombo || false,
@@ -352,18 +425,32 @@ export const productService = {
       comboItems: data.comboItems || [],
       addonGroupIds: data.addonGroupIds || [],
       addonGroups: data.addonGroups || [],
+      impactWarnings: Array.isArray(data.impactWarnings) ? data.impactWarnings : [],
     };
   },
 
-  async deleteProduct(id: string): Promise<void> {
+  async getProductImpact(id: string): Promise<ProductDependencyImpact> {
+    const res = await fetch(`/api/products/${encodeURIComponent(id)}/impact`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(10000),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || "Erro ao consultar dependências do produto.");
+    }
+    return data as ProductDependencyImpact;
+  },
+
+  async deleteProduct(id: string): Promise<{ message?: string; softDeleted?: boolean; impacts?: unknown }> {
     const res = await fetch(`/api/products/${id}`, {
       method: "DELETE",
     });
 
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const data = await res.json();
       throw new Error(data.error || "Erro ao deletar produto.");
     }
+    return data;
   },
 
   async updateProductStock(
@@ -389,6 +476,7 @@ export const productService = {
       imageUrl: data.imageUrl,
       stock: data.stock,
       isAvailable: data.isAvailable,
+      impactWarnings: Array.isArray(data.impactWarnings) ? data.impactWarnings : [],
     };
   },
 };

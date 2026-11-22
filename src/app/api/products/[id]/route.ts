@@ -6,6 +6,7 @@ import { productInclude, formatProduct } from "@/lib/productHelper";
 import { resolveOrderedAddonGroupIds } from "@/lib/addonPersistenceHelper";
 import { hasPermission } from "@/lib/permissions";
 import { deleteOrSoftDeleteProduct } from "@/services/productDeletionService";
+import { reconcileProductEditImpacts } from "@/services/productDependencyService";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -162,13 +163,76 @@ export async function PUT(
       };
     }
 
+    const existing = await prisma.product.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        isCombo: true,
+        isAvailable: true,
+        stock: true,
+        deletedAt: true,
+        _count: { select: { comboItems: true } },
+      },
+    });
+
+    if (!existing || existing.deletedAt) {
+      return NextResponse.json(
+        { error: "Produto não encontrado." },
+        { status: 404, headers: NO_CACHE_HEADERS }
+      );
+    }
+
+    const resultingIsCombo = isCombo !== undefined ? Boolean(isCombo) : Boolean(existing.isCombo);
+    const resultingIsAvailable =
+      isAvailable !== undefined ? Boolean(isAvailable) : Boolean(existing.isAvailable);
+    const resultingComboItemsCount = Array.isArray(comboItems)
+      ? comboItems.length
+      : existing._count?.comboItems ?? 0;
+
+    if (resultingIsCombo && resultingIsAvailable && resultingComboItemsCount === 0) {
+      return NextResponse.json(
+        { error: "Um combo não pode ser ativado sem pelo menos 1 produto vinculado." },
+        { status: 400 }
+      );
+    }
+
     const updated = await prisma.product.update({
       where: { id },
       data: dataToUpdate,
       include: productInclude,
     });
 
-    return NextResponse.json(formatProduct(updated), { headers: NO_CACHE_HEADERS });
+    const impactSummary = await reconcileProductEditImpacts({
+      productId: id,
+      previousProduct: {
+        id: existing.id,
+        name: existing.name,
+        price: existing.price,
+        isCombo: Boolean(existing.isCombo),
+        isAvailable: Boolean(existing.isAvailable),
+        stock: existing.stock ?? null,
+      },
+      updatedProduct: {
+        id: updated.id,
+        name: updated.name,
+        price: updated.price,
+        isCombo: Boolean(updated.isCombo),
+        isAvailable: Boolean(updated.isAvailable),
+        stock: updated.stock ?? null,
+      },
+      actor: user ? { id: user.id, role: user.role } : null,
+    });
+
+    return NextResponse.json(
+      {
+        ...formatProduct(updated),
+        impactWarnings: impactSummary.warnings,
+        impactSummary,
+      },
+      { headers: NO_CACHE_HEADERS }
+    );
   } catch (error: unknown) {
     console.error("Erro ao atualizar produto:", error);
     if (error && typeof error === "object" && "code" in error && (error as { code: string }).code === "P2025") {
@@ -189,7 +253,7 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const result = await deleteOrSoftDeleteProduct(id);
+    const result = await deleteOrSoftDeleteProduct(id, user ? { id: user.id, role: user.role } : null);
 
     if (result.status === "not_found") {
       return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
@@ -199,6 +263,7 @@ export async function DELETE(
       success: true,
       softDeleted: result.softDeleted,
       linkedOrdersCount: result.linkedOrdersCount,
+      impacts: result.impacts,
       message: result.message,
     });
   } catch (error: unknown) {

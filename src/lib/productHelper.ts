@@ -1,4 +1,5 @@
 import { AddonOrganizationService } from "@/domain/services/AddonOrganizationService";
+import { ProductDependencyDomainService } from "@/domain/services/ProductDependencyDomainService";
 
 export const productInclude = {
   categoryRel: {
@@ -45,6 +46,12 @@ export const productInclude = {
 
 export function formatProduct(p: any) {
   const sortedProductAddonGroups = AddonOrganizationService.sortAddonGroups(p.addonGroups || []);
+  const comboAvailability = ProductDependencyDomainService.evaluateComboAvailability({
+    isCombo: Boolean(p.isCombo),
+    isAvailable: p.isAvailable,
+    stock: p.stock ?? null,
+    comboItems: p.comboItems || [],
+  });
 
   return {
     id: p.id,
@@ -58,6 +65,9 @@ export function formatProduct(p: any) {
     imageUrl: p.imageUrl || "",
     stock: p.stock,
     isAvailable: p.isAvailable,
+    effectiveIsAvailable: comboAvailability.effectiveIsAvailable,
+    unavailableComponents: comboAvailability.unavailableComponents,
+    comboStockLimit: comboAvailability.maxBuildableUnits,
     cardBadgeId: p.cardBadgeId,
     cardBadge: p.cardBadge,
     isCombo: Boolean(p.isCombo),
@@ -84,6 +94,9 @@ export function formatProduct(p: any) {
           price: Number(ci.product.price),
           imageUrl: ci.product.imageUrl || "",
           servesText: ci.product.servesText || null,
+          isAvailable: ci.product.isAvailable !== false,
+          stock: ci.product.stock ?? null,
+          deletedAt: ci.product.deletedAt ? ci.product.deletedAt.toISOString() : null,
           addonGroupIds: sortedChildAddonGroups.map((pag: any) => pag.groupId),
           addonGroups: sortedChildAddonGroups.map((pag: any) => ({
             groupId: pag.groupId,

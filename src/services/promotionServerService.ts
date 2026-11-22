@@ -11,6 +11,8 @@ const promotionProductSelect = {
   price: true,
   imageUrl: true,
   isAvailable: true,
+  stock: true,
+  deletedAt: true,
   isCombo: true,
   addonGroups: {
     select: {
@@ -52,6 +54,8 @@ type PromotionRecordWithProduct = {
     price: Prisma.Decimal | number | string;
     imageUrl: string | null;
     isAvailable?: boolean;
+    stock?: number | null;
+    deletedAt?: Date | string | null;
     isCombo?: boolean;
     addonGroups?: Array<{ groupId: string }>;
   } | null;
@@ -72,7 +76,13 @@ export function formatPromotionDto(promo: PromotionRecordWithProduct, now: Date 
       expiresAt: promo.expiresAt,
       scarcityType: promo.scarcityType,
       scarcityUnits: promo.scarcityUnits,
-      product: promo.product ? { isAvailable: promo.product.isAvailable } : null,
+      product: promo.product
+        ? {
+            isAvailable: promo.product.isAvailable,
+            stock: promo.product.stock ?? null,
+            deletedAt: promo.product.deletedAt ?? null,
+          }
+        : null,
     },
     now
   );
@@ -192,8 +202,12 @@ export class PromotionServerService {
       },
     });
 
-    if (!promo) {
-      throw new ResourceNotFoundException("Promoção", id, "Promoção não encontrada.");
+    if (!promo || promo.product?.deletedAt) {
+      throw new ResourceNotFoundException(
+        "Promoção",
+        id,
+        "Promoção não encontrada ou produto removido."
+      );
     }
 
     return formatPromotionDto(promo as unknown as PromotionRecordWithProduct, new Date());

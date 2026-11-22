@@ -10,6 +10,7 @@ export type AdminGroupId =
 export type AdminTabId =
   | "metricas"
   | "logistica_entregadores"
+  | "produtos_base"
   | "categorias"
   | "complementos"
   | "combos"
@@ -30,10 +31,12 @@ export interface AdminTabMeta {
   shortLabel?: string;
   description: string;
   perm: PermissionKey | null;
+  anyOfPerms?: PermissionKey[];
   adminOnly?: boolean;
   iconKey:
     | "BarChart3"
     | "Truck"
+    | "Package"
     | "FolderTree"
     | "IceCream"
     | "Zap"
@@ -96,9 +99,18 @@ export const ADMIN_NAV_GROUPS: AdminGroupMeta[] = [
   {
     id: "catalogo",
     label: "Catálogo",
-    description: "Cardápio, acompanhamentos, kits e destaques da vitrine.",
+    description: "Produtos base, categorias, complementos, kits e destaques da vitrine.",
     iconKey: "Store",
     tabs: [
+      {
+        id: "produtos_base",
+        groupId: "catalogo",
+        label: "Produto Base",
+        description: "Controle de estoque, disponibilidade, cadastro e edição de produtos base do cardápio.",
+        perm: "menu_manage",
+        anyOfPerms: ["menu_manage", "STOCK_CONTROL"],
+        iconKey: "Package",
+      },
       {
         id: "categorias",
         groupId: "catalogo",
@@ -257,6 +269,9 @@ export function isAdminTabAccessible(
   if (!meta) return false;
   if (meta.adminOnly || ADMIN_ONLY_TABS.has(meta.id)) {
     return false;
+  }
+  if (meta.anyOfPerms && meta.anyOfPerms.length > 0) {
+    return meta.anyOfPerms.some((perm) => hasPermission(user, perm));
   }
   if (!meta.perm) {
     return false;
