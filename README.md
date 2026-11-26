@@ -12,22 +12,15 @@
 ![Projeto Extensionista](https://img.shields.io/badge/Projeto%20Extensionista-UNIVAG%20TADS-8A2BE2?style=for-the-badge)
 ![Vitest](https://img.shields.io/badge/Vitest-354%20Passed-449C44?style=for-the-badge&logo=vitest&logoColor=white)
 ![LGPD](https://img.shields.io/badge/LGPD-Compliant-00B4D8?style=for-the-badge&logo=privatedivision&logoColor=white)
-![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue?style=for-the-badge)
 [![Google Drive](https://img.shields.io/badge/Google%20Drive-Documentos%20Oficiais-4285F4?style=for-the-badge&logo=googledrive&logoColor=white)](https://drive.google.com/drive/folders/1iw4oxwSWsKvCcCP9YZipzOM0B2B7JmdR?usp=sharing)
 
 <br/>
 
-**Plataforma open-source de delivery PWA, esteira de produção Kanban em tempo real e gestão operacional.**
+**Plataforma de delivery PWA, esteira de produção Kanban em tempo real e gestão operacional.**
 
-[Visão Geral](#-visão-geral) • [Topologia](#-topologia-de-arquitetura) • [Segurança & AppSec](#-segurança-blindagem-e-políticas-de-acesso-appsec) • [LGPD & Cookies](#-conformidade-lgpd-governança-de-cookies-e-privacy-by-design) • [Stack](#-stack-tecnológica) • [Setup Local](#-setup-de-desenvolvimento-local) • [Scripts](#-scripts-operacionais-e-manutenção) • [GitOps](#-governança-gitops--ciclo-de-deploy) • [Módulos](#-módulos-da-aplicação) • [Equipe e Licença](#-equipe-e-governança)
+[Visão Geral](#-visão-geral) • [Topologia](#-topologia-de-arquitetura) • [Segurança & AppSec](#-segurança-blindagem-e-políticas-de-acesso-appsec) • [LGPD & Cookies](#-conformidade-lgpd-governança-de-cookies-e-privacy-by-design) • [Stack](#-stack-tecnológica) • [Setup Local](#-setup-de-desenvolvimento-local) • [Scripts](#-scripts-operacionais-e-manutenção) • [GitOps](#-governança-gitops--ciclo-de-deploy) • [Módulos](#-módulos-da-aplicação) • [Equipe](#-equipe-e-governança)
 
 </div>
-
----
-
-> [!NOTE]
-> **PROJETO OPEN-SOURCE — LICENÇA AGPL-3.0**
-> Este repositório disponibiliza o código-fonte do software sob a licença **GNU Affero General Public License v3.0 (AGPL-3.0)**. Consulte o arquivo [LICENSE](LICENSE) para detalhes de uso, redistribuição e obrigações de código aberto em rede.
 
 ---
 
@@ -318,5 +311,5 @@ O projeto **PopClub** é mantido pela **Equipe ADP**, no âmbito do Projeto Exte
 - **João Lucas Lima da Silva — Analista de Qualidade & Relacionamento**  
   Responsável pela validação funcional, apoio aos testes e comunicação de requisitos.
 
-### Licenciamento
-- **Licença Open-Source:** Este software é distribuído sob a licença **GNU Affero General Public License v3.0 (AGPL-3.0)**. Consulte o arquivo [LICENSE](LICENSE) para os termos completos.
+### Direitos Autorais
+- **© Equipe ADP.** Todos os direitos reservados.

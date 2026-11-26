@@ -31,7 +31,6 @@ yarn-error.log*
 
 # Documentação e dumps
 *.md
-LICENSE
 database_schema.sql
 01_initial_schema.sql
 

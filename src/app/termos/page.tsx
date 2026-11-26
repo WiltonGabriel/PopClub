@@ -114,10 +114,10 @@ export default function TermosDeUsoPage() {
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs space-y-2.5">
             <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100 font-bold text-base">
               <Scale className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
-              <h2>6. Segurança da Conta e Licença do Software</h2>
+              <h2>6. Segurança da Conta e Propriedade do Software</h2>
             </div>
             <p className="leading-relaxed">
-              O usuário é responsável pela guarda de suas credenciais de acesso e pela veracidade das informações cadastrais. O código-fonte da plataforma PopClub é disponibilizado como software livre sob a licença GNU AGPL-3.0, sem prejuízo das marcas comerciais do estabelecimento operador.
+              O usuário é responsável pela guarda de suas credenciais de acesso e pela veracidade das informações cadastrais. A plataforma PopClub é de propriedade intelectual da Equipe ADP, sem prejuízo das marcas comerciais do estabelecimento operador.
             </p>
           </div>
         </div>

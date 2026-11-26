@@ -1,6 +1,6 @@
 # Guia de Contribuição — PopClub
 
-Agradecemos o interesse em contribuir para o **PopClub**. Este projeto segue padrões estritos de arquitetura em camadas, testes automatizados e licenciamento aberto sob **GNU AGPL-3.0**.
+Agradecemos o interesse em contribuir para o **PopClub**. Este projeto segue padrões estritos de arquitetura em camadas e testes automatizados.
 
 ---
 
@@ -63,9 +63,3 @@ Utilize mensagens semânticas concisas em português ou inglês:
 - `docs(escopo): atualização de documentação`
 - `refactor(escopo): refatoração sem alteração de comportamento`
 - `test(escopo): adição ou melhoria de testes`
-
----
-
-## 5. Licença das Contribuições
-
-Ao enviar um Pull Request para este repositório, você concorda que suas contribuições sejam licenciadas sob os mesmos termos da **GNU Affero General Public License v3.0 (AGPL-3.0)** descritos em [LICENSE](../LICENSE).
