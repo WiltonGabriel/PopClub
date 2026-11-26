@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import {
   Power,
   Play,
   Clock,
   Bell,
   Loader2,
+  Pencil,
 } from "lucide-react";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
 import { useAuth } from "@/hooks/useAuth";
@@ -73,12 +75,14 @@ export function StoreStatusTopWidget({
     isConveyorOpen,
     openingTime,
     closingTime,
+    currentDaySchedule,
     refresh,
     toggleConveyor,
   } = useStoreStatus(15000);
   const { isAdmin, canAccess } = useAuth();
   const canManageConveyor =
     isAdmin || canAccess("ORDERS_KANBAN") || canAccess("settings_manage");
+  const canManageLogistics = isAdmin || canAccess("logistics_manage");
 
   const { showToast } = useToast();
   const [actionLoading, setActionLoading] = useState(false);
@@ -231,8 +235,22 @@ export function StoreStatusTopWidget({
           {/* Horário Programado do Dia */}
           <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/30 px-3 py-1.5 rounded-xl border border-border/40">
             <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
-            <span>Hoje: <strong>{openingTime}</strong> às <strong>{closingTime}</strong> (MT)</span>
+            {currentDaySchedule && !currentDaySchedule.isOpen ? (
+              <span>Hoje: <strong>Folga (Fechado)</strong></span>
+            ) : (
+              <span>Hoje: <strong>{openingTime}</strong> às <strong>{closingTime}</strong> (MT)</span>
+            )}
           </div>
+
+          {canManageLogistics && (
+            <Link
+              href="/admin?tab=logistica_entregadores#horarios-funcionamento"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary dark:text-violet-300 hover:underline px-2.5 py-1.5 rounded-xl bg-primary/5 hover:bg-primary/10 border border-primary/20 transition-colors"
+            >
+              <Pencil className="w-3 h-3 shrink-0" />
+              <span>Editar horários</span>
+            </Link>
+          )}
         </div>
 
         {/* Interruptor Geral da Esteira (com confirmação obrigatória) */}

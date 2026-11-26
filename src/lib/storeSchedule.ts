@@ -20,6 +20,152 @@ export const DEFAULT_STORE_SCHEDULE: BusinessHourDay[] = [
   { day: "sunday", label: "Domingo", isOpen: true, openTime: "14:00", closeTime: "23:00" },
 ];
 
+export const CANONICAL_DAYS_ORDER = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+] as const;
+
+export type CanonicalDayKey = (typeof CANONICAL_DAYS_ORDER)[number];
+
+export const DAY_SHORT_LABELS: Record<CanonicalDayKey, string> = {
+  monday: "Seg",
+  tuesday: "Ter",
+  wednesday: "Qua",
+  thursday: "Qui",
+  friday: "Sex",
+  saturday: "Sáb",
+  sunday: "Dom",
+};
+
+export const DAY_FULL_LABELS: Record<CanonicalDayKey, string> = {
+  monday: "Segunda",
+  tuesday: "Terça",
+  wednesday: "Quarta",
+  thursday: "Quinta",
+  friday: "Sexta",
+  saturday: "Sábado",
+  sunday: "Domingo",
+};
+
+const TOTAL_WEEK_DAYS = CANONICAL_DAYS_ORDER.length;
+
+/**
+ * Formata uma string "HH:mm" para exibição compacta em português ("14:00" -> "14h", "23:30" -> "23h30").
+ */
+export function formatHourCompact(timeStr: string): string {
+  if (!timeStr || !timeStr.includes(":")) return timeStr || "00h";
+  const [rawHour, rawMinute] = timeStr.split(":");
+  const hourNum = parseInt(rawHour, 10);
+  const minuteNum = parseInt(rawMinute, 10);
+  const hourPart = Number.isFinite(hourNum) ? String(hourNum).padStart(2, "0") : rawHour;
+  if (!Number.isFinite(minuteNum) || minuteNum === 0) {
+    return `${hourPart}h`;
+  }
+  return `${hourPart}h${String(minuteNum).padStart(2, "0")}`;
+}
+
+interface ScheduleRun {
+  startDay: CanonicalDayKey;
+  endDay: CanonicalDayKey;
+  count: number;
+  openTime: string;
+  closeTime: string;
+}
+
+/**
+ * Gera um resumo legível e automático a partir da grade semanal de horários (`businessHours`).
+ */
+export function formatBusinessHoursSummary(
+  businessHours: BusinessHourDay[] | null | undefined
+): string {
+  const scheduleList =
+    Array.isArray(businessHours) && businessHours.length > 0
+      ? businessHours
+      : DEFAULT_STORE_SCHEDULE;
+
+  const byDay = new Map<string, BusinessHourDay>();
+  for (const item of scheduleList) {
+    if (item?.day) {
+      byDay.set(item.day.toLowerCase(), item);
+    }
+  }
+
+  const runs: ScheduleRun[] = [];
+  let currentRun: ScheduleRun | null = null;
+
+  for (const dayKey of CANONICAL_DAYS_ORDER) {
+    const dayEntry = byDay.get(dayKey);
+    if (!dayEntry || !dayEntry.isOpen) {
+      if (currentRun) {
+        runs.push(currentRun);
+        currentRun = null;
+      }
+      continue;
+    }
+
+    const openTime = dayEntry.openTime || "13:00";
+    const closeTime = dayEntry.closeTime || "23:30";
+
+    if (
+      currentRun &&
+      currentRun.openTime === openTime &&
+      currentRun.closeTime === closeTime
+    ) {
+      currentRun.endDay = dayKey;
+      currentRun.count += 1;
+    } else {
+      if (currentRun) {
+        runs.push(currentRun);
+      }
+      currentRun = {
+        startDay: dayKey,
+        endDay: dayKey,
+        count: 1,
+        openTime,
+        closeTime,
+      };
+    }
+  }
+
+  if (currentRun) {
+    runs.push(currentRun);
+  }
+
+  if (runs.length === 0) {
+    return "Fechado temporariamente";
+  }
+
+  if (runs.length === 1 && runs[0].count === TOTAL_WEEK_DAYS) {
+    const open = formatHourCompact(runs[0].openTime);
+    const close = formatHourCompact(runs[0].closeTime);
+    return `Todos os dias das ${open} às ${close}`;
+  }
+
+  const labelsMap = runs.length === 1 ? DAY_FULL_LABELS : DAY_SHORT_LABELS;
+
+  return runs
+    .map((run) => {
+      const startLabel = labelsMap[run.startDay];
+      const endLabel = labelsMap[run.endDay];
+      const open = formatHourCompact(run.openTime);
+      const close = formatHourCompact(run.closeTime);
+
+      if (run.count === 1) {
+        return `${startLabel} das ${open} às ${close}`;
+      }
+      if (run.count === 2) {
+        return `${startLabel} e ${endLabel} das ${open} às ${close}`;
+      }
+      return `${startLabel} a ${endLabel} das ${open} às ${close}`;
+    })
+    .join(" • ");
+}
+
 export type StoreStatusCode = "OPERATIONAL_READY" | "CONVEYOR_PAUSED" | "STORE_CLOSED";
 
 export interface StoreOperationalStatus {
@@ -163,7 +309,10 @@ export function evaluateStoreSchedule(
     status = "STORE_CLOSED";
     statusLabel = "Loja Fechada";
     canAcceptOrders = false;
-    message = `Estamos fechados no momento. Hoje nosso horário de atendimento é das ${openingTime} às ${closingTime}. Você já pode ir escolhendo seus itens e montando sua sacola!`;
+    message =
+      todaySchedule && !todaySchedule.isOpen
+        ? "Estamos fechados hoje (dia de folga). Você já pode ir escolhendo seus itens e montando sua sacola!"
+        : `Estamos fechados no momento. Hoje nosso horário de atendimento é das ${openingTime} às ${closingTime}. Você já pode ir escolhendo seus itens e montando sua sacola!`;
   } else if (!isConveyorOpen) {
     status = "CONVEYOR_PAUSED";
     statusLabel = "Preparando Cozinha (Aguardando Esteira)";

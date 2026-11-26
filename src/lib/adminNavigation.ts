@@ -88,8 +88,8 @@ export const ADMIN_NAV_GROUPS: AdminGroupMeta[] = [
       {
         id: "logistica_entregadores",
         groupId: "operacao",
-        label: "Logística & Entregadores",
-        shortLabel: "Logística",
+        label: "Loja, Horários & Logística",
+        shortLabel: "Loja & Logística",
         description: "Turno da frota, taxas de entrega, raio, sede e horários.",
         perm: "logistics_manage",
         iconKey: "Truck",

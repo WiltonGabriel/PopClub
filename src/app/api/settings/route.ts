@@ -5,6 +5,7 @@ import { handleApiError, apiSuccess, apiError } from "@/lib/apiResponse";
 import { logger } from "@/lib/logger";
 import { hasPermission } from "@/lib/permissions";
 import { recordAdminAudit } from "@/services/auditLogService";
+import { BusinessHourDay, formatBusinessHoursSummary } from "@/lib/storeSchedule";
 
 const DEFAULT_SETTINGS = {
   id: "store_config",
@@ -34,7 +35,7 @@ const DEFAULT_SETTINGS = {
     { day: "saturday", label: "Sábado", isOpen: true, openTime: "13:00", closeTime: "23:30" },
     { day: "sunday", label: "Domingo", isOpen: true, openTime: "14:00", closeTime: "23:00" },
   ],
-  openingHoursText: "Terça a Domingo das 14h às 22h",
+  openingHoursText: "Seg a Sáb das 13h às 23h30 • Dom das 14h às 23h",
   footerSlogan: "Açaí artesanal, cremosidade única e o sabor que transforma o seu dia.",
   footerBadgeText: "Delivery Próprio e Artesanal",
   showPaymentMethods: true,
@@ -154,7 +155,10 @@ export async function GET() {
       storeAddress: settings.storeAddress || DEFAULT_SETTINGS.storeAddress,
       maxDeliveryRadiusKm: settings.maxDeliveryRadiusKm ?? DEFAULT_SETTINGS.maxDeliveryRadiusKm,
       businessHours: settings.businessHours || DEFAULT_SETTINGS.businessHours,
-      openingHoursText: settings.openingHoursText || DEFAULT_SETTINGS.openingHoursText,
+      openingHoursText:
+        Array.isArray(settings.businessHours) && settings.businessHours.length > 0
+          ? formatBusinessHoursSummary(settings.businessHours as unknown as BusinessHourDay[])
+          : settings.openingHoursText || DEFAULT_SETTINGS.openingHoursText,
       footerSlogan: settings.footerSlogan || DEFAULT_SETTINGS.footerSlogan,
       footerBadgeText: settings.footerBadgeText || DEFAULT_SETTINGS.footerBadgeText,
       showPaymentMethods: settings.showPaymentMethods ?? DEFAULT_SETTINGS.showPaymentMethods,
@@ -314,8 +318,16 @@ export async function PUT(request: Request) {
     if (effectiveLng !== undefined) dataToUpdate.storeLongitude = effectiveLng;
     if (storeAddress !== undefined) dataToUpdate.storeAddress = storeAddress;
     if (maxDeliveryRadiusKm !== undefined) dataToUpdate.maxDeliveryRadiusKm = maxDeliveryRadiusKm;
+    const hasBusinessHoursPayload = Array.isArray(businessHours) && businessHours.length > 0;
+    const syncedOpeningHoursText = hasBusinessHoursPayload
+      ? formatBusinessHoursSummary(businessHours as BusinessHourDay[])
+      : undefined;
     if (businessHours !== undefined) dataToUpdate.businessHours = businessHours;
-    if (openingHoursText !== undefined) dataToUpdate.openingHoursText = openingHoursText;
+    if (syncedOpeningHoursText !== undefined) {
+      dataToUpdate.openingHoursText = syncedOpeningHoursText;
+    } else if (openingHoursText !== undefined) {
+      dataToUpdate.openingHoursText = openingHoursText;
+    }
     if (orderNotificationTemplates !== undefined) dataToUpdate.orderNotificationTemplates = orderNotificationTemplates;
     if (instagramUrl !== undefined) dataToUpdate.instagramUrl = instagramUrl;
     if (facebookUrl !== undefined) dataToUpdate.facebookUrl = facebookUrl;
@@ -350,7 +362,7 @@ export async function PUT(request: Request) {
         storeAddress: storeAddress || DEFAULT_SETTINGS.storeAddress,
         maxDeliveryRadiusKm: maxDeliveryRadiusKm ?? DEFAULT_SETTINGS.maxDeliveryRadiusKm,
         businessHours: businessHours ?? DEFAULT_SETTINGS.businessHours,
-        openingHoursText: openingHoursText || DEFAULT_SETTINGS.openingHoursText,
+        openingHoursText: syncedOpeningHoursText || openingHoursText || DEFAULT_SETTINGS.openingHoursText,
         orderNotificationTemplates: orderNotificationTemplates || DEFAULT_SETTINGS.orderNotificationTemplates,
         instagramUrl: instagramUrl || DEFAULT_SETTINGS.instagramUrl,
         facebookUrl: facebookUrl || DEFAULT_SETTINGS.facebookUrl,
@@ -397,7 +409,10 @@ export async function PUT(request: Request) {
         storeAddress: settings.storeAddress || DEFAULT_SETTINGS.storeAddress,
         maxDeliveryRadiusKm: settings.maxDeliveryRadiusKm ?? DEFAULT_SETTINGS.maxDeliveryRadiusKm,
         businessHours: settings.businessHours || DEFAULT_SETTINGS.businessHours,
-        openingHoursText: settings.openingHoursText || DEFAULT_SETTINGS.openingHoursText,
+        openingHoursText:
+          Array.isArray(settings.businessHours) && settings.businessHours.length > 0
+            ? formatBusinessHoursSummary(settings.businessHours as unknown as BusinessHourDay[])
+            : settings.openingHoursText || DEFAULT_SETTINGS.openingHoursText,
         footerSlogan: settings.footerSlogan || DEFAULT_SETTINGS.footerSlogan,
         footerBadgeText: settings.footerBadgeText || DEFAULT_SETTINGS.footerBadgeText,
         showPaymentMethods: settings.showPaymentMethods ?? DEFAULT_SETTINGS.showPaymentMethods,

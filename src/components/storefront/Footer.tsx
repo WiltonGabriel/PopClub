@@ -18,6 +18,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { storeSettingsService, StoreSettings } from "../../services/storeSettingsService";
+import { useStoreStatus } from "../../hooks/useStoreStatus";
+import { formatBusinessHoursSummary } from "../../lib/storeSchedule";
 
 function InstagramIcon({ className }: { className?: string }) {
   return (
@@ -32,10 +34,11 @@ function InstagramIcon({ className }: { className?: string }) {
 const DEFAULT_SLOGAN = "Açaí artesanal, cremosidade única e o sabor que transforma o seu dia.";
 const DEFAULT_BADGE = "Delivery Próprio e Artesanal";
 const DEFAULT_ADDRESS = "Av. Filinto Müller, 850 - Centro Sul, Várzea Grande - MT";
-const DEFAULT_HOURS = "Terça a Domingo das 14h às 22h";
+const DEFAULT_HOURS = "Seg a Sáb das 13h às 23h30 • Dom das 14h às 23h";
 
 export function Footer() {
   const [settings, setSettings] = useState<StoreSettings | null>(null);
+  const storeStatus = useStoreStatus(30000);
   const [isContactMenuOpen, setIsContactMenuOpen] = useState(false);
   const contactMenuRef = useRef<HTMLDivElement>(null);
 
@@ -109,9 +112,17 @@ export function Footer() {
   const googleMapsUrl =
     settings?.googleMapsUrl ||
     `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(storeAddress)}`;
-  const openingHours = settings?.openingHoursText || DEFAULT_HOURS;
+  const effectiveBusinessHours =
+    storeStatus.businessHours.length > 0
+      ? storeStatus.businessHours
+      : Array.isArray(settings?.businessHours) && settings.businessHours.length > 0
+        ? settings.businessHours
+        : null;
+  const openingHoursSummary = effectiveBusinessHours
+    ? formatBusinessHoursSummary(effectiveBusinessHours)
+    : settings?.openingHoursText || DEFAULT_HOURS;
+  const openingHoursLines = openingHoursSummary.split(" • ").filter(Boolean);
   const storeCnpj = settings?.storeCnpj || null;
-  const isOpen = settings?.isOpen ?? true;
 
   // Formas de Pagamento
   const showPaymentMethods = settings?.showPaymentMethods ?? true;
@@ -155,22 +166,42 @@ export function Footer() {
                 <Clock className="w-4 h-4 text-primary dark:text-violet-400 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-semibold text-zinc-900 dark:text-zinc-100">Atendimento e Entregas</p>
-                  <p className="text-zinc-600 dark:text-zinc-400 mt-0.5 leading-relaxed">{openingHours}</p>
+                  <div className="text-zinc-600 dark:text-zinc-400 mt-0.5 leading-relaxed space-y-0.5">
+                    {openingHoursLines.map((line, index) => (
+                      <p key={index}>{line}</p>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {/* Badge Dinâmico Aberto / Fechado */}
-              <div className="pt-1">
-                {isOpen ? (
+              {/* Badge Dinâmico Aberto / Preparando / Fechado */}
+              <div className="pt-1 space-y-1">
+                {storeStatus.status === "OPERATIONAL_READY" ? (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300/50 dark:border-emerald-800">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    Aberto Agora
+                    Aberto Agora • até {storeStatus.closingTime}
+                  </span>
+                ) : storeStatus.status === "CONVEYOR_PAUSED" ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300/60 dark:border-amber-800">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                    Preparando Cozinha
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-700">
-                    <span className="w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-600" />
-                    Fechado no Momento
-                  </span>
+                  <div className="space-y-1">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-700">
+                      <span className="w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-600" />
+                      Fechado no Momento
+                    </span>
+                    {storeStatus.currentDaySchedule && !storeStatus.currentDaySchedule.isOpen ? (
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 pl-0.5">
+                        Hoje: Dia de folga
+                      </p>
+                    ) : storeStatus.openingTime ? (
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 pl-0.5">
+                        Hoje: {storeStatus.openingTime} às {storeStatus.closingTime}
+                      </p>
+                    ) : null}
+                  </div>
                 )}
               </div>
             </div>

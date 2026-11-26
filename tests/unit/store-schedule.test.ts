@@ -5,6 +5,9 @@ import {
   getCuiabaNow,
   isTimeWithinRange,
   timeStringToMinutes,
+  formatHourCompact,
+  formatBusinessHoursSummary,
+  BusinessHourDay,
 } from "@/lib/storeSchedule";
 
 describe("Store Schedule & Operational Status (America/Cuiaba)", () => {
@@ -128,6 +131,97 @@ describe("Store Schedule & Operational Status (America/Cuiaba)", () => {
       const canTrackActiveOrder = Boolean(mockExistingOrder && mockExistingOrder.id);
       expect(canTrackActiveOrder).toBe(true);
       expect(mockExistingOrder.status).toBe("delivering");
+    });
+
+    it("em dia de folga (isOpen: false), loja permanece fechada e exibe mensagem específica de folga", () => {
+      // 17:00 UTC em 19/10/2026 = 13:00 Cuiabá (Segunda-feira)
+      vi.setSystemTime(new Date("2026-10-19T17:00:00Z"));
+      const scheduleWithMondayOff: BusinessHourDay[] = DEFAULT_STORE_SCHEDULE.map((d) =>
+        d.day === "monday" ? { ...d, isOpen: false } : d
+      );
+
+      const status = evaluateStoreSchedule(scheduleWithMondayOff, true);
+
+      expect(status.status).toBe("STORE_CLOSED");
+      expect(status.isWithinSchedule).toBe(false);
+      expect(status.canAcceptOrders).toBe(false);
+      expect(status.message).toContain("folga");
+    });
+  });
+
+  describe("formatHourCompact & formatBusinessHoursSummary", () => {
+    it("formata horas cheias e quebradas de forma compacta", () => {
+      expect(formatHourCompact("14:00")).toBe("14h");
+      expect(formatHourCompact("23:30")).toBe("23h30");
+      expect(formatHourCompact("09:05")).toBe("09h05");
+    });
+
+    it("formata a grade padrão (Seg–Sáb + Dom) corretamente", () => {
+      expect(formatBusinessHoursSummary(DEFAULT_STORE_SCHEDULE)).toBe(
+        "Seg a Sáb das 13h às 23h30 • Dom das 14h às 23h"
+      );
+    });
+
+    it("formata quando todos os dias da semana possuem o mesmo horário", () => {
+      const allSame: BusinessHourDay[] = DEFAULT_STORE_SCHEDULE.map((d) => ({
+        ...d,
+        isOpen: true,
+        openTime: "14:00",
+        closeTime: "22:00",
+      }));
+      expect(formatBusinessHoursSummary(allSame)).toBe("Todos os dias das 14h às 22h");
+    });
+
+    it("formata folga na segunda com Terça a Domingo contínuos", () => {
+      const tueToSun: BusinessHourDay[] = DEFAULT_STORE_SCHEDULE.map((d) => ({
+        ...d,
+        isOpen: d.day !== "monday",
+        openTime: "14:00",
+        closeTime: "22:00",
+      }));
+      expect(formatBusinessHoursSummary(tueToSun)).toBe("Terça a Domingo das 14h às 22h");
+    });
+
+    it("formata apenas fim de semana, dia único e dias não consecutivos", () => {
+      const weekendOnly: BusinessHourDay[] = DEFAULT_STORE_SCHEDULE.map((d) => ({
+        ...d,
+        isOpen: d.day === "saturday" || d.day === "sunday",
+        openTime: "15:00",
+        closeTime: "23:00",
+      }));
+      expect(formatBusinessHoursSummary(weekendOnly)).toBe("Sábado e Domingo das 15h às 23h");
+
+      const singleDay: BusinessHourDay[] = DEFAULT_STORE_SCHEDULE.map((d) => ({
+        ...d,
+        isOpen: d.day === "friday",
+        openTime: "18:00",
+        closeTime: "23:30",
+      }));
+      expect(formatBusinessHoursSummary(singleDay)).toBe("Sexta das 18h às 23h30");
+
+      const nonConsecutive: BusinessHourDay[] = DEFAULT_STORE_SCHEDULE.map((d) => ({
+        ...d,
+        isOpen: d.day === "monday" || d.day === "wednesday",
+        openTime: "13:00",
+        closeTime: "21:00",
+      }));
+      expect(formatBusinessHoursSummary(nonConsecutive)).toBe(
+        "Seg das 13h às 21h • Qua das 13h às 21h"
+      );
+    });
+
+    it("retorna Fechado temporariamente quando todos os dias estão fechados e usa padrão para entrada vazia", () => {
+      const allClosed: BusinessHourDay[] = DEFAULT_STORE_SCHEDULE.map((d) => ({
+        ...d,
+        isOpen: false,
+      }));
+      expect(formatBusinessHoursSummary(allClosed)).toBe("Fechado temporariamente");
+      expect(formatBusinessHoursSummary(null)).toBe(
+        "Seg a Sáb das 13h às 23h30 • Dom das 14h às 23h"
+      );
+      expect(formatBusinessHoursSummary([])).toBe(
+        "Seg a Sáb das 13h às 23h30 • Dom das 14h às 23h"
+      );
     });
   });
 });

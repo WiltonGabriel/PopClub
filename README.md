@@ -94,7 +94,6 @@ Para aprofundamento das decisões arquiteturais, fluxos de rede, segurança e co
 - [docs/API_REFERENCE.md](docs/API_REFERENCE.md) — Referência de endpoints REST, SSE e RBAC
 - [docs/SECURITY.md](docs/SECURITY.md) — Zero Trust, JWT, Rate Limiting e LGPD
 - [docs/ANALYTICS_KPIS.md](docs/ANALYTICS_KPIS.md) — Fórmulas de KPIs, SLA e gráficos operacionais
-- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) — Padrões de arquitetura, testes e contribuição
 
 ---
 

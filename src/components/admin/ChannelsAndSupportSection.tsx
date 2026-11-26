@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import {
   MessageSquare,
   Phone,
@@ -24,7 +25,12 @@ import {
   Check,
   Compass,
 } from "lucide-react";
-import { storeSettingsService, OrderNotificationTemplates } from "@/services/storeSettingsService";
+import {
+  storeSettingsService,
+  OrderNotificationTemplates,
+  BusinessHourDay,
+} from "@/services/storeSettingsService";
+import { formatBusinessHoursSummary } from "@/lib/storeSchedule";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,7 +58,6 @@ const DEFAULT_SLOGAN = "Açaí artesanal, cremosidade única e o sabor que trans
 const DEFAULT_BADGE = "Delivery Próprio e Artesanal";
 const DEFAULT_ADDRESS = "Av. Filinto Müller, 850 - Centro Sul, Várzea Grande - MT";
 const DEFAULT_MAPS = "https://maps.google.com/?q=Av.+Filinto+M%C3%BCller,+850+-+Centro+Sul,+V%C3%A1rzea+Grande+-+MT";
-const DEFAULT_HOURS = "Terça a Domingo das 14h às 22h";
 
 const DEFAULT_NOTIFICATION_TEMPLATES: Required<OrderNotificationTemplates> = {
   pending: "Olá, {cliente}! Recebemos seu pedido #{codigo_pedido} no Pop Shake. Estamos preparando tudo com muito carinho! Total: {total} ({forma_pagamento}).",
@@ -173,7 +178,7 @@ export function ChannelsAndSupportSection() {
   const [storeAddress, setStoreAddress] = useState(DEFAULT_ADDRESS);
   const [googleMapsUrl, setGoogleMapsUrl] = useState(DEFAULT_MAPS);
   const [storeCnpj, setStoreCnpj] = useState("");
-  const [openingHoursText, setOpeningHoursText] = useState(DEFAULT_HOURS);
+  const [businessHours, setBusinessHours] = useState<BusinessHourDay[]>([]);
 
   // 2. Contatos Oficiais & Redes Sociais
   const [whatsappNumber, setWhatsappNumber] = useState("5565999999999");
@@ -210,7 +215,7 @@ export function ChannelsAndSupportSection() {
         if (settings.whatsappMessage) setWhatsappMessage(settings.whatsappMessage);
         if (settings.supportPhone) setSupportPhone(settings.supportPhone);
         if (settings.storeAddress) setStoreAddress(settings.storeAddress);
-        if (settings.openingHoursText) setOpeningHoursText(settings.openingHoursText);
+        if (Array.isArray(settings.businessHours)) setBusinessHours(settings.businessHours);
         if (settings.instagramUrl) setInstagramUrl(settings.instagramUrl);
         if (settings.facebookUrl) setFacebookUrl(settings.facebookUrl);
         if (settings.storeCnpj) setStoreCnpj(settings.storeCnpj);
@@ -302,7 +307,6 @@ export function ChannelsAndSupportSection() {
         whatsappMessage,
         supportPhone,
         storeAddress,
-        openingHoursText,
         instagramUrl,
         facebookUrl,
         footerSlogan,
@@ -471,23 +475,31 @@ export function ChannelsAndSupportSection() {
               </span>
             </div>
 
-            {/* Horário de Atendimento Informativo */}
+            {/* Horário de Atendimento Automático (Sincronizado com Grade Semanal) */}
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-violet-500" />
-                Horário de Atendimento no Rodapé *
-              </Label>
-              <Input
-                type="text"
-                value={openingHoursText}
-                onChange={(e) => setOpeningHoursText(e.target.value)}
-                placeholder="Terça a Domingo das 14h às 22h"
-                className="text-xs sm:text-sm h-11 bg-white dark:bg-[#181D2D] rounded-xl"
-                required
-              />
-              <span className="text-[10px] text-muted-foreground block">
-                Exibido ao lado do badge dinâmico &quot;Aberto Agora&quot; / &quot;Fechado&quot;.
-              </span>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-violet-500" />
+                  Horário de Atendimento no Rodapé
+                </Label>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                  Automático
+                </span>
+              </div>
+              <div className="min-h-[44px] px-3.5 py-2.5 bg-white dark:bg-[#181D2D] border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs sm:text-sm font-medium text-foreground flex items-center">
+                <span>{formatBusinessHoursSummary(businessHours)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="text-[10px] text-muted-foreground">
+                  Gerado automaticamente pela grade semanal da loja.
+                </span>
+                <Link
+                  href="/admin?tab=logistica_entregadores#horarios-funcionamento"
+                  className="text-[11px] font-bold text-primary dark:text-violet-300 hover:underline"
+                >
+                  Editar horários e abertura da loja →
+                </Link>
+              </div>
             </div>
 
             {/* CNPJ da Empresa */}
@@ -522,9 +534,17 @@ export function ChannelsAndSupportSection() {
                 className="text-xs sm:text-sm h-11 bg-white dark:bg-[#181D2D] rounded-xl"
                 required
               />
-              <span className="text-[10px] text-muted-foreground block">
-                Localização física exibida na Coluna 3 do rodapé.
-              </span>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="text-[10px] text-muted-foreground">
+                  Localização física exibida na Coluna 3 do rodapé.
+                </span>
+                <Link
+                  href="/admin?tab=logistica_entregadores#sede-localizacao"
+                  className="text-[11px] font-bold text-primary dark:text-violet-300 hover:underline"
+                >
+                  Ajustar localização no mapa e raio de entrega →
+                </Link>
+              </div>
             </div>
 
             {/* Link do Google Maps */}

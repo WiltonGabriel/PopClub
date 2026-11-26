@@ -35,6 +35,7 @@ import {
   storeSettingsService,
   BusinessHourDay,
 } from "@/services/storeSettingsService";
+import { formatBusinessHoursSummary } from "@/lib/storeSchedule";
 import {
   courierService,
   Courier,
@@ -125,7 +126,7 @@ export function LogisticsAndCouriersSection() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmInputText, setConfirmInputText] = useState("");
   const confirmInputRef = useRef<HTMLInputElement | null>(null);
-  const [isStructuralExpanded, setIsStructuralExpanded] = useState(false);
+  const [isStructuralExpanded, setIsStructuralExpanded] = useState(true);
   const [courierToDelete, setCourierToDelete] = useState<Courier | null>(null);
   const [deletingCourier, setDeletingCourier] = useState(false);
 
@@ -179,6 +180,19 @@ export function LogisticsAndCouriersSection() {
         setLoadingCouriers(false);
       });
   }, [showToast]);
+
+  useEffect(() => {
+    if (loading || typeof window === "undefined") return;
+    const hashId = window.location.hash.replace(/^#/, "");
+    if (!hashId) return;
+    if (["operacao-loja", "horarios-funcionamento", "sede-localizacao"].includes(hashId)) {
+      setIsStructuralExpanded(true);
+      const timer = setTimeout(() => {
+        document.getElementById(hashId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 120);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
 
   // Busca de Endereço via Geocode
   const handleSearchStoreAddress = async (e?: React.FormEvent) => {
@@ -360,6 +374,7 @@ export function LogisticsAndCouriersSection() {
         storeLongitude,
         storeAddress,
         businessHours,
+        openingHoursText: formatBusinessHoursSummary(businessHours),
       });
 
       setIsConfirmModalOpen(false);
@@ -543,9 +558,12 @@ export function LogisticsAndCouriersSection() {
   return (
     <div className="flex flex-col gap-8 animate-in fade-in duration-150">
       {/* ─────────────────────────────────────────────────────────────
-          BLOCO 1 (ESTRUTURAL / RETRÁTIL): OPERAÇÃO DA LOJA (SEDE, HORÁRIOS & REGRAS DE FRETE)
+          BLOCO 1: OPERAÇÃO DA LOJA (SEDE, HORÁRIOS & REGRAS DE FRETE)
       ───────────────────────────────────────────────────────────── */}
-      <section className="order-2 bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
+      <section
+        id="operacao-loja"
+        className="scroll-mt-24 bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6"
+      >
         {/* Cabeçalho com Toggle Retrátil */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-zinc-800">
           <div>
@@ -779,7 +797,10 @@ export function LogisticsAndCouriersSection() {
           </div>
 
           {/* Horários e Dias da Semana de Funcionamento */}
-          <div className="bg-zinc-50/70 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 sm:p-6 space-y-5">
+          <div
+            id="horarios-funcionamento"
+            className="scroll-mt-24 bg-zinc-50/70 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 sm:p-6 space-y-5"
+          >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-200/60 dark:border-zinc-800">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
@@ -791,6 +812,10 @@ export function LogisticsAndCouriersSection() {
                   </h4>
                   <p className="text-xs text-muted-foreground">
                     Defina os horários de abertura e fechamento para cada dia, ou marque dias de folga/fechado.
+                  </p>
+                  <p className="text-[11px] font-medium text-primary dark:text-violet-300 mt-1">
+                    Prévia automática no rodapé:{" "}
+                    <span className="font-semibold">{formatBusinessHoursSummary(businessHours)}</span>
                   </p>
                 </div>
               </div>
@@ -863,7 +888,10 @@ export function LogisticsAndCouriersSection() {
           </div>
 
           {/* Sede Física e Ponto Geográfico (Leaflet Map) */}
-          <div className="bg-zinc-50/70 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 sm:p-6 space-y-5">
+          <div
+            id="sede-localizacao"
+            className="scroll-mt-24 bg-zinc-50/70 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 sm:p-6 space-y-5"
+          >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-200/60 dark:border-zinc-800">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary dark:text-violet-400 flex items-center justify-center font-bold">
@@ -1059,9 +1087,9 @@ export function LogisticsAndCouriersSection() {
       </section>
 
       {/* ─────────────────────────────────────────────────────────────
-          BLOCO 2 (PRIORIDADE DIÁRIA NO TOPO): FROTA & ENTREGADORES (MOTOBOYS)
+          BLOCO 2: FROTA & ENTREGADORES (MOTOBOYS)
       ───────────────────────────────────────────────────────────── */}
-      <section className="order-1 bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
+      <section className="bg-white dark:bg-[#181D2D] border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-zinc-800">
           <div>
             <div className="flex items-center gap-2.5">

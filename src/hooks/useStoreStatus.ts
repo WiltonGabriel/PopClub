@@ -14,6 +14,7 @@ export interface UseStoreStatusReturn {
   message: string;
   estimatedDeliveryTime: string;
   businessHours: BusinessHourDay[];
+  currentDaySchedule: BusinessHourDay | null;
   loading: boolean;
   refresh: () => Promise<void>;
   toggleConveyor: (targetState?: boolean) => Promise<boolean>;
@@ -109,6 +110,7 @@ export function useStoreStatus(pollingIntervalMs: number = 20000): UseStoreStatu
     message: statusData.message,
     estimatedDeliveryTime,
     businessHours,
+    currentDaySchedule: statusData.currentDaySchedule,
     loading,
     refresh: fetchStatus,
     toggleConveyor,
